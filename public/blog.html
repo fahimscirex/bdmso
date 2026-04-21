@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>News &amp; Announcements — BdMSO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css" />
+<style>
+.page-head { background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-page-dark) 100%); color: white; padding: 80px 0 100px; position: relative; overflow: hidden; }
+.page-head::before { content:""; position:absolute; inset:0; background: radial-gradient(600px 300px at 50% 100%, var(--glow-gold-sm), transparent 60%); }
+.page-head .eyebrow { background: var(--navy-surface-dk); color: var(--gold-on-dark); border-color: var(--navy-border-dk); margin-bottom: 18px; }
+.page-head h1 { color: white; margin: 0 0 12px; }
+.page-head p { color: var(--on-dark-2); max-width: 640px; margin: 0; font-size: 1.05rem; }
+
+.wrap { margin-top: -56px; position: relative; z-index: 2; padding-bottom: 96px; }
+
+.cats { display: flex; gap: 6px; padding: 10px; background: white; border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow-sm); margin-bottom: 28px; overflow-x: auto; max-width: 100%; }
+.cats button { padding: 9px 16px; font-weight: 600; font-size: 14px; color: var(--ink-2); border-radius: 10px; white-space: nowrap; flex-shrink: 0; }
+.cats button.active { background: var(--navy-900); color: white; }
+
+.feature {
+  background: white; border: 1px solid var(--line); border-radius: var(--r-xl); overflow: hidden;
+  display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 32px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.feature:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.feature .cover { position: relative; aspect-ratio: 16/10; }
+.feature .cover .ph { position: absolute; inset: 0; border: none; border-radius: 0; }
+.feature .body { padding: 40px; display: flex; flex-direction: column; gap: 14px; justify-content: center; }
+.feature .meta { display: flex; gap: 12px; font-size: 12px; color: var(--ink-3); }
+.feature .cat { font-weight: 700; color: var(--navy-700); text-transform: uppercase; letter-spacing: 0.1em; }
+.feature h2 { font-size: 1.8rem; line-height: 1.15; }
+@media (max-width: 900px) { .feature { grid-template-columns: 1fr; } .feature .body { padding: 28px; } }
+
+.posts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+@media (max-width: 900px) { .posts { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .posts { grid-template-columns: 1fr; } }
+.post {
+  background: white; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden;
+  display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s;
+}
+.post:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.post .cover { aspect-ratio: 16/10; position: relative; }
+.post .cover .ph { position: absolute; inset: 0; border: none; border-radius: 0; }
+.post .body { padding: 22px; display: flex; flex-direction: column; gap: 10px; flex-grow: 1; }
+.post .meta { display: flex; gap: 10px; font-size: 12px; color: var(--ink-3); }
+.post .cat { font-weight: 700; color: var(--navy-700); text-transform: uppercase; letter-spacing: 0.1em; }
+.post h3 { font-size: 1.1rem; line-height: 1.3; }
+.post p { font-size: 13.5px; color: var(--ink-3); margin: 0; }
+.post .read { font-size: 13px; font-weight: 600; color: var(--navy-800); margin-top: auto; padding-top: 10px; }
+
+.pagination { display: flex; justify-content: center; gap: 6px; margin-top: 48px; }
+.pagination button { width: 38px; height: 38px; border-radius: 10px; font-weight: 600; color: var(--ink-2); border: 1px solid var(--line); background: white; }
+.pagination button.active { background: var(--navy-900); color: white; border-color: var(--navy-900); }
+</style>
+</head>
+<body data-page="blog">
+<div id="site-header"></div>
+<main>
+<section class="page-head"><div class="container">
+  <span class="eyebrow">News &amp; Announcements</span>
+  <h1>What's happening at BdMSO.</h1>
+  <p>Deadlines, venues, press releases, and camp updates — straight from the BdMSO editorial desk.</p>
+</div></section>
+
+<section class="container wrap">
+  <div class="cats">
+    <button class="active">All</button><button>Deadlines</button><button>Venues</button><button>Press</button><button>Camp Updates</button>
+  </div>
+
+  <article class="feature">
+    <div class="cover"><div class="ph">[ Feature image · Registration opens ]</div></div>
+    <div class="body">
+      <div class="meta"><span class="cat">Deadlines</span><span>April 10, 2026</span><span>· 4 min read</span></div>
+      <h2>Registration for BdMSO 2026 National Qualifying Round is now open.</h2>
+      <p>Students of Class 3 to 6 from schools across Bangladesh can register through the official portal. The registration window closes on May 15, 2026 — here's everything you need to prepare before the deadline.</p>
+      <a class="btn btn-ghost" href="#" style="align-self:flex-start;">Read more</a>
+    </div>
+  </article>
+
+  <div class="posts">
+    <article class="post">
+      <div class="cover"><div class="ph ph-gold">[ Camp highlight ]</div></div>
+      <div class="body">
+        <div class="meta"><span class="cat">Camp</span><span>Mar 28, 2026</span></div>
+        <h3>National Residential Camp dates announced for April 2026.</h3>
+        <p>Qualified students will gather at a purpose-built venue in Gazipur for five days of intensive training.</p>
+        <span class="read">Read →</span>
+      </div>
+    </article>
+    <article class="post">
+      <div class="cover"><div class="ph ph-navy">[ Press photo ]</div></div>
+      <div class="body">
+        <div class="meta"><span class="cat">Press</span><span>Mar 15, 2026</span></div>
+        <h3>BdMSO partners with SPSB for the 2026 Winter STEM Exchange.</h3>
+        <p>A new international exchange program opens up for students who reached the TST level.</p>
+        <span class="read">Read →</span>
+      </div>
+    </article>
+    <article class="post">
+      <div class="cover"><div class="ph">[ Venue photo ]</div></div>
+      <div class="body">
+        <div class="meta"><span class="cat">Venues</span><span>Feb 20, 2026</span></div>
+        <h3>7 regional centres added for the National Qualifying Round.</h3>
+        <p>We've expanded beyond Dhaka — students in Chattogram, Sylhet and Rajshahi now have hometown venues.</p>
+        <span class="read">Read →</span>
+      </div>
+    </article>
+    <article class="post">
+      <div class="cover"><div class="ph ph-gold">[ Alumni reunion ]</div></div>
+      <div class="body">
+        <div class="meta"><span class="cat">Community</span><span>Feb 12, 2026</span></div>
+        <h3>Alumni reunion brings together eight years of BdMSO delegations.</h3>
+        <p>Over 80 alumni gathered in Dhaka to share memories, career updates, and mentorship stories.</p>
+        <span class="read">Read →</span>
+      </div>
+    </article>
+    <article class="post">
+      <div class="cover"><div class="ph">[ IMSO trophy ]</div></div>
+      <div class="body">
+        <div class="meta"><span class="cat">Press</span><span>Jan 30, 2026</span></div>
+        <h3>Looking back at IMSO Malaysia 2025: 12 medals, zero misses.</h3>
+        <p>A full-delegation medal run — one of our proudest international outings to date.</p>
+        <span class="read">Read →</span>
+      </div>
+    </article>
+    <article class="post">
+      <div class="cover"><div class="ph ph-navy">[ Classroom ]</div></div>
+      <div class="body">
+        <div class="meta"><span class="cat">Deadlines</span><span>Jan 15, 2026</span></div>
+        <h3>Preparation bootcamps scheduled across 5 cities in February.</h3>
+        <p>Three-day intensive bootcamps for prospective BdMSO students — limited seats.</p>
+        <span class="read">Read →</span>
+      </div>
+    </article>
+  </div>
+
+  <div class="pagination">
+    <button>‹</button>
+    <button class="active">1</button>
+    <button>2</button>
+    <button>3</button>
+    <button>›</button>
+  </div>
+</section>
+</main>
+<div id="site-footer"></div>
+<script src="js/site.js"></script>
+<script>
+document.querySelectorAll('.cats button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.cats button').forEach(x => x.classList.remove('active')); b.classList.add('active');
+}));
+</script>
+</body>
+</html>

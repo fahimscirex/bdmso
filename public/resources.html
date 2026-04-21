@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Preparation Hub — BdMSO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css" />
+<style>
+.page-head { background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-page-dark) 100%); color: white; padding: 80px 0 100px; position: relative; overflow: hidden; }
+.page-head::before { content:""; position:absolute; inset:0; background: radial-gradient(600px 300px at 50% 100%, var(--glow-gold-sm), transparent 60%); }
+.page-head .eyebrow { background: var(--navy-surface-dk); color: var(--gold-on-dark); border-color: var(--navy-border-dk); margin-bottom: 18px; }
+.page-head h1 { color: white; max-width: 720px; margin: 0 0 12px; }
+.page-head p { color: var(--on-dark-2); max-width: 600px; margin: 0; font-size: 1.05rem; }
+
+.res-wrap { margin-top: -56px; position: relative; z-index: 2; display: grid; grid-template-columns: 260px 1fr; gap: 36px; padding-bottom: 96px; }
+@media (max-width: 900px) { .res-wrap { grid-template-columns: 1fr; } }
+.res-nav { background: white; border: 1px solid var(--line); border-radius: var(--r-lg); padding: 20px; height: fit-content; position: sticky; top: 90px; }
+.res-nav h4 { font-family: var(--font-sans); font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); margin-bottom: 12px; }
+.res-nav ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 2px; }
+.res-nav a { padding: 9px 12px; border-radius: 8px; font-size: 14px; font-weight: 500; color: var(--ink-2); display: block; }
+.res-nav a:hover, .res-nav a.active { background: var(--navy-50); color: var(--navy-800); }
+
+.res-body { display: flex; flex-direction: column; gap: 40px; }
+.panel { background: white; border: 1px solid var(--line); border-radius: var(--r-lg); padding: 32px; }
+.panel h2 { font-size: 1.8rem; margin-bottom: 10px; }
+.panel .summary-head { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 20px; }
+
+.dl-pill {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 10px 16px; border-radius: 10px;
+  background: var(--navy-900); color: white; font-weight: 600; font-size: 14px;
+  transition: background 0.2s;
+}
+.dl-pill:hover { background: var(--navy-700); }
+.dl-pill .size { font-family: var(--font-mono); font-size: 11px; opacity: 0.7; }
+
+.topic-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.topic { padding: 18px; border: 1px solid var(--line); border-radius: var(--r); background: var(--bg); }
+.topic h4 { margin-bottom: 8px; font-family: var(--font-sans); font-size: 1rem; }
+.topic ul { margin: 0; padding-left: 18px; font-size: 14px; color: var(--ink-2); line-height: 1.7; }
+@media (max-width: 640px) { .topic-grid { grid-template-columns: 1fr; } }
+
+.marks-table {
+  width: 100%; border-collapse: collapse; border: 1px solid var(--line);
+  border-radius: var(--r); overflow: hidden;
+}
+.marks-table th { background: var(--navy-50); text-align: left; padding: 12px 16px; font-size: 13px; color: var(--navy-900); font-weight: 700; }
+.marks-table td { padding: 12px 16px; border-top: 1px solid var(--line-2); font-size: 14px; color: var(--ink-2); }
+.marks-table td.num { font-family: var(--font-mono); font-weight: 600; color: var(--navy-900); }
+
+.archive { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+@media (max-width: 640px) { .archive { grid-template-columns: 1fr 1fr; } }
+.year-card { border: 1px solid var(--line); border-radius: var(--r); padding: 16px; background: white; transition: border-color 0.2s, transform 0.2s; display: flex; flex-direction: column; gap: 8px; }
+.year-card:hover { border-color: var(--navy-600); transform: translateY(-2px); }
+.year-card .yr { font-family: var(--font-display); font-size: 1.6rem; color: var(--navy-900); font-weight: 700; line-height: 1; }
+.year-card .links { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; font-size: 13px; }
+.year-card .links a { color: var(--navy-700); font-weight: 500; }
+.year-card .links a:hover { text-decoration: underline; }
+
+.guide-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.guide-item { padding: 20px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); }
+.guide-item h4 { font-family: var(--font-sans); font-size: 1rem; margin-bottom: 6px; color: var(--navy-900); }
+.guide-item p { font-size: 14px; margin: 0; }
+@media (max-width: 700px) { .guide-grid { grid-template-columns: 1fr; } }
+
+.faq { display: grid; gap: 10px; }
+.faq details { border: 1px solid var(--line); border-radius: var(--r); padding: 16px 20px; background: white; }
+.faq summary { cursor: pointer; font-weight: 600; color: var(--navy-900); font-size: 15px; list-style: none; display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.faq summary::after { content: "+"; font-size: 22px; color: var(--ink-3); transition: transform 0.2s; }
+.faq details[open] summary::after { transform: rotate(45deg); }
+.faq details p { margin: 12px 0 0; font-size: 14px; }
+</style>
+</head>
+<body data-page="resources">
+<div id="site-header"></div>
+<main>
+<section class="page-head"><div class="container">
+  <span class="eyebrow">Preparation Hub</span>
+  <h1>Everything you need to prepare for BdMSO.</h1>
+  <p>Syllabus, regulations, mark distribution, past papers, and guidance for parents — all in one place.</p>
+</div></section>
+
+<section class="container res-wrap">
+  <aside class="res-nav">
+    <h4>On this page</h4>
+    <ul>
+      <li><a href="#syllabus" class="active">Syllabus</a></li>
+      <li><a href="#regulations">Regulations</a></li>
+      <li><a href="#marks">Mark Distribution</a></li>
+      <li><a href="#papers">Previous Year Questions</a></li>
+      <li><a href="#parents">Guide for Parents</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ul>
+  </aside>
+
+  <div class="res-body">
+    <div class="panel" id="syllabus">
+      <div class="summary-head">
+        <div><span class="eyebrow">01</span><h2 style="margin-top:12px;">Syllabus</h2><p style="margin:0;">A short summary of the math and science topics covered at the National Round and TST.</p></div>
+        <a class="dl-pill" href="#">⬇ Syllabus.pdf <span class="size">1.8 MB</span></a>
+      </div>
+      <div class="topic-grid">
+        <div class="topic">
+          <h4>📐 Mathematics</h4>
+          <ul>
+            <li>Number theory, place value, factors &amp; multiples</li>
+            <li>Fractions, decimals, ratios and percentages</li>
+            <li>Geometry — shapes, symmetry, area &amp; perimeter</li>
+            <li>Algebraic reasoning &amp; word problems</li>
+            <li>Combinatorics &amp; basic counting</li>
+            <li>Data interpretation &amp; simple statistics</li>
+          </ul>
+        </div>
+        <div class="topic">
+          <h4>🔬 Science</h4>
+          <ul>
+            <li>Matter, states and changes</li>
+            <li>Forces, motion and simple machines</li>
+            <li>Electricity, light and sound</li>
+            <li>Life sciences — cells, plants, human body</li>
+            <li>Earth &amp; space — weather, ecosystems, planets</li>
+            <li>Experimental method and data</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="regulations">
+      <div class="summary-head">
+        <div><span class="eyebrow">02</span><h2 style="margin-top:12px;">Regulations</h2><p style="margin:0;">Official eligibility rules, exam conduct, and BdMSO code of honour.</p></div>
+        <a class="dl-pill" href="#">⬇ Regulations.pdf <span class="size">740 KB</span></a>
+      </div>
+      <ul style="padding-left:20px; line-height:1.9; color:var(--ink-2);">
+        <li>Open to students of Class 3 to 6 studying in Bangladesh (national or equivalent curriculum).</li>
+        <li>Each student may sit for one subject stream in a given cycle — Mathematics or Science.</li>
+        <li>Calculators, phones and external aids are not permitted in the National Round or TST.</li>
+        <li>The Top 15 TST finalists receive portal notifications; declining students are replaced from the next eligible.</li>
+        <li>The final IMSO delegation is confirmed after logistics and airfare are settled.</li>
+      </ul>
+    </div>
+
+    <div class="panel" id="marks">
+      <div class="summary-head"><div><span class="eyebrow">03</span><h2 style="margin-top:12px;">Mark Distribution &amp; Question Pattern</h2><p style="margin:0;">How marks are allocated for the National Qualifying Round versus the TST.</p></div></div>
+      <table class="marks-table">
+        <thead><tr><th>Section</th><th>National Round</th><th>Team Selection Test</th><th>Time</th></tr></thead>
+        <tbody>
+          <tr><td>Multiple Choice</td><td class="num">20 × 2 = 40</td><td class="num">—</td><td>45 min</td></tr>
+          <tr><td>Short Answer</td><td class="num">10 × 4 = 40</td><td class="num">12 × 5 = 60</td><td>60 min</td></tr>
+          <tr><td>Problem Solving</td><td class="num">2 × 10 = 20</td><td class="num">4 × 10 = 40</td><td>75 min</td></tr>
+          <tr><td>Exploration (TST only)</td><td class="num">—</td><td class="num">1 × 25 = 25</td><td>45 min</td></tr>
+          <tr><td><strong>Total</strong></td><td class="num"><strong>100</strong></td><td class="num"><strong>125</strong></td><td><strong>—</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel" id="papers">
+      <div class="summary-head"><div><span class="eyebrow">04</span><h2 style="margin-top:12px;">Previous Year Questions</h2><p style="margin:0;">Year-wise archive of both BdMSO and IMSO official papers.</p></div></div>
+      <div class="archive">
+        <div class="year-card"><div class="yr">2025</div><div style="font-size:13px; color:var(--ink-3);">National · TST · IMSO</div><div class="links"><a href="#">⬇ BdMSO Math</a><a href="#">⬇ BdMSO Science</a><a href="#">⬇ IMSO '25</a></div></div>
+        <div class="year-card"><div class="yr">2024</div><div style="font-size:13px; color:var(--ink-3);">National · TST · IMSO</div><div class="links"><a href="#">⬇ BdMSO Math</a><a href="#">⬇ BdMSO Science</a><a href="#">⬇ IMSO '24</a></div></div>
+        <div class="year-card"><div class="yr">2023</div><div style="font-size:13px; color:var(--ink-3);">National · TST · IMSO</div><div class="links"><a href="#">⬇ BdMSO Math</a><a href="#">⬇ BdMSO Science</a><a href="#">⬇ IMSO '23</a></div></div>
+        <div class="year-card"><div class="yr">2022</div><div style="font-size:13px; color:var(--ink-3);">National · TST · IMSO</div><div class="links"><a href="#">⬇ BdMSO Math</a><a href="#">⬇ BdMSO Science</a><a href="#">⬇ IMSO '22</a></div></div>
+        <div class="year-card"><div class="yr">2021</div><div style="font-size:13px; color:var(--ink-3);">National · TST · IMSO</div><div class="links"><a href="#">⬇ BdMSO Math</a><a href="#">⬇ BdMSO Science</a><a href="#">⬇ IMSO '21</a></div></div>
+        <div class="year-card"><div class="yr">2020</div><div style="font-size:13px; color:var(--ink-3);">Archive</div><div class="links"><a href="#">⬇ Archive pack</a></div></div>
+      </div>
+    </div>
+
+    <div class="panel" id="parents">
+      <div class="summary-head"><div><span class="eyebrow">05</span><h2 style="margin-top:12px;">Guide for Parents</h2><p style="margin:0;">What you need to know before your child begins.</p></div></div>
+      <div class="guide-grid">
+        <div class="guide-item"><h4>What is BdMSO?</h4><p>The official qualifying olympiad to select primary-school students to represent Bangladesh at IMSO — the International Math &amp; Science Olympiad.</p></div>
+        <div class="guide-item"><h4>Time commitment</h4><p>Plan for 2–4 hours per week during prep, plus the residential camps. Camps span 5–14 days and are fully supervised.</p></div>
+        <div class="guide-item"><h4>Selection process</h4><p>Register → Qualifying Round → Residential Camp → TST → Preparatory Camp → International delegation. See the <a href="index.html#road" style="color:var(--navy-700); text-decoration:underline;">Road to IMSO</a>.</p></div>
+      </div>
+    </div>
+
+    <div class="panel" id="faq">
+      <div class="summary-head"><div><span class="eyebrow">06</span><h2 style="margin-top:12px;">Frequently Asked Questions</h2></div></div>
+      <div class="faq">
+        <details open><summary>Who is eligible to participate in BdMSO?</summary><p>Students of Class 3 to 6 enrolled in any school in Bangladesh. Both national and international curriculums are welcome.</p></details>
+        <details><summary>What is the registration fee?</summary><p>A nominal registration fee applies for the National Round. Fee waivers are available — please contact us via the help desk.</p></details>
+        <details><summary>Is my child too young to start?</summary><p>The Foundation Program and Lab Day Workshops are open to Class 3 and above. Start early with these if your child is new to olympiad-style thinking.</p></details>
+        <details><summary>How are final delegates selected?</summary><p>Through a transparent multi-stage process — Qualifying Round, Residential Camp performance, and Team Selection Test. Numerical scores are not published publicly.</p></details>
+        <details><summary>What language are exams conducted in?</summary><p>Bilingual (Bangla and English). Students may answer in either.</p></details>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<div id="site-footer"></div>
+<script src="js/site.js"></script>
+<script>
+// active section highlight
+const links = document.querySelectorAll('.res-nav a');
+const sections = [...links].map(a => document.getElementById(a.getAttribute('href').slice(1)));
+function onScroll() {
+  const y = window.scrollY + 120;
+  let active = 0;
+  sections.forEach((s, i) => { if (s && s.offsetTop <= y) active = i; });
+  links.forEach((l, i) => l.classList.toggle('active', i === active));
+}
+document.addEventListener('scroll', onScroll, { passive: true });
+</script>
+</body>
+</html>

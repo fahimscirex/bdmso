@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Media — BdMSO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css" />
+<style>
+.page-head { background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-page-dark) 100%); color: white; padding: 80px 0 100px; position: relative; overflow: hidden; }
+.page-head::before { content:""; position:absolute; inset:0; background: radial-gradient(600px 300px at 50% 100%, var(--glow-gold-sm), transparent 60%); }
+.page-head .eyebrow { background: var(--navy-surface-dk); color: var(--gold-on-dark); border-color: var(--navy-border-dk); margin-bottom: 18px; }
+.page-head h1 { color: white; margin: 0 0 12px; }
+.page-head p { color: var(--on-dark-2); max-width: 640px; margin: 0; font-size: 1.05rem; }
+
+.wrap { margin-top: -56px; position: relative; z-index: 2; padding-bottom: 96px; display: flex; flex-direction: column; gap: 48px; }
+
+.block h2 { margin-bottom: 8px; }
+.block .lede { margin-bottom: 28px; color: var(--ink-2); max-width: 600px; }
+
+.online-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+@media (max-width: 900px) { .online-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .online-grid { grid-template-columns: 1fr; } }
+.article-card {
+  background: white; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden;
+  display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s;
+}
+.article-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.article-card .cover { aspect-ratio: 16/10; position: relative; }
+.article-card .cover .ph { position: absolute; inset: 0; border-radius: 0; border: none; }
+.article-card .body { padding: 20px 22px 22px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1; }
+.outlet { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--navy-700); }
+.article-card h3 { font-size: 1.1rem; line-height: 1.3; margin: 0; }
+.article-card .date { font-size: 12px; color: var(--ink-3); font-family: var(--font-mono); }
+.article-card .link { margin-top: auto; padding-top: 10px; font-size: 13.5px; font-weight: 600; color: var(--navy-800); display: inline-flex; gap: 6px; align-items: center; }
+.article-card .link::after { content: "↗"; }
+
+.clippings { display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 220px; gap: 14px; }
+.clippings .ph { border-radius: var(--r); font-size: 11px; }
+.clippings .ph:nth-child(1) { grid-column: span 2; grid-row: span 2; }
+.clippings .ph:nth-child(4) { grid-column: span 2; }
+@media (max-width: 700px) { .clippings { grid-template-columns: 1fr 1fr; } .clippings .ph:nth-child(1), .clippings .ph:nth-child(4) { grid-column: span 2; } .clippings .ph:nth-child(1) { grid-row: auto; } }
+</style>
+</head>
+<body data-page="media">
+<div id="site-header"></div>
+<main>
+<section class="page-head"><div class="container">
+  <span class="eyebrow">Media &amp; Press</span>
+  <h1>BdMSO in the news.</h1>
+  <p>Online coverage, newspaper clippings, TV segments, and press releases — how the country sees us.</p>
+</div></section>
+
+<section class="container wrap">
+
+  <div class="block">
+    <h2>Section 1 · Online Coverage</h2>
+    <p class="lede">Articles, interviews, and features from online publications across Bangladesh and beyond.</p>
+    <div class="online-grid">
+      <a class="article-card" href="#"><div class="cover"><div class="ph">[ Daily Star feature ]</div></div><div class="body"><span class="outlet">The Daily Star</span><h3>Bangladesh sweeps IMSO 2025 with a 12-medal run.</h3><span class="date">OCT 2025</span><span class="link">Read article</span></div></a>
+      <a class="article-card" href="#"><div class="cover"><div class="ph ph-gold">[ Prothom Alo feature ]</div></div><div class="body"><span class="outlet">Prothom Alo</span><h3>The primary-school kids taking Bangladesh to the world stage.</h3><span class="date">SEP 2025</span><span class="link">Read article</span></div></a>
+      <a class="article-card" href="#"><div class="cover"><div class="ph ph-navy">[ TBS coverage ]</div></div><div class="body"><span class="outlet">The Business Standard</span><h3>Inside the BdMSO residential camp: a week with young Olympians.</h3><span class="date">AUG 2025</span><span class="link">Read article</span></div></a>
+      <a class="article-card" href="#"><div class="cover"><div class="ph">[ Dhaka Tribune ]</div></div><div class="body"><span class="outlet">Dhaka Tribune</span><h3>How BdOSN &amp; SPSB are shaping Bangladesh's science olympiad pipeline.</h3><span class="date">JUL 2025</span><span class="link">Read article</span></div></a>
+      <a class="article-card" href="#"><div class="cover"><div class="ph ph-gold">[ BSS interview ]</div></div><div class="body"><span class="outlet">BSS</span><h3>"Every child has a scientist in them" — interview with Dr. Karim.</h3><span class="date">JUN 2025</span><span class="link">Read article</span></div></a>
+      <a class="article-card" href="#"><div class="cover"><div class="ph">[ New Age feature ]</div></div><div class="body"><span class="outlet">New Age</span><h3>Bangladesh's 12/12 medal run at IMSO Malaysia.</h3><span class="date">OCT 2025</span><span class="link">Read article</span></div></a>
+    </div>
+  </div>
+
+  <div class="block">
+    <h2>Section 2 · Newspaper Coverage</h2>
+    <p class="lede">Print clippings and full-page features from Bangladesh's major dailies.</p>
+    <div class="clippings">
+      <div class="ph">[ Full-page spread · The Daily Star ]</div>
+      <div class="ph ph-gold">[ Clipping · Prothom Alo ]</div>
+      <div class="ph ph-navy">[ Clipping · Ittefaq ]</div>
+      <div class="ph">[ Full spread · Kaler Kantho ]</div>
+      <div class="ph">[ Clipping · Samakal ]</div>
+      <div class="ph ph-gold">[ Clipping · Jugantor ]</div>
+    </div>
+  </div>
+
+</section>
+</main>
+<div id="site-footer"></div>
+<script src="js/site.js"></script>
+</body>
+</html>

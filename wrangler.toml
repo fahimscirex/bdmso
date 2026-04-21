@@ -1,0 +1,13 @@
+name = "bdmso-site"
+main = "worker/index.js"
+compatibility_date = "2026-04-21"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bdmso"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+preview_database_id = "REPLACE_WITH_YOUR_D1_PREVIEW_DATABASE_ID"
