@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hall of Excellence — BdMSO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css" />
+<style>
+.page-head { background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-page-dark) 100%); color: white; padding: 80px 0 100px; position: relative; overflow: hidden; }
+.page-head::before { content:""; position:absolute; inset:0; background: radial-gradient(600px 300px at 50% 100%, var(--glow-gold-sm), transparent 60%); }
+.page-head .eyebrow { background: var(--navy-surface-dk); color: var(--gold-on-dark); border-color: var(--navy-border-dk); margin-bottom: 18px; }
+.page-head h1 { color: white; max-width: 720px; margin: 0 0 12px; }
+.page-head p { color: var(--on-dark-2); max-width: 600px; margin: 0; font-size: 1.05rem; }
+
+.results-wrap { margin-top: -56px; position: relative; z-index: 2; padding-bottom: 96px; }
+
+.years { display: flex; gap: 6px; padding: 10px; background: white; border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow-sm); margin-bottom: 28px; overflow-x: auto; max-width: 100%; }
+.years button { padding: 9px 18px; font-weight: 600; font-size: 14px; color: var(--ink-2); border-radius: 10px; white-space: nowrap; flex-shrink: 0; }
+.years button.active { background: var(--navy-900); color: white; }
+.years button:hover:not(.active) { background: var(--navy-50); color: var(--navy-800); }
+
+.notice { background: var(--gold-100); border: 1px solid var(--notice-gold-bd); border-radius: 12px; padding: 12px 16px; margin-bottom: 28px; font-size: 13.5px; color: var(--icon-gold); display: flex; gap: 10px; align-items: flex-start; }
+
+.accordion { display: flex; flex-direction: column; gap: 14px; }
+.acc {
+  background: white; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden;
+}
+.acc summary {
+  list-style: none; cursor: pointer;
+  padding: 22px 28px;
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  transition: background 0.2s;
+}
+.acc summary:hover { background: var(--bg-alt); }
+.acc summary::-webkit-details-marker { display: none; }
+.acc .title-wrap { display: flex; flex-direction: column; gap: 4px; }
+.acc .kind { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--navy-700); }
+.acc h3 { font-size: 1.3rem; font-family: var(--font-display); margin: 0; }
+.acc .chev { font-size: 20px; color: var(--ink-3); transition: transform 0.2s; }
+.acc[open] .chev { transform: rotate(180deg); }
+.acc .body { padding: 0 28px 28px; border-top: 1px solid var(--line-2); padding-top: 24px; }
+
+.medal-block { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+@media (max-width: 900px) { .medal-block { grid-template-columns: 1fr; } }
+.medal-col h4 {
+  font-family: var(--font-sans); font-size: 13px; text-transform: uppercase; letter-spacing: 0.14em;
+  margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
+}
+.medal-col h4 .disc { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: white; font-size: 12px; font-weight: 800; }
+.medal-col.gold h4 .disc { background: var(--gold-500); color: var(--navy-900); }
+.medal-col.silver h4 .disc { background: var(--medal-silver-alt); color: var(--navy-900); }
+.medal-col.bronze h4 .disc { background: var(--medal-bronze-alt); }
+.medal-col ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.medal-col li {
+  padding: 10px 14px; background: var(--bg-alt); border-radius: 8px;
+  font-size: 14px; color: var(--navy-900); font-weight: 500;
+  display: flex; justify-content: space-between; gap: 8px;
+}
+.medal-col li .school { font-size: 12px; color: var(--ink-3); font-weight: 400; }
+
+.shortlist { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+@media (max-width: 800px) { .shortlist { grid-template-columns: 1fr; } }
+.shortlist h4 {
+  font-family: var(--font-sans); font-size: 13px; text-transform: uppercase; letter-spacing: 0.14em;
+  margin-bottom: 14px; color: var(--navy-800);
+}
+.shortlist ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; color: var(--navy-900); }
+.shortlist ol li { padding: 6px 0; border-bottom: 1px solid var(--line-2); }
+.shortlist ol li .s { color: var(--ink-3); font-size: 12px; }
+
+.logic-note {
+  padding: 16px; background: var(--navy-50); border-radius: 10px; margin-top: 20px;
+  font-size: 13.5px; color: var(--navy-800);
+}
+
+.delegation { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+@media (max-width: 900px) { .delegation { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 500px) { .delegation { grid-template-columns: 1fr; } }
+.deleg {
+  padding: 16px; background: var(--bg-alt); border-radius: var(--r); text-align: center;
+}
+.deleg .ph { aspect-ratio: 1/1; border-radius: 50%; margin-bottom: 12px; font-size: 11px; }
+.deleg .n { font-weight: 700; color: var(--navy-900); font-size: 14px; }
+.deleg .r { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+</style>
+</head>
+<body data-page="results">
+<div id="site-header"></div>
+<main>
+<section class="page-head"><div class="container">
+  <span class="eyebrow">Hall of Excellence</span>
+  <h1>BdMSO Results &amp; Rankings</h1>
+  <p>Celebrating the students, teams, and mentors who carry Bangladesh to the world stage.</p>
+</div></section>
+
+<section class="container results-wrap">
+  <div class="years" role="tablist">
+    <button class="active">2026</button><button>2025</button><button>2024</button><button>2023</button><button>2022</button><button>Archive</button>
+  </div>
+
+  <div class="notice">
+    <span>ℹ️</span>
+    <span>To protect our students, <strong>numerical scores are hidden</strong>. Medalists are listed in alphabetical order. Top 15 TST shortlist receive portal notifications directly.</span>
+  </div>
+
+  <div class="accordion">
+    <details class="acc" open>
+      <summary>
+        <div class="title-wrap"><span class="kind">Accordion 1 · National Round</span><h3>National Round Results · 2026</h3></div>
+        <span class="chev">⌄</span>
+      </summary>
+      <div class="body">
+        <div class="medal-block">
+          <div class="medal-col gold"><h4><span class="disc">G</span>Gold Medal</h4>
+            <ul>
+              <li>Arif Hossain <span class="school">BAF Shaheen · 6</span></li>
+              <li>Ayesha Siddika <span class="school">VNSC · 5</span></li>
+              <li>Farhan Kabir <span class="school">Mastermind · 6</span></li>
+              <li>Nayeem Rahman <span class="school">Scholastica · 4</span></li>
+              <li>Sadia Islam <span class="school">VNSC · 6</span></li>
+              <li>Tahmid Khan <span class="school">Willes Little · 5</span></li>
+            </ul>
+          </div>
+          <div class="medal-col silver"><h4><span class="disc">S</span>Silver Medal</h4>
+            <ul>
+              <li>Anika Jahan <span class="school">Holy Cross · 5</span></li>
+              <li>Mubasshir Alam <span class="school">St Joseph · 6</span></li>
+              <li>Rafid Chowdhury <span class="school">Maple Leaf · 6</span></li>
+              <li>Sanjida Akter <span class="school">VNSC · 4</span></li>
+              <li>Tasneem Islam <span class="school">VNSC · 5</span></li>
+              <li>Zayan Ahmed <span class="school">Sunbeams · 6</span></li>
+            </ul>
+          </div>
+          <div class="medal-col bronze"><h4><span class="disc">B</span>Bronze Medal</h4>
+            <ul>
+              <li>Ayan Mahmud <span class="school">Sunbeams · 5</span></li>
+              <li>Ishika Das <span class="school">Holy Cross · 4</span></li>
+              <li>Mir Sakib <span class="school">Scholastica · 6</span></li>
+              <li>Raisa Hossain <span class="school">VNSC · 4</span></li>
+              <li>Tausif Chowdhury <span class="school">St Joseph · 5</span></li>
+              <li>Zara Rahman <span class="school">Maple Leaf · 6</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="acc">
+      <summary><div class="title-wrap"><span class="kind">Accordion 2 · Team Selection Test</span><h3>TST Shortlist · Top 15 · 2026</h3></div><span class="chev">⌄</span></summary>
+      <div class="body">
+        <div class="shortlist">
+          <div>
+            <h4>Mathematics · Top 15 (alphabetical)</h4>
+            <ol>
+              <li>Arif Hossain <span class="s">· Class 6</span></li>
+              <li>Ayesha Siddika <span class="s">· Class 5</span></li>
+              <li>Farhan Kabir <span class="s">· Class 6</span></li>
+              <li>Mubasshir Alam <span class="s">· Class 6</span></li>
+              <li>Nayeem Rahman <span class="s">· Class 4</span></li>
+              <li>Rafid Chowdhury <span class="s">· Class 6</span></li>
+              <li>Sadia Islam <span class="s">· Class 6</span></li>
+              <li>Tahmid Khan <span class="s">· Class 5</span></li>
+              <li>…and 7 more shortlisted privately</li>
+            </ol>
+          </div>
+          <div>
+            <h4>Science · Top 15 (alphabetical)</h4>
+            <ol>
+              <li>Anika Jahan <span class="s">· Class 5</span></li>
+              <li>Ayan Mahmud <span class="s">· Class 5</span></li>
+              <li>Ishika Das <span class="s">· Class 4</span></li>
+              <li>Mir Sakib <span class="s">· Class 6</span></li>
+              <li>Raisa Hossain <span class="s">· Class 4</span></li>
+              <li>Sanjida Akter <span class="s">· Class 4</span></li>
+              <li>Tasneem Islam <span class="s">· Class 5</span></li>
+              <li>Zayan Ahmed <span class="s">· Class 6</span></li>
+              <li>…and 7 more shortlisted privately</li>
+            </ol>
+          </div>
+        </div>
+        <div class="logic-note">
+          <strong>How the top 6 is chosen:</strong> Only the top 6 per subject are invited to the final delegation. If a shortlisted student declines, the next eligible name is automatically promoted from the internal ranking — no public reshuffle.
+        </div>
+      </div>
+    </details>
+
+    <details class="acc">
+      <summary><div class="title-wrap"><span class="kind">Accordion 3 · Final Delegation</span><h3>IMSO 2026 Delegation · Indonesia</h3></div><span class="chev">⌄</span></summary>
+      <div class="body">
+        <p style="font-size:14px; color:var(--ink-3); margin-bottom:16px;">Published once airfare and logistics are fully confirmed.</p>
+        <div class="delegation">
+          <div class="deleg"><div class="ph ph-gold"></div><div class="n">Arif Hossain</div><div class="r">Math · Class 6</div></div>
+          <div class="deleg"><div class="ph"></div><div class="n">Ayesha Siddika</div><div class="r">Math · Class 5</div></div>
+          <div class="deleg"><div class="ph ph-navy"></div><div class="n">Farhan Kabir</div><div class="r">Math · Class 6</div></div>
+          <div class="deleg"><div class="ph"></div><div class="n">Mubasshir Alam</div><div class="r">Math · Class 6</div></div>
+          <div class="deleg"><div class="ph ph-gold"></div><div class="n">Nayeem Rahman</div><div class="r">Math · Class 4</div></div>
+          <div class="deleg"><div class="ph"></div><div class="n">Sadia Islam</div><div class="r">Math · Class 6</div></div>
+          <div class="deleg"><div class="ph"></div><div class="n">Anika Jahan</div><div class="r">Science · Class 5</div></div>
+          <div class="deleg"><div class="ph ph-navy"></div><div class="n">Ishika Das</div><div class="r">Science · Class 4</div></div>
+          <div class="deleg"><div class="ph"></div><div class="n">Mir Sakib</div><div class="r">Science · Class 6</div></div>
+          <div class="deleg"><div class="ph ph-gold"></div><div class="n">Sanjida Akter</div><div class="r">Science · Class 4</div></div>
+          <div class="deleg"><div class="ph"></div><div class="n">Tasneem Islam</div><div class="r">Science · Class 5</div></div>
+          <div class="deleg"><div class="ph ph-navy"></div><div class="n">Zayan Ahmed</div><div class="r">Science · Class 6</div></div>
+        </div>
+      </div>
+    </details>
+  </div>
+</section>
+</main>
+<div id="site-footer"></div>
+<script src="js/site.js"></script>
+<script>
+document.querySelectorAll('.years button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.years button').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+}));
+</script>
+</body>
+</html>

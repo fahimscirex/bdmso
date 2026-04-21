@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BdMSO — Bangladesh Mathematics &amp; Science Olympiad</title>
+<meta name="description" content="Official qualifying platform to select primary school students (Class 3–6) to represent Bangladesh at the International Mathematics and Science Olympiad (IMSO)." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css" />
+<style>
+/* ---------- Home-specific ---------- */
+
+/* HERO */
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: 72px 0 88px;
+  background:
+    radial-gradient(1100px 520px at 85% 10%, var(--glow-gold-hero), transparent 60%),
+    radial-gradient(800px 500px at 5% 100%, var(--glow-teal-hero), transparent 60%),
+    linear-gradient(180deg, oklch(0.98 0.01 250), oklch(0.96 0.015 245));
+}
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 64px;
+  align-items: center;
+}
+.hero-copy .eyebrow { margin-bottom: 28px; }
+.hero h1 {
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  line-height: 1.08;
+  margin-bottom: 28px;
+  text-wrap: balance;
+}
+.hero h1 .accent {
+  background: linear-gradient(100deg, var(--navy-800) 0%, var(--teal-600) 60%, var(--gold-600) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hero-sub {
+  font-size: 1.15rem;
+  color: var(--ink-2);
+  margin-bottom: 32px;
+  max-width: 560px;
+}
+.hero-facts {
+  display: flex; flex-direction: column; gap: 10px;
+  margin: 22px 0 30px;
+}
+.hero-facts li {
+  display: flex; gap: 10px; align-items: flex-start;
+  color: var(--ink-2);
+  font-size: 14.5px;
+}
+.hero-facts li::before {
+  content: ""; margin-top: 7px; flex-shrink: 0;
+  width: 6px; height: 6px; border-radius: 50%; background: var(--gold-500);
+  box-shadow: 0 0 0 4px var(--glow-gold);
+}
+.hero-cta { display: flex; gap: 12px; flex-wrap: wrap; }
+
+.hero-visual {
+  position: relative;
+  width: 70%;
+  max-width: 420px;
+  justify-self: end;
+  aspect-ratio: 4/5;
+  border-radius: var(--r-xl);
+  overflow: visible;
+}
+.hero-visual img {
+  position: absolute; inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-lg);
+}
+.hero-badge {
+  position: absolute;
+  background: white;
+  border-radius: 18px;
+  padding: 16px 20px;
+  box-shadow: var(--shadow-lg);
+  display: flex; align-items: center; gap: 14px;
+  border: 1px solid var(--line-2);
+}
+.hero-badge .num {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--navy-900);
+  line-height: 1;
+}
+.hero-badge .lbl { font-size: 12px; color: var(--ink-3); line-height: 1.3; max-width: 120px; }
+.hero-badge.top { top: -22px; left: -28px; }
+.hero-badge.bot { bottom: -22px; right: -28px; background: var(--navy-900); color: white; border: none; }
+.hero-badge.bot .num { color: var(--gold-500); }
+.hero-badge.bot .lbl { color: var(--on-dark-3); }
+
+@media (max-width: 900px) {
+  .hero-grid { grid-template-columns: 1fr; gap: 48px; }
+  .hero-copy {
+    order: 1;
+    text-align: center;
+  }
+  .hero-sub,
+  .hero-facts {
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .hero-cta {
+    justify-content: center;
+  }
+  .hero-visual {
+    order: 2;
+    width: min(100%, 360px);
+    max-width: 360px;
+    justify-self: center;
+    margin: 0 auto 8px;
+  }
+  .hero-badge.top { left: 0; }
+  .hero-badge.bot { right: 0; }
+}
+@media (max-width: 520px) {
+  .hero {
+    padding: 40px 0 64px;
+  }
+  .hero-grid {
+    gap: 28px;
+  }
+  .hero h1 {
+    font-size: clamp(2rem, 9vw, 2.8rem);
+  }
+  .hero-sub {
+    font-size: 1rem;
+  }
+  .hero-facts {
+    gap: 14px;
+    max-width: 320px;
+    margin: 18px auto 26px;
+  }
+  .hero-facts li {
+    display: grid;
+    grid-template-columns: 14px 1fr;
+    gap: 12px;
+    align-items: start;
+    text-align: left;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .hero-facts li::before {
+    margin-top: 8px;
+  }
+  .hero-cta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+  .hero-cta .btn {
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 14px;
+  }
+  .hero-cta .btn:nth-child(3) {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+  .hero-visual {
+    width: min(100%, 280px);
+    max-width: 280px;
+    margin-top: 6px;
+  }
+  .hero-badge {
+    width: 184px;
+    min-height: 64px;
+    padding: 12px 14px;
+    gap: 10px;
+  }
+  .hero-badge .num { font-size: 22px; }
+  .hero-badge .lbl {
+    font-size: 11px;
+    max-width: none;
+  }
+  .hero-badge.top {
+    top: -14px;
+  }
+  .hero-badge.bot {
+    bottom: -14px;
+  }
+}
+
+/* TRUST BAR */
+.trust-bar {
+  background: var(--navy-900);
+  color: white;
+  padding: 40px 0;
+  position: relative;
+}
+.trust-bar::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: radial-gradient(600px 200px at 85% 50%, var(--glow-gold), transparent 60%);
+  pointer-events: none;
+}
+.trust-head { text-align: center; font-size: 13px; text-transform: uppercase; letter-spacing: 0.2em; color: var(--gold-on-dark-2); margin-bottom: 24px; font-weight: 600; }
+.trust-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; position: relative; }
+.trust-item {
+  text-align: center;
+  padding: 18px 12px;
+  border-left: 1px solid var(--navy-border-dk);
+}
+.trust-item:first-child { border-left: none; }
+.trust-item .big {
+  font-family: var(--font-display);
+  font-size: clamp(1.7rem, 2.6vw, 2.4rem);
+  font-weight: 700;
+  color: white;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.trust-item .big .unit { color: var(--gold-500); }
+.trust-item .lbl { font-size: 13px; color: var(--on-dark-2); }
+@media (max-width: 900px) {
+  .trust-grid { grid-template-columns: repeat(2, 1fr); }
+  .trust-item { border-left: none; border-top: 1px solid var(--navy-border-dk); padding-top: 18px; }
+  .trust-item:first-child, .trust-item:nth-child(2) { border-top: none; padding-top: 0; }
+}
+
+/* ABOUT */
+.about-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 56px;
+  align-items: center;
+}
+.about-img { aspect-ratio: 4/3; border-radius: var(--r-lg); overflow: hidden; position: relative; }
+.about-img .ph { position: absolute; inset: 0; border-radius: var(--r-lg); font-size: 13px; }
+.about-img .tag {
+  position: absolute; bottom: 18px; left: 18px;
+  background: white; padding: 10px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--navy-900);
+  box-shadow: var(--shadow); display: flex; gap: 8px; align-items: center;
+}
+.about-img .tag::before {
+  content: ""; width: 8px; height: 8px; background: var(--gold-500); border-radius: 50%;
+  box-shadow: 0 0 0 4px var(--glow-gold-md);
+}
+.about-text p { margin-bottom: 16px; font-size: 1.02rem; }
+.about-highlights {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 26px;
+}
+.about-highlights .item {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: white;
+}
+.about-highlights .item .n { font-family: var(--font-display); font-size: 1.4rem; color: var(--navy-900); font-weight: 700; line-height: 1; margin-bottom: 6px; }
+.about-highlights .item .t { font-size: 13px; color: var(--ink-3); line-height: 1.4; }
+
+@media (max-width: 800px) {
+  .about-grid { grid-template-columns: 1fr; gap: 32px; }
+}
+
+/* ROAD TO IMSO */
+.road {
+  background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-deep) 100%);
+  color: white;
+  padding: 96px 0;
+  position: relative;
+  overflow: hidden;
+}
+.road::before {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(500px 400px at 90% 0%, var(--glow-gold-sm), transparent 55%),
+    radial-gradient(500px 400px at 5% 100%, var(--glow-teal), transparent 55%);
+  pointer-events: none;
+}
+.road h2 { color: white; }
+.road .eyebrow { background: var(--navy-surface-dk); color: var(--gold-on-dark); border-color: var(--navy-border-dk); }
+.road .section-head p { color: var(--on-dark-3); }
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 12px;
+  position: relative;
+  counter-reset: step;
+}
+.steps::before {
+  content: "";
+  position: absolute;
+  top: 32px; left: 5%; right: 5%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--navy-lift-dk), var(--gold-500), var(--teal-600));
+  opacity: 0.5;
+  z-index: 0;
+}
+.step {
+  position: relative;
+  text-align: center;
+  z-index: 1;
+  padding: 0 4px;
+}
+.step-num {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  margin: 0 auto 16px;
+  display: grid; place-items: center;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: white;
+  background: var(--navy-800);
+  border: 2px solid var(--navy-ring);
+  position: relative;
+  transition: transform 0.25s;
+}
+.step:hover .step-num { transform: scale(1.08); }
+.step:nth-child(7) .step-num { background: var(--gold-600); border-color: var(--gold-500); color: var(--navy-900); }
+.step-name { font-weight: 600; color: white; font-size: 14px; margin-bottom: 4px; line-height: 1.25; }
+.step-date {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--gold-on-dark-3);
+  letter-spacing: 0.03em;
+}
+@media (max-width: 900px) {
+  .steps { grid-template-columns: repeat(2, 1fr); gap: 24px 12px; }
+  .steps::before { display: none; }
+  .step { text-align: left; display: grid; grid-template-columns: 48px 1fr; gap: 12px; align-items: center; }
+  .step-num { margin: 0; width: 48px; height: 48px; font-size: 17px; }
+}
+@media (max-width: 520px) {
+  .road {
+    padding: 72px 0;
+  }
+  .road .section-head {
+    margin-bottom: 36px;
+  }
+  .road .section-head p {
+    max-width: 320px;
+    margin: 0 auto;
+  }
+  .steps {
+    position: relative;
+    grid-template-columns: 1fr;
+    gap: 18px;
+    padding-left: 4px;
+  }
+  .steps::before {
+    display: none;
+  }
+  .step {
+    position: relative;
+    grid-template-columns: 56px 1fr;
+    grid-template-areas:
+      "num name"
+      "num date";
+    column-gap: 14px;
+    row-gap: 2px;
+    align-items: start;
+    padding: 0 0 0 2px;
+  }
+  .step::after {
+    content: "";
+    position: absolute;
+    left: 29px;
+    top: 56px;
+    width: 2px;
+    height: calc(100% - 38px);
+    background: linear-gradient(180deg, var(--navy-lift-dk), var(--teal-600), var(--gold-500));
+    opacity: 0.7;
+  }
+  .step:last-child::after {
+    display: none;
+  }
+  .step-num {
+    grid-area: num;
+    width: 56px;
+    height: 56px;
+    font-size: 20px;
+    position: relative;
+    z-index: 1;
+    align-self: start;
+  }
+  .step-name {
+    grid-area: name;
+    font-size: 15px;
+    margin: 4px 0 2px;
+    align-self: end;
+  }
+  .step-date {
+    grid-area: date;
+    display: block;
+    font-size: 12px;
+    line-height: 1.5;
+    letter-spacing: 0.08em;
+    margin: 0;
+    align-self: start;
+  }
+}
+
+/* HALL OF FAME */
+.fame-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 18px;
+  margin-bottom: 28px;
+}
+.fame-card {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  transition: transform 0.25s, box-shadow 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+.fame-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+.fame-card .photo { aspect-ratio: 4/5; border-radius: var(--r); position: relative; overflow: hidden; margin-bottom: 14px; }
+.fame-card .photo .ph { position: absolute; inset: 0; border-radius: var(--r); }
+.fame-card .medal {
+  position: absolute; top: 12px; left: 12px;
+  font-size: 11px; font-weight: 700;
+  padding: 5px 10px; border-radius: 999px;
+  letter-spacing: 0.04em;
+}
+.medal.gold { background: var(--gold-500); color: var(--navy-900); }
+.medal.silver { background: var(--medal-silver); color: var(--navy-900); }
+.medal.bronze { background: var(--medal-bronze); color: white; }
+.fame-card h4 { margin-bottom: 4px; font-size: 1.1rem; }
+.fame-card .meta { font-size: 13px; color: var(--ink-3); margin-bottom: 8px; }
+.fame-card .quote { font-size: 13.5px; color: var(--ink-2); font-style: italic; line-height: 1.5; }
+
+.fame-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  margin-top: 36px;
+  padding: 28px;
+  background: var(--bg-alt);
+  border-radius: var(--r-lg);
+}
+.fame-stats .stat { text-align: center; }
+.fame-stats .stat .n {
+  font-family: var(--font-display);
+  font-size: 2.2rem; font-weight: 700;
+  color: var(--navy-900);
+  line-height: 1; margin-bottom: 8px;
+}
+.fame-stats .stat .t { font-size: 13px; color: var(--ink-3); }
+
+@media (max-width: 800px) {
+  .fame-grid { grid-template-columns: 1fr 1fr; }
+  .fame-stats { grid-template-columns: 1fr 1fr; gap: 16px; }
+}
+@media (max-width: 520px) {
+  .fame-grid { grid-template-columns: 1fr; }
+}
+
+/* RESOURCES */
+.resource-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+.res-card {
+  padding: 28px 24px;
+  border-radius: var(--r-lg);
+  background: white;
+  border: 1px solid var(--line);
+  transition: transform 0.25s, border-color 0.2s, box-shadow 0.25s;
+  display: flex; flex-direction: column;
+  gap: 14px;
+  min-height: 200px;
+  text-decoration: none;
+}
+.res-card:hover { transform: translateY(-4px); border-color: var(--navy-600); box-shadow: var(--shadow); }
+.res-card .icon {
+  width: 48px; height: 48px;
+  border-radius: 12px;
+  display: grid; place-items: center;
+  background: var(--navy-50);
+  color: var(--navy-700);
+}
+.res-card:nth-child(2) .icon { background: var(--gold-100); color: var(--icon-gold); }
+.res-card:nth-child(3) .icon { background: var(--teal-100); color: var(--icon-teal); }
+.res-card:nth-child(4) { background: var(--navy-900); color: white; }
+.res-card:nth-child(4) h4 { color: white; }
+.res-card:nth-child(4) p { color: var(--on-dark-3); }
+.res-card:nth-child(4) .icon { background: var(--gold-500); color: var(--navy-900); }
+.res-card h4 { margin: 0; }
+.res-card p { margin: 0; font-size: 14px; flex-grow: 1; }
+.res-card .more {
+  font-size: 13.5px; font-weight: 600;
+  color: var(--navy-800); display: inline-flex; gap: 6px; align-items: center;
+}
+.res-card:nth-child(4) .more { color: var(--gold-500); }
+.res-card .more::after { content: "→"; transition: transform 0.2s; }
+.res-card:hover .more::after { transform: translateX(3px); }
+
+@media (max-width: 900px) { .resource-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .resource-grid { grid-template-columns: 1fr; } }
+
+/* UPDATES */
+.updates-grid {
+  display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 20px;
+}
+.update-card {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+.update-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+.update-card .cover { aspect-ratio: 16/9; position: relative; }
+.update-card .cover .ph { position: absolute; inset: 0; border-radius: 0; border: none; }
+.update-card.main .cover { aspect-ratio: 16/11; }
+.update-card .body { padding: 20px 22px 24px; display: flex; flex-direction: column; gap: 10px; flex-grow: 1; }
+.update-card .tag-row { display: flex; gap: 10px; font-size: 12px; color: var(--ink-3); }
+.update-card .tag-row .cat { font-weight: 700; color: var(--navy-700); text-transform: uppercase; letter-spacing: 0.1em; }
+.update-card h3 { font-size: 1.15rem; line-height: 1.3; margin-bottom: 0; }
+.update-card.main h3 { font-size: 1.45rem; }
+.update-card p { margin: 0; font-size: 14px; }
+
+@media (max-width: 900px) { .updates-grid { grid-template-columns: 1fr 1fr; } .update-card.main { grid-column: span 2; } }
+@media (max-width: 560px) { .updates-grid { grid-template-columns: 1fr; } .update-card.main { grid-column: auto; } }
+
+/* PROGRAMS */
+.prog-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+}
+.prog-card {
+  padding: 22px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.prog-card:hover { transform: translateY(-3px); border-color: var(--navy-600); box-shadow: var(--shadow); }
+.prog-card .num {
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 500;
+  color: var(--ink-3); letter-spacing: 0.05em;
+}
+.prog-card h4 { font-size: 1.05rem; margin: 0; }
+.prog-card p { font-size: 13.5px; color: var(--ink-3); margin: 0; }
+@media (max-width: 900px) { .prog-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .prog-grid { grid-template-columns: 1fr; } }
+
+/* START GUIDE */
+.guide-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.level-card {
+  padding: 28px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line);
+  background: white;
+  display: flex; flex-direction: column; gap: 18px;
+  box-shadow: var(--shadow-sm);
+}
+.level-card.beginner {
+  background: var(--card-teal-bg);
+  border-color: var(--card-teal-border);
+}
+.level-card.advance {
+  background: var(--card-navy-bg);
+  border-color: var(--card-navy-border);
+}
+.level-card.open {
+  background: var(--card-gold-bg);
+  border-color: var(--card-gold-border);
+}
+.level-card .tier {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--navy-800);
+}
+.level-card .tier-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--navy-700); }
+.level-card.beginner .tier-dot { background: var(--teal-600); }
+.level-card.open .tier-dot { background: var(--gold-500); }
+.level-card h3 { font-size: 1.3rem; margin-bottom: 4px; }
+.level-card p { margin: 0; font-size: 14.5px; color: var(--ink-2); }
+.level-card ul { list-style: none; padding: 0; margin: 4px 0 0; display: grid; gap: 10px; }
+.level-card ul li {
+  padding: 12px 16px;
+  background: var(--white-72);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 14px; font-weight: 500;
+  color: var(--navy-900);
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  box-shadow: 0 1px 0 var(--white-50) inset;
+}
+.level-card ul li::after { content: "→"; color: var(--ink-3); font-size: 16px; }
+.level-card .btn {
+  width: 100%;
+  justify-content: center;
+  min-height: 52px;
+  margin-top: auto;
+}
+.level-card.beginner .btn,
+.level-card.advance .btn {
+  background: white;
+  border-color: var(--card-navy-btn);
+}
+.level-card.open .btn {
+  box-shadow: 0 12px 24px -16px var(--glow-gold-xl);
+}
+@media (max-width: 900px) { .guide-grid { grid-template-columns: 1fr; } }
+
+/* TESTIMONIALS */
+.test-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.test-card {
+  background: white;
+  padding: 28px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 16px;
+}
+.test-card .quote-mark {
+  font-family: var(--font-display);
+  font-size: 42px; line-height: 0.6;
+  color: var(--gold-500);
+  height: 18px;
+}
+.test-card .quote { font-size: 15px; color: var(--ink); line-height: 1.55; flex-grow: 1; margin: 0; }
+.test-card .who { display: flex; gap: 12px; align-items: center; padding-top: 16px; border-top: 1px solid var(--line-2); }
+.test-card .avatar { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; }
+.test-card .name { font-weight: 700; font-size: 14px; color: var(--navy-900); }
+.test-card .role { font-size: 12.5px; color: var(--ink-3); }
+.test-card .cat-tag {
+  align-self: flex-start;
+  font-size: 11px; font-weight: 700;
+  color: var(--navy-700);
+  padding: 4px 10px;
+  background: var(--navy-50);
+  border-radius: 999px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+}
+@media (max-width: 900px) { .test-grid { grid-template-columns: 1fr; } }
+
+/* MEDIA */
+.media-strip { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; grid-template-rows: repeat(2, 1fr); gap: 14px; height: 420px; }
+.media-strip .ph { border-radius: var(--r); font-size: 11px; }
+.media-strip .ph:nth-child(1) { grid-row: span 2; }
+.media-strip .ph:nth-child(2) { grid-column: span 2; }
+@media (max-width: 700px) { .media-strip { grid-template-columns: 1fr 1fr; grid-template-rows: auto; height: auto; }
+ .media-strip .ph { min-height: 120px; }
+ .media-strip .ph:nth-child(1) { grid-row: auto; min-height: 200px; grid-column: span 2; }
+ .media-strip .ph:nth-child(2) { grid-column: span 2; } }
+
+/* COLLABORATE */
+.collab-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.collab-card {
+  padding: 32px;
+  border-radius: var(--r-lg);
+  background: white;
+  border: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 14px;
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+.collab-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+.collab-card .ic {
+  width: 52px; height: 52px; border-radius: 14px;
+  display: grid; place-items: center;
+  background: var(--navy-50); color: var(--navy-800);
+}
+.collab-card:nth-child(2) .ic { background: var(--gold-100); color: var(--icon-gold); }
+.collab-card:nth-child(3) .ic { background: var(--teal-100); color: var(--icon-teal); }
+.collab-card h3 { font-size: 1.2rem; }
+.collab-card p { margin: 0; font-size: 14.5px; flex-grow: 1; }
+@media (max-width: 800px) { .collab-grid { grid-template-columns: 1fr; } }
+
+/* PARTNERS */
+.partner-strip {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
+  align-items: center;
+}
+.partner-strip .logo {
+  aspect-ratio: 3/1;
+  border-radius: var(--r-sm);
+  background: var(--bg-alt);
+  display: grid; place-items: center;
+  color: var(--ink-3);
+  font-size: 13px; font-weight: 700;
+  letter-spacing: 0.1em;
+  border: 1px solid var(--line);
+  transition: color 0.2s, border-color 0.2s;
+}
+.partner-strip .logo:hover { color: var(--navy-800); border-color: var(--navy-600); }
+@media (max-width: 900px) { .partner-strip { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 500px) { .partner-strip { grid-template-columns: repeat(2, 1fr); } }
+
+/* HELP STRIP */
+.help-strip {
+  background: linear-gradient(120deg, var(--navy-900) 0%, var(--navy-700) 100%);
+  color: white;
+  border-radius: var(--r-xl);
+  padding: 44px;
+  display: grid; grid-template-columns: 1.3fr 1fr; gap: 32px; align-items: center;
+  position: relative; overflow: hidden;
+}
+.help-strip::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: radial-gradient(400px 300px at 85% 50%, var(--glow-gold-md), transparent 60%);
+  pointer-events: none;
+}
+.help-strip h2 { color: white; font-size: clamp(1.5rem, 2.2vw, 2rem); }
+.help-strip p { color: var(--on-dark); margin: 8px 0 0; }
+.help-strip .actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; position: relative; z-index: 1; }
+@media (max-width: 800px) {
+  .help-strip { grid-template-columns: 1fr; padding: 32px; text-align: center; }
+  .help-strip .actions { justify-content: center; }
+}
+</style>
+</head>
+<body data-page="home">
+
+<div id="site-header"></div>
+
+<main>
+<!-- SECTION 1: HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <span class="eyebrow">IMSO 2026 · Indonesia</span>
+        <h1>Bangladesh Mathematics<br>&amp; <span class="accent">Science Olympiad</span></h1>
+        <p class="hero-sub">The official qualifying platform to select primary school students to represent Bangladesh internationally.</p>
+        <div class="hero-cta">
+          <a class="btn btn-gold btn-lg" href="registration.html">Register Now</a>
+          <a class="btn btn-ghost btn-lg" href="programs.html">Explore Programs</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <img src="images/group.jpg" alt="BdMSO students participating in an olympiad session" />
+        <div class="hero-badge top">
+          <div class="num">12/12</div>
+          <div class="lbl">Medals<br>IMSO Malaysia 2025</div>
+        </div>
+        <div class="hero-badge bot">
+          <div class="num">6+6</div>
+          <div class="lbl">National team<br>Math &amp; Science</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 2: TRUST BAR -->
+<section class="trust-bar">
+  <div class="container">
+    <p class="trust-head">Your journey to IMSO begins here</p>
+    <div class="trust-grid">
+      <div class="trust-item"><div class="big">100<span class="unit">+</span></div><div class="lbl">Partner Schools</div></div>
+      <div class="trust-item"><div class="big">20<span class="unit">+</span></div><div class="lbl">Mentors</div></div>
+      <div class="trust-item"><div class="big">500<span class="unit">+</span></div><div class="lbl">Hours of Training</div></div>
+      <div class="trust-item"><div class="big">12<span class="unit">/12</span></div><div class="lbl">Medals in IMSO '25</div></div>
+      <div class="trust-item"><div class="big">100<span class="unit">%</span></div><div class="lbl">Prize Winning Rate</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 3: ABOUT -->
+<section class="section">
+  <div class="container">
+    <div class="about-grid">
+      <div class="about-img">
+        <div class="ph">[ Photograph — BdMSO exam or residential camp ]</div>
+        <span class="tag">Dhaka, 2025</span>
+      </div>
+      <div class="about-text">
+        <span class="eyebrow">About BdMSO</span>
+        <h2 style="margin:14px 0 18px;">Bangladesh's gateway to the International Math &amp; Science Olympiad.</h2>
+        <p>BdMSO is the official qualifying platform for IMSO 2026 in Indonesia. Jointly organised by BdOSN and SPSB, we nurture primary school students from Class 3 to 6 through rigorous training, mentorship, and residential camps that prepare them to represent Bangladesh on the world stage.</p>
+        <p>From a single qualifying round to the final delegation, every step is designed to build confidence, curiosity, and a lifelong love for science and mathematics.</p>
+        <div class="about-highlights">
+          <div class="item"><div class="n">Est. 2017</div><div class="t">Official IMSO qualifier for Bangladesh</div></div>
+          <div class="item"><div class="n">7 Stages</div><div class="t">From registration to international participation</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 4: ROAD TO IMSO -->
+<section class="road">
+  <div class="container">
+    <div class="section-head center">
+      <span class="eyebrow">The Process</span>
+      <h2>Road to IMSO</h2>
+      <p>Seven carefully designed stages — from your first registration all the way to representing Bangladesh on the international stage.</p>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div class="step-name">Registration</div><div class="step-date">JAN – FEB 2026</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-name">National Qualifying Round</div><div class="step-date">MAR 2026</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-name">National Residential Camp</div><div class="step-date">APR 2026</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-name">Team Selection Test</div><div class="step-date">MAY 2026</div></div>
+      <div class="step"><div class="step-num">5</div><div class="step-name">IMSO Preparatory Camp</div><div class="step-date">JUN – AUG 2026</div></div>
+      <div class="step"><div class="step-num">6</div><div class="step-name">Press Conference</div><div class="step-date">SEP 2026</div></div>
+      <div class="step"><div class="step-num">7</div><div class="step-name">International Participation</div><div class="step-date">OCT 2026</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 5: HALL OF FAME -->
+<section class="section section-alt">
+  <div class="container">
+    <div class="section-head" style="flex-direction:row; align-items:flex-end; justify-content:space-between; max-width:none;">
+      <div>
+        <span class="eyebrow">Hall of Fame</span>
+        <h2 style="margin-top:14px;">Faces of Bangladesh at IMSO.</h2>
+      </div>
+      <a class="btn btn-ghost" href="results.html">View All Results</a>
+    </div>
+    <div class="fame-grid">
+      <div class="fame-card">
+        <div class="photo"><div class="ph ph-gold">[ Student portrait ]</div><span class="medal gold">GOLD · IMSO '25</span></div>
+        <h4>Arko Rahman</h4>
+        <div class="meta">Mathematics · Class 6 · IMSO Malaysia 2025</div>
+        <p class="quote">"The residential camp felt like the most important school of my life."</p>
+      </div>
+      <div class="fame-card">
+        <div class="photo"><div class="ph">[ Student portrait ]</div><span class="medal silver">SILVER · IMSO '25</span></div>
+        <h4>Tasneem Islam</h4>
+        <div class="meta">Science · Class 5 · IMSO Malaysia 2025</div>
+        <p class="quote">"The mentors taught me to read problems like stories. Everything else followed."</p>
+      </div>
+      <div class="fame-card">
+        <div class="photo"><div class="ph ph-navy">[ Student portrait ]</div><span class="medal bronze">BRONZE · IMSO '25</span></div>
+        <h4>Rafid Chowdhury</h4>
+        <div class="meta">Mathematics · Class 6 · IMSO Malaysia 2025</div>
+        <p class="quote">"Every lab day, I walked out curious about something new."</p>
+      </div>
+    </div>
+    <div class="fame-stats">
+      <div class="stat"><div class="n">12/12</div><div class="t">Medals · IMSO 2025</div></div>
+      <div class="stat"><div class="n">6+6</div><div class="t">Member national team</div></div>
+      <div class="stat"><div class="n">100%</div><div class="t">Prize winning rate</div></div>
+      <div class="stat"><div class="n">9</div><div class="t">Years of delegations</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 6: RESOURCES -->
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Preparation Hub</span>
+      <h2>Everything you need — in one place.</h2>
+    </div>
+    <div class="resource-grid">
+      <a class="res-card" href="resources.html">
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h12a4 4 0 0 1 4 4v12"/><path d="M8 4v16a2 2 0 0 1-2 2H4"/><path d="M9 10h7M9 14h7"/></svg></div>
+        <h4>Regulations</h4>
+        <p>Official rules, eligibility, and conduct for the national olympiad.</p>
+        <span class="more">Read rules</span>
+      </a>
+      <a class="res-card" href="resources.html">
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></div>
+        <h4>Syllabus</h4>
+        <p>Math and Science topic summaries, with downloadable PDF.</p>
+        <span class="more">Download PDF</span>
+      </a>
+      <a class="res-card" href="resources.html">
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <h4>Question Pattern</h4>
+        <p>How marks are allocated for the National Round and TST.</p>
+        <span class="more">See pattern</span>
+      </a>
+      <a class="res-card" href="registration.html">
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></div>
+        <h4>Register Now</h4>
+        <p>Create your BdMSO ID and begin the qualifying journey.</p>
+        <span class="more">Start registration</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 7: UPDATES -->
+<section class="section section-alt">
+  <div class="container">
+    <div class="section-head" style="flex-direction:row; align-items:flex-end; justify-content:space-between; max-width:none;">
+      <div>
+        <span class="eyebrow">Latest Updates</span>
+        <h2 style="margin-top:14px;">News &amp; Announcements</h2>
+      </div>
+      <a class="btn btn-ghost" href="blog.html">View All</a>
+    </div>
+    <div class="updates-grid">
+      <article class="update-card main">
+        <div class="cover"><div class="ph">[ Announcement cover image ]</div></div>
+        <div class="body">
+          <div class="tag-row"><span class="cat">Announcement</span><span>April 10, 2026</span></div>
+          <h3>Registration for BdMSO 2026 National Qualifying Round is now open.</h3>
+          <p>Students from Class 3 to 6 can now register through the official portal. Deadline: May 15, 2026. Read the complete eligibility and schedule inside.</p>
+        </div>
+      </article>
+      <article class="update-card">
+        <div class="cover"><div class="ph ph-gold">[ Camp highlight image ]</div></div>
+        <div class="body">
+          <div class="tag-row"><span class="cat">Camp</span><span>Mar 28, 2026</span></div>
+          <h3>Announcing the dates for the National Residential Camp.</h3>
+        </div>
+      </article>
+      <article class="update-card">
+        <div class="cover"><div class="ph ph-navy">[ Press conference image ]</div></div>
+        <div class="body">
+          <div class="tag-row"><span class="cat">Press</span><span>Mar 15, 2026</span></div>
+          <h3>BdMSO joins SPSB for the 2026 Winter STEM Exchange.</h3>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 8: PROGRAMS -->
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Programs &amp; Courses</span>
+      <h2>Year-round programs for your child's STEM development.</h2>
+      <p>Build a strong foundation through these official camps and training modules.</p>
+    </div>
+    <div class="prog-grid">
+      <a class="prog-card" href="programs.html"><span class="num">01</span><h4>STEM Foundation Program</h4><p>A journey into scientific logic, astronomy &amp; Scratch programming.</p></a>
+      <a class="prog-card" href="programs.html"><span class="num">02</span><h4>BdMSO Preparatory Course</h4><p>Advanced problem-solving for the national round.</p></a>
+      <a class="prog-card" href="programs.html"><span class="num">03</span><h4>Lab Day Workshop</h4><p>4-hour immersive hands-on lab sessions in Physics, Biology, Chemistry.</p></a>
+      <a class="prog-card" href="programs.html"><span class="num">04</span><h4>STEM Masterclass Series</h4><p>Specialised classes on advanced olympiad topics.</p></a>
+      <a class="prog-card" href="programs.html"><span class="num">05</span><h4>Robotics Foundation Course</h4><p>Electronics, sensors &amp; physical computing for beginners.</p></a>
+      <a class="prog-card" href="programs.html"><span class="num">06</span><h4>Mock Test Program</h4><p>Master time management and BdMSO question patterns.</p></a>
+      <a class="prog-card" href="programs.html"><span class="num">07</span><h4>SPSB Summer Camp</h4><p>Residential camp — nature, hands-on science &amp; math games.</p></a>
+      <a class="prog-card" href="programs.html"><span class="num">08</span><h4>International Winter Camp</h4><p>Mentorship from international experts and alumni.</p></a>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 9: START GUIDE -->
+<section class="section section-alt">
+  <div class="container">
+    <div class="section-head center">
+      <span class="eyebrow">Start Guide</span>
+      <h2>Where should your child begin?</h2>
+      <p>Not sure where to start? Pick a level that matches your child's current stage.</p>
+    </div>
+    <div class="guide-grid">
+      <div class="level-card beginner">
+        <span class="tier"><span class="tier-dot"></span>Level · Beginner</span>
+        <h3>Build a strong STEM foundation</h3>
+        <p>Best for curious learners new to olympiad-style thinking.</p>
+        <ul>
+          <li>STEM Foundation Program</li>
+          <li>Lab Day Workshop</li>
+        </ul>
+        <a class="btn btn-ghost" href="programs.html">Explore Beginner</a>
+      </div>
+      <div class="level-card advance">
+        <span class="tier"><span class="tier-dot"></span>Level · Advance</span>
+        <h3>Train for the national round</h3>
+        <p>Designed for students preparing seriously for BdMSO &amp; TST.</p>
+        <ul>
+          <li>BdMSO Preparatory Course</li>
+          <li>STEM Masterclass Series</li>
+          <li>Mock Test Program</li>
+        </ul>
+        <a class="btn btn-ghost" href="programs.html">Explore Advance</a>
+      </div>
+      <div class="level-card open">
+        <span class="tier"><span class="tier-dot"></span>Open for All</span>
+        <h3>Residential &amp; experience camps</h3>
+        <p>Immersive camps open to all children who love science.</p>
+        <ul>
+          <li>SPSB Summer Camp</li>
+          <li>International Winter Camp</li>
+        </ul>
+        <a class="btn btn-gold" href="programs.html">Explore Camps</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 10: TESTIMONIALS -->
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Voices from BdMSO</span>
+      <h2>Stories from parents, students, and mentors.</h2>
+    </div>
+    <div class="test-grid">
+      <div class="test-card">
+        <span class="cat-tag">Parent</span>
+        <div class="quote-mark">“</div>
+        <p class="quote">The BdMSO training changed how my daughter approaches problems. She now writes down every question before trying to answer it. That single habit has transformed her studies.</p>
+        <div class="who">
+          <div class="avatar ph" style="padding:0;">&nbsp;</div>
+          <div>
+            <div class="name">Rumana Haque</div>
+            <div class="role">Parent · Class 5, Viqarunnisa Noon School</div>
+          </div>
+        </div>
+      </div>
+      <div class="test-card">
+        <span class="cat-tag">Student</span>
+        <div class="quote-mark">“</div>
+        <p class="quote">I used to be afraid of science. Now I build my own experiments at home — thanks to the Lab Day Workshops. Going to IMSO was the proudest day of my life.</p>
+        <div class="who">
+          <div class="avatar ph ph-gold" style="padding:0;">&nbsp;</div>
+          <div>
+            <div class="name">Arko Rahman</div>
+            <div class="role">Student · Gold, IMSO Malaysia 2025</div>
+          </div>
+        </div>
+      </div>
+      <div class="test-card">
+        <span class="cat-tag">Mentor</span>
+        <div class="quote-mark">“</div>
+        <p class="quote">Nothing beats watching a 10-year-old discover the joy of a beautiful proof. BdMSO gives us the rare privilege to witness that moment, over and over.</p>
+        <div class="who">
+          <div class="avatar ph ph-navy" style="padding:0;">&nbsp;</div>
+          <div>
+            <div class="name">Tanvir Hasan</div>
+            <div class="role">Mentor · Mathematics · BUET</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 11: MEDIA -->
+<section class="section section-alt">
+  <div class="container">
+    <div class="section-head" style="flex-direction:row; align-items:flex-end; justify-content:space-between; max-width:none;">
+      <div>
+        <span class="eyebrow">Media &amp; Press</span>
+        <h2 style="margin-top:14px;">BdMSO in the news.</h2>
+      </div>
+      <a class="btn btn-ghost" href="media.html">View All Coverage</a>
+    </div>
+    <div class="media-strip">
+      <div class="ph">[ Press feature · The Daily Star · Full spread ]</div>
+      <div class="ph ph-gold">[ Newspaper clipping ]</div>
+      <div class="ph">[ TV segment — Bangladesh Television ]</div>
+      <div class="ph ph-navy">[ Online coverage ]</div>
+      <div class="ph">[ Magazine feature ]</div>
+      <div class="ph">[ Radio interview ]</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 12: COLLABORATE -->
+<section class="section">
+  <div class="container">
+    <div class="section-head center">
+      <span class="eyebrow">Get Involved</span>
+      <h2>Collaborate with BdMSO</h2>
+      <p>Our community is built by educators, volunteers, and partners who believe every curious child deserves a chance.</p>
+    </div>
+    <div class="collab-grid">
+      <div class="collab-card">
+        <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></div>
+        <h3>Become a Mentor</h3>
+        <p>Share your expertise in mathematics or science with the next generation of olympians.</p>
+        <a class="btn btn-ghost" href="#" style="align-self:flex-start;">Apply as Mentor</a>
+      </div>
+      <div class="collab-card">
+        <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.35-7-10a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.65-7 10-7 10-1-1-2-1-4 0z"/></svg></div>
+        <h3>Volunteer</h3>
+        <p>Support camp operations, logistics, and registration for the next BdMSO season.</p>
+        <a class="btn btn-ghost" href="#" style="align-self:flex-start;">Join the Team</a>
+      </div>
+      <div class="collab-card">
+        <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg></div>
+        <h3>Partner With Us</h3>
+        <p>Reach 10,000+ students and families as a Title, Platinum, or Gold partner.</p>
+        <a class="btn btn-gold" href="sponsorship.html" style="align-self:flex-start;">Partnership Deck</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 13: PARTNERS -->
+<section class="section section-alt" style="padding-top:40px;">
+  <div class="container">
+    <p style="text-align:center; font-size:12px; font-weight:700; color:var(--ink-3); letter-spacing:0.18em; text-transform:uppercase; margin-bottom:24px;">Our Partners &amp; Sponsors</p>
+    <div class="partner-strip">
+      <div class="logo">BdOSN</div>
+      <div class="logo">SPSB</div>
+      <div class="logo">IMSO</div>
+      <div class="logo">PARTNER</div>
+      <div class="logo">SPONSOR</div>
+      <div class="logo">MEDIA</div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 14: HELP / CONTACT STRIP -->
+<section class="section" style="padding-top:40px; padding-bottom:88px;">
+  <div class="container">
+    <div class="help-strip">
+      <div>
+        <h2>Need help? We're here.</h2>
+        <p>Talk to a BdMSO coordinator via WhatsApp or email, or schedule a 15-minute orientation call.</p>
+      </div>
+      <div class="actions">
+        <a class="btn btn-gold" href="#">💬 WhatsApp Chat</a>
+        <a class="btn btn-ghost" href="mailto:info.bdmso@gmail.com">Email Us</a>
+        <a class="btn btn-primary" href="#">Schedule a Call</a>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<div id="site-footer"></div>
+<script src="js/site.js"></script>
+</body>
+</html>
