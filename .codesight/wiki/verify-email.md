@@ -1,17 +1,17 @@
-# Submit-sponsorship
+# Verify-email
 
 > **Navigation aid.** Route list and file locations extracted via AST. Read the source files listed below before implementing or modifying this subsystem.
 
-The Submit-sponsorship subsystem handles **1 routes** and touches: auth, cache, email.
+The Verify-email subsystem handles **1 routes** and touches: auth, cache, email.
 
 ## Routes
 
-- `POST` `/api/submit-sponsorship` [auth, cache, email] `[inferred]`
+- `GET` `/api/verify-email` [auth, cache, email] `[inferred]`
   `worker/index.js`
 
 ## Related Models
 
-- **sponsorship_enquiries** (9 fields) → [database.md](./database.md)
+- **email_verification_tokens** (3 fields) → [database.md](./database.md)
 
 ## Source Files
 

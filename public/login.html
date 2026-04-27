@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Log in — BdMSO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css" />
+<style>
+.login-wrap {
+  min-height: calc(100vh - 72px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 48px 24px;
+  background: var(--bg-alt);
+}
+.login-card {
+  background: white; border: 1px solid var(--line);
+  border-radius: var(--r-lg); padding: 40px;
+  width: 100%; max-width: 440px;
+  box-shadow: var(--shadow-sm);
+}
+.login-card .eyebrow { margin-bottom: 20px; }
+.login-card h2 { margin: 0 0 6px; }
+.login-card .sub { color: var(--ink-2); margin: 0 0 32px; font-size: 15px; }
+
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.field label { font-size: 13px; font-weight: 600; color: var(--navy-900); }
+.field input {
+  padding: 10px 14px; border: 1px solid var(--line);
+  border-radius: var(--r); font-size: 15px;
+  background: white; color: var(--ink-1);
+  font-family: var(--font-sans); width: 100%; box-sizing: border-box;
+}
+.field input:focus { outline: none; border-color: var(--navy-700); box-shadow: 0 0 0 4px var(--focus-ring); }
+
+.error-msg {
+  background: #fef2f2; border: 1px solid #fecaca;
+  color: #dc2626; border-radius: var(--r);
+  padding: 10px 14px; font-size: 14px; margin-bottom: 16px;
+}
+.login-submit { width: 100%; margin-top: 8px; justify-content: center; }
+.login-footer { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line-2); text-align: center; font-size: 14px; color: var(--ink-3); }
+.login-footer a { color: var(--navy-700); font-weight: 600; }
+
+@media (max-width: 480px) {
+  .login-card { padding: 28px 20px; }
+}
+</style>
+</head>
+<body data-page="login">
+<div id="site-header"></div>
+<main>
+<div class="login-wrap">
+  <div class="login-card">
+    <span class="eyebrow">Guardian Portal</span>
+    <h2>Welcome back</h2>
+    <p class="sub">Sign in to view your child's registration and updates.</p>
+
+    <form id="login-form" novalidate>
+      <div class="field">
+        <label for="login-email">Email address</label>
+        <input type="email" id="login-email" name="email" placeholder="guardian@example.com" autocomplete="email" required />
+      </div>
+      <div class="field">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" name="password" placeholder="••••••••" autocomplete="current-password" required />
+      </div>
+      <div id="login-error" class="error-msg" hidden></div>
+      <button type="submit" class="btn btn-primary login-submit">Sign in</button>
+    </form>
+
+    <div class="login-footer">
+      Don't have an account? <a href="registration.html">Register here</a>
+    </div>
+  </div>
+</div>
+</main>
+<div id="site-footer"></div>
+<script src="js/site.js"></script>
+<script type="module">
+import { postJson } from './js/api.js';
+
+// Redirect if already logged in
+try {
+  if (JSON.parse(localStorage.getItem('bdmso_user'))) window.location.replace('index.html');
+} catch {}
+
+const form = document.getElementById('login-form');
+const errorEl = document.getElementById('login-error');
+
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = form.querySelector('button[type=submit]');
+  const orig = btn.textContent;
+  errorEl.hidden = true;
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+
+  try {
+    const data = await postJson('login', {
+      email: form.email.value.trim(),
+      password: form.password.value
+    });
+    localStorage.setItem('bdmso_user', JSON.stringify({
+      token: data.token,
+      accountId: data.accountId,
+      fullName: data.fullName,
+      email: data.email
+    }));
+    window.location.href = 'index.html';
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.hidden = false;
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+});
+</script>
+</body>
+</html>

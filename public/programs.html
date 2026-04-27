@@ -46,8 +46,12 @@
 .p-cta .price .sm { font-size: 12px; color: var(--ink-3); font-family: var(--font-sans); font-weight: 500; }
 
 @media (max-width: 900px) {
-  .p-item { grid-template-columns: 1fr; gap: 18px; }
-  .p-cta { flex-direction: row; justify-content: space-between; align-items: center; text-align: left; }
+  .p-item { grid-template-columns: 1fr; gap: 16px; }
+  .p-item .visual { aspect-ratio: 16/7; }
+  .p-meta { grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+  .p-cta { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .p-cta .price { width: 100%; margin-bottom: 2px; text-align: center; }
+  .p-cta .btn { flex: 1; justify-content: center; }
 }
 </style>
 </head>
@@ -62,11 +66,11 @@
 
 <section class="container prog-wrap">
   <div class="filter-bar">
-    <button class="active">All programs</button><button>Beginner</button><button>Advanced</button><button>Open for all</button><button>Residential</button>
+    <button class="active" data-filter="all">All programs</button><button data-filter="beginner">Beginner</button><button data-filter="advanced">Advanced</button><button data-filter="open">Open for all</button><button data-filter="residential">Residential</button>
   </div>
 
   <div class="p-list">
-    <article class="p-item">
+    <article class="p-item" data-tags="beginner">
       <div class="visual"><span class="lvl">Beginner</span><div class="ph">[ STEM Foundation — lab shot ]</div></div>
       <div>
         <span class="eyebrow" style="font-size:10px; padding:3px 8px;">01 · Foundation</span>
@@ -78,10 +82,10 @@
           <div><div class="k">Outcome</div><div class="v">Ready for BdMSO Prep</div></div>
         </div>
       </div>
-      <div class="p-cta"><div class="price">৳ On enquiry <span class="sm">Flexible plans</span></div><a class="btn btn-primary" href="registration.html">Enroll</a><a class="btn btn-link" href="#">Details →</a></div>
+      <div class="p-cta"><div class="price">৳ On enquiry <span class="sm">Flexible plans</span></div><a class="btn btn-primary" href="registration.html">Enroll</a><a class="btn btn-link" href="#">Details</a></div>
     </article>
 
-    <article class="p-item">
+    <article class="p-item" data-tags="advanced">
       <div class="visual"><span class="lvl">Advanced</span><div class="ph ph-gold">[ Prep class — problem set ]</div></div>
       <div>
         <span class="eyebrow" style="font-size:10px; padding:3px 8px;">02 · Preparation</span>
@@ -93,10 +97,10 @@
           <div><div class="k">Outcome</div><div class="v">National Round readiness</div></div>
         </div>
       </div>
-      <div class="p-cta"><div class="price">৳ On enquiry</div><a class="btn btn-primary" href="registration.html">Enroll</a><a class="btn btn-link" href="#">Details →</a></div>
+      <div class="p-cta"><div class="price">৳ On enquiry</div><a class="btn btn-primary" href="registration.html">Enroll</a><a class="btn btn-link" href="#">Details</a></div>
     </article>
 
-    <article class="p-item">
+    <article class="p-item" data-tags="advanced">
       <div class="visual"><span class="lvl">Advanced</span><div class="ph ph-navy">[ Masterclass — whiteboard ]</div></div>
       <div>
         <span class="eyebrow" style="font-size:10px; padding:3px 8px;">03 · Masterclass</span>
@@ -108,10 +112,10 @@
           <div><div class="k">Outcome</div><div class="v">TST-level fluency</div></div>
         </div>
       </div>
-      <div class="p-cta"><div class="price">৳ On enquiry</div><a class="btn btn-primary" href="registration.html">Enroll</a><a class="btn btn-link" href="#">Details →</a></div>
+      <div class="p-cta"><div class="price">৳ On enquiry</div><a class="btn btn-primary" href="registration.html">Enroll</a><a class="btn btn-link" href="#">Details</a></div>
     </article>
 
-    <article class="p-item">
+    <article class="p-item" data-tags="advanced">
       <div class="visual"><span class="lvl">Advanced</span><div class="ph">[ Mock test — exam hall ]</div></div>
       <div>
         <span class="eyebrow" style="font-size:10px; padding:3px 8px;">04 · Testing</span>
@@ -123,10 +127,10 @@
           <div><div class="k">Outcome</div><div class="v">Exam confidence</div></div>
         </div>
       </div>
-      <div class="p-cta"><div class="price">৳ On enquiry</div><a class="btn btn-primary" href="registration.html">Enroll</a><a class="btn btn-link" href="#">Details →</a></div>
+      <div class="p-cta"><div class="price">৳ On enquiry</div><a class="btn btn-primary" href="registration.html">Enroll</a><a class="btn btn-link" href="#">Details</a></div>
     </article>
 
-    <article class="p-item">
+    <article class="p-item" data-tags="beginner">
       <div class="visual"><span class="lvl">Beginner</span><div class="ph ph-gold">[ Lab day — hands-on ]</div></div>
       <div>
         <span class="eyebrow" style="font-size:10px; padding:3px 8px;">05 · Lab</span>
@@ -138,10 +142,10 @@
           <div><div class="k">Outcome</div><div class="v">Real lab experience</div></div>
         </div>
       </div>
-      <div class="p-cta"><div class="price">৳ On enquiry</div><a class="btn btn-primary" href="registration.html">Enroll</a><a class="btn btn-link" href="#">Details →</a></div>
+      <div class="p-cta"><div class="price">৳ On enquiry</div><a class="btn btn-primary" href="registration.html">Enroll</a><a class="btn btn-link" href="#">Details</a></div>
     </article>
 
-    <article class="p-item">
+    <article class="p-item" data-tags="beginner">
       <div class="visual"><span class="lvl">Beginner</span><div class="ph ph-navy">[ Robotics — circuits ]</div></div>
       <div>
         <span class="eyebrow" style="font-size:10px; padding:3px 8px;">06 · Robotics</span>
@@ -153,10 +157,10 @@
           <div><div class="k">Outcome</div><div class="v">Build your first robot</div></div>
         </div>
       </div>
-      <div class="p-cta"><div class="price">৳ On enquiry</div><a class="btn btn-primary" href="registration.html">Enroll</a><a class="btn btn-link" href="#">Details →</a></div>
+      <div class="p-cta"><div class="price">৳ On enquiry</div><a class="btn btn-primary" href="registration.html">Enroll</a><a class="btn btn-link" href="#">Details</a></div>
     </article>
 
-    <article class="p-item">
+    <article class="p-item" data-tags="open residential">
       <div class="visual"><span class="lvl">Open · Residential</span><div class="ph ph-gold">[ Summer camp — outdoor ]</div></div>
       <div>
         <span class="eyebrow" style="font-size:10px; padding:3px 8px;">07 · Residential</span>
@@ -168,10 +172,10 @@
           <div><div class="k">Outcome</div><div class="v">Friends &amp; memories for life</div></div>
         </div>
       </div>
-      <div class="p-cta"><div class="price">৳ On enquiry</div><a class="btn btn-gold" href="registration.html">Book a seat</a><a class="btn btn-link" href="#">Details →</a></div>
+      <div class="p-cta"><div class="price">৳ On enquiry</div><a class="btn btn-gold" href="registration.html">Book a seat</a><a class="btn btn-link" href="#">Details</a></div>
     </article>
 
-    <article class="p-item">
+    <article class="p-item" data-tags="open residential">
       <div class="visual"><span class="lvl">Open · Residential</span><div class="ph">[ Winter camp — group photo ]</div></div>
       <div>
         <span class="eyebrow" style="font-size:10px; padding:3px 8px;">08 · International</span>
@@ -183,7 +187,7 @@
           <div><div class="k">Outcome</div><div class="v">International exposure</div></div>
         </div>
       </div>
-      <div class="p-cta"><div class="price">৳ On enquiry</div><a class="btn btn-gold" href="registration.html">Book a seat</a><a class="btn btn-link" href="#">Details →</a></div>
+      <div class="p-cta"><div class="price">৳ On enquiry</div><a class="btn btn-gold" href="registration.html">Book a seat</a><a class="btn btn-link" href="#">Details</a></div>
     </article>
   </div>
 </section>
@@ -191,10 +195,20 @@
 <div id="site-footer"></div>
 <script src="js/site.js"></script>
 <script>
-document.querySelectorAll('.filter-bar button').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('.filter-bar button').forEach(x => x.classList.remove('active'));
-  b.classList.add('active');
-}));
+const filterBtns = document.querySelectorAll('.filter-bar button');
+const progItems  = document.querySelectorAll('.p-item');
+
+filterBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    filterBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const filter = btn.dataset.filter;
+    progItems.forEach(item => {
+      const match = filter === 'all' || item.dataset.tags.split(' ').includes(filter);
+      item.style.display = match ? '' : 'none';
+    });
+  });
+});
 </script>
 </body>
 </html>

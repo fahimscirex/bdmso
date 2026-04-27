@@ -1,6 +1,6 @@
 # bdmso-site — Wiki
 
-_Generated 2026-04-21 — re-run `npx codesight --wiki` if the codebase has changed._
+_Generated 2026-04-25 — re-run `npx codesight --wiki` if the codebase has changed._
 
 Structural map compiled from source code via AST. No LLM — deterministic, 200ms.
 
@@ -10,14 +10,21 @@ Structural map compiled from source code via AST. No LLM — deterministic, 200m
 
 - [Overview](./overview.md)
 - [Database](./database.md)
+- [Auth](./auth.md)
+- [Create-payment](./create-payment.md)
+- [Me](./me.md)
+- [Payment-callback](./payment-callback.md)
+- [Payment-ipn](./payment-ipn.md)
+- [Resend-verification](./resend-verification.md)
 - [Submit-registration](./submit-registration.md)
 - [Submit-sponsorship](./submit-sponsorship.md)
+- [Verify-email](./verify-email.md)
 - [Api](./api.md)
 
 ## Quick Stats
 
-- Routes: **3**
-- Models: **3**
+- Routes: **11**
+- Models: **8**
 - Components: **0**
 - Env vars: **0** required, **1** with defaults
 
@@ -45,4 +52,4 @@ These exist in your codebase but are **not** reflected in wiki articles:
 When in doubt, search the source. The wiki is a starting point, not a complete inventory.
 
 ---
-_Last compiled: 2026-04-21 · 6 articles · [codesight](https://github.com/Houseofmvps/codesight)_
+_Last compiled: 2026-04-25 · 13 articles · [codesight](https://github.com/Houseofmvps/codesight)_

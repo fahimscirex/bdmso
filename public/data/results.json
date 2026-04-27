@@ -1,0 +1,40 @@
+{
+  "featured": [
+    {
+      "name": "Arko Rahman",
+      "medal": "gold",
+      "medalLabel": "GOLD · IMSO '25",
+      "subject": "Mathematics",
+      "class": "Class 6",
+      "event": "IMSO Malaysia 2025",
+      "quote": "The residential camp felt like the most important school of my life.",
+      "photoClass": "ph-gold"
+    },
+    {
+      "name": "Tasneem Islam",
+      "medal": "silver",
+      "medalLabel": "SILVER · IMSO '25",
+      "subject": "Science",
+      "class": "Class 5",
+      "event": "IMSO Malaysia 2025",
+      "quote": "The mentors taught me to read problems like stories. Everything else followed.",
+      "photoClass": ""
+    },
+    {
+      "name": "Rafid Chowdhury",
+      "medal": "bronze",
+      "medalLabel": "BRONZE · IMSO '25",
+      "subject": "Mathematics",
+      "class": "Class 6",
+      "event": "IMSO Malaysia 2025",
+      "quote": "Every lab day, I walked out curious about something new.",
+      "photoClass": "ph-navy"
+    }
+  ],
+  "stats": [
+    { "value": "12/12", "label": "Medals · IMSO 2025" },
+    { "value": "6+6",   "label": "Member national team" },
+    { "value": "100%",  "label": "Prize winning rate" },
+    { "value": "9",     "label": "Years of delegations" }
+  ]
+}

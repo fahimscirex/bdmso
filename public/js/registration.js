@@ -11,7 +11,7 @@ const fields = [
   { id: "f-class", label: "Class" },
   { id: "f-dob", label: "Date of Birth" },
   { id: "f-school", label: "School" },
-  { id: "f-city", label: "City" },
+  { id: "f-district", label: "District" },
   { id: "g-name", label: "Guardian" },
   { id: "g-rel", label: "Relationship" },
   { id: "g-phone", label: "Mobile" },
@@ -33,7 +33,7 @@ function setMessage(text, kind = "neutral") {
 
 function validateStep(step) {
   const requiredByStep = {
-    1: ["f-name", "f-dob", "f-class", "f-school", "f-city"],
+    1: ["f-name", "f-dob", "f-class", "f-school", "f-district"],
     2: ["g-name", "g-rel", "g-phone", "g-email", "g-addr"],
     3: ["account-password", "account-password-confirm"]
   };
@@ -99,7 +99,7 @@ function fillSummary() {
     ["Class", valueOf("f-class") || "—"],
     ["Date of Birth", valueOf("f-dob") || "—"],
     ["School", valueOf("f-school") || "—"],
-    ["City", valueOf("f-city") || "—"],
+    ["District", valueOf("f-district") || "—"],
     ["Guardian", `${valueOf("g-name") || "—"} (${valueOf("g-rel") || "—"})`],
     ["Mobile", valueOf("g-phone") || "—"],
     ["Email", valueOf("g-email") || "—"]
@@ -147,7 +147,7 @@ function registrationPayload() {
       dateOfBirth: valueOf("f-dob"),
       className: valueOf("f-class"),
       school: valueOf("f-school"),
-      city: valueOf("f-city")
+      district: valueOf("f-district")
     },
     guardian: {
       fullName: valueOf("g-name"),
@@ -176,7 +176,15 @@ async function submitRegistration() {
 
   try {
     const response = await postJson("submit-registration", registrationPayload());
-    document.getElementById("application-id").textContent = response.applicationId;
+    if (response.token) {
+      localStorage.setItem("bdmso_user", JSON.stringify({
+        token: response.token,
+        accountId: response.accountId,
+        fullName: response.fullName,
+        email: response.email
+      }));
+    }
+    document.getElementById("member-id").textContent = response.memberId || response.applicationId;
     document.getElementById("account-email").textContent = valueOf("g-email");
     setStep(4);
     setMessage("", "neutral");

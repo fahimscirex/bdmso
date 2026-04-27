@@ -13,9 +13,26 @@
     { href: 'media.html', label: 'Media', key: 'media' },
   ];
 
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function getSession() {
+    try { return JSON.parse(localStorage.getItem('bdmso_user') || 'null'); } catch { return null; }
+  }
+
   function renderHeader() {
     const host = document.getElementById('site-header');
     if (!host) return;
+
+    const session = getSession();
+    const firstName = session ? escapeHtml(session.fullName.split(' ')[0]) : '';
+
+    const mobileLoginHtml = session ? '' : '<a class="mobile-login" href="login.html">Log in</a>';
+    const ctaHtml = session
+      ? `<span class="nav-user">${firstName}</span><a class="btn btn-ghost" href="dashboard.html">Dashboard</a><button class="btn btn-ghost nav-logout">Log out</button>`
+      : `<a class="login" href="login.html">Log in</a><a class="btn btn-primary" href="registration.html">Register Now</a>`;
+
     host.innerHTML = `
       <header class="site-header">
         <div class="container">
@@ -23,6 +40,7 @@
             <a class="brand" href="index.html" aria-label="BdMSO home">
               <img class="brand-logo" src="images/logo.png" alt="BdMSO 2026 logo" />
             </a>
+            ${mobileLoginHtml}
             <button class="menu-toggle" aria-label="Open menu" aria-expanded="false">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
             </button>
@@ -30,13 +48,24 @@
               ${NAV_LINKS.map(l => `<a href="${l.href}" ${l.key === CURRENT ? 'class="active"' : ''}>${l.label}</a>`).join('')}
             </div>
             <div class="nav-cta" id="nav-cta">
-              <a class="login" href="registration.html">Log in</a>
-              <a class="btn btn-primary" href="registration.html">Register Now</a>
+              ${ctaHtml}
             </div>
           </nav>
         </div>
       </header>
     `;
+
+    const logoutBtn = host.querySelector('.nav-logout');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', async () => {
+        const s = getSession();
+        if (s?.token) {
+          try { await fetch('/api/logout', { method: 'POST', headers: { Authorization: `Bearer ${s.token}` } }); } catch {}
+        }
+        localStorage.removeItem('bdmso_user');
+        window.location.href = 'login.html';
+      });
+    }
 
     const tog = host.querySelector('.menu-toggle');
     const menu = host.querySelector('#nav-menu');
