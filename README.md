@@ -1,31 +1,143 @@
-# BdMSO website
+# BdMSO Website
 
-Static marketing site and lightweight application backend prepared for:
+Static marketing site with a Cloudflare Worker backend for form submissions.
 
-- `Cloudflare Pages` or Worker asset hosting for the public site
-- `Cloudflare Workers` for API endpoints
-- `Cloudflare D1` for registrations and sponsorship leads
+## Stack
 
-## Architecture
+| Layer | Service |
+|---|---|
+| Static hosting | Cloudflare Workers (assets) |
+| API endpoints | Cloudflare Workers |
+| Database | Cloudflare D1 (SQLite) |
 
-- public pages are built into `dist/`
-- the Worker in [worker.js](/home/fahim/Downloads/bdm/worker.js) serves static assets and handles:
-  - `POST /api/submit-registration`
-  - `POST /api/submit-sponsorship`
-- data is stored in D1 tables created from [schema.sql](/home/fahim/Downloads/bdm/schema.sql)
+---
 
-## Local build
+## Making Content Edits
 
-1. Copy `.env.example` to `.env`
-2. Set `SITE_URL`
-3. Run:
+Most content on the home page is driven by JSON files in `public/data/`. Edit the relevant file, save, and refresh — no HTML changes needed.
+
+### Stats bar (numbers after each event)
+
+**`public/data/stats.json`**
+
+```json
+{ "value": "100", "unit": "+", "label": "Partner Schools" }
+```
+
+Change `value`, `unit`, or `label`. Add or remove objects to add/remove stat items.
+
+---
+
+### Road to IMSO (dates each year)
+
+**`public/data/steps.json`**
+
+```json
+{ "name": "Registration", "date": "JAN – FEB 2026" }
+```
+
+Update `date` values at the start of each season. Steps are numbered automatically in order.
+
+---
+
+### News & Announcements
+
+**`public/data/news.json`**
+
+Add a new post at the **top** of the array. Set `"featured": true` on the first item only — it renders as the wide card.
+
+```json
+{
+  "category": "Announcement",
+  "date": "April 10, 2026",
+  "title": "Registration is now open.",
+  "excerpt": "Optional longer description shown only on the featured card.",
+  "featured": true,
+  "imageClass": ""
+}
+```
+
+`imageClass` tints the placeholder image: `""` (default), `"ph-gold"` (amber), `"ph-navy"` (dark blue).
+
+---
+
+### Programs list
+
+**`public/data/programs.json`**
+
+```json
+{ "id": "01", "title": "STEM Foundation Program", "description": "Short description." }
+```
+
+Add, remove, or reorder objects. The `id` is display-only (shown as the card number).
+
+---
+
+### Hall of Fame / Results
+
+**`public/data/results.json`**
+
+Two sections: `featured` (the three portrait cards) and `stats` (the number strip below).
+
+```json
+{
+  "name": "Arko Rahman",
+  "medal": "gold",
+  "medalLabel": "GOLD · IMSO '25",
+  "subject": "Mathematics",
+  "class": "Class 6",
+  "event": "IMSO Malaysia 2025",
+  "quote": "Quote from the student.",
+  "photoClass": "ph-gold"
+}
+```
+
+`medal` controls badge colour: `"gold"`, `"silver"`, or `"bronze"`.
+`photoClass`: `""`, `"ph-gold"`, or `"ph-navy"`.
+
+---
+
+### Everything else (navigation, footer, page copy)
+
+| What | File |
+|---|---|
+| Nav links, logo | `public/js/site.js` |
+| Colours, typography, spacing | `public/css/styles.css` |
+| Hero text, about section, testimonials | `public/index.html` |
+| Other pages | `public/about.html`, `blog.html`, etc. |
+
+---
+
+## Local Development
 
 ```bash
 npm install
-npm run build
+npm run dev:local   # serves public/ with live reload at localhost:3000
 ```
 
-## Cloudflare setup
+To test Worker API endpoints locally:
+
+```bash
+npm run build
+npm run cf:dev      # wrangler dev at localhost:8787
+```
+
+---
+
+## Deployment
+
+```bash
+npm run build
+npm run cf:deploy
+```
+
+`build` copies `public/` → `dist/` and generates `robots.txt` + `sitemap.xml`.
+
+Set `SITE_URL` in `.env` (copy from `.env.example`) to get the correct sitemap URL.
+
+---
+
+## First-time Cloudflare Setup
 
 1. Create a D1 database:
 
@@ -33,38 +145,45 @@ npm run build
 wrangler d1 create bdmso
 ```
 
-2. Put the returned database IDs into [wrangler.toml](/home/fahim/Downloads/bdm/wrangler.toml).
+2. Paste the returned IDs into `wrangler.toml`.
 
 3. Apply the schema:
 
 ```bash
-wrangler d1 execute bdmso --file=./schema.sql
+wrangler d1 execute bdmso --file=./db/schema.sql
 ```
 
-4. Build and run locally:
+---
 
-```bash
-npm run build
-npm run cf:dev
+## Database Tables
+
+| Table | Purpose |
+|---|---|
+| `guardian_accounts` | Parent/guardian login credentials |
+| `registrations` | Student registration submissions |
+| `sponsorship_enquiries` | Sponsorship contact form leads |
+
+Passwords are PBKDF2-hashed in the Worker before storage. A full login/session system is not yet implemented.
+
+---
+
+## Project Structure
+
 ```
-
-5. Deploy:
-
-```bash
-npm run build
-npm run cf:deploy
+public/
+  css/styles.css          — all styles and design tokens
+  js/site.js              — shared nav + footer injection
+  js/home.js              — home page data loader
+  js/api.js               — fetch helpers for form submissions
+  js/registration.js      — multi-step registration form
+  js/sponsorship.js       — sponsorship form
+  data/                   — JSON content files (edit these for content updates)
+  images/                 — logo, photos
+  *.html                  — one file per page
+worker/
+  index.js                — Cloudflare Worker (API routes + asset fallback)
+db/
+  schema.sql              — D1 table definitions
+scripts/
+  build.mjs               — copies public/ → dist/, writes sitemap + robots.txt
 ```
-
-## Data model
-
-Tables created by the schema:
-
-- `guardian_accounts`
-- `registrations`
-- `sponsorship_enquiries`
-
-## Notes
-
-- Guardian account passwords are salted and hashed in the Worker before storing in D1.
-- The current implementation creates guardian accounts during registration, but it does not yet include a full login/session system.
-- The public site is same-origin with the API, so no separate backend URL is needed.

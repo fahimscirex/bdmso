@@ -8,8 +8,9 @@
     "build": "node scripts/build.mjs",
     "clean": "rm -rf dist",
     "cf:dev": "wrangler dev",
-    "cf:deploy": "wrangler deploy",
-    "cf:d1:init": "wrangler d1 execute bdmso --local --file=./schema.sql"
+    "cf:deploy": "npm run build && wrangler deploy --config wrangler.prod.toml",
+    "cf:d1:init": "wrangler d1 execute bdmso --local --file=./db/schema.sql",
+    "cf:d1:init:prod": "wrangler d1 execute bdmso --file=./db/schema.sql"
   },
   "engines": {
     "node": ">=20"

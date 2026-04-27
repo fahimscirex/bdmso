@@ -1,17 +1,13 @@
-# Submit-sponsorship
+# Payment-callback
 
 > **Navigation aid.** Route list and file locations extracted via AST. Read the source files listed below before implementing or modifying this subsystem.
 
-The Submit-sponsorship subsystem handles **1 routes** and touches: auth, cache, email.
+The Payment-callback subsystem handles **1 routes** and touches: auth, cache, email.
 
 ## Routes
 
-- `POST` `/api/submit-sponsorship` [auth, cache, email] `[inferred]`
+- `ALL` `/api/payment-callback` [auth, cache, email] `[inferred]`
   `worker/index.js`
-
-## Related Models
-
-- **sponsorship_enquiries** (9 fields) → [database.md](./database.md)
 
 ## Source Files
 

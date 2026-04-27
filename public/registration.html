@@ -148,7 +148,7 @@
           <select id="f-class"><option>Class 3</option><option>Class 4</option><option selected>Class 5</option><option>Class 6</option></select>
         </div>
         <div class="field"><label>School</label><input id="f-school" placeholder="e.g. Viqarunnisa Noon School" /></div>
-        <div class="field full"><label>City / District</label><input id="f-city" placeholder="e.g. Dhaka" /></div>
+        <div class="field full"><label>District</label><input id="f-district" placeholder="e.g. Dhaka" /></div>
       </div>
       <div class="form-foot"><span></span><button class="btn btn-primary" type="button" data-next-step="2">Continue →</button></div>
     </div>
@@ -191,8 +191,27 @@
         <div class="ic"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg></div>
         <h3 style="font-family:var(--font-display); color: var(--navy-900); font-size: 1.6rem; margin-bottom: 8px;">Registration received.</h3>
         <p style="max-width:560px; margin:0 auto 18px;">Your BdMSO registration has been saved and the guardian account is now active for <strong id="account-email"></strong>.</p>
-        <p style="max-width:560px; margin:0 auto 24px; color:var(--ink-3);">Application ID: <strong id="application-id"></strong></p>
-        <a class="btn btn-primary btn-lg" href="resources.html">View student resources →</a>
+
+        <div style="max-width:560px; margin:0 auto 20px; padding:18px 20px; background:var(--navy-900); color:#fff; border-radius:12px; text-align:center;">
+          <div style="font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--gold-on-dark, #fcd34d); margin-bottom:6px;">Your Member ID</div>
+          <div id="member-id" style="font-family:var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size:1.6rem; font-weight:700; letter-spacing:1px;"></div>
+          <div style="font-size:12px; color:#cbd5e1; margin-top:6px;">Save this ID — you'll need it for all future BdMSO involvements.</div>
+        </div>
+
+        <div style="max-width:560px; margin:0 auto 24px; padding:16px 20px; background:#fffbeb; border:1px solid #fcd34d; border-radius:12px; text-align:left;">
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top:2px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <div>
+              <div style="font-weight:700; color:#92400e; margin-bottom:4px;">Please verify your email</div>
+              <div style="font-size:14px; color:#78350f;">We've sent a verification link to your inbox. You'll need to verify before you can pay for this registration. The link expires in 24 hours. If you don't see it, check your spam folder.</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+          <a class="btn btn-primary btn-lg" href="dashboard.html">Go to dashboard →</a>
+          <a class="btn btn-ghost btn-lg" href="resources.html">View student resources</a>
+        </div>
       </div>
     </div>
     <div class="form-message" id="form-message" aria-live="polite"></div>

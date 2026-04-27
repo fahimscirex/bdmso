@@ -1,0 +1,26 @@
+[
+  {
+    "category": "Announcement",
+    "date": "April 10, 2026",
+    "title": "Registration for BdMSO 2026 National Qualifying Round is now open.",
+    "excerpt": "Students from Class 3 to 6 can now register through the official portal. Deadline: May 15, 2026. Read the complete eligibility and schedule inside.",
+    "featured": true,
+    "imageClass": ""
+  },
+  {
+    "category": "Camp",
+    "date": "Mar 28, 2026",
+    "title": "Announcing the dates for the National Residential Camp.",
+    "excerpt": null,
+    "featured": false,
+    "imageClass": "ph-gold"
+  },
+  {
+    "category": "Press",
+    "date": "Mar 15, 2026",
+    "title": "BdMSO joins SPSB for the 2026 Winter STEM Exchange.",
+    "excerpt": null,
+    "featured": false,
+    "imageClass": "ph-navy"
+  }
+]

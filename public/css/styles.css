@@ -180,7 +180,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 .nav-cta { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
 .nav-cta .login { font-size: 14px; font-weight: 600; color: var(--navy-800); padding: 9px 16px; white-space: nowrap; }
+.nav-user { font-size: 14px; font-weight: 600; color: var(--navy-800); padding: 9px 4px; white-space: nowrap; }
 .nav-cta .login:hover { text-decoration: underline; }
+
+.mobile-login { display: none; }
 
 .menu-toggle {
   display: none;
@@ -189,13 +192,19 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   border: 1px solid var(--line);
   color: var(--navy-800);
   align-items: center; justify-content: center;
-  margin-left: auto;
 }
 
 @media (max-width: 1000px) {
   .nav-menu, .nav-cta { display: none; }
   .nav-menu.open, .nav-cta.open { display: flex; }
-  .menu-toggle { display: inline-flex; }
+  .menu-toggle { display: inline-flex; margin-left: auto; }
+  .mobile-login {
+    display: inline-flex; align-items: center;
+    margin-left: auto; margin-right: 4px;
+    font-size: 14px; font-weight: 600; color: var(--navy-800);
+    padding: 9px 14px; white-space: nowrap;
+  }
+  .mobile-login + .menu-toggle { margin-left: 0; }
   .nav {
     flex-wrap: wrap;
     gap: 16px;

@@ -764,13 +764,7 @@
 <section class="trust-bar">
   <div class="container">
     <p class="trust-head">Your journey to IMSO begins here</p>
-    <div class="trust-grid">
-      <div class="trust-item"><div class="big">100<span class="unit">+</span></div><div class="lbl">Partner Schools</div></div>
-      <div class="trust-item"><div class="big">20<span class="unit">+</span></div><div class="lbl">Mentors</div></div>
-      <div class="trust-item"><div class="big">500<span class="unit">+</span></div><div class="lbl">Hours of Training</div></div>
-      <div class="trust-item"><div class="big">12<span class="unit">/12</span></div><div class="lbl">Medals in IMSO '25</div></div>
-      <div class="trust-item"><div class="big">100<span class="unit">%</span></div><div class="lbl">Prize Winning Rate</div></div>
-    </div>
+    <div class="trust-grid" id="stats-grid"></div>
   </div>
 </section>
 
@@ -804,15 +798,7 @@
       <h2>Road to IMSO</h2>
       <p>Seven carefully designed stages — from your first registration all the way to representing Bangladesh on the international stage.</p>
     </div>
-    <div class="steps">
-      <div class="step"><div class="step-num">1</div><div class="step-name">Registration</div><div class="step-date">JAN – FEB 2026</div></div>
-      <div class="step"><div class="step-num">2</div><div class="step-name">National Qualifying Round</div><div class="step-date">MAR 2026</div></div>
-      <div class="step"><div class="step-num">3</div><div class="step-name">National Residential Camp</div><div class="step-date">APR 2026</div></div>
-      <div class="step"><div class="step-num">4</div><div class="step-name">Team Selection Test</div><div class="step-date">MAY 2026</div></div>
-      <div class="step"><div class="step-num">5</div><div class="step-name">IMSO Preparatory Camp</div><div class="step-date">JUN – AUG 2026</div></div>
-      <div class="step"><div class="step-num">6</div><div class="step-name">Press Conference</div><div class="step-date">SEP 2026</div></div>
-      <div class="step"><div class="step-num">7</div><div class="step-name">International Participation</div><div class="step-date">OCT 2026</div></div>
-    </div>
+    <div class="steps" id="steps-list"></div>
   </div>
 </section>
 
@@ -826,32 +812,8 @@
       </div>
       <a class="btn btn-ghost" href="results.html">View All Results</a>
     </div>
-    <div class="fame-grid">
-      <div class="fame-card">
-        <div class="photo"><div class="ph ph-gold">[ Student portrait ]</div><span class="medal gold">GOLD · IMSO '25</span></div>
-        <h4>Arko Rahman</h4>
-        <div class="meta">Mathematics · Class 6 · IMSO Malaysia 2025</div>
-        <p class="quote">"The residential camp felt like the most important school of my life."</p>
-      </div>
-      <div class="fame-card">
-        <div class="photo"><div class="ph">[ Student portrait ]</div><span class="medal silver">SILVER · IMSO '25</span></div>
-        <h4>Tasneem Islam</h4>
-        <div class="meta">Science · Class 5 · IMSO Malaysia 2025</div>
-        <p class="quote">"The mentors taught me to read problems like stories. Everything else followed."</p>
-      </div>
-      <div class="fame-card">
-        <div class="photo"><div class="ph ph-navy">[ Student portrait ]</div><span class="medal bronze">BRONZE · IMSO '25</span></div>
-        <h4>Rafid Chowdhury</h4>
-        <div class="meta">Mathematics · Class 6 · IMSO Malaysia 2025</div>
-        <p class="quote">"Every lab day, I walked out curious about something new."</p>
-      </div>
-    </div>
-    <div class="fame-stats">
-      <div class="stat"><div class="n">12/12</div><div class="t">Medals · IMSO 2025</div></div>
-      <div class="stat"><div class="n">6+6</div><div class="t">Member national team</div></div>
-      <div class="stat"><div class="n">100%</div><div class="t">Prize winning rate</div></div>
-      <div class="stat"><div class="n">9</div><div class="t">Years of delegations</div></div>
-    </div>
+    <div class="fame-grid" id="fame-grid"></div>
+    <div class="fame-stats" id="fame-stats"></div>
   </div>
 </section>
 
@@ -901,30 +863,7 @@
       </div>
       <a class="btn btn-ghost" href="blog.html">View All</a>
     </div>
-    <div class="updates-grid">
-      <article class="update-card main">
-        <div class="cover"><div class="ph">[ Announcement cover image ]</div></div>
-        <div class="body">
-          <div class="tag-row"><span class="cat">Announcement</span><span>April 10, 2026</span></div>
-          <h3>Registration for BdMSO 2026 National Qualifying Round is now open.</h3>
-          <p>Students from Class 3 to 6 can now register through the official portal. Deadline: May 15, 2026. Read the complete eligibility and schedule inside.</p>
-        </div>
-      </article>
-      <article class="update-card">
-        <div class="cover"><div class="ph ph-gold">[ Camp highlight image ]</div></div>
-        <div class="body">
-          <div class="tag-row"><span class="cat">Camp</span><span>Mar 28, 2026</span></div>
-          <h3>Announcing the dates for the National Residential Camp.</h3>
-        </div>
-      </article>
-      <article class="update-card">
-        <div class="cover"><div class="ph ph-navy">[ Press conference image ]</div></div>
-        <div class="body">
-          <div class="tag-row"><span class="cat">Press</span><span>Mar 15, 2026</span></div>
-          <h3>BdMSO joins SPSB for the 2026 Winter STEM Exchange.</h3>
-        </div>
-      </article>
-    </div>
+    <div class="updates-grid" id="updates-grid"></div>
   </div>
 </section>
 
@@ -936,16 +875,7 @@
       <h2>Year-round programs for your child's STEM development.</h2>
       <p>Build a strong foundation through these official camps and training modules.</p>
     </div>
-    <div class="prog-grid">
-      <a class="prog-card" href="programs.html"><span class="num">01</span><h4>STEM Foundation Program</h4><p>A journey into scientific logic, astronomy &amp; Scratch programming.</p></a>
-      <a class="prog-card" href="programs.html"><span class="num">02</span><h4>BdMSO Preparatory Course</h4><p>Advanced problem-solving for the national round.</p></a>
-      <a class="prog-card" href="programs.html"><span class="num">03</span><h4>Lab Day Workshop</h4><p>4-hour immersive hands-on lab sessions in Physics, Biology, Chemistry.</p></a>
-      <a class="prog-card" href="programs.html"><span class="num">04</span><h4>STEM Masterclass Series</h4><p>Specialised classes on advanced olympiad topics.</p></a>
-      <a class="prog-card" href="programs.html"><span class="num">05</span><h4>Robotics Foundation Course</h4><p>Electronics, sensors &amp; physical computing for beginners.</p></a>
-      <a class="prog-card" href="programs.html"><span class="num">06</span><h4>Mock Test Program</h4><p>Master time management and BdMSO question patterns.</p></a>
-      <a class="prog-card" href="programs.html"><span class="num">07</span><h4>SPSB Summer Camp</h4><p>Residential camp — nature, hands-on science &amp; math games.</p></a>
-      <a class="prog-card" href="programs.html"><span class="num">08</span><h4>International Winter Camp</h4><p>Mentorship from international experts and alumni.</p></a>
-    </div>
+    <div class="prog-grid" id="prog-grid"></div>
   </div>
 </section>
 
@@ -1128,5 +1058,6 @@
 
 <div id="site-footer"></div>
 <script src="js/site.js"></script>
+<script src="js/home.js"></script>
 </body>
 </html>

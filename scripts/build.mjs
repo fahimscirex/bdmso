@@ -21,7 +21,7 @@ writeFileSync(
   "utf8"
 );
 
-const pages = ["", "about", "blog", "media", "programs", "registration", "resources", "results", "sponsorship", "team"];
+const pages = ["", "about", "blog", "dashboard", "login", "media", "programs", "registration", "resources", "results", "sponsorship", "team"];
 const now   = new Date().toISOString();
 
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>

@@ -2,32 +2,58 @@
 
 > **Stack:** raw-http | none | unknown | javascript
 
-> 3 routes (3 inferred) | 3 models | 0 components | 1 lib files | 1 env vars | 0 middleware
-> **Token savings:** this file is ~600 tokens. Without it, AI exploration would cost ~4,600 tokens. **Saves ~4,000 tokens per conversation.**
-> **Last scanned:** 2026-04-21 17:26 — re-run after significant changes
+> 11 routes (11 inferred) | 8 models | 0 components | 1 lib files | 1 env vars | 0 middleware
+> **Token savings:** this file is ~900 tokens. Without it, AI exploration would cost ~11,200 tokens. **Saves ~10,200 tokens per conversation.**
+> **Last scanned:** 2026-04-25 09:03 — re-run after significant changes
 
 ---
 
 # Routes
 
-- `ALL` `/api/submit-registration` [cache] `[inferred]`
-- `ALL` `/api/submit-sponsorship` [cache] `[inferred]`
-- `ALL` `/api/` [cache] `[inferred]`
+- `POST` `/api/login` [auth, cache, email] `[inferred]`
+- `POST` `/api/logout` [auth, cache, email] `[inferred]`
+- `GET` `/api/me` [auth, cache, email] `[inferred]`
+- `POST` `/api/submit-registration` [auth, cache, email] `[inferred]`
+- `POST` `/api/submit-sponsorship` [auth, cache, email] `[inferred]`
+- `POST` `/api/create-payment` [auth, cache, email] `[inferred]`
+- `ALL` `/api/payment-callback` [auth, cache, email] `[inferred]`
+- `POST` `/api/payment-ipn` [auth, cache, email] `[inferred]`
+- `GET` `/api/verify-email` [auth, cache, email] `[inferred]`
+- `POST` `/api/resend-verification` [auth, cache, email] `[inferred]`
+- `ALL` `/api/` [auth, cache, email] `[inferred]`
 
 ---
 
 # Schema
+
+### email_verification_tokens
+- token: text (pk)
+- account_id: text (required, fk)
+- expires_at: text (required)
+
+### login_attempts
+- id: integer (pk)
+- email: text (required)
+- success: integer (required)
+- attempted_at: text (required)
+
+### member_id_seq
+- id: integer (pk)
+- reserved_at: text (required)
 
 ### guardian_accounts
 - id: text (pk)
 - email: text (required)
 - password_hash: text (required)
 - password_salt: text (required)
+- password_iterations: integer (required)
 - full_name: text (required)
 - phone: text
+- email_verified: integer (required)
 
 ### registrations
 - id: text (pk)
+- member_id: text (unique, fk)
 - registration_type: text (required)
 - student_full_name: text (required)
 - student_date_of_birth: text (required)
@@ -54,6 +80,23 @@
 - message: text (required)
 - status: text (required)
 - source_page: text
+
+### sessions
+- id: text (pk)
+- account_id: text (required, fk)
+- expires_at: text (required)
+
+### payments
+- id: text (pk)
+- registration_id: text (required, fk)
+- account_id: text (required, fk)
+- amount: real (required)
+- currency: text (required)
+- tran_id: text (unique, fk)
+- val_id: text (fk)
+- gateway_status: text
+- status: text (required)
+- _relations_: registration_id -> registrations.id
 
 ---
 

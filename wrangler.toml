@@ -3,8 +3,17 @@ main = "worker/index.js"
 compatibility_date = "2026-04-21"
 
 [assets]
-directory = "./dist"
+directory = "./public"
 binding = "ASSETS"
+
+# Demo sandbox credentials — replace with real values before going live:
+#   wrangler secret put SSLCOMMERZ_STORE_ID
+#   wrangler secret put SSLCOMMERZ_STORE_PASSWD
+#   then remove the [vars] block below
+[vars]
+SSLCOMMERZ_STORE_ID     = "testbox"
+SSLCOMMERZ_STORE_PASSWD = "qwerty"
+SSLCOMMERZ_SANDBOX      = "true"
 
 [[d1_databases]]
 binding = "DB"

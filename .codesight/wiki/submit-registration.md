@@ -2,11 +2,11 @@
 
 > **Navigation aid.** Route list and file locations extracted via AST. Read the source files listed below before implementing or modifying this subsystem.
 
-The Submit-registration subsystem handles **1 routes** and touches: cache.
+The Submit-registration subsystem handles **1 routes** and touches: auth, cache, email.
 
 ## Routes
 
-- `ALL` `/api/submit-registration` [cache] `[inferred]`
+- `POST` `/api/submit-registration` [auth, cache, email] `[inferred]`
   `worker/index.js`
 
 ## Source Files

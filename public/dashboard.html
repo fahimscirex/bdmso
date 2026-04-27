@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dashboard — BdMSO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css" />
+<style>
+[hidden] { display: none !important; }
+
+.page-head { background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-page-dark) 100%); color: white; padding: 80px 0 100px; position: relative; overflow: hidden; }
+.page-head::before { content:""; position:absolute; inset:0; background: radial-gradient(600px 300px at 50% 100%, var(--glow-gold-sm), transparent 60%); }
+.page-head .eyebrow { background: var(--navy-surface-dk); color: var(--gold-on-dark); border-color: var(--navy-border-dk); margin-bottom: 18px; }
+.page-head h1 { color: var(--gold-on-dark, #fcd34d); max-width: 720px; margin: 0 0 12px; font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); letter-spacing: 1.5px; }
+.page-head h1 .no-id { font-family: var(--font-display); letter-spacing: normal; color: white; }
+.page-head .id-count { display: inline-block; margin-left: 12px; padding: 4px 10px; border-radius: 999px; background: rgba(252, 211, 77, 0.15); color: var(--gold-on-dark, #fcd34d); border: 1px solid rgba(252, 211, 77, 0.35); font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; vertical-align: middle; text-transform: uppercase; }
+.page-head p { color: var(--on-dark-2); max-width: 640px; margin: 0 0 10px; font-size: 1.05rem; }
+.page-head .email { color: var(--on-dark-2); font-size: 13px; font-family: var(--font-mono); opacity: 0.85; }
+
+.dash-wrap { margin-top: -56px; position: relative; z-index: 2; padding-bottom: 96px; }
+
+#auth-error { display: flex; align-items: center; justify-content: center; min-height: 50vh; }
+#auth-error .auth-error-inner { text-align: center; padding: 40px; }
+#auth-error p { color: var(--ink-2); margin-bottom: 20px; }
+
+.toast { border-radius: var(--r-lg); padding: 16px 20px; margin-bottom: 20px; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow-sm); }
+.toast.success { background: #f0fdf4; border: 1px solid #86efac; color: #15803d; }
+.toast.error   { background: #fef2f2; border: 1px solid #fca5a5; color: #dc2626; }
+.toast.info    { background: white; border: 1px solid var(--line); color: var(--navy-800); }
+
+.dash-toolbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  background: white; border: 1px solid var(--line); border-radius: 14px;
+  padding: 16px 20px; margin-bottom: 28px; box-shadow: var(--shadow-sm);
+}
+.dash-toolbar h2 { margin: 0; font-size: 1.25rem; }
+.dash-toolbar .sub { color: var(--ink-3); font-size: 13px; margin-top: 2px; }
+
+.reg-grid { display: grid; gap: 18px; }
+
+.reg-card {
+  background: white; border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: 28px; display: grid; grid-template-columns: 1fr 220px; gap: 28px; align-items: center;
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.reg-card:hover { border-color: var(--navy-600); transform: translateY(-2px); box-shadow: var(--shadow); }
+.reg-card .id-pill {
+  display: flex; width: fit-content; align-items: baseline; gap: 10px;
+  padding: 6px 12px; border-radius: 999px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: var(--navy-900);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 0.85rem; font-weight: 700; letter-spacing: 0.8px;
+  margin-bottom: 10px;
+}
+.reg-card .id-pill .k { font-family: var(--font-display); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #b45309; padding-right: 10px; border-right: 1px solid #fcd34d; letter-spacing: 0.12em; }
+.reg-card .eyebrow { font-size: 10px; padding: 3px 8px; }
+.reg-card h3 { margin: 10px 0 6px; font-size: 1.35rem; }
+.reg-card .oneliner { color: var(--ink-2); font-size: 14.5px; margin: 0 0 14px; }
+.reg-meta { display: grid; grid-template-columns: repeat(4, auto); gap: 12px 24px; font-size: 13px; justify-content: start; }
+.reg-meta .k { font-size: 10.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 2px; font-weight: 600; }
+.reg-meta .v { color: var(--navy-900); font-weight: 600; }
+
+.reg-cta { display: flex; flex-direction: column; gap: 10px; align-items: stretch; text-align: center; }
+.reg-cta .price { font-family: var(--font-display); font-size: 1.25rem; color: var(--navy-900); font-weight: 700; white-space: nowrap; }
+.reg-cta .badge { align-self: center; }
+
+.badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; }
+.badge.paid     { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
+.badge.pending  { background: #fffbeb; color: #b45309; border: 1px solid #fcd34d; }
+.badge.submitted{ background: var(--navy-50); color: var(--navy-800); border: 1px solid var(--navy-100); }
+.badge.failed   { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
+
+.empty-state { text-align: center; padding: 64px 24px; background: white; border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); }
+.empty-state h3 { margin: 0 0 8px; }
+.empty-state p { color: var(--ink-2); margin: 0 0 24px; }
+
+.spinner { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--ink-3); font-size: 14px; background: white; border: 1px solid var(--line); border-radius: var(--r-lg); }
+
+.programs-section { margin-top: 52px; }
+.programs-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.programs-header h2 { margin: 0; font-size: 1.25rem; }
+.programs-header .sub { color: var(--ink-3); font-size: 13px; margin-top: 2px; }
+
+.prog-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.prog-card {
+  background: white; border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: 22px 24px; display: flex; flex-direction: column; gap: 10px;
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.prog-card:hover { border-color: var(--navy-600); transform: translateY(-2px); box-shadow: var(--shadow); }
+.prog-card .prog-tag { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; padding: 3px 9px; border-radius: 999px; align-self: flex-start; background: var(--navy-50); color: var(--navy-700); border: 1px solid var(--navy-100); }
+.prog-card .prog-tag.open { background: #f0fdf4; color: #15803d; border-color: #86efac; }
+.prog-card h3 { font-size: 1.05rem; margin: 0; color: var(--navy-900); }
+.prog-card p { font-size: 13.5px; color: var(--ink-2); margin: 0; flex-grow: 1; line-height: 1.55; }
+.prog-card .prog-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 6px; }
+.prog-card .prog-price { font-weight: 700; font-size: 1rem; color: var(--navy-900); font-family: var(--font-display); }
+
+@media (max-width: 900px) { .prog-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .prog-grid { grid-template-columns: 1fr; } }
+
+@media (max-width: 900px) {
+  .reg-card { grid-template-columns: 1fr; gap: 18px; }
+  .reg-meta { grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+  .reg-cta { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .reg-cta .price { flex: 1; text-align: left; }
+  .reg-cta .badge { align-self: auto; }
+  .reg-cta .btn { flex: 1; justify-content: center; }
+}
+@media (max-width: 600px) {
+  .page-head { padding: 64px 0 88px; }
+  .page-head h1 { font-size: 1.5rem; letter-spacing: 1.2px; }
+  .page-head .id-count { display: block; margin: 10px 0 0; font-size: 11px; }
+  .dash-toolbar { padding: 14px 16px; }
+  .dash-toolbar h2 { font-size: 1.1rem; }
+  .reg-card { padding: 20px; }
+  .reg-card .id-pill { padding: 5px 10px; font-size: 0.8rem; letter-spacing: 0.6px; gap: 8px; margin-bottom: 10px; }
+  .reg-card .id-pill .k { font-size: 9px; padding-right: 8px; }
+}
+</style>
+</head>
+<body data-page="dashboard">
+<div id="site-header"></div>
+<main>
+
+<section class="page-head" id="page-head" hidden>
+  <div class="container">
+    <span class="eyebrow">Guardian Dashboard</span>
+    <h1 id="dash-name"><span class="no-id">Welcome back</span></h1>
+    <p id="dash-greeting">Manage your registrations, track payments, and enrol your child in upcoming programs — all from one place.</p>
+    <div class="email" id="dash-email"></div>
+  </div>
+</section>
+
+<section class="container dash-wrap" id="dash-wrap" hidden>
+  <div id="payment-toast" hidden></div>
+  <div id="verify-banner" class="toast info" hidden style="justify-content: space-between;">
+    <span><strong>Verify your email</strong> — we've sent a verification link to your inbox. You need to verify before paying for registrations.</span>
+    <button id="resend-verify" class="btn btn-ghost" style="padding: 6px 12px; font-size: 13px;">Resend</button>
+  </div>
+
+  <div class="dash-toolbar">
+    <div>
+      <h2>Your Registrations</h2>
+      <div class="sub">All programs and qualifying rounds your child is enrolled in.</div>
+    </div>
+    <a class="btn btn-primary" href="registration.html">+ New Registration</a>
+  </div>
+  <div id="reg-list" class="reg-grid">
+    <div class="spinner">Loading…</div>
+  </div>
+
+  <div class="programs-section">
+    <div class="programs-header">
+      <div>
+        <h2>Explore Programs</h2>
+        <div class="sub">Add another program to your child's registrations.</div>
+      </div>
+      <a class="btn btn-ghost" href="programs.html" style="font-size:13px;">View all &rarr;</a>
+    </div>
+    <div class="prog-grid">
+
+      <div class="prog-card">
+        <span class="prog-tag open">Open · All Classes</span>
+        <h3>National Qualifying Round</h3>
+        <p>The gateway to BdMSO. Open to any student from Class 3 to 6. Participate in the national olympiad and qualify for residential camp.</p>
+        <div class="prog-foot">
+          <span class="prog-price">৳ 500</span>
+          <a class="btn btn-primary" href="registration.html" style="font-size:13px; padding:8px 16px;">Register</a>
+        </div>
+      </div>
+
+      <div class="prog-card">
+        <span class="prog-tag open">Open · Enrollment</span>
+        <h3>Mock Test Program</h3>
+        <p>Practice under real exam conditions before the national round. Receive detailed performance feedback and identify areas to improve.</p>
+        <div class="prog-foot">
+          <span class="prog-price">৳ 3,000</span>
+          <a class="btn btn-primary" href="registration.html" style="font-size:13px; padding:8px 16px;">Register</a>
+        </div>
+      </div>
+
+      <div class="prog-card">
+        <span class="prog-tag open">Open · Enrollment</span>
+        <h3>STEM Foundation Program</h3>
+        <p>A structured year-round training program covering mathematics, physics, and logical reasoning — designed to build olympiad-level thinking.</p>
+        <div class="prog-foot">
+          <span class="prog-price">৳ 8,000</span>
+          <a class="btn btn-primary" href="registration.html" style="font-size:13px; padding:8px 16px;">Register</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div id="auth-error" hidden>
+  <div class="auth-error-inner">
+    <p>You need to be signed in to view this page.</p>
+    <a class="btn btn-primary" href="login.html">Sign in</a>
+  </div>
+</div>
+
+</main>
+<div id="site-footer"></div>
+<script src="js/site.js"></script>
+<script type="module">
+import { buildFunctionUrl } from './js/api.js';
+
+async function apiPost(name, payload, token) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(buildFunctionUrl(name), { method: 'POST', headers, body: JSON.stringify(payload) });
+  const json = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(json?.error || 'Request failed.');
+  return json;
+}
+
+const PROGRAM_NAMES = {
+  'national-qualifying-round': 'National Qualifying Round',
+  'stem-foundation':           'STEM Foundation Program',
+  'bdmso-preparatory':         'BdMSO Preparatory Course',
+  'stem-masterclass':          'STEM Masterclass Series',
+  'mock-test':                 'Mock Test Program',
+  'lab-day':                   'Lab Day Workshop',
+  'robotics-foundation':       'Robotics Foundation Course',
+  'summer-camp':               'SPSB Summer Camp',
+  'winter-camp':               'International Winter Camp',
+};
+
+const PROGRAM_PRICES = {
+  'national-qualifying-round': 500,
+  'stem-foundation':           8000,
+  'bdmso-preparatory':         12000,
+  'stem-masterclass':          6000,
+  'mock-test':                 3000,
+  'lab-day':                   2000,
+  'robotics-foundation':       7000,
+  'summer-camp':               15000,
+  'winter-camp':               25000,
+};
+
+function getSession() {
+  try { return JSON.parse(localStorage.getItem('bdmso_user') || 'null'); } catch { return null; }
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function formatDate(iso) {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function statusBadge(regStatus, payStatus) {
+  if (regStatus === 'paid' || payStatus === 'paid') return '<span class="badge paid">Paid</span>';
+  if (payStatus === 'pending') return '<span class="badge pending">Payment Pending</span>';
+  if (payStatus === 'failed')  return '<span class="badge failed">Payment Failed</span>';
+  return '<span class="badge submitted">Awaiting Payment</span>';
+}
+
+function needsPayment(regStatus, payStatus) {
+  return regStatus !== 'paid' && payStatus !== 'paid';
+}
+
+async function pay(registrationId, btn) {
+  const session = getSession();
+  btn.disabled = true;
+  btn.textContent = 'Processing…';
+  try {
+    const data = await apiPost('create-payment', { registrationId }, session.token);
+    window.location.href = data.gatewayUrl;
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Pay Now';
+    alert(err.message);
+  }
+}
+
+function renderRegistrations(regs) {
+  const list = document.getElementById('reg-list');
+  if (!regs.length) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <h3>No registrations yet</h3>
+        <p>Register your child for an upcoming program or the national qualifying round.</p>
+        <a class="btn btn-primary" href="registration.html">Register Now</a>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = regs.map((r) => {
+    const programName = PROGRAM_NAMES[r.registration_type] || r.registration_type;
+    const price = PROGRAM_PRICES[r.registration_type] || 500;
+    const badge = statusBadge(r.status, r.payment_status);
+    const showPay = needsPayment(r.status, r.payment_status);
+    const isPaid = r.status === 'paid' || r.payment_status === 'paid';
+    const memberId = r.member_id || (isPaid ? '—' : 'Pending payment');
+
+    return `
+      <article class="reg-card">
+        <div>
+          <div class="id-pill"><span class="k">Member ID</span><span>${escapeHtml(memberId)}</span></div>
+          <span class="eyebrow">${escapeHtml(programName)}</span>
+          <h3>${escapeHtml(r.student_full_name)}</h3>
+          <p class="oneliner">Registered on ${escapeHtml(formatDate(r.created_at))}</p>
+          <div class="reg-meta">
+            <div><div class="k">Class</div><div class="v">${escapeHtml(r.student_class_name)}</div></div>
+            <div><div class="k">School</div><div class="v">${escapeHtml(r.student_school)}</div></div>
+            <div><div class="k">District</div><div class="v">${escapeHtml(r.student_district)}</div></div>
+            <div><div class="k">Status</div><div class="v">${escapeHtml(r.status)}</div></div>
+          </div>
+        </div>
+        <div class="reg-cta">
+          ${badge}
+          <div class="price">৳ ${price.toLocaleString()}</div>
+          ${showPay ? `<button class="btn btn-primary pay-btn" data-id="${escapeHtml(r.id)}">Pay Now</button>` : ''}
+          ${isPaid ? `<button class="btn btn-ghost receipt-btn" data-id="${escapeHtml(r.id)}" style="font-size:13px;">⬇ Download Receipt</button>` : ''}
+        </div>
+      </article>`;
+  }).join('');
+
+  list.querySelectorAll('.pay-btn').forEach(btn => {
+    btn.addEventListener('click', () => pay(btn.dataset.id, btn));
+  });
+
+  list.querySelectorAll('.receipt-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const r = regs.find(x => x.id === btn.dataset.id);
+      if (r) printReceipt(r);
+    });
+  });
+}
+
+function printReceipt(r) {
+  const programName = PROGRAM_NAMES[r.registration_type] || r.registration_type;
+  const paidAt = r.payment_date
+    ? new Date(r.payment_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    : '—';
+  const amount = r.payment_amount ? `৳ ${Number(r.payment_amount).toLocaleString()}` : '—';
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Receipt — BdMSO ${escapeHtml(r.member_id || '')}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; background: #f9fafb; display: flex; justify-content: center; padding: 40px 16px; }
+  .card { background: white; max-width: 520px; width: 100%; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.10); }
+  .header { background: #0b1b3f; padding: 28px 32px; }
+  .header h1 { color: #fcd34d; font-size: 22px; letter-spacing: 1px; }
+  .header p { color: rgba(255,255,255,0.6); font-size: 13px; margin-top: 4px; }
+  .member-band { background: #fffbeb; border-bottom: 1px solid #fcd34d; padding: 16px 32px; }
+  .member-band .k { font-size: 10px; font-weight: 700; letter-spacing: 0.15em; color: #b45309; text-transform: uppercase; }
+  .member-band .v { font-size: 24px; font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 2px; color: #0b1b3f; margin-top: 2px; }
+  .body { padding: 28px 32px; }
+  .body h2 { font-size: 17px; color: #0b1b3f; margin-bottom: 4px; }
+  .body .sub { color: #6b7280; font-size: 13px; margin-bottom: 24px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  tr { border-bottom: 1px solid #f3f4f6; }
+  tr:last-child { border-bottom: none; }
+  td { padding: 11px 0; }
+  td:first-child { color: #6b7280; }
+  td:last-child { font-weight: 600; text-align: right; }
+  .total td { padding-top: 16px; font-size: 16px; font-weight: 700; }
+  .total td:last-child { color: #15803d; font-size: 18px; }
+  .footer { background: #f9fafb; border-top: 1px solid #e5e7eb; padding: 14px 32px; }
+  .footer p { color: #9ca3af; font-size: 12px; }
+  @media print {
+    body { background: white; padding: 0; }
+    .card { box-shadow: none; border-radius: 0; }
+    .print-btn { display: none; }
+  }
+  .print-btn { display: block; margin: 24px auto 0; padding: 10px 28px; background: #0b1b3f; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+</style>
+</head>
+<body>
+<div>
+  <div class="card">
+    <div class="header">
+      <h1>BdMSO</h1>
+      <p>Bangladesh Mathematical Science Olympiad</p>
+    </div>
+    <div class="member-band">
+      <div class="k">Member ID</div>
+      <div class="v">${escapeHtml(r.member_id || '—')}</div>
+    </div>
+    <div class="body">
+      <h2>Payment Receipt</h2>
+      <p class="sub">${escapeHtml(programName)}</p>
+      <table>
+        <tr><td>Student</td><td>${escapeHtml(r.student_full_name)}</td></tr>
+        <tr><td>Class</td><td>${escapeHtml(r.student_class_name)}</td></tr>
+        <tr><td>School</td><td>${escapeHtml(r.student_school)}</td></tr>
+        <tr><td>District</td><td>${escapeHtml(r.student_district)}</td></tr>
+        <tr><td>Transaction ID</td><td style="font-family:monospace;font-size:12px;">${escapeHtml(r.tran_id || '—')}</td></tr>
+        <tr><td>Payment Date</td><td>${escapeHtml(paidAt)}</td></tr>
+        <tr class="total"><td>Amount Paid</td><td>${escapeHtml(amount)}</td></tr>
+      </table>
+    </div>
+    <div class="footer">
+      <p>Official payment confirmation from BdMSO. Retain for your records.</p>
+    </div>
+  </div>
+  <button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
+</div>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+}
+
+function showToast(type, message) {
+  const el = document.getElementById('payment-toast');
+  el.className = `toast ${type}`;
+  el.textContent = message;
+  el.hidden = false;
+}
+
+async function init() {
+  const session = getSession();
+  if (!session?.token) {
+    document.getElementById('auth-error').hidden = false;
+    return;
+  }
+
+  document.getElementById('page-head').hidden = false;
+  document.getElementById('dash-wrap').hidden = false;
+  // textContent is safe from XSS — no need to escape.
+  document.getElementById('dash-greeting').textContent =
+    `Welcome back, ${session.fullName.split(' ')[0]} — manage your registrations, track payments, and enrol in upcoming programs.`;
+  document.getElementById('dash-email').textContent = session.email;
+
+  const params = new URLSearchParams(location.search);
+  const payResult = params.get('payment');
+  if (payResult === 'success')   showToast('success', 'Payment successful! Your registration is confirmed.');
+  if (payResult === 'failed')    showToast('error',   'Payment was not completed. Please try again.');
+  if (payResult === 'cancelled') showToast('info',    'Payment was cancelled. You can try again anytime.');
+
+  const verifyResult = params.get('verified');
+  if (verifyResult === 'success') showToast('success', 'Email verified! You can now pay for your registrations.');
+  if (verifyResult === 'expired') showToast('error',   'Verification link expired. Please request a new one.');
+  if (verifyResult === 'invalid') showToast('error',   'Verification link is invalid or has already been used.');
+
+  if (payResult || verifyResult) history.replaceState({}, '', '/dashboard.html');
+
+  document.getElementById('resend-verify')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    try {
+      await fetch('/api/resend-verification', { method: 'POST', headers: { Authorization: `Bearer ${session.token}` } });
+      btn.textContent = 'Sent ✓';
+    } catch { btn.textContent = 'Try again'; btn.disabled = false; }
+  });
+
+  try {
+    const data = await fetch('/api/me', {
+      headers: { Authorization: `Bearer ${session.token}` }
+    });
+    if (data.status === 401) {
+      localStorage.removeItem('bdmso_user');
+      window.location.href = 'login.html';
+      return;
+    }
+    const json = await data.json();
+    if (json.account && !json.account.emailVerified && verifyResult !== 'success') {
+      document.getElementById('verify-banner').hidden = false;
+    }
+    const regs = json.registrations || [];
+    const headName = document.getElementById('dash-name');
+    if (regs.length === 1 && regs[0].member_id) {
+      headName.textContent = regs[0].member_id;
+    } else if (regs.length > 1) {
+      // Show most recent ID with a "+N more" pill.
+      const latest = regs.find(r => r.member_id);
+      if (latest) {
+        headName.textContent = latest.member_id;
+        const count = document.createElement('span');
+        count.className = 'id-count';
+        count.textContent = `+${regs.length - 1} more`;
+        headName.appendChild(count);
+      }
+    }
+    renderRegistrations(regs);
+  } catch {
+    document.getElementById('reg-list').innerHTML = '<p style="color:var(--ink-3); padding:20px;">Could not load registrations. Please refresh.</p>';
+  }
+}
+
+init();
+</script>
+</body>
+</html>
