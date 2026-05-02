@@ -112,14 +112,19 @@ Two sections: `featured` (the three portrait cards) and `stats` (the number stri
 
 ```bash
 npm install
-npm run dev:local   # serves public/ with live reload at localhost:3000
+cp .env.example .env              # set SITE_URL for build output
+cp .dev.vars.example .dev.vars    # fill in BREVO_API_KEY, EMAIL_FROM
+npm run dev:local                 # serves public/ with live reload at localhost:3000
 ```
+
+`.dev.vars` holds local Worker secrets (Brevo, optional SSLCommerz overrides). It is gitignored — never commit it.
 
 To test Worker API endpoints locally:
 
 ```bash
 npm run build
-npm run cf:dev      # wrangler dev at localhost:8787
+npx wrangler d1 migrations apply DB --local   # first run only
+npm run cf:dev                                # wrangler dev at localhost:8787
 ```
 
 ---
@@ -147,10 +152,21 @@ wrangler d1 create bdmso
 
 2. Paste the returned IDs into `wrangler.toml`.
 
-3. Apply the schema:
+3. Apply the schema and migrations:
 
 ```bash
 wrangler d1 execute bdmso --file=./db/schema.sql
+wrangler d1 migrations apply DB --remote
+```
+
+4. Set production secrets (one-time):
+
+```bash
+wrangler secret put BREVO_API_KEY           --config wrangler.prod.toml
+wrangler secret put EMAIL_FROM              --config wrangler.prod.toml
+wrangler secret put SSLCOMMERZ_STORE_ID     --config wrangler.prod.toml
+wrangler secret put SSLCOMMERZ_STORE_PASSWD --config wrangler.prod.toml
+wrangler secret put SSLCOMMERZ_SANDBOX      --config wrangler.prod.toml   # "false" for live
 ```
 
 ---
@@ -159,11 +175,13 @@ wrangler d1 execute bdmso --file=./db/schema.sql
 
 | Table | Purpose |
 |---|---|
-| `guardian_accounts` | Parent/guardian login credentials |
-| `registrations` | Student registration submissions |
+| `guardian_accounts` | Parent/guardian login credentials and sessions |
+| `registrations` | Student registration submissions (one row per program enrollment) |
 | `sponsorship_enquiries` | Sponsorship contact form leads |
+| `coupons` | Discount codes with percent/fixed value and usage limits |
+| `member_id_seq` | Per-year counter for `YY-NNNNN` member IDs (unique per guardian) |
 
-Passwords are PBKDF2-hashed in the Worker before storage. A full login/session system is not yet implemented.
+Passwords are PBKDF2-hashed; sessions use Bearer tokens. Member IDs are minted on first paid registration and reused across all of a guardian's enrollments.
 
 ---
 
