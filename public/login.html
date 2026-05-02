@@ -84,7 +84,7 @@ import { postJson } from './js/api.js';
 
 // Redirect if already logged in
 try {
-  if (JSON.parse(localStorage.getItem('bdmso_user'))) window.location.replace('index.html');
+  if (JSON.parse(localStorage.getItem('bdmso_user'))) window.location.replace('dashboard.html');
 } catch {}
 
 const form = document.getElementById('login-form');
@@ -109,7 +109,7 @@ form.addEventListener('submit', async e => {
       fullName: data.fullName,
       email: data.email
     }));
-    window.location.href = 'index.html';
+    window.location.href = 'dashboard.html';
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.hidden = false;

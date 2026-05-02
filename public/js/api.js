@@ -2,12 +2,12 @@ export function buildFunctionUrl(name) {
   return `/api/${name}`;
 }
 
-export async function postJson(functionName, payload) {
+export async function postJson(functionName, payload, token) {
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
   const response = await fetch(buildFunctionUrl(functionName), {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
+    headers,
     body: JSON.stringify(payload)
   });
 

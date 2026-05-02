@@ -1,9 +1,9 @@
 [
-  { "name": "Registration",              "date": "JAN – FEB 2026" },
-  { "name": "National Qualifying Round", "date": "MAR 2026" },
-  { "name": "National Residential Camp", "date": "APR 2026" },
-  { "name": "Team Selection Test",       "date": "MAY 2026" },
-  { "name": "IMSO Preparatory Camp",     "date": "JUN – AUG 2026" },
-  { "name": "Press Conference",          "date": "SEP 2026" },
-  { "name": "International Participation", "date": "OCT 2026" }
+  { "name": "Registration",               "date": "MAY 2026" },
+  { "name": "National Qualifying Round",  "date": "JUNE 2026" },
+  { "name": "National Residential Camp",  "date": "JULY 2026" },
+  { "name": "Team Selection Test",        "date": "JULY 2026" },
+  { "name": "IMSO Preparatory Camp",      "date": "AUG – SEPT 2026" },
+  { "name": "Press Conference",           "date": "OCT 2026" },
+  { "name": "International Participation","date": "OCT 2026" }
 ]

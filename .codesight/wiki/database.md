@@ -51,8 +51,9 @@ pk: `id` (text) · fk: member_id, guardian_account_id
 - `student_full_name`: text _(required)_
 - `student_date_of_birth`: text _(required)_
 - `student_class_name`: text _(required)_
+- `student_gender`: text _(required)_
 - `student_school`: text _(required)_
-- `student_city`: text _(required)_
+- `student_district`: text _(required)_
 - `guardian_account_id`: text _(required, fk)_
 - `guardian_full_name`: text _(required)_
 - `guardian_relationship`: text _(required)_

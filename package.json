@@ -7,7 +7,7 @@
     "dev:local": "npx live-server public --port=3000",
     "build": "node scripts/build.mjs",
     "clean": "rm -rf dist",
-    "cf:dev": "wrangler dev",
+    "cf:dev": "wrangler dev --live-reload",
     "cf:deploy": "npm run build && wrangler deploy --config wrangler.prod.toml",
     "cf:d1:init": "wrangler d1 execute bdmso --local --file=./db/schema.sql",
     "cf:d1:init:prod": "wrangler d1 execute bdmso --file=./db/schema.sql"
@@ -16,6 +16,6 @@
     "node": ">=20"
   },
   "devDependencies": {
-"wrangler": "^4.13.2"
+    "wrangler": "^4.86.0"
   }
 }

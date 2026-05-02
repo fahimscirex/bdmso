@@ -1,26 +1,35 @@
 [
   {
-    "category": "Announcement",
-    "date": "April 10, 2026",
-    "title": "Registration for BdMSO 2026 National Qualifying Round is now open.",
-    "excerpt": "Students from Class 3 to 6 can now register through the official portal. Deadline: May 15, 2026. Read the complete eligibility and schedule inside.",
+    "category": "Press",
+    "date": "9 Oct 2025",
+    "title": "Bangladesh wins two silver, ten bronze at IMSO 2025 — every team member medals on debut.",
+    "excerpt": "Bangladesh made a remarkable debut at IMSO in Malaysia, earning two silver and ten bronze medals from 23 competing nations. The team was also named Best Cooperative Team and runner-up in the STEM Exploration Competition.",
     "featured": true,
-    "imageClass": ""
-  },
-  {
-    "category": "Camp",
-    "date": "Mar 28, 2026",
-    "title": "Announcing the dates for the National Residential Camp.",
-    "excerpt": null,
-    "featured": false,
-    "imageClass": "ph-gold"
+    "src": "https://www.tbsnews.net/sites/default/files/styles/very_big_1/public/images/2025/10/09/imso_img_3.jpg",
+    "url": "https://www.tbsnews.net/economy/corporates/bangladesh-wins-two-silver-ten-bronze-imso-2025-1256606",
+    "outlet": "The Business Standard",
+    "favicon": "https://www.tbsnews.net/favicon.ico"
   },
   {
     "category": "Press",
-    "date": "Mar 15, 2026",
-    "title": "BdMSO joins SPSB for the 2026 Winter STEM Exchange.",
-    "excerpt": null,
+    "date": "6 Aug 2025",
+    "title": "Bangladesh hosts its first-ever maths and science olympiad for primary students.",
+    "excerpt": "The national round was held on August 22 at St. Joseph Higher Secondary School, with over 200 students competing. A total of 52 students were awarded medals across mathematics and science.",
     "featured": false,
-    "imageClass": "ph-navy"
+    "src": "https://www.tbsnews.net/sites/default/files/styles/big_3/public/images/2025/08/22/bdmso_national_5.jpeg",
+    "url": "https://www.tbsnews.net/economy/corporates/bangladesh-hosts-first-ever-maths-and-science-olympiad-primary-students-1218016",
+    "outlet": "The Business Standard",
+    "favicon": "https://www.tbsnews.net/favicon.ico"
+  },
+  {
+    "category": "Press",
+    "date": "22 Aug 2025",
+    "title": "BdMSO 2025 national round: a talent show for primary students at St. Joseph.",
+    "excerpt": "Over 200 students participated in the national round at St. Joseph Higher Secondary School on Friday, competing in mathematics and science.",
+    "featured": false,
+    "src": "https://media.prothomalo.com/prothomalo-bangla/2025-08-22/85lqske4/olypiad-Saint-Joseph.jpeg",
+    "url": "https://www.prothomalo.com/bangladesh/6tjkpvb864",
+    "outlet": "Prothom Alo",
+    "favicon": "https://www.prothomalo.com/favicon.ico"
   }
 ]

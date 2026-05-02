@@ -247,9 +247,9 @@ async function sendReceiptEmail(env, reg, memberId) {
 
 async function assignMemberIdAndSendReceipt(env, tranId) {
   const row = await env.DB.prepare(`
-    SELECT r.id, r.member_id, r.registration_type, r.student_full_name, r.student_class_name,
-           r.student_school, r.student_district, r.guardian_full_name, r.guardian_email,
-           p.amount, p.tran_id, p.updated_at AS paid_at
+    SELECT r.id, r.member_id, r.guardian_account_id, r.registration_type, r.student_full_name,
+           r.student_class_name, r.student_school, r.student_district, r.guardian_full_name,
+           r.guardian_email, p.amount, p.tran_id, p.updated_at AS paid_at
     FROM registrations r
     JOIN payments p ON p.registration_id = r.id
     WHERE p.tran_id = ? LIMIT 1
@@ -257,7 +257,18 @@ async function assignMemberIdAndSendReceipt(env, tranId) {
 
   if (!row || row.member_id) return;
 
-  const memberId = await reserveMemberId(env, new Date().getUTCFullYear());
+  // Reuse the member ID already issued to this guardian, otherwise mint a new one.
+  let memberId = null;
+  if (row.guardian_account_id) {
+    const existing = await env.DB.prepare(
+      "SELECT member_id FROM registrations WHERE guardian_account_id = ? AND member_id IS NOT NULL LIMIT 1"
+    ).bind(row.guardian_account_id).first();
+    memberId = existing?.member_id || null;
+  }
+  if (!memberId) {
+    memberId = await reserveMemberId(env, new Date().getUTCFullYear());
+  }
+
   const result = await env.DB.prepare(
     "UPDATE registrations SET member_id = ? WHERE id = ? AND member_id IS NULL"
   ).bind(memberId, row.id).run();
@@ -312,29 +323,33 @@ async function sendVerificationEmail(env, email, verifyUrl) {
 
 const PROGRAM_NAMES = {
   "national-qualifying-round": "National Qualifying Round",
+  "national-qualifying-round-both": "National Qualifying Round (Math + Science)",
   "stem-foundation":           "STEM Foundation Program",
   "bdmso-preparatory":         "BdMSO Preparatory Course",
   "stem-masterclass":          "STEM Masterclass Series",
   "mock-test":                 "Mock Test Program",
   "lab-day":                   "Lab Day Workshop",
   "robotics-foundation":       "Robotics Foundation Course",
-  "summer-camp":               "SPSB Summer Camp",
-  "winter-camp":               "International Winter Camp",
+  "summer-camp":               "SPSB Nature Camp",
+  "winter-camp":               "International Summer/Winter Camp",
+  "exchange-program":          "BdMSO Exchange Program",
 };
 
 // ─── SSLCommerz ───────────────────────────────────────────────────────────────
 
 // Pricing map: registration_type slug → BDT amount
 const PROGRAM_PRICES = {
-  "national-qualifying-round": 500,
-  "stem-foundation":           8000,
-  "bdmso-preparatory":         12000,
-  "stem-masterclass":          6000,
-  "mock-test":                 3000,
-  "lab-day":                   2000,
-  "robotics-foundation":       7000,
-  "summer-camp":               15000,
-  "winter-camp":               25000,
+  "national-qualifying-round":      1000,
+  "national-qualifying-round-both": 1500,
+  "stem-foundation":                8000,
+  "bdmso-preparatory":              12000,
+  "stem-masterclass":               6000,
+  "mock-test":                      3000,
+  "lab-day":                        2000,
+  "robotics-foundation":            7000,
+  "summer-camp":                    15000,
+  "winter-camp":                    25000,
+  "exchange-program":               50000,
 };
 
 function getSslConfig(env) {
@@ -436,7 +451,7 @@ async function handleMe(request, env) {
 
   const rows = await env.DB.prepare(`
     SELECT r.id, r.member_id, r.registration_type, r.student_full_name, r.student_class_name,
-           r.student_school, r.student_district, r.status, r.created_at,
+           r.student_gender, r.student_school, r.student_district, r.status, r.created_at,
            p.id    AS payment_id,
            p.status AS payment_status,
            p.amount AS payment_amount,
@@ -470,8 +485,9 @@ async function handleRegistration(request, env) {
   const studentFullName    = requireField(student.fullName,   "Student full name");
   const studentDateOfBirth = requireField(student.dateOfBirth,"Date of birth");
   const studentClassName   = requireField(student.className,  "Class");
+  const studentGender      = requireField(student.gender,     "Gender");
   const studentSchool      = requireField(student.school,     "School");
-  const studentDistrict        = requireField(student.district,   "District");
+  const studentDistrict    = requireField(student.district,   "District");
   const guardianFullName   = requireField(guardian.fullName,  "Guardian name");
   const guardianRelationship = requireField(guardian.relationship, "Relationship");
   const guardianPhone      = requireField(guardian.phone,     "Phone");
@@ -491,7 +507,7 @@ async function handleRegistration(request, env) {
     "SELECT id FROM guardian_accounts WHERE email = ? LIMIT 1"
   ).bind(guardianEmail).first();
   // Same generic error whether email exists or not — prevents enumeration.
-  if (existing) return badRequest("We couldn't complete your registration. Please check your details and try again.", 409);
+  if (existing) return badRequest("An account with this email already exists. If you've registered before, please log in instead.", 409);
 
   const guardianAccountId = createId("ga");
   const applicationId     = createId("app");
@@ -506,13 +522,13 @@ async function handleRegistration(request, env) {
     env.DB.prepare(`
       INSERT INTO registrations (
         id, registration_type, student_full_name, student_date_of_birth, student_class_name,
-        student_school, student_district, guardian_account_id, guardian_full_name,
+        student_gender, student_school, student_district, guardian_account_id, guardian_full_name,
         guardian_relationship, guardian_phone, guardian_email, guardian_address,
         terms_accepted, status, source_page, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       applicationId, registrationType, studentFullName, studentDateOfBirth, studentClassName,
-      studentSchool, studentDistrict, guardianAccountId, guardianFullName,
+      studentGender, studentSchool, studentDistrict, guardianAccountId, guardianFullName,
       guardianRelationship, guardianPhone, guardianEmail, guardianAddress,
       termsAccepted ? 1 : 0, "submitted", sourcePage, createdAt
     )
@@ -618,9 +634,43 @@ async function handleCreatePayment(request, env) {
   ).bind(registrationId).first();
   if (alreadyPaid) return badRequest("This registration has already been paid.");
 
-  const amount  = PROGRAM_PRICES[reg.registration_type] ?? 500;
-  const tranId  = createId("txn");
-  const base    = getBaseUrl(request);
+  const baseAmount  = PROGRAM_PRICES[reg.registration_type] ?? 1000;
+  let finalAmount   = baseAmount;
+  const couponCode  = normalizeString(payload.couponCode)?.toUpperCase();
+
+  if (couponCode) {
+    const coupon = await env.DB.prepare(
+      "SELECT * FROM coupons WHERE code = ? LIMIT 1"
+    ).bind(couponCode).first();
+    if (coupon &&
+        (!coupon.expires_at || new Date(coupon.expires_at) >= new Date()) &&
+        (!coupon.max_uses   || coupon.used_count < coupon.max_uses) &&
+        (!coupon.applies_to || coupon.applies_to.split(",").map(s => s.trim()).includes(reg.registration_type))
+    ) {
+      finalAmount = coupon.discount_type === "percent"
+        ? Math.round(baseAmount * (1 - coupon.discount_value / 100))
+        : Math.max(0, baseAmount - coupon.discount_value);
+      await env.DB.prepare("UPDATE coupons SET used_count = used_count + 1 WHERE code = ?").bind(couponCode).run();
+    }
+  }
+
+  const amount = finalAmount;
+  const tranId = createId("txn");
+  const now    = new Date().toISOString();
+  const base   = getBaseUrl(request);
+
+  // Free registration — skip payment gateway entirely
+  if (amount === 0) {
+    const paymentId = createId("pay");
+    await env.DB.batch([
+      env.DB.prepare(
+        "INSERT INTO payments (id, registration_id, account_id, amount, currency, tran_id, status, created_at, updated_at) VALUES (?, ?, ?, 0, 'BDT', ?, 'paid', ?, ?)"
+      ).bind(paymentId, registrationId, account.account_id, tranId, now, now),
+      env.DB.prepare("UPDATE registrations SET status = 'paid' WHERE id = ?").bind(registrationId),
+    ]);
+    try { await assignMemberIdAndSendReceipt(env, tranId); } catch {}
+    return jsonResponse({ ok: true, free: true });
+  }
 
   const sslRes = await initSslPayment(env, {
     total_amount:     String(amount),
@@ -647,7 +697,6 @@ async function handleCreatePayment(request, env) {
   }
 
   const paymentId = createId("pay");
-  const now       = new Date().toISOString();
   await env.DB.prepare(
     "INSERT INTO payments (id, registration_id, account_id, amount, currency, tran_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'BDT', ?, 'pending', ?, ?)"
   ).bind(paymentId, registrationId, account.account_id, amount, tranId, now, now).run();
@@ -726,6 +775,81 @@ async function handlePaymentIpn(request, env) {
   return jsonResponse({ ok: true });
 }
 
+async function handleAddEnrollment(request, env) {
+  let account;
+  try { account = await requireAuth(request, env); }
+  catch (e) { return badRequest(e.message, e.status || 401); }
+
+  const payload          = await parseJson(request);
+  const registrationType = normalizeString(payload.registrationType) || "national-qualifying-round";
+
+  const existing = await env.DB.prepare(
+    "SELECT * FROM registrations WHERE guardian_account_id = ? ORDER BY created_at DESC LIMIT 1"
+  ).bind(account.account_id).first();
+  if (!existing) return badRequest("No existing registration found. Please complete a full registration first.", 404);
+
+  const duplicate = await env.DB.prepare(
+    "SELECT id FROM registrations WHERE guardian_account_id = ? AND registration_type = ? AND status != 'cancelled' LIMIT 1"
+  ).bind(account.account_id, registrationType).first();
+  if (duplicate) return badRequest("Your child is already enrolled in this program.", 409);
+
+  const applicationId = createId("app");
+  const createdAt     = new Date().toISOString();
+
+  // Reuse the guardian's existing member ID so it's the same across every program.
+  const existingMember = await env.DB.prepare(
+    "SELECT member_id FROM registrations WHERE guardian_account_id = ? AND member_id IS NOT NULL LIMIT 1"
+  ).bind(account.account_id).first();
+  const memberId = existingMember?.member_id || null;
+
+  await env.DB.prepare(`
+    INSERT INTO registrations (
+      id, registration_type, student_full_name, student_date_of_birth, student_class_name,
+      student_gender, student_school, student_district, guardian_account_id, guardian_full_name,
+      guardian_relationship, guardian_phone, guardian_email, guardian_address,
+      member_id, terms_accepted, status, source_page, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'submitted', 'programs.html', ?)
+  `).bind(
+    applicationId, registrationType,
+    existing.student_full_name, existing.student_date_of_birth,
+    existing.student_class_name, existing.student_gender,
+    existing.student_school, existing.student_district,
+    account.account_id, existing.guardian_full_name,
+    existing.guardian_relationship, existing.guardian_phone,
+    account.email, existing.guardian_address,
+    memberId, createdAt
+  ).run();
+
+  return jsonResponse({ ok: true, applicationId });
+}
+
+async function handleValidateCoupon(request, env, url) {
+  const code = url.searchParams.get("code")?.trim().toUpperCase();
+  const type = url.searchParams.get("type");
+  if (!code) return badRequest("Coupon code is required.");
+
+  const coupon = await env.DB.prepare(
+    "SELECT * FROM coupons WHERE code = ? LIMIT 1"
+  ).bind(code).first();
+
+  if (!coupon) return badRequest("Invalid coupon code.", 404);
+  if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) return badRequest("This coupon has expired.", 410);
+  if (coupon.max_uses && coupon.used_count >= coupon.max_uses) return badRequest("This coupon has reached its usage limit.", 410);
+  if (coupon.applies_to && type) {
+    const allowed = coupon.applies_to.split(",").map(s => s.trim());
+    if (!allowed.includes(type)) return badRequest("This coupon is not valid for this program.", 422);
+  }
+
+  return jsonResponse({
+    ok: true,
+    discountType: coupon.discount_type,
+    discountValue: coupon.discount_value,
+    description: coupon.discount_type === "percent"
+      ? `${coupon.discount_value}% off`
+      : `৳${Number(coupon.discount_value).toLocaleString()} off`
+  });
+}
+
 // ─── Router ───────────────────────────────────────────────────────────────────
 
 async function handleApi(request, env, url) {
@@ -737,6 +861,8 @@ async function handleApi(request, env, url) {
     if (pathname === "/api/logout"                 && method === "POST") return await handleLogout(request, env);
     if (pathname === "/api/me"                     && method === "GET")  return await handleMe(request, env);
     if (pathname === "/api/submit-registration"    && method === "POST") return await handleRegistration(request, env);
+    if (pathname === "/api/add-enrollment"         && method === "POST") return await handleAddEnrollment(request, env);
+    if (pathname === "/api/validate-coupon"        && method === "GET")  return await handleValidateCoupon(request, env, url);
     if (pathname === "/api/submit-sponsorship"     && method === "POST") return await handleSponsorship(request, env);
     if (pathname === "/api/create-payment"         && method === "POST") return await handleCreatePayment(request, env);
     if (pathname === "/api/payment-callback")                            return await handlePaymentCallback(request, env, url);

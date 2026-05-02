@@ -97,6 +97,22 @@
   padding: 48px 32px; text-align: center;
 }
 .success .ic { width: 64px; height: 64px; border-radius: 50%; background: var(--status-open-bg); color: var(--status-open-text2); display: grid; place-items: center; margin: 0 auto 18px; }
+
+.quick-enroll {
+  background: white; border: 1px solid var(--navy-200); border-radius: var(--r-xl);
+  overflow: hidden; box-shadow: var(--shadow-sm); margin-bottom: 96px;
+}
+.quick-enroll .qe-head { background: var(--navy-900); padding: 24px 32px; position: relative; overflow: hidden; }
+.quick-enroll .qe-head::before { content:""; position:absolute; inset:0; background: radial-gradient(400px 200px at 100% 50%, var(--glow-gold), transparent 60%); pointer-events:none; }
+.quick-enroll .qe-head .tag { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.14em; color:var(--gold-on-dark); margin-bottom:6px; }
+.quick-enroll .qe-head h3 { color:white; margin:0; font-size:1.3rem; }
+.quick-enroll .qe-body { padding: 28px 32px; }
+.quick-enroll .student-row { display:flex; gap:20px; align-items:center; padding:16px 20px; background:var(--bg-alt); border-radius:var(--r); margin-bottom:20px; border:1px solid var(--line); }
+.quick-enroll .student-row .s-avatar { width:48px; height:48px; border-radius:50%; background:var(--navy-100); display:grid; place-items:center; font-size:20px; flex-shrink:0; }
+.quick-enroll .student-row .s-name { font-weight:700; font-size:1rem; color:var(--navy-900); }
+.quick-enroll .student-row .s-detail { font-size:13px; color:var(--ink-3); margin-top:2px; }
+.quick-enroll .qe-foot { padding:20px 32px; border-top:1px solid var(--line-2); display:flex; justify-content:space-between; align-items:center; gap:12px; background:var(--bg-alt); flex-wrap:wrap; }
+.quick-enroll .qe-price { font-family:var(--font-display); font-size:1.2rem; font-weight:700; color:var(--navy-900); }
 </style>
 </head>
 <body data-page="registration">
@@ -107,21 +123,57 @@
 <section class="page-head">
   <div class="container">
     <span class="eyebrow">Registration Portal</span>
-    <h1>Your journey to IMSO begins here.</h1>
-    <p>Create your BdMSO ID once — every step from the national round to international delegation is tracked from the same portal.</p>
+    <h1>Register your child for BdMSO 2026.</h1>
+    <p>Most guardians start with the <strong style="color:white;">National Qualifying Round</strong> — open to all primary students under 13. Create your BdMSO ID once and use it across every stage.</p>
   </div>
 </section>
 
 <section class="container reg-wrap">
   <div class="instructions">
-    <div class="step"><div class="st-num">1</div><div><h3>Create your BdMSO ID</h3><p>You'll use this single ID across all stages — registration, camps, and results.</p></div></div>
-    <div class="step"><div class="st-num">2</div><div><h3>Pick your stage</h3><p>Most students begin with the National Qualifying Round (open to all).</p></div></div>
-    <div class="step"><div class="st-num">3</div><div><h3>Complete the 3-step form</h3><p>Student info → Guardian info → Confirmation. Takes about 5 minutes.</p></div></div>
+    <div class="step"><div class="st-num">1</div><div><h3>Select what to register for</h3><p>First-time? Click <strong>National Qualifying Round</strong> below — it's open to everyone and is how all journeys begin.</p></div></div>
+    <div class="step"><div class="st-num">2</div><div><h3>Fill in the form — 5 minutes</h3><p>Student details → Guardian contact → Review &amp; set password. Your BdMSO ID is generated automatically.</p></div></div>
+    <div class="step"><div class="st-num">3</div><div><h3>Verify email &amp; pay</h3><p>Check your inbox for a verification link, then complete payment (1,000 BDT per subject) through the portal.</p></div></div>
   </div>
 
-  <h2 style="margin-bottom: 20px;">Choose what to register for</h2>
+  <!-- Quick-enroll panel: shown only when user is logged in + ?program= is present -->
+  <div id="quick-enroll" class="quick-enroll" hidden>
+    <div class="qe-head">
+      <div class="tag" id="qe-program-tag">Program</div>
+      <h3 id="qe-program-name">Enrolling in program…</h3>
+    </div>
+    <div class="qe-body">
+      <p style="color:var(--ink-2); margin-bottom:18px;">You're already registered. We'll use your existing student information — no need to fill anything in again.</p>
+      <div class="student-row" id="qe-student-row">
+        <div class="s-avatar">🎓</div>
+        <div>
+          <div class="s-name" id="qe-student-name">Loading…</div>
+          <div class="s-detail" id="qe-student-detail"></div>
+        </div>
+      </div>
+      <div class="field full" id="qe-subject-field" style="display:none; margin-bottom:8px;">
+        <label style="font-size:13px; font-weight:600; color:var(--navy-900); display:block; margin-bottom:6px;">Subject(s) to participate in</label>
+        <select id="qe-subject" style="width:100%; padding:11px 14px; font-size:15px; border:1px solid var(--line); border-radius:10px; background:white; font-family:inherit; color:var(--ink);">
+          <option value="mathematics">Mathematics only — 1,000 BDT</option>
+          <option value="science">Science only — 1,000 BDT</option>
+          <option value="both">Both Mathematics &amp; Science — 1,500 BDT</option>
+        </select>
+      </div>
+      <div id="qe-error" style="color:var(--color-error); font-size:14px; font-weight:600; display:none;"></div>
+    </div>
+    <div class="qe-foot">
+      <div class="qe-price" id="qe-price"></div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <a class="btn btn-ghost" href="programs.html">← Back to programs</a>
+        <button class="btn btn-gold" id="qe-confirm-btn">Confirm enrollment →</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="full-reg-section">
+  <h2 style="margin-bottom: 8px;">Choose what to register for</h2>
+  <p style="margin-bottom: 20px; color:var(--ink-3); font-size:14px;">Locked stages require qualification through an earlier stage — they open automatically when you're eligible.</p>
   <div class="card-grid">
-    <div class="reg-card"><span class="status open">Open · All</span><h3>National Qualifying Round</h3><p>Open to any student from Class 3 to 6. The gateway into BdMSO.</p><span class="meta">Closes May 15, 2026</span><a class="btn btn-primary" href="#form">Register</a></div>
+    <div class="reg-card"><span class="status open">Open · All</span><h3>National Qualifying Round</h3><p>Open to any student from Class 3 to 6. The gateway into BdMSO.</p><span class="meta">Closes May 30, 2026</span><a class="btn btn-primary" href="#form">Register</a></div>
     <div class="reg-card"><span class="status open">Open · Enrollment</span><h3>Programs &amp; Courses</h3><p>Enroll in year-round training modules — prep courses, camps, workshops.</p><span class="meta">Rolling admissions</span><a class="btn btn-ghost" href="programs.html">Browse Programs</a></div>
     <div class="reg-card locked"><span class="status locked-s">🔒 Locked</span><h3>National Residential Camp</h3><p>Requires qualification through the National Round.</p><span class="meta">Opens April 2026</span></div>
     <div class="reg-card locked"><span class="status locked-s">🔒 Locked</span><h3>Team Selection Test (TST)</h3><p>Top 15 finalists from the residential camp only.</p><span class="meta">Opens May 2026</span></div>
@@ -129,9 +181,14 @@
     <div class="reg-card"><span class="status open">Open · Info</span><h3>Not sure where to start?</h3><p>Tell us about your child — we'll recommend the right program.</p><a class="btn btn-ghost" href="#">Get a recommendation</a></div>
   </div>
 
+  </div><!-- /full-reg-section -->
+
   <div id="form" class="form-shell" style="margin-bottom: 96px;">
     <div class="form-head">
-      <h3 id="step-title">Step 1 · Student Info</h3>
+      <div>
+        <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--navy-700); margin-bottom:4px;">National Qualifying Round 2026</div>
+        <h3 id="step-title" style="font-size:1.2rem; margin:0;">Step 1 · Student Info</h3>
+      </div>
       <div class="progress" aria-label="Progress">
         <div class="bar active" data-s="1"></div>
         <div class="bar" data-s="2"></div>
@@ -142,10 +199,21 @@
 
     <div id="step-1">
       <div class="form-body">
+        <div class="field full">
+          <label>Subject(s) to participate in</label>
+          <select id="f-subject">
+            <option value="mathematics">Mathematics only — 1,000 BDT</option>
+            <option value="science">Science only — 1,000 BDT</option>
+            <option value="both">Both Mathematics &amp; Science — 1,500 BDT</option>
+          </select>
+        </div>
         <div class="field"><label>Student's Full Name</label><input id="f-name" placeholder="e.g. Tasneem Islam" /></div>
         <div class="field"><label>Date of Birth</label><input id="f-dob" type="date" /></div>
         <div class="field"><label>Class / Grade</label>
           <select id="f-class"><option>Class 3</option><option>Class 4</option><option selected>Class 5</option><option>Class 6</option></select>
+        </div>
+        <div class="field"><label>Gender</label>
+          <select id="f-gender"><option value="">Select</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select>
         </div>
         <div class="field"><label>School</label><input id="f-school" placeholder="e.g. Viqarunnisa Noon School" /></div>
         <div class="field full"><label>District</label><input id="f-district" placeholder="e.g. Dhaka" /></div>
@@ -221,6 +289,190 @@
 
 <div id="site-footer"></div>
 <script src="js/site.js"></script>
+<script type="module">
+import { postJson } from './js/api.js';
+
+const PROGRAM_NAMES = {
+  'national-qualifying-round':      'National Qualifying Round',
+  'stem-foundation':                'STEM Foundation Program',
+  'bdmso-preparatory':              'BdMSO Preparatory Course',
+  'stem-masterclass':               'STEM Masterclass Series',
+  'mock-test':                      'Mock Test Program',
+  'lab-day':                        'Lab Day Workshop',
+  'robotics-foundation':            'Robotics Foundation Course',
+  'summer-camp':                    'SPSB Nature Camp',
+  'winter-camp':                    'International Summer/Winter Camp',
+  'exchange-program':               'BdMSO Exchange Program',
+};
+const PROGRAM_PRICES = {
+  'national-qualifying-round':      1000,
+  'stem-foundation':                8000,
+  'bdmso-preparatory':              12000,
+  'stem-masterclass':               6000,
+  'mock-test':                      3000,
+  'lab-day':                        2000,
+  'robotics-foundation':            7000,
+  'summer-camp':                    15000,
+  'winter-camp':                    25000,
+  'exchange-program':               50000,
+};
+
+const params  = new URLSearchParams(location.search);
+const program = params.get('program');
+
+let session = null;
+try { session = JSON.parse(localStorage.getItem('bdmso_user')); } catch {}
+
+async function initQuickEnroll() {
+  const panel     = document.getElementById('quick-enroll');
+  const fullReg   = document.getElementById('full-reg-section');
+  const formShell = document.getElementById('form');
+
+  // For logged-in users with no program param, treat the page as the NQR flow.
+  const effectiveProgram = program || (session?.token ? 'national-qualifying-round' : null);
+  if (!effectiveProgram) return;
+
+  const isNqr = effectiveProgram.startsWith('national-qualifying');
+  const programName = PROGRAM_NAMES[effectiveProgram] || effectiveProgram;
+  document.getElementById('qe-program-name').textContent = programName;
+  document.getElementById('qe-program-tag').textContent  = 'Enrolling in';
+
+  const priceEl = document.getElementById('qe-price');
+  const basePrice = PROGRAM_PRICES[effectiveProgram];
+  priceEl.textContent = basePrice ? `৳ ${basePrice.toLocaleString()}` : 'On enquiry';
+
+  if (session?.token) {
+    // Logged-in: show quick enroll, hide full form
+    panel.hidden = false;
+    fullReg.hidden = true;
+    formShell.hidden = true;
+
+    // First-time-only instructions don't apply to returning users
+    document.querySelector('.instructions')?.style.setProperty('display', 'none');
+
+    // Load existing student info
+    let allRegs = [];
+    try {
+      const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${session.token}` } });
+      const data = await res.json();
+      allRegs = data.registrations || [];
+      const reg  = allRegs[0];
+      if (reg) {
+        document.getElementById('qe-student-name').textContent   = reg.student_full_name;
+        document.getElementById('qe-student-detail').textContent = `${reg.student_class_name} · ${reg.student_school}`;
+
+        // Tailor the page hero for returning guardians
+        const head = document.querySelector('.page-head');
+        if (head) {
+          const eyebrow = head.querySelector('.eyebrow');
+          const h1      = head.querySelector('h1');
+          const p       = head.querySelector('p');
+          if (eyebrow) eyebrow.textContent = 'Welcome back';
+          if (h1)      h1.textContent      = `Add another enrollment for ${reg.student_full_name}.`;
+          if (p)       p.innerHTML         = `Your BdMSO ID and student details are already on file — just confirm the program below and head to payment.`;
+        }
+      } else {
+        // No existing registration — fall back to full form
+        panel.hidden = true;
+        fullReg.hidden = false;
+        formShell.hidden = false;
+        document.querySelector('.instructions')?.style.removeProperty('display');
+        return;
+      }
+    } catch {
+      panel.hidden = true;
+      fullReg.hidden = false;
+      formShell.hidden = false;
+      return;
+    }
+
+    // If they already have an NQR enrollment, block re-registration entirely
+    const alreadyNqr = isNqr && allRegs.some(r => (r.registration_type || '').startsWith('national-qualifying'));
+    if (alreadyNqr) {
+      const head = document.querySelector('.page-head');
+      if (head) {
+        const eyebrow = head.querySelector('.eyebrow');
+        const h1      = head.querySelector('h1');
+        const p       = head.querySelector('p');
+        if (eyebrow) eyebrow.textContent = 'Already registered';
+        if (h1)      h1.textContent      = `You're already registered for the National Qualifying Round.`;
+        if (p)       p.textContent       = `Head to your dashboard to view your Member ID, complete payment, or browse other programs.`;
+      }
+      document.querySelector('.qe-body').innerHTML = `
+        <p style="color:var(--ink-2); margin:0;">Your enrollment for the National Qualifying Round is already on file.
+        You can manage it — and add more programs — from your dashboard.</p>`;
+      const foot = document.querySelector('.qe-foot');
+      if (foot) {
+        foot.innerHTML = `
+          <div></div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <a class="btn btn-ghost" href="programs.html">Browse other programs</a>
+            <a class="btn btn-gold" href="dashboard.html">Go to dashboard →</a>
+          </div>`;
+      }
+      return;
+    }
+
+    // For NQR, show subject selector and let it drive the price + registration type
+    const subjectField = document.getElementById('qe-subject-field');
+    const subjectEl    = document.getElementById('qe-subject');
+    if (isNqr) {
+      subjectField.style.display = 'block';
+      const updatePrice = () => {
+        priceEl.textContent = subjectEl.value === 'both' ? '৳ 1,500' : '৳ 1,000';
+      };
+      subjectEl.addEventListener('change', updatePrice);
+      updatePrice();
+    }
+
+    document.getElementById('qe-confirm-btn').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      btn.textContent = 'Adding enrollment…';
+      const errEl = document.getElementById('qe-error');
+      errEl.style.display = 'none';
+      try {
+        const registrationType = isNqr
+          ? (subjectEl.value === 'both' ? 'national-qualifying-round-both' : 'national-qualifying-round')
+          : effectiveProgram;
+        await postJson('add-enrollment', { registrationType }, session.token);
+        window.location.href = 'dashboard.html?enrolled=1';
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Confirm enrollment →';
+      }
+    });
+
+  } else if (program) {
+    // Not logged in + program param → skip all cards, go straight to the form
+    fullReg.hidden = true;
+    formShell.hidden = false;
+    formShell.style.marginTop = '0';
+
+    // Update form header to show the actual program being enrolled in
+    const formContextLabel = formShell.querySelector('.form-head div > div:first-child');
+    if (formContextLabel) formContextLabel.textContent = programName;
+
+    // Add a slim back link above the form
+    const backBar = document.createElement('div');
+    backBar.style.cssText = 'margin-bottom:16px;';
+    backBar.innerHTML = `<a href="programs.html" style="font-size:14px;color:var(--navy-700);font-weight:600;">← Back to programs</a>`;
+    formShell.parentElement.insertBefore(backBar, formShell);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initQuickEnroll();
+
+  if (program && !program.startsWith('national-qualifying')) {
+    // Hide the subject dropdown — only relevant for the National Round
+    const subjectField = document.getElementById('f-subject')?.closest('.field');
+    if (subjectField) subjectField.style.display = 'none';
+  }
+});
+</script>
 <script type="module" src="js/registration.js"></script>
 </body>
 </html>
