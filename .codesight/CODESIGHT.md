@@ -2,9 +2,9 @@
 
 > **Stack:** raw-http | none | unknown | javascript
 
-> 11 routes (11 inferred) | 8 models | 0 components | 1 lib files | 1 env vars | 0 middleware
-> **Token savings:** this file is ~1,000 tokens. Without it, AI exploration would cost ~11,600 tokens. **Saves ~10,700 tokens per conversation.**
-> **Last scanned:** 2026-04-29 04:58 — re-run after significant changes
+> 13 routes (13 inferred) | 9 models | 0 components | 1 lib files | 1 env vars | 0 middleware
+> **Token savings:** this file is ~1,000 tokens. Without it, AI exploration would cost ~13,100 tokens. **Saves ~12,100 tokens per conversation.**
+> **Last scanned:** 2026-05-02 10:00 — re-run after significant changes
 
 ---
 
@@ -14,6 +14,8 @@
 - `POST` `/api/logout` [auth, cache, email] `[inferred]`
 - `GET` `/api/me` [auth, cache, email] `[inferred]`
 - `POST` `/api/submit-registration` [auth, cache, email] `[inferred]`
+- `POST` `/api/add-enrollment` [auth, cache, email] `[inferred]`
+- `GET` `/api/validate-coupon` [auth, cache, email] `[inferred]`
 - `POST` `/api/submit-sponsorship` [auth, cache, email] `[inferred]`
 - `POST` `/api/create-payment` [auth, cache, email] `[inferred]`
 - `ALL` `/api/payment-callback` [auth, cache, email] `[inferred]`
@@ -40,6 +42,12 @@
 ### member_id_seq
 - id: integer (pk)
 - reserved_at: text (required)
+
+### coupons
+- code: text (pk)
+- discount_type: text (required)
+- max_uses: integer
+- applies_to: text
 
 ### guardian_accounts
 - id: text (pk)
@@ -103,7 +111,7 @@
 
 # Libraries
 
-- `public/js/api.js` — function buildFunctionUrl: (name) => void, function postJson: (functionName, payload) => void
+- `public/js/api.js` — function buildFunctionUrl: (name) => void, function postJson: (functionName, payload, token) => void
 
 ---
 

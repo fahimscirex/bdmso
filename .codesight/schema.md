@@ -15,6 +15,12 @@
 - id: integer (pk)
 - reserved_at: text (required)
 
+### coupons
+- code: text (pk)
+- discount_type: text (required)
+- max_uses: integer
+- applies_to: text
+
 ### guardian_accounts
 - id: text (pk)
 - email: text (required)
