@@ -33,24 +33,41 @@ async function renderSteps() {
 }
 
 async function renderResults() {
-  const { featured, stats } = await load('results.json');
-  set('fame-grid', featured.map(p =>
-    `<div class="fame-card">
-      <div class="photo">
-        <div class="ph${p.photoClass ? ' ' + p.photoClass : ''}">[ Student portrait ]</div>
-        <span class="medal ${p.medal}">${p.medalLabel}</span>
-      </div>
-      <h4>${p.name}</h4>
-      <div class="meta">${p.subject} · ${p.class} · ${p.event}</div>
-      <p class="quote">"${p.quote}"</p>
+  const { photos } = await load('results.json');
+  if (!photos || !photos.length) return;
+
+  const track = document.getElementById('fame-slide-track');
+  const dotsEl = document.getElementById('fame-dots');
+  const captionEl = document.getElementById('fame-caption');
+  if (!track) return;
+
+  track.innerHTML = photos.map((p, i) =>
+    `<div class="fame-slide${i === 0 ? ' active' : ''}">
+      <img src="${p.src}" alt="${p.caption}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">
     </div>`
-  ).join(''));
-  set('fame-stats', stats.map(({ value, label }) =>
-    `<div class="stat">
-      <div class="n">${value}</div>
-      <div class="t">${label}</div>
-    </div>`
-  ).join(''));
+  ).join('');
+
+  dotsEl.innerHTML = photos.map((_, i) =>
+    `<button class="fame-dot${i === 0 ? ' active' : ''}" data-i="${i}" aria-label="Slide ${i + 1}"></button>`
+  ).join('');
+
+  let cur = 0;
+  const slides = track.querySelectorAll('.fame-slide');
+  const dots = dotsEl.querySelectorAll('.fame-dot');
+
+  function go(n) {
+    slides[cur].classList.remove('active');
+    dots[cur].classList.remove('active');
+    cur = (n + slides.length) % slides.length;
+    slides[cur].classList.add('active');
+    dots[cur].classList.add('active');
+    captionEl.textContent = photos[cur].caption;
+  }
+
+  captionEl.textContent = photos[0].caption;
+  document.getElementById('fame-prev').addEventListener('click', () => go(cur - 1));
+  document.getElementById('fame-next').addEventListener('click', () => go(cur + 1));
+  dots.forEach(d => d.addEventListener('click', () => go(Number(d.dataset.i))));
 }
 
 async function renderPrograms() {
@@ -66,15 +83,40 @@ async function renderPrograms() {
 
 async function renderNews() {
   const items = await load('news.json');
-  set('updates-grid', items.map(({ category, date, title, excerpt, featured, imageClass }) =>
-    `<article class="update-card${featured ? ' main' : ''}">
-      <div class="cover"><div class="ph${imageClass ? ' ' + imageClass : ''}">[ ${category} cover ]</div></div>
+  set('updates-grid', items.map(({ category, date, title, excerpt, featured, src, url, outlet, favicon }) =>
+    `<${url ? `a href="${url}" target="_blank" rel="noopener"` : 'article'} class="update-card${featured ? ' main' : ''}">
+      <div class="cover">
+        ${src
+          ? `<img src="${src}" alt="${title}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">`
+          : `<div class="ph">[ ${category} cover ]</div>`}
+      </div>
       <div class="body">
-        <div class="tag-row"><span class="cat">${category}</span><span>${date}</span></div>
+        <div class="tag-row">
+          <span class="cat">${category}</span>
+          ${outlet ? `<span style="display:flex;align-items:center;gap:5px;">${favicon ? `<img src="${favicon}" width="13" height="13" style="border-radius:2px;flex-shrink:0;">` : ''}<span>${outlet} · ${date}</span></span>` : `<span>${date}</span>`}
+        </div>
         <h3>${title}</h3>
         ${excerpt ? `<p>${excerpt}</p>` : ''}
+        ${url ? `<span style="font-size:13px;color:var(--navy-700);font-weight:600;margin-top:auto;">Read article →</span>` : ''}
       </div>
-    </article>`
+    </${url ? 'a' : 'article'}>`
+  ).join(''));
+}
+
+async function renderMedia() {
+  const items = await load('media.json');
+  set('media-grid', items.map(({ date, title, src, url, outlet, favicon }) =>
+    `<a class="collage-card" href="${url}" target="_blank" rel="noopener">
+      ${src ? `<img class="collage-img" src="${src}" alt="${title}">` : ''}
+      <div class="collage-source">
+        ${favicon ? `<img src="${favicon}" alt="">` : ''}
+        <span>${outlet}</span>
+      </div>
+      <div class="collage-body">
+        <div class="collage-date">${date}</div>
+        <div class="collage-headline">${title}</div>
+      </div>
+    </a>`
   ).join(''));
 }
 
@@ -83,3 +125,31 @@ renderSteps().catch(() => {});
 renderResults().catch(() => {});
 renderPrograms().catch(() => {});
 renderNews().catch(() => {});
+renderMedia().catch(() => {});
+
+async function adaptRegisterCta() {
+  let session = null;
+  try { session = JSON.parse(localStorage.getItem('bdmso_user') || 'null'); } catch {}
+  if (!session?.token) return;
+
+  let regs = [];
+  try {
+    const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${session.token}` } });
+    if (!res.ok) return;
+    const data = await res.json();
+    regs = data.registrations || [];
+  } catch { return; }
+
+  const hasNqr = regs.some(r => (r.registration_type || '').startsWith('national-qualifying'));
+  if (!hasNqr) return;
+
+  document.querySelectorAll('a[href="registration.html"]').forEach(a => {
+    a.href = 'dashboard.html';
+    if (a.classList.contains('btn')) a.textContent = 'Open Dashboard';
+    else {
+      const h4 = a.querySelector('h4');
+      if (h4) h4.textContent = 'Open Dashboard';
+    }
+  });
+}
+adaptRegisterCta();

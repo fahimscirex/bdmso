@@ -9,6 +9,7 @@ const TITLES = {
 const fields = [
   { id: "f-name", label: "Student" },
   { id: "f-class", label: "Class" },
+  { id: "f-gender", label: "Gender" },
   { id: "f-dob", label: "Date of Birth" },
   { id: "f-school", label: "School" },
   { id: "f-district", label: "District" },
@@ -33,7 +34,7 @@ function setMessage(text, kind = "neutral") {
 
 function validateStep(step) {
   const requiredByStep = {
-    1: ["f-name", "f-dob", "f-class", "f-school", "f-district"],
+    1: ["f-name", "f-dob", "f-class", "f-gender", "f-school", "f-district"],
     2: ["g-name", "g-rel", "g-phone", "g-email", "g-addr"],
     3: ["account-password", "account-password-confirm"]
   };
@@ -97,6 +98,7 @@ function fillSummary() {
   const rows = [
     ["Student", valueOf("f-name") || "—"],
     ["Class", valueOf("f-class") || "—"],
+    ["Gender", valueOf("f-gender") || "—"],
     ["Date of Birth", valueOf("f-dob") || "—"],
     ["School", valueOf("f-school") || "—"],
     ["District", valueOf("f-district") || "—"],
@@ -140,12 +142,22 @@ function setStep(step) {
 }
 
 function registrationPayload() {
+  const urlProgram = new URLSearchParams(location.search).get("program");
+  const subjectEl  = document.getElementById("f-subject");
+  let regType = "national-qualifying-round";
+  if (urlProgram && !urlProgram.startsWith("national-qualifying")) {
+    regType = urlProgram;
+  } else if (subjectEl?.value === "both") {
+    regType = "national-qualifying-round-both";
+  }
+
   return {
-    registrationType: "national-qualifying-round",
+    registrationType: regType,
     student: {
       fullName: valueOf("f-name"),
       dateOfBirth: valueOf("f-dob"),
       className: valueOf("f-class"),
+      gender: valueOf("f-gender"),
       school: valueOf("f-school"),
       district: valueOf("f-district")
     },

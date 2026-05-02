@@ -1,40 +1,41 @@
 {
   "featured": [
     {
-      "name": "Arko Rahman",
-      "medal": "gold",
-      "medalLabel": "GOLD · IMSO '25",
+      "name": "Arijit Saha",
+      "medal": "silver",
+      "medalLabel": "SILVER · IMSO '25",
       "subject": "Mathematics",
-      "class": "Class 6",
-      "event": "IMSO Malaysia 2025",
-      "quote": "The residential camp felt like the most important school of my life.",
+      "class": "Year 5 · St Joseph Higher Secondary School",
+      "event": "22nd IMSO Malaysia 2025",
+      "quote": "My journey began by winning a regional maths festival. This international medal is the greatest achievement of my life.",
       "photoClass": "ph-gold"
     },
     {
-      "name": "Tasneem Islam",
+      "name": "Tahmid Hasan",
       "medal": "silver",
       "medalLabel": "SILVER · IMSO '25",
       "subject": "Science",
-      "class": "Class 5",
-      "event": "IMSO Malaysia 2025",
+      "class": "Year 5 · Manarat Dhaka International School",
+      "event": "22nd IMSO Malaysia 2025",
       "quote": "The mentors taught me to read problems like stories. Everything else followed.",
       "photoClass": ""
     },
     {
-      "name": "Rafid Chowdhury",
+      "name": "Md Nabeeh Hossain",
       "medal": "bronze",
       "medalLabel": "BRONZE · IMSO '25",
       "subject": "Mathematics",
-      "class": "Class 6",
-      "event": "IMSO Malaysia 2025",
+      "class": "St Joseph Higher Secondary School",
+      "event": "22nd IMSO Malaysia 2025",
       "quote": "Every lab day, I walked out curious about something new.",
       "photoClass": "ph-navy"
     }
   ],
-  "stats": [
-    { "value": "12/12", "label": "Medals · IMSO 2025" },
-    { "value": "6+6",   "label": "Member national team" },
-    { "value": "100%",  "label": "Prize winning rate" },
-    { "value": "9",     "label": "Years of delegations" }
+  "photos": [
+    { "caption": "IMSO 2025 inauguration ceremony · Malaysia", "src": "images/imso-inaugaration-2025.jpg", "year": "2025" },
+    { "caption": "Bangladesh delegation · pre-international camp 2025", "src": "images/group-pre-international.jpg", "year": "2025" },
+    { "caption": "National round winners · BdMSO 2025", "src": "images/national-round-winners.jpg", "year": "2025" },
+    { "caption": "Winners' group photo · BdMSO 2025", "src": "images/group-winner.jpg", "year": "2025" },
+    { "caption": "Bangladesh delegation · group photo", "src": "images/group.jpg", "year": "2024" }
   ]
 }

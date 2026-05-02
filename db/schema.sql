@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS registrations (
   student_full_name TEXT NOT NULL,
   student_date_of_birth TEXT NOT NULL,
   student_class_name TEXT NOT NULL,
+  student_gender TEXT NOT NULL DEFAULT '',
   student_school TEXT NOT NULL,
   student_district TEXT NOT NULL,
   guardian_account_id TEXT NOT NULL,
@@ -108,3 +109,14 @@ ON payments (registration_id);
 
 CREATE INDEX IF NOT EXISTS idx_payments_tran_id
 ON payments (tran_id);
+
+CREATE TABLE IF NOT EXISTS coupons (
+  code TEXT PRIMARY KEY,
+  discount_type TEXT NOT NULL DEFAULT 'percent',
+  discount_value REAL NOT NULL,
+  max_uses INTEGER,
+  used_count INTEGER NOT NULL DEFAULT 0,
+  applies_to TEXT,
+  expires_at TEXT,
+  created_at TEXT NOT NULL
+);

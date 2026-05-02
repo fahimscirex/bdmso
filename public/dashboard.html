@@ -211,6 +211,9 @@
 <script type="module">
 import { buildFunctionUrl } from './js/api.js';
 
+// Stores validated coupon codes keyed by registrationId
+const validatedCoupons = new Map();
+
 async function apiPost(name, payload, token) {
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -267,17 +270,85 @@ function needsPayment(regStatus, payStatus) {
   return regStatus !== 'paid' && payStatus !== 'paid';
 }
 
-async function pay(registrationId, btn) {
+async function pay(registrationId, regType, btn) {
   const session = getSession();
-  btn.disabled = true;
-  btn.textContent = 'Processing…';
+
+  // Show coupon prompt inline
+  const card = btn.closest('.reg-card');
+  let existingPrompt = card.querySelector('.coupon-prompt');
+  if (!existingPrompt) {
+    existingPrompt = document.createElement('div');
+    existingPrompt.className = 'coupon-prompt';
+    existingPrompt.innerHTML = `
+      <div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap;">
+        <input id="coupon-${registrationId}" type="text" placeholder="Coupon code (optional)" style="padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;flex:1;min-width:140px;font-family:var(--font-mono);text-transform:uppercase;">
+        <button class="btn btn-ghost" style="font-size:13px;padding:8px 14px;" onclick="applyCoupon('${registrationId}','${regType}')">Apply</button>
+      </div>
+      <div id="coupon-msg-${registrationId}" style="font-size:13px;margin-top:6px;"></div>
+      <button class="btn btn-primary confirm-pay-btn" style="width:100%;margin-top:10px;justify-content:center;" data-id="${registrationId}">Confirm &amp; Pay →</button>`;
+    card.querySelector('.reg-cta').appendChild(existingPrompt);
+    btn.textContent = 'Enter coupon below ↓';
+    btn.disabled = true;
+
+    existingPrompt.querySelector('.confirm-pay-btn').addEventListener('click', async (e) => {
+      const confirmBtn = e.currentTarget;
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Processing…';
+      // Prefer the validated coupon stored on the button; fall back to raw input value
+      const couponCode = validatedCoupons.get(registrationId) || document.getElementById(`coupon-${registrationId}`)?.value.trim().toUpperCase() || '';
+      try {
+        const data = await apiPost('create-payment', { registrationId, couponCode }, session.token);
+        if (data.free || !data.gatewayUrl) {
+          validatedCoupons.delete(registrationId);
+          window.location.href = 'dashboard.html?payment=success';
+          return;
+        }
+        window.location.href = data.gatewayUrl;
+      } catch (err) {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Confirm & Pay →';
+        document.getElementById(`coupon-msg-${registrationId}`).textContent = err.message;
+        document.getElementById(`coupon-msg-${registrationId}`).style.color = 'var(--color-error)';
+      }
+    });
+    return;
+  }
+}
+
+window.applyCoupon = async function applyCoupon(registrationId, regType) {
+  const input      = document.getElementById(`coupon-${registrationId}`);
+  const msgEl      = document.getElementById(`coupon-msg-${registrationId}`);
+  const applyBtn   = input?.parentElement?.querySelector('button');
+  const confirmBtn = input?.closest('.coupon-prompt')?.querySelector('.confirm-pay-btn');
+  const code       = input?.value.trim().toUpperCase();
+
+  if (!code) { msgEl.textContent = 'Enter a coupon code first.'; msgEl.style.color = 'var(--color-error)'; return; }
+
+  if (applyBtn) { applyBtn.disabled = true; applyBtn.textContent = 'Checking…'; }
+  msgEl.textContent = '';
+
   try {
-    const data = await apiPost('create-payment', { registrationId }, session.token);
-    window.location.href = data.gatewayUrl;
+    const res  = await fetch(`/api/validate-coupon?code=${encodeURIComponent(code)}&type=${encodeURIComponent(regType)}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Invalid coupon');
+
+    // Store validated coupon in the module-level Map
+    validatedCoupons.set(registrationId, code);
+    if (confirmBtn) {
+      if (data.discountValue === 100 && data.discountType === 'percent') {
+        confirmBtn.textContent = 'Confirm free enrollment →';
+      } else {
+        confirmBtn.textContent = `Confirm & Pay (${data.description}) →`;
+      }
+    }
+    msgEl.textContent = `✓ ${data.description} applied`;
+    msgEl.style.color = 'var(--color-success, #15803d)';
   } catch (err) {
-    btn.disabled = false;
-    btn.textContent = 'Pay Now';
-    alert(err.message);
+    validatedCoupons.delete(registrationId);
+    msgEl.textContent = err.message;
+    msgEl.style.color = 'var(--color-error)';
+  } finally {
+    if (applyBtn) { applyBtn.disabled = false; applyBtn.textContent = 'Apply'; }
   }
 }
 
@@ -318,14 +389,14 @@ function renderRegistrations(regs) {
         <div class="reg-cta">
           ${badge}
           <div class="price">৳ ${price.toLocaleString()}</div>
-          ${showPay ? `<button class="btn btn-primary pay-btn" data-id="${escapeHtml(r.id)}">Pay Now</button>` : ''}
+          ${showPay ? `<button class="btn btn-primary pay-btn" data-id="${escapeHtml(r.id)}" data-type="${escapeHtml(r.registration_type)}">Pay Now</button>` : ''}
           ${isPaid ? `<button class="btn btn-ghost receipt-btn" data-id="${escapeHtml(r.id)}" style="font-size:13px;">⬇ Download Receipt</button>` : ''}
         </div>
       </article>`;
   }).join('');
 
   list.querySelectorAll('.pay-btn').forEach(btn => {
-    btn.addEventListener('click', () => pay(btn.dataset.id, btn));
+    btn.addEventListener('click', () => pay(btn.dataset.id, btn.dataset.type, btn));
   });
 
   list.querySelectorAll('.receipt-btn').forEach(btn => {
@@ -449,7 +520,10 @@ async function init() {
   if (verifyResult === 'expired') showToast('error',   'Verification link expired. Please request a new one.');
   if (verifyResult === 'invalid') showToast('error',   'Verification link is invalid or has already been used.');
 
-  if (payResult || verifyResult) history.replaceState({}, '', '/dashboard.html');
+  const enrollResult = params.get('enrolled');
+  if (enrollResult === '1') showToast('success', 'Program added! Complete payment below to confirm your spot.');
+
+  if (payResult || verifyResult || enrollResult) history.replaceState({}, '', '/dashboard.html');
 
   document.getElementById('resend-verify')?.addEventListener('click', async (e) => {
     const btn = e.currentTarget;

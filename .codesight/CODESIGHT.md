@@ -3,8 +3,8 @@
 > **Stack:** raw-http | none | unknown | javascript
 
 > 11 routes (11 inferred) | 8 models | 0 components | 1 lib files | 1 env vars | 0 middleware
-> **Token savings:** this file is ~900 tokens. Without it, AI exploration would cost ~11,200 tokens. **Saves ~10,200 tokens per conversation.**
-> **Last scanned:** 2026-04-25 09:03 — re-run after significant changes
+> **Token savings:** this file is ~1,000 tokens. Without it, AI exploration would cost ~11,600 tokens. **Saves ~10,700 tokens per conversation.**
+> **Last scanned:** 2026-04-29 04:58 — re-run after significant changes
 
 ---
 
@@ -58,8 +58,9 @@
 - student_full_name: text (required)
 - student_date_of_birth: text (required)
 - student_class_name: text (required)
+- student_gender: text (required)
 - student_school: text (required)
-- student_city: text (required)
+- student_district: text (required)
 - guardian_account_id: text (required, fk)
 - guardian_full_name: text (required)
 - guardian_relationship: text (required)
