@@ -2,7 +2,7 @@
 
 > **Navigation aid.** Schema shapes and field types extracted via AST. Read the actual schema source files before writing migrations or query logic.
 
-**unknown** — 8 models
+**unknown** — 9 models
 
 ### email_verification_tokens
 
@@ -27,6 +27,15 @@ pk: `id` (integer)
 
 - `id`: integer _(pk)_
 - `reserved_at`: text _(required)_
+
+### coupons
+
+pk: `code` (text)
+
+- `code`: text _(pk)_
+- `discount_type`: text _(required)_
+- `max_uses`: integer
+- `applies_to`: text
 
 ### guardian_accounts
 
