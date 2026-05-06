@@ -83,30 +83,26 @@ async function renderPrograms() {
 }
 
 async function renderNews() {
-  const items = await load('news.json');
-  set('updates-grid', items.map(({ category, date, title, excerpt, featured, src, url, outlet, favicon, readLabel }) => {
-    const external = url && /^https?:\/\//.test(url);
-    const openTag = url
-      ? `a href="${url}"${external ? ' target="_blank" rel="noopener"' : ''}`
-      : 'article';
-    const closeTag = url ? 'a' : 'article';
-
-    return `<${openTag} class="update-card${featured ? ' main' : ''}">
+  const items = await load('../posts/index.json');
+  set('updates-grid', items.slice(0, 4).map(({ slug, category, date, title, excerpt, featured, image }) => {
+    const url = `post.html?slug=${slug}`;
+    const formattedDate = date ? new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+    return `<a href="${url}" class="update-card${featured ? ' main' : ''}">
       <div class="cover">
-        ${src
-          ? `<img src="${src}" alt="${title}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">`
+        ${image
+          ? `<img src="${image}" alt="${title}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">`
           : `<div class="ph">[ ${category} cover ]</div>`}
       </div>
       <div class="body">
         <div class="tag-row">
           <span class="cat">${category}</span>
-          ${outlet ? `<span style="display:flex;align-items:center;gap:5px;">${favicon ? `<img src="${favicon}" width="13" height="13" style="border-radius:2px;flex-shrink:0;">` : ''}<span>${outlet} · ${date}</span></span>` : `<span>${date}</span>`}
+          <span>${formattedDate}</span>
         </div>
         <h3>${title}</h3>
         ${excerpt ? `<p>${excerpt}</p>` : ''}
-        ${url ? `<span style="font-size:13px;color:var(--navy-700);font-weight:600;margin-top:auto;">${readLabel || 'Read article'} →</span>` : ''}
+        <span style="font-size:13px;color:var(--navy-700);font-weight:600;margin-top:auto;">Read post →</span>
       </div>
-    </${closeTag}>`;
+    </a>`;
   }).join(''));
 }
 

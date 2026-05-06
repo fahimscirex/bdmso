@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>News &amp; Announcements — BdMSO</title>
+<title>Blog — BdMSO</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -24,15 +24,18 @@
 .feature {
   background: white; border: 1px solid var(--line); border-radius: var(--r-xl); overflow: hidden;
   display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 32px;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s; text-decoration: none; color: inherit;
 }
 .feature:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
 .feature .cover { position: relative; aspect-ratio: 16/10; }
+.feature .cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .feature .cover .ph { position: absolute; inset: 0; border: none; border-radius: 0; }
 .feature .body { padding: 40px; display: flex; flex-direction: column; gap: 14px; justify-content: center; }
 .feature .meta { display: flex; gap: 12px; font-size: 12px; color: var(--ink-3); }
 .feature .cat { font-weight: 700; color: var(--navy-700); text-transform: uppercase; letter-spacing: 0.1em; }
 .feature h2 { font-size: 1.8rem; line-height: 1.15; }
+.feature p { color: var(--ink-2); font-size: 14.5px; line-height: 1.6; margin: 0; }
+.feature .read { font-size: 13px; font-weight: 600; color: var(--navy-800); }
 @media (max-width: 900px) { .feature { grid-template-columns: 1fr; } .feature .body { padding: 28px; } }
 
 .posts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
@@ -41,9 +44,11 @@
 .post {
   background: white; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden;
   display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s;
+  text-decoration: none; color: inherit;
 }
 .post:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
 .post .cover { aspect-ratio: 16/10; position: relative; }
+.post .cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .post .cover .ph { position: absolute; inset: 0; border: none; border-radius: 0; }
 .post .body { padding: 22px; display: flex; flex-direction: column; gap: 10px; flex-grow: 1; }
 .post .meta { display: flex; gap: 10px; font-size: 12px; color: var(--ink-3); }
@@ -52,9 +57,7 @@
 .post p { font-size: 13.5px; color: var(--ink-3); margin: 0; }
 .post .read { font-size: 13px; font-weight: 600; color: var(--navy-800); margin-top: auto; padding-top: 10px; }
 
-.pagination { display: flex; justify-content: center; gap: 6px; margin-top: 48px; }
-.pagination button { width: 38px; height: 38px; border-radius: 10px; font-weight: 600; color: var(--ink-2); border: 1px solid var(--line); background: white; }
-.pagination button.active { background: var(--navy-900); color: white; border-color: var(--navy-900); }
+.posts-loading { text-align: center; padding: 48px; color: var(--ink-3); }
 </style>
 </head>
 <body data-page="blog">
@@ -67,74 +70,92 @@
 </div></section>
 
 <section class="container wrap">
-  <div class="cats">
-    <button class="active">All</button><button>Deadlines</button><button>Venues</button><button>Press</button><button>Camp Updates</button>
+  <div class="cats" id="cats-bar">
+    <button class="active" data-cat="all">All</button>
   </div>
 
-  <article class="feature">
-    <div class="cover"><div class="ph">[ Feature image · Registration opens ]</div></div>
-    <div class="body">
-      <div class="meta"><span class="cat">Deadlines</span><span>April 10, 2026</span><span>· 4 min read</span></div>
-      <h2>Registration for BdMSO 2026 National Qualifying Round is now open.</h2>
-      <p>Students of Class 3 to 6 from schools across Bangladesh can register through the official portal. The registration window closes on May 30, 2026 — here's everything you need to prepare before the deadline.</p>
-      <a class="btn btn-ghost" href="#" style="align-self:flex-start;">Read more</a>
-    </div>
-  </article>
-
-  <div class="posts">
-    <article class="post">
-      <div class="cover"><img src="images/acimedhabi.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" alt="ACI Medhabi Carnival"></div>
-      <div class="body">
-        <div class="meta"><span class="cat">Event</span><span>By: Samin Yasar Ahmed | BdMSO Volunteer</span></div>
-        <h3>ACI Medhabi Carnival: A Day of Learning and Celebration</h3>
-        <p>Last Sunday at the ACI Centre in Tejgaon, primary school students played against a chess Grandmaster and participated in interactive activities including art stations, tangram puzzles, book reading, robotics demos, and telescopes.</p>
-        <span class="read">Read →</span>
-      </div>
-    </article>
-    <article class="post">
-      <div class="cover"><img src="images/stem-foundation.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" alt="STEM Foundation Course"></div>
-      <div class="body">
-        <div class="meta"><span class="cat">Program</span><span>By: Samin Yasar Ahmed | BdMSO Volunteer</span></div>
-        <h3>STEM Foundation Course: Twenty Classes, Ten Students, One Big Idea</h3>
-        <p>Online foundation program for classes 3-6, ran from March 14 to May 1, wrapping up with a lab day. Students covered scientific method, chemistry, physics, mathematics, coding, astronomy, environmental science, biology, and machine learning.</p>
-        <span class="read">Read →</span>
-      </div>
-    </article>
-    <article class="post">
-      <div class="cover"><img src="images/lab-day.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" alt="Lab Day for Primary Kids"></div>
-      <div class="body">
-        <div class="meta"><span class="cat">Workshop</span><span>By: Samin Yasar Ahmed | BdMSO Volunteer</span></div>
-        <h3>Lab Day for Primary Kids: A Day of Hands-On Discovery</h3>
-        <p>Twelve primary school students spent a full day doing science — mapping skeletal structures, exploring light and prisms, using microscopes, and creating "Elephant Toothpaste" while learning about chemical reactions.</p>
-        <span class="read">Read →</span>
-      </div>
-    </article>
-    <article class="post">
-      <div class="cover"><img src="images/team-orientation.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" alt="Team Orientation BdMSO 2026"></div>
-      <div class="body">
-        <div class="meta"><span class="cat">Announcement</span><span>By: Samin Yasar Ahmed | BdMSO Volunteer</span></div>
-        <h3>BdMSO 2026 Is Here: Team Orientation Launch</h3>
-        <p>Four-hour orientation at BdMSO and SPSB Office Classroom brought together mentors and volunteers. BdMSO is Bangladesh's only national math and science olympiad for primary students, selecting 12 kids for IMSO 2026 in Indonesia.</p>
-        <span class="read">Read →</span>
-      </div>
-    </article>
-  </div>
-
-  <div class="pagination">
-    <button>‹</button>
-    <button class="active">1</button>
-    <button>2</button>
-    <button>3</button>
-    <button>›</button>
-  </div>
+  <div id="feature-post"></div>
+  <div class="posts" id="posts-grid"><div class="posts-loading">Loading posts…</div></div>
 </section>
 </main>
 <div id="site-footer"></div>
 <script src="js/site.js"></script>
 <script>
-document.querySelectorAll('.cats button').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('.cats button').forEach(x => x.classList.remove('active')); b.classList.add('active');
-}));
+(async () => {
+  const res = await fetch('posts/index.json').catch(() => null);
+  if (!res || !res.ok) {
+    document.getElementById('posts-grid').innerHTML = '<p style="color:var(--ink-3);padding:32px;">Could not load posts.</p>';
+    return;
+  }
+  const posts = await res.json();
+
+  // Build category filter buttons
+  const cats = ['all', ...new Set(posts.map(p => p.category))];
+  const catsBar = document.getElementById('cats-bar');
+  catsBar.innerHTML = cats.map(c =>
+    `<button data-cat="${c}" class="${c === 'all' ? 'active' : ''}">${c === 'all' ? 'All' : c}</button>`
+  ).join('');
+  catsBar.addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    catsBar.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render(btn.dataset.cat);
+  });
+
+  function postUrl(p) {
+    return `post.html?slug=${p.slug}`;
+  }
+
+  function formatDate(str) {
+    if (!str) return '';
+    const d = new Date(str);
+    return isNaN(d) ? str : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  function featureCard(p) {
+    return `<a class="feature" href="${postUrl(p)}">
+      <div class="cover">${p.image
+        ? `<img src="${p.image}" alt="${p.title}">`
+        : `<div class="ph">[cover]</div>`}
+      </div>
+      <div class="body">
+        <div class="meta"><span class="cat">${p.category}</span><span>${formatDate(p.date)}</span></div>
+        <h2>${p.title}</h2>
+        <p>${p.excerpt}</p>
+        <span class="read">Read more →</span>
+      </div>
+    </a>`;
+  }
+
+  function postCard(p) {
+    return `<a class="post" href="${postUrl(p)}">
+      <div class="cover">${p.image
+        ? `<img src="${p.image}" alt="${p.title}">`
+        : `<div class="ph">[${p.category}]</div>`}
+      </div>
+      <div class="body">
+        <div class="meta"><span class="cat">${p.category}</span><span>${formatDate(p.date)}</span></div>
+        <h3>${p.title}</h3>
+        <p>${p.excerpt}</p>
+        <span class="read">Read →</span>
+      </div>
+    </a>`;
+  }
+
+  function render(activeCat) {
+    const filtered = activeCat === 'all' ? posts : posts.filter(p => p.category === activeCat);
+    const featured = filtered.find(p => p.featured);
+    const rest = filtered.filter(p => !p.featured);
+
+    document.getElementById('feature-post').innerHTML = featured ? featureCard(featured) : '';
+    document.getElementById('posts-grid').innerHTML = rest.length
+      ? rest.map(postCard).join('')
+      : '<p style="color:var(--ink-3);padding:32px 0;">No posts in this category yet.</p>';
+  }
+
+  render('all');
+})();
 </script>
 </body>
 </html>
