@@ -32,4 +32,4 @@ Changes to these files have the widest blast radius across the codebase:
 - `public/js/api.js` — imported by **2** files
 
 ---
-_Back to [index.md](./index.md) · Generated 2026-05-02_
+_Back to [index.md](./index.md) · Generated 2026-05-06_

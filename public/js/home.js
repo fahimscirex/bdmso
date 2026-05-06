@@ -65,9 +65,10 @@ async function renderResults() {
   }
 
   captionEl.textContent = photos[0].caption;
-  document.getElementById('fame-prev').addEventListener('click', () => go(cur - 1));
-  document.getElementById('fame-next').addEventListener('click', () => go(cur + 1));
-  dots.forEach(d => d.addEventListener('click', () => go(Number(d.dataset.i))));
+  document.getElementById('fame-prev').addEventListener('click', () => { clearInterval(autoTimer); go(cur - 1); });
+  document.getElementById('fame-next').addEventListener('click', () => { clearInterval(autoTimer); go(cur + 1); });
+  dots.forEach(d => d.addEventListener('click', () => { clearInterval(autoTimer); go(Number(d.dataset.i)); }));
+  const autoTimer = setInterval(() => go(cur + 1), 4000);
 }
 
 async function renderPrograms() {
@@ -83,8 +84,14 @@ async function renderPrograms() {
 
 async function renderNews() {
   const items = await load('news.json');
-  set('updates-grid', items.map(({ category, date, title, excerpt, featured, src, url, outlet, favicon }) =>
-    `<${url ? `a href="${url}" target="_blank" rel="noopener"` : 'article'} class="update-card${featured ? ' main' : ''}">
+  set('updates-grid', items.map(({ category, date, title, excerpt, featured, src, url, outlet, favicon, readLabel }) => {
+    const external = url && /^https?:\/\//.test(url);
+    const openTag = url
+      ? `a href="${url}"${external ? ' target="_blank" rel="noopener"' : ''}`
+      : 'article';
+    const closeTag = url ? 'a' : 'article';
+
+    return `<${openTag} class="update-card${featured ? ' main' : ''}">
       <div class="cover">
         ${src
           ? `<img src="${src}" alt="${title}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">`
@@ -97,10 +104,10 @@ async function renderNews() {
         </div>
         <h3>${title}</h3>
         ${excerpt ? `<p>${excerpt}</p>` : ''}
-        ${url ? `<span style="font-size:13px;color:var(--navy-700);font-weight:600;margin-top:auto;">Read article →</span>` : ''}
+        ${url ? `<span style="font-size:13px;color:var(--navy-700);font-weight:600;margin-top:auto;">${readLabel || 'Read article'} →</span>` : ''}
       </div>
-    </${url ? 'a' : 'article'}>`
-  ).join(''));
+    </${closeTag}>`;
+  }).join(''));
 }
 
 async function renderMedia() {

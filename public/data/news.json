@@ -1,35 +1,42 @@
 [
   {
-    "category": "Press",
-    "date": "9 Oct 2025",
-    "title": "Bangladesh wins two silver, ten bronze at IMSO 2025 — every team member medals on debut.",
-    "excerpt": "Bangladesh made a remarkable debut at IMSO in Malaysia, earning two silver and ten bronze medals from 23 competing nations. The team was also named Best Cooperative Team and runner-up in the STEM Exploration Competition.",
-    "featured": true,
-    "src": "https://www.tbsnews.net/sites/default/files/styles/very_big_1/public/images/2025/10/09/imso_img_3.jpg",
-    "url": "https://www.tbsnews.net/economy/corporates/bangladesh-wins-two-silver-ten-bronze-imso-2025-1256606",
-    "outlet": "The Business Standard",
-    "favicon": "https://www.tbsnews.net/favicon.ico"
+    "category": "Event",
+    "date": "Blog overview",
+    "title": "ACI Medhabi Carnival: a day of learning and celebration.",
+    "excerpt": "Primary students joined a full day of chess, art, tangram puzzles, book reading, robotics demos, telescope activities, and interactive learning at the ACI Centre in Tejgaon.",
+    "featured": false,
+    "src": "images/group.jpg",
+    "url": "blog.html",
+    "readLabel": "Read blog"
   },
   {
-    "category": "Press",
-    "date": "6 Aug 2025",
-    "title": "Bangladesh hosts its first-ever maths and science olympiad for primary students.",
-    "excerpt": "The national round was held on August 22 at St. Joseph Higher Secondary School, with over 200 students competing. A total of 52 students were awarded medals across mathematics and science.",
+    "category": "Program",
+    "date": "Blog overview",
+    "title": "STEM Foundation Course: twenty classes, ten students, one big idea.",
+    "excerpt": "The online foundation program for classes 3-6 covered scientific method, chemistry, physics, mathematics, coding, astronomy, environmental science, biology, and machine learning.",
     "featured": false,
-    "src": "https://www.tbsnews.net/sites/default/files/styles/big_3/public/images/2025/08/22/bdmso_national_5.jpeg",
-    "url": "https://www.tbsnews.net/economy/corporates/bangladesh-hosts-first-ever-maths-and-science-olympiad-primary-students-1218016",
-    "outlet": "The Business Standard",
-    "favicon": "https://www.tbsnews.net/favicon.ico"
+    "src": "images/stem.jpg",
+    "url": "blog.html",
+    "readLabel": "Read blog"
   },
   {
-    "category": "Press",
-    "date": "22 Aug 2025",
-    "title": "BdMSO 2025 national round: a talent show for primary students at St. Joseph.",
-    "excerpt": "Over 200 students participated in the national round at St. Joseph Higher Secondary School on Friday, competing in mathematics and science.",
+    "category": "Workshop",
+    "date": "Blog overview",
+    "title": "Lab Day for Primary Kids: hands-on discovery in action.",
+    "excerpt": "Twelve students spent a full day mapping skeletal structures, exploring light and prisms, using microscopes, and creating Elephant Toothpaste while learning chemical reactions.",
     "featured": false,
-    "src": "https://media.prothomalo.com/prothomalo-bangla/2025-08-22/85lqske4/olypiad-Saint-Joseph.jpeg",
-    "url": "https://www.prothomalo.com/bangladesh/6tjkpvb864",
-    "outlet": "Prothom Alo",
-    "favicon": "https://www.prothomalo.com/favicon.ico"
+    "src": "images/lab.jpg",
+    "url": "blog.html",
+    "readLabel": "Read blog"
+  },
+  {
+    "category": "Announcement",
+    "date": "Blog overview",
+    "title": "BdMSO 2026 is here: team orientation launch.",
+    "excerpt": "Mentors and volunteers gathered for a four-hour orientation to prepare BdMSO 2026, Bangladesh's national math and science olympiad pathway for primary students.",
+    "featured": false,
+    "src": "images/student_mentors.JPG",
+    "url": "blog.html",
+    "readLabel": "Read blog"
   }
 ]
