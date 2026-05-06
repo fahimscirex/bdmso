@@ -118,6 +118,7 @@ body {
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  padding-top: 70px;
 }
 img { max-width: 100%; display: block; }
 a { color: inherit; text-decoration: none; }
@@ -132,8 +133,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 /* ---------- Header / Nav ---------- */
 .site-header {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
   background: rgba(255, 255, 255, 0.82);
   backdrop-filter: saturate(150%) blur(14px);
