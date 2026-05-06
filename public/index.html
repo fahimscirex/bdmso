@@ -497,9 +497,81 @@
 @media (max-width: 900px) { .resource-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 520px) { .resource-grid { grid-template-columns: 1fr; } }
 
+/* ELIGIBILITY */
+.eligibility-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(0, 0.78fr);
+  gap: 32px;
+  align-items: stretch;
+}
+.eligibility-copy {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 28px;
+}
+.eligibility-copy .section-head {
+  margin-bottom: 22px;
+}
+.eligibility-copy .note {
+  background: var(--navy-50);
+  border: 1px solid var(--navy-100);
+  border-radius: var(--r);
+  padding: 20px;
+}
+.eligibility-copy .note p,
+.eligibility-copy .note ul {
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.eligibility-copy .note ul {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+}
+.eligibility-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  align-content: stretch;
+}
+.eligibility-card {
+  padding: 16px 20px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+.eligibility-card .value {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: var(--navy-900);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.eligibility-card .label {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.eligibility-card p {
+  font-size: 13px;
+  margin: 8px 0 0;
+  color: var(--ink-2);
+}
+@media (max-width: 980px) {
+  .eligibility-layout { grid-template-columns: 1fr; }
+}
+
 /* UPDATES */
 .updates-grid {
-  display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 20px;
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px;
 }
 .update-card {
   background: white;
@@ -512,16 +584,14 @@
 .update-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
 .update-card .cover { aspect-ratio: 16/9; position: relative; }
 .update-card .cover .ph { position: absolute; inset: 0; border-radius: 0; border: none; }
-.update-card.main .cover { aspect-ratio: 16/11; }
 .update-card .body { padding: 20px 22px 24px; display: flex; flex-direction: column; gap: 10px; flex-grow: 1; }
 .update-card .tag-row { display: flex; gap: 10px; font-size: 12px; color: var(--ink-3); }
 .update-card .tag-row .cat { font-weight: 700; color: var(--navy-700); text-transform: uppercase; letter-spacing: 0.1em; }
 .update-card h3 { font-size: 1.15rem; line-height: 1.3; margin-bottom: 0; }
-.update-card.main h3 { font-size: 1.45rem; }
 .update-card p { margin: 0; font-size: 14px; }
 
-@media (max-width: 900px) { .updates-grid { grid-template-columns: 1fr 1fr; } .update-card.main { grid-column: span 2; } }
-@media (max-width: 560px) { .updates-grid { grid-template-columns: 1fr; } .update-card.main { grid-column: auto; } }
+@media (max-width: 1080px) { .updates-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .updates-grid { grid-template-columns: 1fr; } }
 
 /* MEDIA COLLAGE */
 .media-collage {
@@ -770,9 +840,9 @@
 
                 window.addEventListener('message',function(e){
                     var data=e.data;
-                    if( !data || !data.messageID || data.messageID != messageID )return;//通信ID认证
+                    if( !data || !data.messageID || data.messageID != messageID )return;
                     var source=e.source;
-                    if(source===window || source===unsafeWindow){//来自contentscript,发送出去,或者干嘛。
+                    if(source===window || source===unsafeWindow){
                         if(data.to){
                             data.from=frameID;
                             frames[data.to].postMessage(data,'*');
@@ -797,7 +867,7 @@
                             };
                         };
 
-                    }else{//来自别的窗口的，contentscript可以直接接收，这里保存下来自的窗口的引用
+                    }else{
                         frames[data.from]=source;
                     };
                 },true)
@@ -901,7 +971,7 @@
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Preparation Hub</span>
-      <h2>Everything you need — in one place.</h2>
+      <h2>Everything you need, in one place.</h2>
     </div>
     <div class="resource-grid">
       <a class="res-card" href="resources.html#regulations">
@@ -932,6 +1002,46 @@
   </div>
 </section>
 
+<!-- SECTION 6b: WHO CAN PARTICIPATE -->
+<section class="section section-alt">
+  <div class="container">
+    <div class="eligibility-layout">
+      <div class="eligibility-copy">
+        <div class="section-head">
+          <span class="eyebrow">Eligibility</span>
+          <h2>Who can participate?</h2>
+          <p>BdMSO is open to students across Bangladesh who meet the age and grade requirements.</p>
+        </div>
+        <div class="note">
+          <h4>Important Note for Parents</h4>
+          <p>BdMSO national qualifying round registration opens in May, and eligibility is strictly based on the age and grade your child will have reached by September 30, 2026.</p>
+          <ul>
+            <li><strong>National Curriculum:</strong> If your child is in Grade 6 in May, they will still be in Grade 6 in September and are eligible to participate.</li>
+            <li><strong>British Curriculum (or similar):</strong> If your child is promoted to Grade 7 in July/August, they will not be eligible by the September 30 cutoff date.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="eligibility-cards">
+        <div class="eligibility-card">
+          <div class="value">Under 13</div>
+          <div class="label">Age Requirement</div>
+          <p>Participants must be under 13 years old and born on or after <strong>September 30, 2013</strong>.</p>
+        </div>
+        <div class="eligibility-card">
+          <div class="value">Grade 6</div>
+          <div class="label">or lower</div>
+          <p>Enrolled in Grade 6 or lower as of <strong>September 30, 2026</strong>.</p>
+        </div>
+        <div class="eligibility-card">
+          <div class="value">Both</div>
+          <div class="label">subjects</div>
+          <p>Register for Math, Science, or both. No category based on school grade.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- SECTION 7: UPDATES -->
 <section class="section section-alt">
   <div class="container">
@@ -939,6 +1049,7 @@
       <div>
         <span class="eyebrow">Latest Updates</span>
         <h2 style="margin-top:14px;">News &amp; Announcements</h2>
+        <p style="max-width:640px;margin-top:12px;">A quick look at recent BdMSO stories, program notes, hands-on workshops, and team announcements from the blog.</p>
       </div>
       <a class="btn btn-ghost" href="blog.html">View All</a>
     </div>
