@@ -1,4 +1,4 @@
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -7,6 +7,53 @@ const __dirname  = path.dirname(__filename);
 const rootDir    = path.resolve(__dirname, "..");
 const publicDir  = path.join(rootDir, "public");
 const distDir    = path.join(rootDir, "dist");
+
+// ── Generate posts/index.json from frontmatter ────────────────────────────────
+
+function parseFrontmatter(raw) {
+  const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!m) return {};
+  const meta = {};
+  for (const line of m[1].split(/\r?\n/)) {
+    const colon = line.indexOf(':');
+    if (colon === -1) continue;
+    const key = line.slice(0, colon).trim();
+    const val = line.slice(colon + 1).trim().replace(/^["']|["']$/g, '');
+    meta[key] = val;
+  }
+  return meta;
+}
+
+const postsDir = path.join(publicDir, "posts");
+const mdFiles  = readdirSync(postsDir).filter(f => f.endsWith(".md")).sort();
+
+const postIndex = mdFiles
+  .map(file => {
+    const raw  = readFileSync(path.join(postsDir, file), "utf8");
+    const meta = parseFrontmatter(raw);
+    if (!meta.slug || !meta.title) return null;
+    return {
+      slug:     meta.slug,
+      title:    meta.title,
+      category: meta.category || "",
+      date:     meta.date     || "",
+      author:   meta.author   || "",
+      excerpt:  meta.excerpt  || "",
+      image:    meta.image    || "",
+      featured: meta.featured === "true",
+    };
+  })
+  .filter(Boolean)
+  .sort((a, b) => (b.date > a.date ? 1 : -1));  // newest first
+
+writeFileSync(
+  path.join(postsDir, "index.json"),
+  JSON.stringify(postIndex, null, 2) + "\n",
+  "utf8"
+);
+console.log(`Generated posts/index.json (${postIndex.length} posts)`);
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 rmSync(distDir, { recursive: true, force: true });
 mkdirSync(distDir, { recursive: true });
