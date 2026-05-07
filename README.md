@@ -56,7 +56,7 @@ category: Announcement
 date: 2026-05-01
 author: Author Name
 excerpt: One-sentence summary shown on the blog listing card.
-image: images/photo.jpg
+image: images/photo.webp
 ---
 
 Write your post content here in standard Markdown.
@@ -66,13 +66,19 @@ Write your post content here in standard Markdown.
 Paragraphs, **bold**, *italic*, [links](https://example.com), lists, blockquotes all work.
 ```
 
-**Step 2 - run the build**
+**Step 2 - regenerate `posts/index.json`**
 
-```bash
-npm run build
-```
+`posts/index.json` is auto-generated from the frontmatter of every `.md` file in `public/posts/`. Both the blog list (`blog.html`) and the per-post pages (`post.html`) read it, so it must be refreshed any time you change a frontmatter field.
 
-`posts/index.json` is auto-generated from frontmatter - do not edit it by hand. The post is accessible at `post.html?slug=my-post-slug`. Set `featured: "true"` in frontmatter to pin it as the large card on the blog listing and home page widget.
+| When you're working | Run |
+|---|---|
+| Building for deploy | `npm run build` |
+| One-off regeneration | `node scripts/build.mjs` |
+| Live editing while a dev server is running | `npm run cf:dev` (rebuilds on every `.md` save) or `npm run posts:watch` in a second terminal |
+
+Body content (everything after the frontmatter) is read directly from the `.md` file, so edits to the body show up on reload without re-running anything.
+
+The post is accessible at `post.html?slug=my-post-slug`. Set `featured: "true"` to pin it as the large card on the blog listing and home page widget.
 
 ---
 
@@ -128,18 +134,32 @@ Two sections: `featured` (the three portrait cards) and `stats` (the number stri
 ```bash
 npm install
 cp .env.example .env              # set SITE_URL for build output
-cp .dev.vars.example .dev.vars    # fill in BREVO_API_KEY, EMAIL_FROM
+cp .dev.vars.example .dev.vars    # fill in BKASH_*, BREVO_API_KEY, EMAIL_FROM
 npm run dev:local                 # serves public/ with live reload at localhost:3000
 ```
 
-`.dev.vars` holds local Worker secrets (Brevo, optional SSLCommerz overrides). It is gitignored - never commit it.
+`.dev.vars` holds local Worker secrets (bKash, Brevo). It is gitignored - never commit it.
 
-To test Worker API endpoints locally:
+To test Worker API endpoints locally (including Markdown blog watcher):
 
 ```bash
-npm run build
-npx wrangler d1 migrations apply DB --local   # first run only
-npm run cf:dev                                # wrangler dev at localhost:8787
+# First run only - apply schema + migrations to local D1
+npm exec -- wrangler d1 execute bdmso --local --file=./db/schema.sql
+for f in db/migrations/*.sql; do
+  npm exec -- wrangler d1 execute bdmso --local --file="$f"
+done
+
+npm run cf:dev                    # wrangler dev at localhost:8787 + posts watcher
+```
+
+`cf:dev` runs two processes in parallel via `scripts/dev.mjs`: `wrangler dev --live-reload` and `node scripts/build.mjs --watch`. Editing any `.md` in `public/posts/` regenerates `posts/index.json` automatically.
+
+### Test coupon (local only)
+
+A test coupon `TESTBDMSO` (100% off, 50 uses, all programs) is seeded by `db/migrations/008_add_coupons.sql`. Apply it once to your local D1 and use it at checkout:
+
+```bash
+npm exec -- wrangler d1 execute bdmso --local --file=./db/migrations/008_add_coupons.sql
 ```
 
 ---
@@ -159,30 +179,43 @@ Set `SITE_URL` in `.env` (copy from `.env.example`) to get the correct sitemap U
 
 ## First-time Cloudflare Setup
 
-1. Create a D1 database:
+1. Create the D1 database:
 
 ```bash
-wrangler d1 create bdmso
+npm exec -- wrangler d1 create bdmso
 ```
 
-2. Paste the returned IDs into `wrangler.toml`.
+2. Copy the returned `database_id` UUID into `wrangler.toml` and `wrangler.prod.toml` (replacing both `database_id` and `preview_database_id` placeholders if present).
 
-3. Apply the schema and migrations:
+3. Apply the schema and migrations to the remote DB:
 
 ```bash
-wrangler d1 execute bdmso --file=./db/schema.sql
-wrangler d1 migrations apply DB --remote
+npm exec -- wrangler d1 execute bdmso --remote --config wrangler.prod.toml --file=./db/schema.sql
+for f in db/migrations/*.sql; do
+  npm exec -- wrangler d1 execute bdmso --remote --config wrangler.prod.toml --file="$f"
+done
 ```
+
+Some migrations may report "duplicate column" - that's expected when `schema.sql` already includes a column the migration also adds. Safe to ignore on a fresh DB.
 
 4. Set production secrets (one-time):
 
 ```bash
-wrangler secret put BREVO_API_KEY           --config wrangler.prod.toml
-wrangler secret put EMAIL_FROM              --config wrangler.prod.toml
-wrangler secret put SSLCOMMERZ_STORE_ID     --config wrangler.prod.toml
-wrangler secret put SSLCOMMERZ_STORE_PASSWD --config wrangler.prod.toml
-wrangler secret put SSLCOMMERZ_SANDBOX      --config wrangler.prod.toml   # "false" for live
+npm exec -- wrangler secret put BKASH_APP_KEY    --config wrangler.prod.toml
+npm exec -- wrangler secret put BKASH_APP_SECRET --config wrangler.prod.toml
+npm exec -- wrangler secret put BKASH_USERNAME   --config wrangler.prod.toml
+npm exec -- wrangler secret put BKASH_PASSWORD   --config wrangler.prod.toml
+npm exec -- wrangler secret put BREVO_API_KEY    --config wrangler.prod.toml
+npm exec -- wrangler secret put EMAIL_FROM       --config wrangler.prod.toml
 ```
+
+5. Deploy:
+
+```bash
+npm run cf:deploy
+```
+
+The Worker (named `bdmso` in `wrangler.prod.toml`) is created on the first deploy and serves at `bdmso.<your-subdomain>.workers.dev`. Subsequent deploys just push updates - no recreation needed.
 
 ---
 
@@ -223,5 +256,6 @@ worker/
 db/
   schema.sql              - D1 table definitions
 scripts/
-  build.mjs               - copies public/ → dist/, writes sitemap + robots.txt
+  build.mjs               - regenerates posts/index.json, copies public/ → dist/, writes sitemap + robots.txt; supports --watch
+  dev.mjs                 - dev orchestrator: runs wrangler dev + posts watcher in parallel (used by `npm run cf:dev`)
 ```
