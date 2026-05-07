@@ -1,21 +1,21 @@
-/* BdMSO Official Website — Shared Styles */
+/* BdMSO Official Website - Shared Styles */
 
 :root {
-  /* ── Core brand palette — extracted from the BdMSO logo ── */
+  /* ── Core brand palette - extracted from the BdMSO logo ── */
   /* Logo colors: teal "Bd", gold "M", indigo-navy "S"/number boxes, sky-blue flask */
   --navy-900: #16254d;
-  --navy-800: #2f448c;   /* indigo-navy — number boxes "0" & "2" */
-  --navy-700: #4252ab;   /* medium indigo — "S" letterform */
+  --navy-800: #2f448c;   /* indigo-navy - number boxes "0" & "2" */
+  --navy-700: #4252ab;   /* medium indigo - "S" letterform */
   --navy-600: #6f7fd0;
   --navy-500: #8b97e0;
   --navy-100: #e8ecfb;
   --navy-50:  #f5f7ff;
 
   --gold-600: #c98420;
-  --gold-500: #e5a030;   /* warm amber — "M" letterform & "6" box */
+  --gold-500: #e5a030;   /* warm amber - "M" letterform & "6" box */
   --gold-100: #fbf1dc;
 
-  --teal-600: #35baa6;   /* bright teal — "Bd" letterform & "2" box */
+  --teal-600: #35baa6;   /* bright teal - "Bd" letterform & "2" box */
   --teal-100: #d9f2ed;
   --sky-500:  #5bc8f0;   /* flask liquid blue */
   --green-500:#88c63f;   /* flask green dot */
@@ -28,7 +28,7 @@
   --bg:       #fbfcfe;
   --bg-alt:   #f3f7fc;
 
-  /* ── Extended palette — oklch equivalents for dark surfaces & overlays ── */
+  /* ── Extended palette - oklch equivalents for dark surfaces & overlays ── */
 
   /* Dark navy surfaces (trust bars, page headers, dark sections) */
   --navy-deep:         oklch(0.12 0.05 255);
@@ -109,6 +109,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { margin: 0; padding: 0; }
 body {
   font-family: var(--font-sans);
@@ -315,6 +316,8 @@ p { margin: 0 0 1em; color: var(--ink-2); text-wrap: pretty; }
 .section {
   padding: 88px 0;
 }
+/* Collapse stacked padding when two same-background sections are adjacent. */
+.section-alt + .section-alt { padding-top: 0; }
 .section-alt { background: var(--bg-alt); }
 .section-dark { background: var(--navy-900); color: var(--on-dark); }
 .section-dark h2, .section-dark h3 { color: white; }

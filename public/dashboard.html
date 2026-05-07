@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Dashboard — BdMSO</title>
+<title>Dashboard - BdMSO</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -131,7 +131,7 @@
   <div class="container">
     <span class="eyebrow">Guardian Dashboard</span>
     <h1 id="dash-name"><span class="no-id">Welcome back</span></h1>
-    <p id="dash-greeting">Manage your registrations, track payments, and enrol your child in upcoming programs — all from one place.</p>
+    <p id="dash-greeting">Manage your registrations, track payments, and enrol your child in upcoming programs - all from one place.</p>
     <div class="email" id="dash-email"></div>
   </div>
 </section>
@@ -139,7 +139,7 @@
 <section class="container dash-wrap" id="dash-wrap" hidden>
   <div id="payment-toast" hidden></div>
   <div id="verify-banner" class="toast info" hidden style="justify-content: space-between;">
-    <span><strong>Verify your email</strong> — we've sent a verification link to your inbox. You need to verify before paying for registrations.</span>
+    <span><strong>Verify your email</strong> - we've sent a verification link to your inbox. You need to verify before paying for registrations.</span>
     <button id="resend-verify" class="btn btn-ghost" style="padding: 6px 12px; font-size: 13px;">Resend</button>
   </div>
 
@@ -166,7 +166,7 @@
 
       <div class="prog-card">
         <span class="prog-tag open">Open · All Classes</span>
-        <h3>National Qualifying Round</h3>
+        <h3>BdMSO National Round</h3>
         <p>The gateway to BdMSO. Open to any student from Class 3 to 6. Participate in the national olympiad and qualify for residential camp.</p>
         <div class="prog-foot">
           <span class="prog-price">৳ 500</span>
@@ -187,7 +187,7 @@
       <div class="prog-card">
         <span class="prog-tag open">Open · Enrollment</span>
         <h3>STEM Foundation Program</h3>
-        <p>A structured year-round training program covering mathematics, physics, and logical reasoning — designed to build olympiad-level thinking.</p>
+        <p>A structured year-round training program covering mathematics, physics, and logical reasoning - designed to build olympiad-level thinking.</p>
         <div class="prog-foot">
           <span class="prog-price">৳ 8,000</span>
           <a class="btn btn-primary" href="registration.html" style="font-size:13px; padding:8px 16px;">Register</a>
@@ -224,7 +224,8 @@ async function apiPost(name, payload, token) {
 }
 
 const PROGRAM_NAMES = {
-  'national-qualifying-round': 'National Qualifying Round',
+  'national-qualifying-round': 'BdMSO National Round',
+  'national-quiz-competition': 'BdMSO Quiz Competition',
   'stem-foundation':           'STEM Foundation Program',
   'bdmso-preparatory':         'BdMSO Preparatory Course',
   'stem-masterclass':          'STEM Masterclass Series',
@@ -298,12 +299,12 @@ async function pay(registrationId, regType, btn) {
       const couponCode = validatedCoupons.get(registrationId) || document.getElementById(`coupon-${registrationId}`)?.value.trim().toUpperCase() || '';
       try {
         const data = await apiPost('create-payment', { registrationId, couponCode }, session.token);
-        if (data.free || !data.gatewayUrl) {
+        if (data.free || !data.bkashURL) {
           validatedCoupons.delete(registrationId);
           window.location.href = 'dashboard.html?payment=success';
           return;
         }
-        window.location.href = data.gatewayUrl;
+        window.location.href = data.bkashURL;
       } catch (err) {
         confirmBtn.disabled = false;
         confirmBtn.textContent = 'Confirm & Pay →';
@@ -370,7 +371,7 @@ function renderRegistrations(regs) {
     const badge = statusBadge(r.status, r.payment_status);
     const showPay = needsPayment(r.status, r.payment_status);
     const isPaid = r.status === 'paid' || r.payment_status === 'paid';
-    const memberId = r.member_id || (isPaid ? '—' : 'Pending payment');
+    const memberId = r.member_id || (isPaid ? '-' : 'Pending payment');
 
     return `
       <article class="reg-card">
@@ -411,14 +412,14 @@ function printReceipt(r) {
   const programName = PROGRAM_NAMES[r.registration_type] || r.registration_type;
   const paidAt = r.payment_date
     ? new Date(r.payment_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
-    : '—';
-  const amount = r.payment_amount ? `৳ ${Number(r.payment_amount).toLocaleString()}` : '—';
+    : '-';
+  const amount = r.payment_amount ? `৳ ${Number(r.payment_amount).toLocaleString()}` : '-';
 
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<title>Receipt — BdMSO ${escapeHtml(r.member_id || '')}</title>
+<title>Receipt - BdMSO ${escapeHtml(r.member_id || '')}</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; background: #f9fafb; display: flex; justify-content: center; padding: 40px 16px; }
@@ -459,7 +460,7 @@ function printReceipt(r) {
     </div>
     <div class="member-band">
       <div class="k">Member ID</div>
-      <div class="v">${escapeHtml(r.member_id || '—')}</div>
+      <div class="v">${escapeHtml(r.member_id || '-')}</div>
     </div>
     <div class="body">
       <h2>Payment Receipt</h2>
@@ -469,7 +470,7 @@ function printReceipt(r) {
         <tr><td>Class</td><td>${escapeHtml(r.student_class_name)}</td></tr>
         <tr><td>School</td><td>${escapeHtml(r.student_school)}</td></tr>
         <tr><td>District</td><td>${escapeHtml(r.student_district)}</td></tr>
-        <tr><td>Transaction ID</td><td style="font-family:monospace;font-size:12px;">${escapeHtml(r.tran_id || '—')}</td></tr>
+        <tr><td>Transaction ID</td><td style="font-family:monospace;font-size:12px;">${escapeHtml(r.tran_id || '-')}</td></tr>
         <tr><td>Payment Date</td><td>${escapeHtml(paidAt)}</td></tr>
         <tr class="total"><td>Amount Paid</td><td>${escapeHtml(amount)}</td></tr>
       </table>
@@ -504,9 +505,9 @@ async function init() {
 
   document.getElementById('page-head').hidden = false;
   document.getElementById('dash-wrap').hidden = false;
-  // textContent is safe from XSS — no need to escape.
+  // textContent is safe from XSS - no need to escape.
   document.getElementById('dash-greeting').textContent =
-    `Welcome back, ${session.fullName.split(' ')[0]} — manage your registrations, track payments, and enrol in upcoming programs.`;
+    `Welcome back, ${session.fullName.split(' ')[0]} - manage your registrations, track payments, and enrol in upcoming programs.`;
   document.getElementById('dash-email').textContent = session.email;
 
   const params = new URLSearchParams(location.search);

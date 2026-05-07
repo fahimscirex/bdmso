@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Preparation Hub — BdMSO</title>
+<title>Preparation Hub - BdMSO</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
 .page-head p { color: var(--on-dark-2); max-width: 600px; margin: 0; font-size: 1.05rem; }
 
 .res-wrap { margin-top: -56px; position: relative; z-index: 2; display: grid; grid-template-columns: 260px 1fr; gap: 36px; padding-bottom: 96px; }
-/* min-width:0 lets grid children shrink below their content width — prevents page overflow */
+/* min-width:0 lets grid children shrink below their content width - prevents page overflow */
 .res-nav { min-width: 0; background: white; border: 1px solid var(--line); border-radius: var(--r-lg); padding: 20px; height: fit-content; position: sticky; top: 90px; }
 .res-body { min-width: 0; display: flex; flex-direction: column; gap: 40px; }
 
@@ -85,16 +85,10 @@
   .archive { grid-template-columns: 1fr 1fr; }
   .guide-grid { grid-template-columns: 1fr; }
 
-  /* Table → stacked cards */
-  .table-scroll { overflow: visible; }
-  .marks-table { display: block; border: none; border-radius: 0; overflow: visible; }
-  .marks-table thead { display: none; }
-  .marks-table tbody { display: flex; flex-direction: column; gap: 8px; }
-  .marks-table tr { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 10px; padding: 14px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); }
-  .marks-table td { border: none; padding: 0; font-size: 13px; display: flex; flex-direction: column; gap: 3px; }
-  .marks-table td::before { content: attr(data-label); font-size: 10px; color: var(--ink-3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
-  .marks-table td:first-child { grid-column: 1 / -1; font-weight: 700; color: var(--navy-900); font-size: 14px; padding-bottom: 6px; border-bottom: 1px solid var(--line-2); margin-bottom: 2px; }
-  .marks-table td:first-child::before { display: none; }
+  /* Marks table: horizontal scroll on mobile (rowspan/colspan don't card well). */
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--line); border-radius: var(--r); }
+  .marks-table { min-width: 480px; border: none; border-radius: 0; }
+  .marks-table th, .marks-table td { padding: 10px 12px; font-size: 13px; }
 }
 </style>
 </head>
@@ -104,7 +98,7 @@
 <section class="page-head"><div class="container">
   <span class="eyebrow">Preparation Hub</span>
   <h1>Everything you need to prepare for BdMSO.</h1>
-  <p>Syllabus, regulations, mark distribution, past papers, and guidance for parents — all in one place.</p>
+  <p>Syllabus, regulations, mark distribution, past papers, and guidance for parents - all in one place.</p>
 </div></section>
 
 <section class="container res-wrap">
@@ -124,7 +118,7 @@
     <div class="panel" id="syllabus">
       <div class="summary-head">
         <div><span class="eyebrow">01</span><h2 style="margin-top:12px;">Syllabus</h2><p style="margin:0;">BdMSO 2026 official Mathematics and Science syllabus.</p></div>
-        <a class="dl-pill" href="downloads/BdMSO-Syllabus-2026.docx">⬇ Download Detailed Syllabus</a>
+        <a class="dl-pill" href="downloads/BdMSO-Syllabus-2026.pdf">⬇ Download Detailed Syllabus <span class="size">329 KB</span></a>
       </div>
       <div class="topic-grid">
         <div class="topic">
@@ -144,7 +138,7 @@
             <li>Scientific Method</li>
             <li>Life Science</li>
             <li>Physical Science</li>
-            <li>Earth &amp; Space Science</li>
+            <li>Earth &amp; Solar System</li>
             <li>Geography &amp; Environment</li>
             <li>Biotechnology</li>
           </ul>
@@ -155,41 +149,52 @@
     <div class="panel" id="regulations">
       <div class="summary-head">
         <div><span class="eyebrow">02</span><h2 style="margin-top:12px;">Regulations</h2><p style="margin:0;">Official eligibility rules, exam conduct, and BdMSO code of conduct.</p></div>
-        <a class="dl-pill" href="downloads/regulations.pdf">⬇ Regulations.pdf <span class="size">740 KB</span></a>
+        <a class="dl-pill" href="downloads/BdMSO-Regulations-2026.pdf">⬇ Download Detailed Regulations <span class="size">522 KB</span></a>
       </div>
       <ul style="padding-left:20px; line-height:1.9; color:var(--ink-2);">
-        <li>Open to primary school students under 13 years old, enrolled in Grade 6 or lower as of September 30, 2026, with a birth date on or after September 30, 2013.</li>
-        <li>Contestants may register for Mathematics, Science, or both — no categories based on class or grade level.</li>
-        <li>There are no regional rounds — BdMSO features a direct National Round.</li>
-        <li>Awards are granted in only one subject per participant based on scores, even if registered for both.</li>
-        <li>Approximately two thirds of all participants receive medals in a gold:silver:bronze ratio of 1:2:3 per subject.</li>
-        <li>All questions and answers at IMSO must be in English.</li>
+        <li>Open to primary school students aged 13 or younger, enrolled in Grade 6 or lower as of <strong>October 1, 2026</strong>, born on or after <strong>October 1, 2013</strong>.</li>
+        <li>The Olympiad is a single two-hour combined exam covering both Mathematics and Science sections - there are no separate math/science registrations.</li>
+        <li>BdMSO operates as a single category for IMSO qualification. A separate Quiz Competition may be held for Grade 3 or lower as encouragement.</li>
+        <li>Approximately the top 20–30% of registered participants are designated Winners and receive a medal and Certificate of Achievement.</li>
+        <li>Award classes: All-Round Winners (top 5% by combined score), Mathematics Winners, and Science Winners.</li>
+        <li>English is the official language for all examination papers, instructions, and communications.</li>
+        <li>Olympiad registration fees range from 1,000–1,500 BDT. National Camp fees range from 3,000–5,000 BDT. TST fee is 1,000 BDT per subject. International participation fee is announced after the TST.</li>
       </ul>
     </div>
 
     <div class="panel" id="marks">
       <div class="summary-head"><div><span class="eyebrow">03</span><h2 style="margin-top:12px;">Mark Distribution &amp; Question Pattern</h2><p style="margin:0;">How marks are allocated for the National Qualifying Round and Team Selection Test (TST).</p></div></div>
-      <h4 style="font-family:var(--font-sans);font-size:13px;text-transform:uppercase;letter-spacing:0.1em;color:var(--navy-700);margin-bottom:10px;">Mathematics</h4>
+      <p style="font-size:13.5px; color:var(--ink-2); margin:0 0 18px;">The <strong>Olympiad</strong> is a single 120-minute combined exam (Mathematics + Science, 100 marks total). The <strong>Team Selection Test</strong> follows the IMSO format: separate day-long evaluations per subject, 100 marks each.</p>
+      <h4 style="font-family:var(--font-sans);font-size:13px;text-transform:uppercase;letter-spacing:0.1em;color:var(--navy-700);margin-bottom:10px;">Olympiad: BdMSO National Round (combined · 120 min)</h4>
       <div class="table-scroll">
         <table class="marks-table">
-          <thead><tr><th>Section</th><th>National Round</th><th>Time</th><th>TST</th><th>Time</th></tr></thead>
+          <thead><tr><th>Subject</th><th>Section</th><th>Distribution</th><th>Marks</th></tr></thead>
           <tbody>
-            <tr><td>Multiple Choice</td><td class="num" data-label="National">20 × 2 = 40</td><td data-label="Time" rowspan="3">75 min</td><td class="num" data-label="TST">15 × 2 = 30</td><td data-label="Time" rowspan="3">120 min</td></tr>
-            <tr><td>Short Answer</td><td class="num" data-label="National">10 × 4 = 40</td><td class="num" data-label="TST">10 × 5 = 50</td></tr>
-            <tr><td>Problem Solving</td><td class="num" data-label="National">2 × 10 = 20</td><td class="num" data-label="TST">2 × 10 = 20</td></tr>
-            <tr><td><strong>Total</strong></td><td class="num" data-label="National"><strong>100</strong></td><td data-label="Time"><strong>—</strong></td><td class="num" data-label="TST"><strong>100</strong></td><td data-label="Time"><strong>—</strong></td></tr>
+            <tr><td rowspan="4">Mathematics</td><td>Short Answer</td><td class="num">20 questions</td><td class="num">20</td></tr>
+            <tr><td>Essay</td><td class="num">10 questions</td><td class="num">20</td></tr>
+            <tr><td>Exploration</td><td class="num">2 questions</td><td class="num">10</td></tr>
+            <tr><td><strong>Subtotal</strong></td><td class="num">-</td><td class="num"><strong>50</strong></td></tr>
+            <tr><td rowspan="4">Science</td><td>Multiple Choice</td><td class="num">20 questions</td><td class="num">20</td></tr>
+            <tr><td>Short Answer</td><td class="num">10 questions</td><td class="num">20</td></tr>
+            <tr><td>Brief Problems</td><td class="num">2 questions</td><td class="num">10</td></tr>
+            <tr><td><strong>Subtotal</strong></td><td class="num">-</td><td class="num"><strong>50</strong></td></tr>
+            <tr><td colspan="3"><strong>Total</strong></td><td class="num"><strong>100</strong></td></tr>
           </tbody>
         </table>
       </div>
-      <h4 style="font-family:var(--font-sans);font-size:13px;text-transform:uppercase;letter-spacing:0.1em;color:var(--navy-700);margin:24px 0 10px;">Science</h4>
+      <h4 style="font-family:var(--font-sans);font-size:13px;text-transform:uppercase;letter-spacing:0.1em;color:var(--navy-700);margin:24px 0 10px;">Team Selection Test (per subject, day-long)</h4>
       <div class="table-scroll">
         <table class="marks-table">
-          <thead><tr><th>Section</th><th>National Round</th><th>Time</th><th>TST</th><th>Time</th></tr></thead>
+          <thead><tr><th>Subject</th><th>Section</th><th>Distribution</th><th>Duration</th><th>Marks</th></tr></thead>
           <tbody>
-            <tr><td>Multiple Choice</td><td class="num" data-label="National">20 × 2 = 40</td><td data-label="Time" rowspan="3">75 min</td><td class="num" data-label="TST">20 × 2 = 40</td><td data-label="Time" rowspan="3">120 min</td></tr>
-            <tr><td>Short Answer</td><td class="num" data-label="National">10 × 4 = 40</td><td class="num" data-label="TST">8 × 5 = 40</td></tr>
-            <tr><td>Problem Solving</td><td class="num" data-label="National">2 × 10 = 20</td><td class="num" data-label="TST">2 × 10 = 20</td></tr>
-            <tr><td><strong>Total</strong></td><td class="num" data-label="National"><strong>100</strong></td><td data-label="Time"><strong>—</strong></td><td class="num" data-label="TST"><strong>100</strong></td><td data-label="Time"><strong>—</strong></td></tr>
+            <tr><td rowspan="4">Mathematics</td><td>Short Answer</td><td class="num">25 questions</td><td>60 min</td><td class="num">25</td></tr>
+            <tr><td>Essay</td><td class="num">13 questions</td><td>90 min</td><td class="num">39</td></tr>
+            <tr><td>Exploration</td><td class="num">6 questions</td><td>120 min</td><td class="num">36</td></tr>
+            <tr><td colspan="3"><strong>Total</strong></td><td>-</td><td class="num"><strong>100</strong></td></tr>
+            <tr><td rowspan="4">Science</td><td>Theory 1 (MCQ)</td><td class="num">30 questions</td><td>60 min</td><td class="num">30</td></tr>
+            <tr><td>Theory 2 (Open Ended)</td><td class="num">9 questions</td><td>90 min</td><td class="num">45</td></tr>
+            <tr><td>Experiment (Lab)</td><td class="num">2 questions</td><td>120 min</td><td class="num">25</td></tr>
+            <tr><td colspan="3"><strong>Total</strong></td><td>-</td><td class="num"><strong>100</strong></td></tr>
           </tbody>
         </table>
       </div>
@@ -198,16 +203,16 @@
     <div class="panel" id="papers">
       <div class="summary-head"><div><span class="eyebrow">04</span><h2 style="margin-top:12px;">Sample Questions</h2><p style="margin:0;">Sample questions to practice for the National Qualifying Round.</p></div></div>
       <div class="archive">
-        <div class="year-card"><div class="yr">Math</div><div style="font-size:13px; color:var(--ink-3);">National Round</div><div class="links"><a href="#">⬇ Sample Paper (Math)</a></div></div>
-        <div class="year-card"><div class="yr">Science</div><div style="font-size:13px; color:var(--ink-3);">National Round</div><div class="links"><a href="#">⬇ Sample Paper (Science)</a></div></div>
+        <div class="year-card"><div class="yr">Math</div><div style="font-size:13px; color:var(--ink-3);">Olympiad</div><div class="links"><a href="#">⬇ Sample Paper (Math)</a></div></div>
+        <div class="year-card"><div class="yr">Science</div><div style="font-size:13px; color:var(--ink-3);">Olympiad</div><div class="links"><a href="#">⬇ Sample Paper (Science)</a></div></div>
       </div>
     </div>
 
     <div class="panel" id="parents">
       <div class="summary-head"><div><span class="eyebrow">05</span><h2 style="margin-top:12px;">Guide for Parents</h2><p style="margin:0;">What you need to know before your child begins.</p></div></div>
       <div class="guide-grid">
-        <div class="guide-item"><h4>What is BdMSO?</h4><p>The official qualifying olympiad to select primary-school students to represent Bangladesh at IMSO — the International Math &amp; Science Olympiad.</p></div>
-        <div class="guide-item"><h4>Explore Programs</h4><p>From foundation courses to residential camps — browse all year-round programs to find the right fit for your child. <a href="programs.html" style="color:var(--navy-700); text-decoration:underline;">View all programs →</a></p></div>
+        <div class="guide-item"><h4>What is BdMSO?</h4><p>The official qualifying olympiad to select primary-school students to represent Bangladesh at IMSO - the International Math &amp; Science Olympiad.</p></div>
+        <div class="guide-item"><h4>Explore Programs</h4><p>From foundation courses to residential camps - browse all year-round programs to find the right fit for your child. <a href="programs.html" style="color:var(--navy-700); text-decoration:underline;">View all programs →</a></p></div>
         <div class="guide-item"><h4>Selection process</h4><p>Register → Qualifying Round → Residential Camp → TST → Preparatory Camp → International delegation. See the <a href="index.html#road" style="color:var(--navy-700); text-decoration:underline;">Road to IMSO</a>.</p></div>
       </div>
     </div>
@@ -218,13 +223,12 @@
         <a class="dl-pill" href="downloads/BdMSO-FAQ.docx">⬇ FAQ.docx</a>
       </div>
       <div class="faq">
-        <details open><summary>Who is eligible to participate in BdMSO?</summary><p>BdMSO is open to students across Bangladesh who are under 13 years old, born on or after September 30, 2013, and enrolled in Grade 6 or lower as of September 30, 2026.</p></details>
-        <details><summary>What subjects can I participate in?</summary><p>Contestants can participate in Mathematics, Science, or both. There are no categories based on school class or grade level.</p></details>
-        <details><summary>How do I register and what is the fee?</summary><p>Registration is online at <a href="https://festive.rocks/sh/bdmso" target="_blank" rel="noopener" style="color:var(--navy-700);">festive.rocks/sh/bdmso</a>. The fee is 1,000 BDT for one subject, or 1,500 BDT for both Mathematics and Science. Payment is made by purchasing tickets at the registration link.</p></details>
-        <details><summary>When and where is the National Round?</summary><p>The BdMSO National Round is held as a direct national competition — there are no regional rounds. The event day includes an inauguration ceremony, one-hour exams per subject, a Science Experiment Session, Q&amp;A, and a Prize Giving ceremony.</p></details>
-        <details><summary>What prizes are awarded?</summary><p>Approximately two thirds of participants receive gold, silver, and bronze medals in a 1:2:3 ratio per subject. All medalists receive a winner's t-shirt and Certificate of Achievement. A Champion Trophy is awarded to the top scorer in each subject. Every attendee receives a Certificate of Participation.</p></details>
-        <details><summary>Can a participant win awards in both subjects?</summary><p>No. While contestants may register for both subjects, awards are granted in only one subject per participant based on their scores.</p></details>
-        <details><summary>How are IMSO team members selected?</summary><p>Top scorers from the National Round are invited to a non-residential National Camp. From there, top performers proceed to a National Team Selection Test. The top six from each subject form the national team representing Bangladesh at IMSO.</p></details>
+        <details open><summary>Who is eligible to participate in BdMSO?</summary><p>BdMSO is open to students across Bangladesh who are 13 years old or younger, born on or after October 1, 2013, and enrolled in Grade 6 or lower as of October 1, 2026. Students in the British curriculum (or similar streams) who are promoted to Grade 7 in July/August 2026 are not eligible.</p></details>
+        <details><summary>What is the format of the Olympiad?</summary><p>The BdMSO National Round is a single 120-minute combined exam covering both Mathematics and Science (50 + 50 = 100 marks). It is held at multiple regional venues, simultaneously or on different dates. The day includes the National Anthem, the exam, a lunch break, a cultural program, and a prize-giving ceremony.</p></details>
+        <details><summary>How do I register and what is the fee?</summary><p>Registration is online at <a href="https://www.bdmso.org" target="_blank" rel="noopener" style="color:var(--navy-700);">www.bdmso.org</a>. The Olympiad registration fee is 1000 BDT per student. Subsequent stages have separate fees: National Residential Camp 3,000–5,000 BDT, TST 1,000 BDT per subject, and the international participation fee is announced after the TST.</p></details>
+        <details><summary>What prizes are awarded?</summary><p>Approximately the top 20–30% of participants are designated Winners and receive a medal and Certificate of Achievement. Winners are classified as All-Round Winners (top 5% combined), Mathematics Winners, or Science Winners. A Champion Trophy is awarded to the highest scorer in each section, and every attendee receives a Certificate of Participation.</p></details>
+        <details><summary>Is financial aid available?</summary><p>Yes. The organizing committee may consider partial waivers of up to 50% on Olympiad, Camp, or TST fees for gifted students with significant financial need. Independent sponsorship is also encouraged.</p></details>
+        <details><summary>How are IMSO team members selected?</summary><p>Olympiad winners (approximately the top 20%) are invited to a three-day National Residential Camp. About a week after the camp, the Team Selection Test (TST) - a day-long evaluation per subject - determines the team. The top six per subject (12 total: 6 Math + 6 Science) form the primary national team, with 2 Tutors and 1 Team Leader, completing the standard 15-member delegation.</p></details>
         <details><summary>What is IMSO and how does BdMSO connect to it?</summary><p>IMSO (International Mathematics and Science Olympiad) is a prestigious annual competition for primary school students under 13 from around the world. BdMSO is Bangladesh's official national qualifying round for IMSO. The national team selected through BdMSO will represent Bangladesh at the 23rd IMSO in 2026.</p></details>
         <details><summary>What are the costs for IMSO participation?</summary><p>Selected national delegates pay a registration fee covering travel, visa, accommodation, and local transport. One parent may accompany their child for an additional fee of approximately $650 USD payable directly to the IMSO organizers.</p></details>
         <details><summary>How should my child prepare?</summary><p>Follow the official BdMSO syllabus. It is recommended to practice elementary-level creative problems and study IMSO sample questions and past papers. Elementary-level Mathematics and Science textbooks are also useful.</p></details>

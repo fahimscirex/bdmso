@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS guardian_accounts (
   full_name TEXT NOT NULL,
   phone TEXT,
   email_verified INTEGER NOT NULL DEFAULT 0,
+  member_id TEXT UNIQUE,
   created_at TEXT NOT NULL
 );
 
@@ -30,12 +31,12 @@ ON login_attempts (email, attempted_at);
 
 CREATE TABLE IF NOT EXISTS registrations (
   id TEXT PRIMARY KEY,
-  member_id TEXT UNIQUE,
   registration_type TEXT NOT NULL,
   student_full_name TEXT NOT NULL,
   student_date_of_birth TEXT NOT NULL,
   student_class_name TEXT NOT NULL,
   student_gender TEXT NOT NULL DEFAULT '',
+  student_medium TEXT,
   student_school TEXT NOT NULL,
   student_district TEXT NOT NULL,
   guardian_account_id TEXT NOT NULL,
@@ -44,6 +45,7 @@ CREATE TABLE IF NOT EXISTS registrations (
   guardian_phone TEXT NOT NULL,
   guardian_email TEXT NOT NULL,
   guardian_address TEXT NOT NULL,
+  preferred_venue TEXT,
   terms_accepted INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'submitted',
   source_page TEXT,
@@ -88,20 +90,23 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS idx_sessions_account_id
 ON sessions (account_id);
 
+-- Gateway column mapping (bKash Tokenized Checkout):
+--   tran_id        = bKash paymentID        (from /create, used as lookup key throughout)
+--   val_id         = bKash trxID            (from /execute, final transaction reference)
+--   gateway_status = bKash transactionStatus (e.g. "Completed")
 CREATE TABLE IF NOT EXISTS payments (
   id TEXT PRIMARY KEY,
   registration_id TEXT NOT NULL,
-  account_id TEXT NOT NULL,
   amount REAL NOT NULL,
   currency TEXT NOT NULL DEFAULT 'BDT',
-  tran_id TEXT UNIQUE,
-  val_id TEXT,
-  gateway_status TEXT,
+  tran_id TEXT UNIQUE,       -- bKash paymentID
+  val_id TEXT,               -- bKash trxID (set after /execute)
+  gateway_status TEXT,       -- bKash transactionStatus
+  coupon_code TEXT,          -- coupon applied at checkout (used_count incremented on success)
   status TEXT NOT NULL DEFAULT 'pending',
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
-  FOREIGN KEY (registration_id) REFERENCES registrations (id),
-  FOREIGN KEY (account_id) REFERENCES guardian_accounts (id)
+  FOREIGN KEY (registration_id) REFERENCES registrations (id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_payments_registration_id
@@ -109,6 +114,12 @@ ON payments (registration_id);
 
 CREATE INDEX IF NOT EXISTS idx_payments_tran_id
 ON payments (tran_id);
+
+CREATE TABLE IF NOT EXISTS bkash_token_cache (
+  id INTEGER PRIMARY KEY CHECK (id = 1),  -- single-row table
+  id_token TEXT NOT NULL,
+  expires_at TEXT NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS coupons (
   code TEXT PRIMARY KEY,

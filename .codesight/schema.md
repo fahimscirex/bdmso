@@ -21,19 +21,8 @@
 - max_uses: integer
 - applies_to: text
 
-### guardian_accounts
-- id: text (pk)
-- email: text (required)
-- password_hash: text (required)
-- password_salt: text (required)
-- password_iterations: integer (required)
-- full_name: text (required)
-- phone: text
-- email_verified: integer (required)
-
 ### registrations
 - id: text (pk)
-- member_id: text (unique, fk)
 - registration_type: text (required)
 - student_full_name: text (required)
 - student_date_of_birth: text (required)
@@ -51,6 +40,32 @@
 - status: text (required)
 - source_page: text
 
+### payments
+- id: text (pk)
+- registration_id: text (required, fk)
+- amount: real (required)
+- currency: text (required)
+- tran_id: text (unique, fk)
+- val_id: text (fk)
+- gateway_status: text
+- status: text (required)
+
+### bkash_token_cache
+- id: integer (pk)
+- id_token: text (required)
+- expires_at: text (required)
+
+### guardian_accounts
+- id: text (pk)
+- email: text (required)
+- password_hash: text (required)
+- password_salt: text (required)
+- password_iterations: integer (required)
+- full_name: text (required)
+- phone: text
+- email_verified: integer (required)
+- member_id: text (unique, fk)
+
 ### sponsorship_enquiries
 - id: text (pk)
 - organization: text (required)
@@ -66,15 +81,3 @@
 - id: text (pk)
 - account_id: text (required, fk)
 - expires_at: text (required)
-
-### payments
-- id: text (pk)
-- registration_id: text (required, fk)
-- account_id: text (required, fk)
-- amount: real (required)
-- currency: text (required)
-- tran_id: text (unique, fk)
-- val_id: text (fk)
-- gateway_status: text
-- status: text (required)
-- _relations_: registration_id -> registrations.id

@@ -2,7 +2,7 @@
 <html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BdMSO — Bangladesh Mathematics &amp; Science Olympiad</title>
+<title>BdMSO - Bangladesh Mathematics &amp; Science Olympiad</title>
 <meta name="description" content="Official qualifying platform to select primary school students (Class 3–6) to represent Bangladesh at the International Mathematics and Science Olympiad (IMSO).">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
@@ -116,10 +116,10 @@
   }
   .hero-visual {
     order: 2;
-    width: min(100%, 360px);
-    max-width: 360px;
-    justify-self: center;
-    margin: 0 auto 8px;
+    width: 100%;
+    max-width: none;
+    justify-self: stretch;
+    margin: 0 0 8px;
   }
   .hero-badge.top { left: 0; }
   .hero-badge.bot { right: 0; }
@@ -172,8 +172,8 @@
     width: 100%;
   }
   .hero-visual {
-    width: min(100%, 280px);
-    max-width: 280px;
+    width: 100%;
+    max-width: none;
     margin-top: 6px;
   }
   .hero-badge {
@@ -230,6 +230,8 @@
   .trust-grid { grid-template-columns: repeat(2, 1fr); }
   .trust-item { border-left: none; border-top: 1px solid var(--navy-border-dk); padding-top: 18px; }
   .trust-item:first-child, .trust-item:nth-child(2) { border-top: none; padding-top: 0; }
+  /* If the last item is alone on its row, center it across both columns. */
+  .trust-item:last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
 
 /* ABOUT */
@@ -891,7 +893,7 @@
         </div>
       </div>
       <div class="hero-visual">
-        <img src="images/group.jpg" alt="BdMSO students participating in an olympiad session">
+        <img src="images/group-winner.webp" alt="BdMSO students participating in an olympiad session">
         <div class="hero-badge top">
           <div class="num">12/12</div>
           <div class="lbl">Medals<br>IMSO Malaysia 2025</div>
@@ -904,7 +906,7 @@
 <!-- SECTION 2: TRUST BAR -->
 <section class="trust-bar">
   <div class="container">
-    <p class="trust-head">Your journey all the way to representing Bangladesh on the international stage.</p>
+    <p class="trust-head">Your journey to representing Bangladesh on the international stage.</p>
     <div class="trust-grid" id="stats-grid"></div>
   </div>
 </section>
@@ -914,17 +916,17 @@
   <div class="container">
     <div class="about-grid">
       <div class="about-img">
-        <img src="images/exam.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" alt="BdMSO exam">
+        <img src="images/exam.webp" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" alt="BdMSO exam">
         <span class="tag">Dhaka, 2025</span>
       </div>
       <div class="about-text">
         <span class="eyebrow">About BdMSO</span>
-        <h2 style="margin:14px 0 18px;">Gateway to the International Math &amp; Science Olympiad.</h2>
+        <h2 style="margin:14px 0 18px;">Gateway to the International Mathematics &amp; Science Olympiad.</h2>
         <p>Bangladesh Mathematics and Science Olympiad (BdMSO) is designed to introduce primary school students to the world of mathematics and science from an early age, nurturing their natural curiosity and problem-solving skills.</p>
-        <p>BdMSO serves as the official qualifying platform to select primary school students (up to Grade 6) to represent Bangladesh internationally. Each year, the competition selects a national team of twelve students — six for Mathematics and six for Science — to participate in the International Mathematics and Science Olympiad (IMSO). In 2026, the 23rd IMSO will be held in Indonesia.</p>
+        <p>BdMSO serves as the official qualifying platform to select primary school students (up to Grade 6) to represent Bangladesh internationally. Each year, the competition selects a national team of twelve students - six for Mathematics and six for Science - to participate in the International Mathematics and Science Olympiad (IMSO). In 2026, the 23rd IMSO will be held in Indonesia.</p>
         <div class="about-highlights">
           <div class="item"><div class="n">Since 2025</div><div class="t">Official IMSO qualifier for Bangladesh</div></div>
-          <div class="item"><div class="n">7 Stages</div><div class="t">From registration to international participation</div></div>
+          <div class="item"><div class="n">3 Phases</div><div class="t">From registration to international participation</div></div>
         </div>
       </div>
     </div>
@@ -950,7 +952,6 @@
       <div>
         <span class="eyebrow">Hall of Fame</span>
         <h2 style="margin-top:14px;">Faces of Bangladesh.</h2>
-        <p style="margin:6px 0 0; color:var(--ink-3);">We celebrate winners and every student's ranking.</p>
       </div>
       <a class="btn btn-ghost" href="results.html">View All Results</a>
     </div>
@@ -977,7 +978,7 @@
       <a class="res-card" href="resources.html#regulations">
         <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h12a4 4 0 0 1 4 4v12"></path><path d="M8 4v16a2 2 0 0 1-2 2H4"></path><path d="M9 10h7M9 14h7"></path></svg></div>
         <h4>Regulations</h4>
-        <p>Official rules, eligibility, and conduct for the national olympiad.</p>
+        <p>Official rules, eligibility, and code of conduct for the national olympiad.</p>
         <span class="more">Read rules</span>
       </a>
       <a class="res-card" href="resources.html#syllabus">
@@ -989,13 +990,13 @@
       <a class="res-card" href="resources.html">
         <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></div>
         <h4>Question Pattern</h4>
-        <p>How marks are allocated for the National Round</p>
+        <p>How marks are allocated for the Olympiad</p>
         <span class="more">See pattern</span>
       </a>
       <a class="res-card" href="registration.html">
         <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"></path></svg></div>
         <h4>Register Now</h4>
-        <p>Create your BdMSO ID and begin the qualifying journey.</p>
+        <p>Create your BdMSO ID and begin the IMSO journey.</p>
         <span class="more">Start registration</span>
       </a>
     </div>
@@ -1014,10 +1015,10 @@
         </div>
         <div class="note">
           <h4>Important Note for Parents</h4>
-          <p>BdMSO national qualifying round registration opens in May, and eligibility is strictly based on the age and grade your child will have reached by September 30, 2026.</p>
+          <p>BdMSO national round registration opens in April–May, and eligibility is strictly governed by the cutoff date of <strong>October 1, 2026</strong>.</p>
           <ul>
-            <li><strong>National Curriculum:</strong> If your child is in Grade 6 in May, they will still be in Grade 6 in September and are eligible to participate.</li>
-            <li><strong>British Curriculum (or similar):</strong> If your child is promoted to Grade 7 in July/August, they will not be eligible by the September 30 cutoff date.</li>
+            <li><strong>National Curriculum:</strong> If your child is in Grade 6 during the registration period, they will still be in Grade 6 by October 1 and are eligible.</li>
+            <li><strong>British Curriculum (or similar):</strong> Students promoted to Grade 7 in July/August 2026 are <strong>not eligible</strong>, even if they were in Grade 6 during registration.</li>
           </ul>
         </div>
       </div>
@@ -1025,17 +1026,12 @@
         <div class="eligibility-card">
           <div class="value">Under 13</div>
           <div class="label">Age Requirement</div>
-          <p>Participants must be under 13 years old and born on or after <strong>September 30, 2013</strong>.</p>
+          <p>Participants must be 13 or younger and born after <strong>October 1, 2013</strong>.</p>
         </div>
         <div class="eligibility-card">
           <div class="value">Grade 6</div>
           <div class="label">or lower</div>
-          <p>Enrolled in Grade 6 or lower as of <strong>September 30, 2026</strong>.</p>
-        </div>
-        <div class="eligibility-card">
-          <div class="value">Both</div>
-          <div class="label">subjects</div>
-          <p>Register for Math, Science, or both. No category based on school grade.</p>
+          <p>Enrolled in Grade 6 or lower as of <strong>October 1, 2026</strong>.</p>
         </div>
       </div>
     </div>
@@ -1074,7 +1070,7 @@
   <div class="container">
     <div class="section-head center">
       <span class="eyebrow">Start Guide</span>
-      <h2>Unlock your child's potential in math and science.</h2>
+      <h2>Unlock your child's potential in mathematics and science.</h2>
       <p>Not sure where to start? Pick a level that matches your child's current stage.</p>
     </div>
     <div class="guide-grid">
@@ -1115,7 +1111,7 @@
 </section>
 
 <!-- SECTION 10: TESTIMONIALS -->
-<section class="section">
+<section class="section" hidden>
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Voices from BdMSO</span>
@@ -1137,7 +1133,7 @@
       <div class="test-card">
         <span class="cat-tag">Student</span>
         <div class="quote-mark">“</div>
-        <p class="quote">I used to be afraid of science. Now I build my own experiments at home — thanks to the Lab Day Workshops. Going to IMSO was the proudest day of my life.</p>
+        <p class="quote">I used to be afraid of science. Now I build my own experiments at home - thanks to the Lab Day Workshops. Going to IMSO was the proudest day of my life.</p>
         <div class="who">
           <div class="avatar ph ph-gold" style="padding:0;">&nbsp;</div>
           <div>
@@ -1188,13 +1184,13 @@
         <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8"></path></svg></div>
         <h3>Become a Mentor</h3>
         <p>Share your expertise in mathematics or science with the next generation of olympians.</p>
-        <a class="btn btn-ghost" href="#" style="align-self:flex-start;">Apply as Mentor</a>
+        <a class="btn btn-ghost" href="https://forms.gle/8M2jjAbiUJiybZHM8" style="align-self:flex-start;">Apply as Mentor</a>
       </div>
       <div class="collab-card">
         <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.35-7-10a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.65-7 10-7 10-1-1-2-1-4 0z"></path></svg></div>
         <h3>Volunteer</h3>
         <p>Support camp operations, logistics, and registration for the next BdMSO season.</p>
-        <a class="btn btn-ghost" href="#" style="align-self:flex-start;">Join the Team</a>
+        <a class="btn btn-ghost" href="https://forms.gle/8M2jjAbiUJiybZHM8" style="align-self:flex-start;">Join the Team</a>
       </div>
       <div class="collab-card">
         <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9 6 9-6"></path><rect x="3" y="5" width="18" height="14" rx="2"></rect></svg></div>
@@ -1211,9 +1207,9 @@
   <div class="container">
     <p style="text-align:center; font-size:12px; font-weight:700; color:var(--ink-3); letter-spacing:0.18em; text-transform:uppercase; margin-bottom:24px;">Our Partners &amp; Sponsors</p>
     <div class="partner-strip">
-      <div class="logo"><img src="images/logos/bdosn-logo.jpg" alt="BdOSN" style="max-width:80%;max-height:40px;object-fit:contain;"></div>
-      <div class="logo"><img src="images/logos/Copy of Full SPSB logo.png" alt="SPSB" style="max-width:80%;max-height:40px;object-fit:contain;"></div>
-      <div class="logo"><img src="images/logos/MASLab Logo.png" alt="MASLab" style="max-width:80%;max-height:40px;object-fit:contain;"></div>
+      <div class="logo"><img src="images/logos/bdosn-logo.webp" alt="BdOSN" style="max-width:80%;max-height:40px;object-fit:contain;"></div>
+      <div class="logo"><img src="images/logos/spsb.webp" alt="SPSB" style="max-width:80%;max-height:40px;object-fit:contain;"></div>
+      <div class="logo"><img src="images/logos/maslab.webp" alt="MASLab" style="max-width:80%;max-height:40px;object-fit:contain;"></div>
       <div class="logo">IMSO</div>
       <div class="logo">PARTNER</div>
       <div class="logo">SPONSOR</div>
