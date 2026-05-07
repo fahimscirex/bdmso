@@ -1,16 +1,18 @@
 # Copy this file to .dev.vars and fill in real values.
 # Wrangler reads .dev.vars automatically when running `wrangler dev`.
-# Values here are injected as env bindings on the worker — same shape as secrets in production.
+# Values here are injected as env bindings on the worker - same shape as secrets in production.
 # Do NOT commit .dev.vars. It is gitignored.
 
-# Brevo — get key at https://app.brevo.com/settings/keys/api
+# Brevo - get key at https://app.brevo.com/settings/keys/api
 BREVO_API_KEY=your-brevo-api-key-here
 
 # Sender identity. Must be a verified sender in Brevo (Senders & IP → Senders).
 # Format: "Name <email@domain.com>"  OR just  "email@domain.com"
 EMAIL_FROM=BdMSO <info@example.com>
 
-# SSLCommerz sandbox creds (defaults are set in wrangler.toml — override here only if needed).
-# SSLCOMMERZ_STORE_ID=testbox
-# SSLCOMMERZ_STORE_PASSWD=qwerty
-# SSLCOMMERZ_SANDBOX=true
+# bKash Tokenized Checkout - get sandbox creds from https://developer.bka.sh
+BKASH_APP_KEY=your-app-key
+BKASH_APP_SECRET=your-app-secret
+BKASH_USERNAME=your-username
+BKASH_PASSWORD=your-password
+# BKASH_SANDBOX=true  # already set in wrangler.toml; override to "false" for live

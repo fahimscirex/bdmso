@@ -1,4 +1,4 @@
-name = "bdmso-site"
+name = "bdmso"
 main = "worker/index.js"
 compatibility_date = "2026-04-21"
 
@@ -6,17 +6,16 @@ compatibility_date = "2026-04-21"
 directory = "./public"
 binding = "ASSETS"
 
-# Demo sandbox credentials — replace with real values before going live:
-#   wrangler secret put SSLCOMMERZ_STORE_ID
-#   wrangler secret put SSLCOMMERZ_STORE_PASSWD
-#   then remove the [vars] block below
+# bKash credentials - set via secrets before going live:
+#   wrangler secret put BKASH_APP_KEY
+#   wrangler secret put BKASH_APP_SECRET
+#   wrangler secret put BKASH_USERNAME
+#   wrangler secret put BKASH_PASSWORD
 [vars]
-SSLCOMMERZ_STORE_ID     = "testbox"
-SSLCOMMERZ_STORE_PASSWD = "qwerty"
-SSLCOMMERZ_SANDBOX      = "true"
+BKASH_SANDBOX = "true"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "bdmso"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
-preview_database_id = "REPLACE_WITH_YOUR_D1_PREVIEW_DATABASE_ID"
+database_id = "86bd0e2c-7ae3-4d41-a83e-cea098727326"
+preview_database_id = "86bd0e2c-7ae3-4d41-a83e-cea098727326"

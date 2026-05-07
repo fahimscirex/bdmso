@@ -2,27 +2,26 @@
 
 > **Stack:** raw-http | none | unknown | javascript
 
-> 13 routes (13 inferred) | 9 models | 0 components | 1 lib files | 1 env vars | 0 middleware
-> **Token savings:** this file is ~1,000 tokens. Without it, AI exploration would cost ~13,100 tokens. **Saves ~12,100 tokens per conversation.**
-> **Last scanned:** 2026-05-06 09:02 — re-run after significant changes
+> 12 routes (12 inferred) | 10 models | 0 components | 2 lib files | 1 env vars | 0 middleware
+> **Token savings:** this file is ~1,100 tokens. Without it, AI exploration would cost ~14,500 tokens. **Saves ~13,400 tokens per conversation.**
+> **Last scanned:** 2026-05-07 16:34 — re-run after significant changes
 
 ---
 
 # Routes
 
-- `POST` `/api/login` [auth, cache, email] `[inferred]`
-- `POST` `/api/logout` [auth, cache, email] `[inferred]`
-- `GET` `/api/me` [auth, cache, email] `[inferred]`
-- `POST` `/api/submit-registration` [auth, cache, email] `[inferred]`
-- `POST` `/api/add-enrollment` [auth, cache, email] `[inferred]`
-- `GET` `/api/validate-coupon` [auth, cache, email] `[inferred]`
-- `POST` `/api/submit-sponsorship` [auth, cache, email] `[inferred]`
-- `POST` `/api/create-payment` [auth, cache, email] `[inferred]`
-- `ALL` `/api/payment-callback` [auth, cache, email] `[inferred]`
-- `POST` `/api/payment-ipn` [auth, cache, email] `[inferred]`
-- `GET` `/api/verify-email` [auth, cache, email] `[inferred]`
-- `POST` `/api/resend-verification` [auth, cache, email] `[inferred]`
-- `ALL` `/api/` [auth, cache, email] `[inferred]`
+- `POST` `/api/login` [auth, cache, email, payment] `[inferred]`
+- `POST` `/api/logout` [auth, cache, email, payment] `[inferred]`
+- `GET` `/api/me` [auth, cache, email, payment] `[inferred]`
+- `POST` `/api/submit-registration` [auth, cache, email, payment] `[inferred]`
+- `POST` `/api/add-enrollment` [auth, cache, email, payment] `[inferred]`
+- `GET` `/api/validate-coupon` [auth, cache, email, payment] `[inferred]`
+- `POST` `/api/submit-sponsorship` [auth, cache, email, payment] `[inferred]`
+- `POST` `/api/create-payment` [auth, cache, email, payment] `[inferred]`
+- `ALL` `/api/payment-callback` [auth, cache, email, payment] `[inferred]`
+- `GET` `/api/verify-email` [auth, cache, email, payment] `[inferred]`
+- `POST` `/api/resend-verification` [auth, cache, email, payment] `[inferred]`
+- `ALL` `/api/` [auth, cache, email, payment] `[inferred]`
 
 ---
 
@@ -49,19 +48,8 @@
 - max_uses: integer
 - applies_to: text
 
-### guardian_accounts
-- id: text (pk)
-- email: text (required)
-- password_hash: text (required)
-- password_salt: text (required)
-- password_iterations: integer (required)
-- full_name: text (required)
-- phone: text
-- email_verified: integer (required)
-
 ### registrations
 - id: text (pk)
-- member_id: text (unique, fk)
 - registration_type: text (required)
 - student_full_name: text (required)
 - student_date_of_birth: text (required)
@@ -79,6 +67,32 @@
 - status: text (required)
 - source_page: text
 
+### payments
+- id: text (pk)
+- registration_id: text (required, fk)
+- amount: real (required)
+- currency: text (required)
+- tran_id: text (unique, fk)
+- val_id: text (fk)
+- gateway_status: text
+- status: text (required)
+
+### bkash_token_cache
+- id: integer (pk)
+- id_token: text (required)
+- expires_at: text (required)
+
+### guardian_accounts
+- id: text (pk)
+- email: text (required)
+- password_hash: text (required)
+- password_salt: text (required)
+- password_iterations: integer (required)
+- full_name: text (required)
+- phone: text
+- email_verified: integer (required)
+- member_id: text (unique, fk)
+
 ### sponsorship_enquiries
 - id: text (pk)
 - organization: text (required)
@@ -95,23 +109,15 @@
 - account_id: text (required, fk)
 - expires_at: text (required)
 
-### payments
-- id: text (pk)
-- registration_id: text (required, fk)
-- account_id: text (required, fk)
-- amount: real (required)
-- currency: text (required)
-- tran_id: text (unique, fk)
-- val_id: text (fk)
-- gateway_status: text
-- status: text (required)
-- _relations_: registration_id -> registrations.id
-
 ---
 
 # Libraries
 
 - `public/js/api.js` — function buildFunctionUrl: (name) => void, function postJson: (functionName, payload, token) => void
+- `public/js/md.js`
+  - function escHtml: (s) => void
+  - function parseFrontmatter: (raw) => void
+  - function markdownToHtml: (md) => void
 
 ---
 

@@ -37,6 +37,16 @@ function escapeHtml(s) {
   return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 
+// applies_to stored as JSON array string e.g. '["nqr","stem-foundation"]'.
+// Falls back to legacy CSV for rows written before this change.
+function couponAppliesToType(appliesTo, type) {
+  try {
+    const parsed = JSON.parse(appliesTo);
+    if (Array.isArray(parsed)) return parsed.includes(type);
+  } catch {}
+  return appliesTo.split(",").map(s => s.trim()).includes(type);
+}
+
 function createId(prefix) {
   return `${prefix}_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`;
 }
@@ -97,13 +107,19 @@ async function createSession(env, accountId) {
 
 async function verifySession(env, token) {
   if (!token) return null;
+  const now = new Date().toISOString();
   const row = await env.DB.prepare(`
     SELECT s.account_id, a.email, a.full_name
     FROM sessions s
     JOIN guardian_accounts a ON a.id = s.account_id
     WHERE s.id = ? AND s.expires_at > ?
     LIMIT 1
-  `).bind(token, new Date().toISOString()).first();
+  `).bind(token, now).first();
+  if (!row) {
+    // Lazily purge this specific expired token and any others older than 60 days.
+    env.DB.prepare("DELETE FROM sessions WHERE id = ? OR expires_at < ?")
+      .bind(token, new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString()).run().catch(() => {});
+  }
   return row || null;
 }
 
@@ -128,6 +144,8 @@ async function checkLoginRateLimit(env, email) {
   const row = await env.DB.prepare(
     "SELECT COUNT(*) AS n FROM login_attempts WHERE email = ? AND success = 0 AND attempted_at > ?"
   ).bind(email, since).first();
+  // Lazily purge rows outside the window - no need to await.
+  env.DB.prepare("DELETE FROM login_attempts WHERE attempted_at < ?").bind(since).run().catch(() => {});
   return (row?.n || 0) < LOGIN_MAX_FAILS;
 }
 
@@ -232,7 +250,7 @@ async function sendReceiptEmail(env, reg, memberId) {
       body: JSON.stringify({
         sender,
         to: [{ email: reg.guardian_email, name: reg.guardian_full_name }],
-        subject: `Payment Confirmed — ${programName} (${memberId})`,
+        subject: `Payment Confirmed - ${programName} (${memberId})`,
         htmlContent: html,
       }),
     });
@@ -247,40 +265,39 @@ async function sendReceiptEmail(env, reg, memberId) {
 
 async function assignMemberIdAndSendReceipt(env, tranId) {
   const row = await env.DB.prepare(`
-    SELECT r.id, r.member_id, r.guardian_account_id, r.registration_type, r.student_full_name,
+    SELECT r.id, r.guardian_account_id, r.registration_type, r.student_full_name,
            r.student_class_name, r.student_school, r.student_district, r.guardian_full_name,
-           r.guardian_email, p.amount, p.tran_id, p.updated_at AS paid_at
+           r.guardian_email, p.amount, p.tran_id, p.updated_at AS paid_at,
+           a.member_id AS existing_member_id
     FROM registrations r
     JOIN payments p ON p.registration_id = r.id
+    JOIN guardian_accounts a ON a.id = r.guardian_account_id
     WHERE p.tran_id = ? LIMIT 1
   `).bind(tranId).first();
 
-  if (!row || row.member_id) return;
+  if (!row) return;
 
-  // Reuse the member ID already issued to this guardian, otherwise mint a new one.
-  let memberId = null;
-  if (row.guardian_account_id) {
-    const existing = await env.DB.prepare(
-      "SELECT member_id FROM registrations WHERE guardian_account_id = ? AND member_id IS NOT NULL LIMIT 1"
-    ).bind(row.guardian_account_id).first();
-    memberId = existing?.member_id || null;
-  }
+  let memberId = row.existing_member_id;
   if (!memberId) {
     memberId = await reserveMemberId(env, new Date().getUTCFullYear());
+    const result = await env.DB.prepare(
+      "UPDATE guardian_accounts SET member_id = ? WHERE id = ? AND member_id IS NULL"
+    ).bind(memberId, row.guardian_account_id).run();
+    // Race: if another concurrent call won, read back the winner's value
+    if (!result.meta?.changes) {
+      const actual = await env.DB.prepare(
+        "SELECT member_id FROM guardian_accounts WHERE id = ?"
+      ).bind(row.guardian_account_id).first();
+      memberId = actual?.member_id || memberId;
+    }
   }
 
-  const result = await env.DB.prepare(
-    "UPDATE registrations SET member_id = ? WHERE id = ? AND member_id IS NULL"
-  ).bind(memberId, row.id).run();
-
-  if (result.meta?.changes > 0) {
-    await sendReceiptEmail(env, { ...row, tran_id: tranId }, memberId);
-  }
+  await sendReceiptEmail(env, { ...row, tran_id: tranId }, memberId);
 }
 
 async function sendVerificationEmail(env, email, verifyUrl) {
-  // Always log so you can grab the link from `wrangler dev` output in local development.
-  console.log(`[email-verify] ${email} → ${verifyUrl}`);
+  // Only log in local dev - production logs should not contain bearer-style secrets.
+  if (!env.BREVO_API_KEY) console.log(`[email-verify] ${email} → ${verifyUrl}`);
   if (!env.BREVO_API_KEY) return;
 
   const sender = parseEmailFrom(env.EMAIL_FROM);
@@ -322,8 +339,9 @@ async function sendVerificationEmail(env, email, verifyUrl) {
 // ─── Program Names ───────────────────────────────────────────────────────────
 
 const PROGRAM_NAMES = {
-  "national-qualifying-round": "National Qualifying Round",
-  "national-qualifying-round-both": "National Qualifying Round (Math + Science)",
+  "national-qualifying-round":      "BdMSO National Round",
+  "national-qualifying-round-both": "BdMSO National Round (Math + Science)",
+  "national-quiz-competition":      "BdMSO Quiz Competition",
   "stem-foundation":           "STEM Foundation Program",
   "bdmso-preparatory":         "BdMSO Preparatory Course",
   "stem-masterclass":          "STEM Masterclass Series",
@@ -335,12 +353,13 @@ const PROGRAM_NAMES = {
   "exchange-program":          "BdMSO Exchange Program",
 };
 
-// ─── SSLCommerz ───────────────────────────────────────────────────────────────
+// ─── bKash Tokenized Checkout ────────────────────────────────────────────────
 
 // Pricing map: registration_type slug → BDT amount
 const PROGRAM_PRICES = {
   "national-qualifying-round":      1000,
   "national-qualifying-round-both": 1500,
+  "national-quiz-competition":      1000,
   "stem-foundation":                8000,
   "bdmso-preparatory":              12000,
   "stem-masterclass":               6000,
@@ -352,36 +371,93 @@ const PROGRAM_PRICES = {
   "exchange-program":               50000,
 };
 
-function getSslConfig(env) {
-  const sandbox = (env.SSLCOMMERZ_SANDBOX ?? "true") !== "false";
+function getBkashConfig(env) {
+  const sandbox = (env.BKASH_SANDBOX ?? "true") !== "false";
+  const base = sandbox
+    ? "https://tokenized.sandbox.bka.sh/v1.2.0-beta/tokenized/checkout"
+    : "https://tokenized.pay.bka.sh/v1.2.0-beta/tokenized/checkout";
   return {
-    storeId:     env.SSLCOMMERZ_STORE_ID     || "testbox",
-    storePasswd: env.SSLCOMMERZ_STORE_PASSWD || "qwerty",
-    initUrl: sandbox
-      ? "https://sandbox.sslcommerz.com/gwprocess/v4/api.php"
-      : "https://securepay.sslcommerz.com/gwprocess/v4/api.php",
-    validateUrl: sandbox
-      ? "https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php"
-      : "https://securepay.sslcommerz.com/validator/api/validationserverAPI.php",
+    base,
+    appKey:    env.BKASH_APP_KEY    || "",
+    appSecret: env.BKASH_APP_SECRET || "",
+    username:  env.BKASH_USERNAME   || "",
+    password:  env.BKASH_PASSWORD   || "",
   };
 }
 
-async function initSslPayment(env, params) {
-  const { storeId, storePasswd, initUrl } = getSslConfig(env);
-  const body = new URLSearchParams({ store_id: storeId, store_passwd: storePasswd, ...params });
-  const res = await fetch(initUrl, {
+async function bkashGrantToken(config, env) {
+  // Check D1 cache first - bKash tokens are valid for ~1 hour.
+  if (env?.DB) {
+    const cached = await env.DB.prepare(
+      "SELECT id_token, expires_at FROM bkash_token_cache WHERE id = 1 LIMIT 1"
+    ).first().catch(() => null);
+    if (cached && cached.expires_at > new Date().toISOString()) {
+      return cached.id_token;
+    }
+  }
+
+  const res = await fetch(`${config.base}/token/grant`, {
     method: "POST",
-    body,
-    headers: { "Content-Type": "application/x-www-form-urlencoded" }
+    headers: {
+      "Content-Type": "application/json",
+      "Accept":       "application/json",
+      "username":     config.username,
+      "password":     config.password,
+    },
+    body: JSON.stringify({ app_key: config.appKey, app_secret: config.appSecret }),
   });
-  return res.json();
+  const data = await res.json();
+  if (!data.id_token) throw new Error(data.statusMessage || "bKash token grant failed");
+
+  // Cache for 50 minutes (token TTL is 60 min; 10 min buffer).
+  if (env?.DB) {
+    const expiresAt = new Date(Date.now() + 50 * 60 * 1000).toISOString();
+    env.DB.prepare(
+      "INSERT INTO bkash_token_cache (id, id_token, expires_at) VALUES (1, ?, ?) ON CONFLICT(id) DO UPDATE SET id_token = excluded.id_token, expires_at = excluded.expires_at"
+    ).bind(data.id_token, expiresAt).run().catch(() => {});
+  }
+
+  return data.id_token;
 }
 
-async function validateSslPayment(env, valId) {
-  const { storeId, storePasswd, validateUrl } = getSslConfig(env);
-  const url = `${validateUrl}?val_id=${encodeURIComponent(valId)}&store_id=${encodeURIComponent(storeId)}&store_passwd=${encodeURIComponent(storePasswd)}&format=json`;
-  const res = await fetch(url);
-  return res.json();
+async function bkashCreatePayment(config, idToken, { amount, merchantInvoiceNumber, callbackURL, payerReference }) {
+  const res = await fetch(`${config.base}/create`, {
+    method: "POST",
+    headers: {
+      "Content-Type":  "application/json",
+      "Accept":        "application/json",
+      "Authorization": `Bearer ${idToken}`,
+      "X-APP-Key":     config.appKey,
+    },
+    body: JSON.stringify({
+      mode:                    "0011",
+      payerReference,
+      callbackURL,
+      amount:                  String(amount),
+      currency:                "BDT",
+      intent:                  "sale",
+      merchantInvoiceNumber,
+    }),
+  });
+  const data = await res.json();
+  if (data.statusCode !== "0000") throw new Error(data.statusMessage || "bKash create payment failed");
+  return data; // { bkashURL, paymentID, ... }
+}
+
+async function bkashExecutePayment(config, idToken, paymentID) {
+  const res = await fetch(`${config.base}/execute`, {
+    method: "POST",
+    headers: {
+      "Content-Type":  "application/json",
+      "Accept":        "application/json",
+      "Authorization": `Bearer ${idToken}`,
+      "X-APP-Key":     config.appKey,
+    },
+    body: JSON.stringify({ paymentID }),
+  });
+  const data = await res.json();
+  if (data.statusCode !== "0000") throw new Error(data.statusMessage || "bKash execute failed");
+  return data; // { trxID, transactionStatus, amount, ... }
 }
 
 // ─── Route Handlers ───────────────────────────────────────────────────────────
@@ -445,32 +521,34 @@ async function handleMe(request, env) {
   try { account = await requireAuth(request, env); }
   catch (e) { return badRequest(e.message, e.status || 401); }
 
-  const verified = await env.DB.prepare(
-    "SELECT email_verified FROM guardian_accounts WHERE id = ? LIMIT 1"
-  ).bind(account.account_id).first();
-
-  const rows = await env.DB.prepare(`
-    SELECT r.id, r.member_id, r.registration_type, r.student_full_name, r.student_class_name,
-           r.student_gender, r.student_school, r.student_district, r.status, r.created_at,
-           p.id    AS payment_id,
-           p.status AS payment_status,
-           p.amount AS payment_amount,
-           p.tran_id,
-           p.updated_at AS payment_date
-    FROM registrations r
-    LEFT JOIN payments p ON p.id = (
-      SELECT id FROM payments WHERE registration_id = r.id ORDER BY created_at DESC LIMIT 1
-    )
-    WHERE r.guardian_account_id = ?
-    ORDER BY r.created_at DESC
-  `).bind(account.account_id).all();
+  const [acctRow, rows] = await Promise.all([
+    env.DB.prepare(
+      "SELECT email_verified, member_id FROM guardian_accounts WHERE id = ? LIMIT 1"
+    ).bind(account.account_id).first(),
+    env.DB.prepare(`
+      SELECT r.id, r.registration_type, r.student_full_name, r.student_class_name,
+             r.student_gender, r.student_school, r.student_district, r.status, r.created_at,
+             p.id         AS payment_id,
+             p.status     AS payment_status,
+             p.amount     AS payment_amount,
+             p.tran_id,
+             p.updated_at AS payment_date
+      FROM registrations r
+      LEFT JOIN payments p ON p.id = (
+        SELECT id FROM payments WHERE registration_id = r.id ORDER BY created_at DESC LIMIT 1
+      )
+      WHERE r.guardian_account_id = ?
+      ORDER BY r.created_at DESC
+    `).bind(account.account_id).all(),
+  ]);
 
   return jsonResponse({
     ok: true,
     account: {
       fullName: account.full_name,
       email: account.email,
-      emailVerified: !!verified?.email_verified
+      emailVerified: !!acctRow?.email_verified,
+      memberId: acctRow?.member_id || null
     },
     registrations: rows.results
   });
@@ -484,6 +562,7 @@ async function handleRegistration(request, env) {
 
   const studentFullName    = requireField(student.fullName,   "Student full name");
   const studentDateOfBirth = requireField(student.dateOfBirth,"Date of birth");
+  const studentMedium      = normalizeString(student.medium);
   const studentClassName   = requireField(student.className,  "Class");
   const studentGender      = requireField(student.gender,     "Gender");
   const studentSchool      = requireField(student.school,     "School");
@@ -495,6 +574,10 @@ async function handleRegistration(request, env) {
   const guardianAddress    = requireField(guardian.address,   "Address");
   const password           = requireField(acct.password,      "Password");
   const registrationType   = normalizeString(payload.registrationType) || "national-qualifying-round";
+  if (!Object.prototype.hasOwnProperty.call(PROGRAM_PRICES, registrationType)) {
+    return badRequest("Invalid registration type.");
+  }
+  const preferredVenue     = (registrationType.startsWith("national-qualifying") || registrationType === "national-quiz-competition") ? normalizeString(student.preferredVenue) : null;
   const sourcePage         = normalizeString(payload.sourcePage);
   const termsAccepted      = Boolean(payload.termsAccepted);
 
@@ -503,10 +586,39 @@ async function handleRegistration(request, env) {
   if (!isPhoneLike(guardianPhone)) return badRequest("Guardian phone number is not valid.");
   if (password.length < 8) return badRequest("Password must be at least 8 characters long.");
 
+  // Age check: NQR students must be under 13 as of September 30 (IMSO cutoff).
+  if (registrationType.startsWith("national-qualifying")) {
+    const dob     = new Date(studentDateOfBirth);
+    const cutoff  = new Date(`${new Date().getUTCFullYear()}-09-30`);
+    const ageAtCutoff = cutoff.getUTCFullYear() - dob.getUTCFullYear()
+      - (cutoff < new Date(cutoff.getUTCFullYear(), dob.getUTCMonth(), dob.getUTCDate()) ? 1 : 0);
+    if (isNaN(dob.getTime())) return badRequest("Date of birth is not valid.");
+    if (ageAtCutoff >= 13) return badRequest("Student must be under 13 years old as of September 30 to be eligible.");
+  }
+  // Quiz Competition: pre-primary to Class 3, both mediums.
+  if (registrationType === "national-quiz-competition") {
+    const validQuizClasses = ["Pre-primary", "Class 1", "Class 2", "Class 3"];
+    if (!validQuizClasses.includes(studentClassName)) {
+      return badRequest("BdMSO Quiz Competition is open to pre-primary through Class 3 only.");
+    }
+  }
+  // National Olympiad: bangla medium ≤ Class 6, english medium ≤ Class 5.
+  if (registrationType === "national-qualifying-round") {
+    const banglaClasses  = ["Class 1", "Class 2", "Class 3", "Class 4", "Class 5", "Class 6"];
+    const englishClasses = ["Class 1", "Class 2", "Class 3", "Class 4", "Class 5"];
+    const medium = (studentMedium || "").toLowerCase();
+    if (medium === "english" && !englishClasses.includes(studentClassName)) {
+      return badRequest("BdMSO National Round (English medium) is open to Class 5 and below only.");
+    }
+    if (medium === "bangla" && !banglaClasses.includes(studentClassName)) {
+      return badRequest("BdMSO National Round (Bangla medium) is open to Class 6 and below only.");
+    }
+  }
+
   const existing = await env.DB.prepare(
     "SELECT id FROM guardian_accounts WHERE email = ? LIMIT 1"
   ).bind(guardianEmail).first();
-  // Same generic error whether email exists or not — prevents enumeration.
+  // Same generic error whether email exists or not - prevents enumeration.
   if (existing) return badRequest("An account with this email already exists. If you've registered before, please log in instead.", 409);
 
   const guardianAccountId = createId("ga");
@@ -522,15 +634,15 @@ async function handleRegistration(request, env) {
     env.DB.prepare(`
       INSERT INTO registrations (
         id, registration_type, student_full_name, student_date_of_birth, student_class_name,
-        student_gender, student_school, student_district, guardian_account_id, guardian_full_name,
+        student_gender, student_medium, student_school, student_district, guardian_account_id, guardian_full_name,
         guardian_relationship, guardian_phone, guardian_email, guardian_address,
-        terms_accepted, status, source_page, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        preferred_venue, terms_accepted, status, source_page, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       applicationId, registrationType, studentFullName, studentDateOfBirth, studentClassName,
-      studentGender, studentSchool, studentDistrict, guardianAccountId, guardianFullName,
+      studentGender, studentMedium || null, studentSchool, studentDistrict, guardianAccountId, guardianFullName,
       guardianRelationship, guardianPhone, guardianEmail, guardianAddress,
-      termsAccepted ? 1 : 0, "submitted", sourcePage, createdAt
+      preferredVenue, termsAccepted ? 1 : 0, "submitted", sourcePage, createdAt
     )
   ]);
 
@@ -645,12 +757,13 @@ async function handleCreatePayment(request, env) {
     if (coupon &&
         (!coupon.expires_at || new Date(coupon.expires_at) >= new Date()) &&
         (!coupon.max_uses   || coupon.used_count < coupon.max_uses) &&
-        (!coupon.applies_to || coupon.applies_to.split(",").map(s => s.trim()).includes(reg.registration_type))
+        (!coupon.applies_to || couponAppliesToType(coupon.applies_to, reg.registration_type))
     ) {
       finalAmount = coupon.discount_type === "percent"
         ? Math.round(baseAmount * (1 - coupon.discount_value / 100))
         : Math.max(0, baseAmount - coupon.discount_value);
-      await env.DB.prepare("UPDATE coupons SET used_count = used_count + 1 WHERE code = ?").bind(couponCode).run();
+      // used_count is incremented in the payment callback once payment is confirmed,
+      // except for free registrations (amount=0) which complete immediately below.
     }
   }
 
@@ -659,120 +772,100 @@ async function handleCreatePayment(request, env) {
   const now    = new Date().toISOString();
   const base   = getBaseUrl(request);
 
-  // Free registration — skip payment gateway entirely
+  // Free registration - skip payment gateway entirely
   if (amount === 0) {
     const paymentId = createId("pay");
-    await env.DB.batch([
+    const freeOps = [
       env.DB.prepare(
-        "INSERT INTO payments (id, registration_id, account_id, amount, currency, tran_id, status, created_at, updated_at) VALUES (?, ?, ?, 0, 'BDT', ?, 'paid', ?, ?)"
-      ).bind(paymentId, registrationId, account.account_id, tranId, now, now),
+        "INSERT INTO payments (id, registration_id, amount, currency, tran_id, status, created_at, updated_at) VALUES (?, ?, 0, 'BDT', ?, 'paid', ?, ?)"
+      ).bind(paymentId, registrationId, tranId, now, now),
       env.DB.prepare("UPDATE registrations SET status = 'paid' WHERE id = ?").bind(registrationId),
-    ]);
+    ];
+    if (couponCode) {
+      freeOps.push(
+        env.DB.prepare("UPDATE coupons SET used_count = used_count + 1 WHERE code = ?").bind(couponCode)
+      );
+    }
+    await env.DB.batch(freeOps);
     try { await assignMemberIdAndSendReceipt(env, tranId); } catch {}
     return jsonResponse({ ok: true, free: true });
   }
 
-  const sslRes = await initSslPayment(env, {
-    total_amount:     String(amount),
-    currency:         "BDT",
-    tran_id:          tranId,
-    success_url:      `${base}/api/payment-callback?type=success`,
-    fail_url:         `${base}/api/payment-callback?type=fail`,
-    cancel_url:       `${base}/api/payment-callback?type=cancel`,
-    ipn_url:          `${base}/api/payment-ipn`,
-    product_name:     reg.registration_type,
-    product_category: "Olympiad Registration",
-    product_profile:  "general",
-    cus_name:         reg.guardian_full_name,
-    cus_email:        reg.guardian_email,
-    cus_add1:         reg.guardian_address,
-    cus_city:         reg.student_district,
-    cus_country:      "Bangladesh",
-    cus_phone:        reg.guardian_phone,
-    shipping_method:  "NO",
-  });
-
-  if (!sslRes?.GatewayPageURL) {
-    return badRequest(sslRes?.failedreason || "Payment gateway error. Please try again.");
+  const bkashConfig = getBkashConfig(env);
+  let bkashRes;
+  try {
+    const idToken = await bkashGrantToken(bkashConfig, env);
+    bkashRes = await bkashCreatePayment(bkashConfig, idToken, {
+      amount,
+      merchantInvoiceNumber: tranId,
+      callbackURL:           `${base}/api/payment-callback`,
+      payerReference:        reg.guardian_phone || reg.guardian_email,
+    });
+  } catch (err) {
+    return badRequest(err.message || "Payment gateway error. Please try again.");
   }
 
   const paymentId = createId("pay");
   await env.DB.prepare(
-    "INSERT INTO payments (id, registration_id, account_id, amount, currency, tran_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'BDT', ?, 'pending', ?, ?)"
-  ).bind(paymentId, registrationId, account.account_id, amount, tranId, now, now).run();
+    "INSERT INTO payments (id, registration_id, amount, currency, tran_id, coupon_code, status, created_at, updated_at) VALUES (?, ?, ?, 'BDT', ?, ?, 'pending', ?, ?)"
+  ).bind(paymentId, registrationId, amount, bkashRes.paymentID, couponCode || null, now, now).run();
 
-  return jsonResponse({ ok: true, gatewayUrl: sslRes.GatewayPageURL });
+  return jsonResponse({ ok: true, bkashURL: bkashRes.bkashURL });
 }
 
 async function handlePaymentCallback(request, env, url) {
-  const type = url.searchParams.get("type") || "fail";
-  const base = getBaseUrl(request);
-  const data = request.method === "POST"
-    ? await parseForm(request)
-    : Object.fromEntries(url.searchParams);
+  const base      = getBaseUrl(request);
+  const paymentID = url.searchParams.get("paymentID");
+  const status    = url.searchParams.get("status");
 
-  if (type === "cancel") return redirectTo(`${base}/dashboard.html?payment=cancelled`);
-  if (type === "fail")   return redirectTo(`${base}/dashboard.html?payment=failed`);
+  if (status === "cancel")           return redirectTo(`${base}/dashboard.html?payment=cancelled`);
+  if (status === "failure" || !paymentID) return redirectTo(`${base}/dashboard.html?payment=failed`);
 
-  const { val_id: valId, tran_id: tranId } = data;
-  if (!valId || !tranId) return redirectTo(`${base}/dashboard.html?payment=failed`);
+  // Reject callbacks for unknown or already-processed paymentIDs
+  const pendingPayment = await env.DB.prepare(
+    "SELECT id, coupon_code FROM payments WHERE tran_id = ? AND status = 'pending' LIMIT 1"
+  ).bind(paymentID).first();
+  if (!pendingPayment) return redirectTo(`${base}/dashboard.html?payment=failed`);
 
   try {
-    const validation = await validateSslPayment(env, valId);
-    const now = new Date().toISOString();
+    const config  = getBkashConfig(env);
+    const idToken = await bkashGrantToken(config, env);
+    const result  = await bkashExecutePayment(config, idToken, paymentID);
+    const now     = new Date().toISOString();
 
-    if (validation.status !== "VALID" && validation.status !== "VALIDATED") {
+    if (result.transactionStatus !== "Completed") {
       await env.DB.prepare(
-        "UPDATE payments SET status = 'failed', gateway_status = ?, val_id = ?, updated_at = ? WHERE tran_id = ?"
-      ).bind(validation.status || "INVALID", valId, now, tranId).run();
+        "UPDATE payments SET status = 'failed', gateway_status = ?, updated_at = ? WHERE tran_id = ?"
+      ).bind(result.transactionStatus || "FAILED", now, paymentID).run();
       return redirectTo(`${base}/dashboard.html?payment=failed`);
     }
 
-    await env.DB.batch([
+    const batchOps = [
       env.DB.prepare(
-        "UPDATE payments SET status = 'paid', gateway_status = 'VALID', val_id = ?, updated_at = ? WHERE tran_id = ?"
-      ).bind(valId, now, tranId),
+        "UPDATE payments SET status = 'paid', gateway_status = 'Completed', val_id = ?, updated_at = ? WHERE tran_id = ?"
+      ).bind(result.trxID, now, paymentID),
       env.DB.prepare(`
         UPDATE registrations SET status = 'paid'
         WHERE id = (SELECT registration_id FROM payments WHERE tran_id = ? LIMIT 1)
-      `).bind(tranId)
-    ]);
+      `).bind(paymentID),
+    ];
+    if (pendingPayment.coupon_code) {
+      batchOps.push(
+        env.DB.prepare("UPDATE coupons SET used_count = used_count + 1 WHERE code = ?")
+          .bind(pendingPayment.coupon_code)
+      );
+    }
+    await env.DB.batch(batchOps);
 
-    try { await assignMemberIdAndSendReceipt(env, tranId); } catch (err) {
+    try { await assignMemberIdAndSendReceipt(env, paymentID); } catch (err) {
       console.log("[payment-callback] receipt error:", err.message);
     }
 
     return redirectTo(`${base}/dashboard.html?payment=success`);
-  } catch {
+  } catch (err) {
+    console.log("[payment-callback] bKash error:", err.message);
     return redirectTo(`${base}/dashboard.html?payment=failed`);
   }
-}
-
-async function handlePaymentIpn(request, env) {
-  const data = await parseForm(request);
-  const { val_id: valId, tran_id: tranId } = data;
-  if (!valId || !tranId) return jsonResponse({ ok: false });
-
-  try {
-    const validation = await validateSslPayment(env, valId);
-    if (validation.status === "VALID" || validation.status === "VALIDATED") {
-      const now = new Date().toISOString();
-      await env.DB.batch([
-        env.DB.prepare(
-          "UPDATE payments SET status = 'paid', gateway_status = 'VALID', val_id = ?, updated_at = ? WHERE tran_id = ?"
-        ).bind(valId, now, tranId),
-        env.DB.prepare(`
-          UPDATE registrations SET status = 'paid'
-          WHERE id = (SELECT registration_id FROM payments WHERE tran_id = ? LIMIT 1)
-        `).bind(tranId)
-      ]);
-      try { await assignMemberIdAndSendReceipt(env, tranId); } catch (err) {
-        console.log("[payment-ipn] receipt error:", err.message);
-      }
-    }
-  } catch {}
-
-  return jsonResponse({ ok: true });
 }
 
 async function handleAddEnrollment(request, env) {
@@ -782,6 +875,9 @@ async function handleAddEnrollment(request, env) {
 
   const payload          = await parseJson(request);
   const registrationType = normalizeString(payload.registrationType) || "national-qualifying-round";
+  if (!Object.prototype.hasOwnProperty.call(PROGRAM_PRICES, registrationType)) {
+    return badRequest("Invalid registration type.");
+  }
 
   const existing = await env.DB.prepare(
     "SELECT * FROM registrations WHERE guardian_account_id = ? ORDER BY created_at DESC LIMIT 1"
@@ -793,31 +889,36 @@ async function handleAddEnrollment(request, env) {
   ).bind(account.account_id, registrationType).first();
   if (duplicate) return badRequest("Your child is already enrolled in this program.", 409);
 
+  // Olympiad and Quiz are mutually exclusive — only one competition per student.
+  const COMPETITIONS = ["national-qualifying-round", "national-quiz-competition"];
+  if (COMPETITIONS.includes(registrationType)) {
+    const otherType = COMPETITIONS.find(t => t !== registrationType);
+    const otherComp = await env.DB.prepare(
+      "SELECT id FROM registrations WHERE guardian_account_id = ? AND registration_type = ? AND status != 'cancelled' LIMIT 1"
+    ).bind(account.account_id, otherType).first();
+    if (otherComp) return badRequest("Each student may register for either the BdMSO National Round or the BdMSO Quiz Competition, not both.", 409);
+  }
+
   const applicationId = createId("app");
   const createdAt     = new Date().toISOString();
-
-  // Reuse the guardian's existing member ID so it's the same across every program.
-  const existingMember = await env.DB.prepare(
-    "SELECT member_id FROM registrations WHERE guardian_account_id = ? AND member_id IS NOT NULL LIMIT 1"
-  ).bind(account.account_id).first();
-  const memberId = existingMember?.member_id || null;
 
   await env.DB.prepare(`
     INSERT INTO registrations (
       id, registration_type, student_full_name, student_date_of_birth, student_class_name,
-      student_gender, student_school, student_district, guardian_account_id, guardian_full_name,
+      student_gender, student_medium, student_school, student_district, guardian_account_id, guardian_full_name,
       guardian_relationship, guardian_phone, guardian_email, guardian_address,
-      member_id, terms_accepted, status, source_page, created_at
+      terms_accepted, status, source_page, created_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'submitted', 'programs.html', ?)
   `).bind(
     applicationId, registrationType,
     existing.student_full_name, existing.student_date_of_birth,
     existing.student_class_name, existing.student_gender,
+    existing.student_medium || null,
     existing.student_school, existing.student_district,
     account.account_id, existing.guardian_full_name,
     existing.guardian_relationship, existing.guardian_phone,
     account.email, existing.guardian_address,
-    memberId, createdAt
+    createdAt
   ).run();
 
   return jsonResponse({ ok: true, applicationId });
@@ -836,8 +937,7 @@ async function handleValidateCoupon(request, env, url) {
   if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) return badRequest("This coupon has expired.", 410);
   if (coupon.max_uses && coupon.used_count >= coupon.max_uses) return badRequest("This coupon has reached its usage limit.", 410);
   if (coupon.applies_to && type) {
-    const allowed = coupon.applies_to.split(",").map(s => s.trim());
-    if (!allowed.includes(type)) return badRequest("This coupon is not valid for this program.", 422);
+    if (!couponAppliesToType(coupon.applies_to, type)) return badRequest("This coupon is not valid for this program.", 422);
   }
 
   return jsonResponse({
@@ -866,7 +966,6 @@ async function handleApi(request, env, url) {
     if (pathname === "/api/submit-sponsorship"     && method === "POST") return await handleSponsorship(request, env);
     if (pathname === "/api/create-payment"         && method === "POST") return await handleCreatePayment(request, env);
     if (pathname === "/api/payment-callback")                            return await handlePaymentCallback(request, env, url);
-    if (pathname === "/api/payment-ipn"            && method === "POST") return await handlePaymentIpn(request, env);
     if (pathname === "/api/verify-email"           && method === "GET")  return await handleVerifyEmail(request, env, url);
     if (pathname === "/api/resend-verification"    && method === "POST") return await handleResendVerification(request, env);
 
@@ -894,9 +993,9 @@ const CSP = [
 ].join("; ");
 
 function withSecurityHeaders(response, url) {
-  // ASSETS.fetch() returns an immutable response — clone to mutate headers.
+  // ASSETS.fetch() returns an immutable response - clone to mutate headers.
   const res = new Response(response.body, response);
-  // HSTS only on real domains — localhost would get stuck refusing http:// in future dev sessions.
+  // HSTS only on real domains - localhost would get stuck refusing http:// in future dev sessions.
   if (url.hostname !== "localhost" && url.hostname !== "127.0.0.1") {
     res.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   }

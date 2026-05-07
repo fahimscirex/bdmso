@@ -1,4 +1,4 @@
-name = "bdmso-site"
+name = "bdmso"
 main = "worker/index.js"
 compatibility_date = "2026-04-21"
 
@@ -6,16 +6,17 @@ compatibility_date = "2026-04-21"
 directory = "./dist"
 binding = "ASSETS"
 
-# Production secrets — set these before the first deploy:
-#   wrangler secret put SSLCOMMERZ_STORE_ID     --config wrangler.prod.toml
-#   wrangler secret put SSLCOMMERZ_STORE_PASSWD --config wrangler.prod.toml
-#   wrangler secret put SSLCOMMERZ_SANDBOX      --config wrangler.prod.toml   (set to "false" for live)
-#   wrangler secret put BREVO_API_KEY           --config wrangler.prod.toml   (required for email verification)
-#   wrangler secret put EMAIL_FROM              --config wrangler.prod.toml   (e.g. "BdMSO <no-reply@yourdomain.com>")
+# Production secrets - set these before the first deploy:
+#   wrangler secret put BKASH_APP_KEY    --config wrangler.prod.toml
+#   wrangler secret put BKASH_APP_SECRET --config wrangler.prod.toml
+#   wrangler secret put BKASH_USERNAME   --config wrangler.prod.toml
+#   wrangler secret put BKASH_PASSWORD   --config wrangler.prod.toml
+#   wrangler secret put BREVO_API_KEY    --config wrangler.prod.toml
+#   wrangler secret put EMAIL_FROM       --config wrangler.prod.toml
 # NOTE: do NOT add a [vars] block for credentials. Secrets keep values out of the config file and deploy logs.
 
 [[d1_databases]]
 binding = "DB"
 database_name = "bdmso"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
-preview_database_id = "REPLACE_WITH_YOUR_D1_PREVIEW_DATABASE_ID"
+database_id = "86bd0e2c-7ae3-4d41-a83e-cea098727326"
+preview_database_id = "86bd0e2c-7ae3-4d41-a83e-cea098727326"

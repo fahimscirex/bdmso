@@ -1,42 +1,42 @@
 [
   {
     "slug": "bdmso-2026-team-orientation",
-    "title": "BdMSO 2026 Is Here: Team Orientation Launch",
+    "title": "BdMSO 2026: Team Orientation Launch",
     "category": "Announcement",
-    "date": "2026-01-18",
+    "date": "2026-05-01",
     "author": "Samin Yasar Ahmed",
-    "excerpt": "Mentors and volunteers gathered for a four-hour orientation to prepare BdMSO 2026 — Bangladesh's national math and science olympiad pathway for primary students bound for IMSO in Indonesia.",
-    "image": "images/student_mentors.JPG",
-    "featured": true
-  },
-  {
-    "slug": "aci-medhabi-carnival",
-    "title": "ACI Medhabi Carnival: A Day of Learning and Celebration",
-    "category": "Event",
-    "date": "2025-11-10",
-    "author": "Samin Yasar Ahmed",
-    "excerpt": "Primary students joined a full day of chess against a Grandmaster, art stations, tangram puzzles, book reading, robotics demos, and telescope activities at the ACI Centre in Tejgaon.",
-    "image": "images/group.jpg",
+    "excerpt": "Mentors and volunteers gathered for a four-hour orientation to prepare BdMSO 2026 - Bangladesh's national math and science olympiad pathway for primary students bound for IMSO in Indonesia.",
+    "image": "images/team/team-orientation.webp",
     "featured": false
   },
   {
     "slug": "stem-foundation-course",
-    "title": "STEM Foundation Course: Twenty Classes, Ten Students, One Big Idea",
+    "title": "STEM Foundation Course: Batch One Completed",
     "category": "Program",
-    "date": "2025-05-05",
+    "date": "2026-04-28",
     "author": "Samin Yasar Ahmed",
-    "excerpt": "The online foundation program for classes 3–6 covered scientific method, chemistry, physics, mathematics, coding, astronomy, environmental science, biology, and machine learning over 20 sessions.",
-    "image": "images/stem.jpg",
+    "excerpt": "The online foundation program for classes 3–6 ran from March 14 to May 1, covering scientific method, chemistry, physics, mathematics, coding, astronomy, environmental science, biology, and machine learning over 20 sessions.",
+    "image": "images/stem.webp",
     "featured": false
   },
   {
     "slug": "lab-day-primary-kids",
     "title": "Lab Day for Primary Kids: A Day of Hands-On Discovery",
     "category": "Workshop",
-    "date": "2025-04-28",
+    "date": "2025-05-01",
     "author": "Samin Yasar Ahmed",
     "excerpt": "Twelve students spent a full day mapping skeletal structures, exploring light and prisms, using microscopes, and creating Elephant Toothpaste while learning about chemical reactions.",
-    "image": "images/lab.jpg",
+    "image": "images/lab-day-primary.webp",
+    "featured": false
+  },
+  {
+    "slug": "aci-medhabi-carnival",
+    "title": "ACI Medhabi Carnival: A Day of Learning and Celebration",
+    "category": "Event",
+    "date": "2025-04-29",
+    "author": "Samin Yasar Ahmed",
+    "excerpt": "Primary students joined a full day of chess against a Grandmaster, art stations, tangram puzzles, book reading, robotics demos, and telescope activities at the ACI Centre in Tejgaon.",
+    "image": "images/aci-medhabi-carnival.webp",
     "featured": false
   }
 ]

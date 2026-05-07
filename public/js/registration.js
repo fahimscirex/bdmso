@@ -7,18 +7,27 @@ const TITLES = {
 };
 
 const fields = [
+  { id: "f-competition", label: "Competition" },
   { id: "f-name", label: "Student" },
+  { id: "f-medium", label: "Medium" },
   { id: "f-class", label: "Class" },
   { id: "f-gender", label: "Gender" },
   { id: "f-dob", label: "Date of Birth" },
   { id: "f-school", label: "School" },
   { id: "f-district", label: "District" },
+  { id: "f-venue", label: "Preferred Venue" },
   { id: "g-name", label: "Guardian" },
   { id: "g-rel", label: "Relationship" },
   { id: "g-phone", label: "Mobile" },
   { id: "g-email", label: "Email" },
   { id: "g-addr", label: "Address" }
 ];
+
+function showVenueField() {
+  const urlProgram = new URLSearchParams(location.search).get("program");
+  const comp = urlProgram || document.getElementById("f-competition")?.value || "";
+  return comp === "national-qualifying-round" || comp === "national-quiz-competition";
+}
 
 let currentStep = 1;
 
@@ -34,7 +43,7 @@ function setMessage(text, kind = "neutral") {
 
 function validateStep(step) {
   const requiredByStep = {
-    1: ["f-name", "f-dob", "f-class", "f-gender", "f-school", "f-district"],
+    1: ["f-competition", "f-name", "f-dob", "f-medium", "f-class", "f-gender", "f-school", "f-district"],
     2: ["g-name", "g-rel", "g-phone", "g-email", "g-addr"],
     3: ["account-password", "account-password-confirm"]
   };
@@ -95,16 +104,22 @@ function validateStep(step) {
 }
 
 function fillSummary() {
+  const mediumLabels = { bangla: "Bangla (বাংলা)", english: "English" };
+  const compEl = document.getElementById("f-competition");
+  const compLabel = compEl?.options[compEl?.selectedIndex]?.text.split(" - ")[0] || valueOf("f-competition");
   const rows = [
-    ["Student", valueOf("f-name") || "—"],
-    ["Class", valueOf("f-class") || "—"],
-    ["Gender", valueOf("f-gender") || "—"],
-    ["Date of Birth", valueOf("f-dob") || "—"],
-    ["School", valueOf("f-school") || "—"],
-    ["District", valueOf("f-district") || "—"],
-    ["Guardian", `${valueOf("g-name") || "—"} (${valueOf("g-rel") || "—"})`],
-    ["Mobile", valueOf("g-phone") || "—"],
-    ["Email", valueOf("g-email") || "—"]
+    ["Competition", compLabel || "-"],
+    ["Student", valueOf("f-name") || "-"],
+    ["Medium", mediumLabels[valueOf("f-medium")] || valueOf("f-medium") || "-"],
+    ["Class", valueOf("f-class") || "-"],
+    ["Gender", valueOf("f-gender") || "-"],
+    ["Date of Birth", valueOf("f-dob") || "-"],
+    ["School", valueOf("f-school") || "-"],
+    ["District", valueOf("f-district") || "-"],
+    ...(showVenueField() ? [["Preferred Venue", valueOf("f-venue") || "No preference"]] : []),
+    ["Guardian", `${valueOf("g-name") || "-"} (${valueOf("g-rel") || "-"})`],
+    ["Mobile", valueOf("g-phone") || "-"],
+    ["Email", valueOf("g-email") || "-"]
   ];
 
   document.getElementById("summary-grid").innerHTML = rows
@@ -143,23 +158,20 @@ function setStep(step) {
 
 function registrationPayload() {
   const urlProgram = new URLSearchParams(location.search).get("program");
-  const subjectEl  = document.getElementById("f-subject");
-  let regType = "national-qualifying-round";
-  if (urlProgram && !urlProgram.startsWith("national-qualifying")) {
-    regType = urlProgram;
-  } else if (subjectEl?.value === "both") {
-    regType = "national-qualifying-round-both";
-  }
+  const compEl     = document.getElementById("f-competition");
+  const regType    = urlProgram || compEl?.value || "national-qualifying-round";
 
   return {
     registrationType: regType,
     student: {
       fullName: valueOf("f-name"),
       dateOfBirth: valueOf("f-dob"),
+      medium: valueOf("f-medium"),
       className: valueOf("f-class"),
       gender: valueOf("f-gender"),
       school: valueOf("f-school"),
-      district: valueOf("f-district")
+      district: valueOf("f-district"),
+      ...(showVenueField() ? { preferredVenue: valueOf("f-venue") } : {})
     },
     guardian: {
       fullName: valueOf("g-name"),
@@ -196,7 +208,8 @@ async function submitRegistration() {
         email: response.email
       }));
     }
-    document.getElementById("member-id").textContent = response.memberId || response.applicationId;
+    const memberIdEl = document.getElementById("member-id");
+    if (memberIdEl) memberIdEl.textContent = response.memberId || "";
     document.getElementById("account-email").textContent = valueOf("g-email");
     setStep(4);
     setMessage("", "neutral");

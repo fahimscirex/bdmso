@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Blog — BdMSO</title>
+<title>Blog - BdMSO</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -66,7 +66,7 @@
 <section class="page-head"><div class="container">
   <span class="eyebrow">News &amp; Announcements</span>
   <h1>What's happening at BdMSO.</h1>
-  <p>Deadlines, venues, press releases, and camp updates — straight from the BdMSO editorial desk.</p>
+  <p>Deadlines, venues, press releases, and camp updates - straight from the BdMSO editorial desk.</p>
 </div></section>
 
 <section class="container wrap">
@@ -89,11 +89,15 @@
   }
   const posts = await res.json();
 
+  function escHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
   // Build category filter buttons
   const cats = ['all', ...new Set(posts.map(p => p.category))];
   const catsBar = document.getElementById('cats-bar');
   catsBar.innerHTML = cats.map(c =>
-    `<button data-cat="${c}" class="${c === 'all' ? 'active' : ''}">${c === 'all' ? 'All' : c}</button>`
+    `<button data-cat="${escHtml(c)}" class="${c === 'all' ? 'active' : ''}">${c === 'all' ? 'All' : escHtml(c)}</button>`
   ).join('');
   catsBar.addEventListener('click', e => {
     const btn = e.target.closest('button');
@@ -116,13 +120,13 @@
   function featureCard(p) {
     return `<a class="feature" href="${postUrl(p)}">
       <div class="cover">${p.image
-        ? `<img src="${p.image}" alt="${p.title}">`
+        ? `<img src="${escHtml(p.image)}" alt="${escHtml(p.title)}">`
         : `<div class="ph">[cover]</div>`}
       </div>
       <div class="body">
-        <div class="meta"><span class="cat">${p.category}</span><span>${formatDate(p.date)}</span></div>
-        <h2>${p.title}</h2>
-        <p>${p.excerpt}</p>
+        <div class="meta"><span class="cat">${escHtml(p.category)}</span><span>${escHtml(formatDate(p.date))}</span></div>
+        <h2>${escHtml(p.title)}</h2>
+        <p>${escHtml(p.excerpt)}</p>
         <span class="read">Read more →</span>
       </div>
     </a>`;
@@ -131,13 +135,13 @@
   function postCard(p) {
     return `<a class="post" href="${postUrl(p)}">
       <div class="cover">${p.image
-        ? `<img src="${p.image}" alt="${p.title}">`
-        : `<div class="ph">[${p.category}]</div>`}
+        ? `<img src="${escHtml(p.image)}" alt="${escHtml(p.title)}">`
+        : `<div class="ph">[${escHtml(p.category)}]</div>`}
       </div>
       <div class="body">
-        <div class="meta"><span class="cat">${p.category}</span><span>${formatDate(p.date)}</span></div>
-        <h3>${p.title}</h3>
-        <p>${p.excerpt}</p>
+        <div class="meta"><span class="cat">${escHtml(p.category)}</span><span>${escHtml(formatDate(p.date))}</span></div>
+        <h3>${escHtml(p.title)}</h3>
+        <p>${escHtml(p.excerpt)}</p>
         <span class="read">Read →</span>
       </div>
     </a>`;

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Hall of Excellence — BdMSO</title>
+<title>Hall of Excellence - BdMSO</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -98,115 +98,144 @@
 
 <section class="container results-wrap">
   <div class="years" role="tablist">
-    <button class="active">2025</button>
+    <button class="active" data-year="2026">2026</button>
+    <button data-year="2025">2025</button>
   </div>
 
   <div class="notice">
     <span>ℹ️</span>
-    <span>To protect our students, <strong>numerical scores are hidden</strong>. Medalists are listed in alphabetical order. Top 15 TST shortlist receive portal notifications directly.</span>
+    <span>To protect our students, <strong>numerical scores are hidden</strong>. Medalists are listed in order of award.</span>
   </div>
 
-  <div class="accordion">
-    <details class="acc" open>
-      <summary>
-        <div class="title-wrap"><span class="kind">Accordion 1 · National Round</span><h3>National Round Results · 2026</h3></div>
-        <span class="chev">⌄</span>
-      </summary>
-      <div class="body">
-        <div class="medal-block">
-          <div class="medal-col gold"><h4><span class="disc">G</span>Gold Medal</h4>
-            <ul>
-              <li>Arif Hossain <span class="school">BAF Shaheen · 6</span></li>
-              <li>Ayesha Siddika <span class="school">VNSC · 5</span></li>
-              <li>Farhan Kabir <span class="school">Mastermind · 6</span></li>
-              <li>Nayeem Rahman <span class="school">Scholastica · 4</span></li>
-              <li>Sadia Islam <span class="school">VNSC · 6</span></li>
-              <li>Tahmid Khan <span class="school">Willes Little · 5</span></li>
-            </ul>
-          </div>
-          <div class="medal-col silver"><h4><span class="disc">S</span>Silver Medal</h4>
-            <ul>
-              <li>Anika Jahan <span class="school">Holy Cross · 5</span></li>
-              <li>Mubasshir Alam <span class="school">St Joseph · 6</span></li>
-              <li>Rafid Chowdhury <span class="school">Maple Leaf · 6</span></li>
-              <li>Sanjida Akter <span class="school">VNSC · 4</span></li>
-              <li>Tasneem Islam <span class="school">VNSC · 5</span></li>
-              <li>Zayan Ahmed <span class="school">Sunbeams · 6</span></li>
-            </ul>
-          </div>
-          <div class="medal-col bronze"><h4><span class="disc">B</span>Bronze Medal</h4>
-            <ul>
-              <li>Ayan Mahmud <span class="school">Sunbeams · 5</span></li>
-              <li>Ishika Das <span class="school">Holy Cross · 4</span></li>
-              <li>Mir Sakib <span class="school">Scholastica · 6</span></li>
-              <li>Raisa Hossain <span class="school">VNSC · 4</span></li>
-              <li>Tausif Chowdhury <span class="school">St Joseph · 5</span></li>
-              <li>Zara Rahman <span class="school">Maple Leaf · 6</span></li>
-            </ul>
+  <!-- ── 2026 ─────────────────────────────────────────────────── -->
+  <div class="year-panel" data-year="2026">
+    <div class="accordion">
+      <details class="acc" open>
+        <summary>
+          <div class="title-wrap"><span class="kind">Olympiad</span><h3>Olympiad Results · 2026</h3></div>
+          <span class="chev">⌄</span>
+        </summary>
+        <div class="body">
+          <div style="padding:36px 20px; text-align:center; background:var(--bg-alt); border-radius:var(--r); border:1px dashed var(--line);">
+            <div style="font-size:40px; margin-bottom:10px;">🕒</div>
+            <h4 style="font-family:var(--font-display); color:var(--navy-900); margin-bottom:8px;">Results not yet announced</h4>
+            <p style="margin:0; color:var(--ink-2); font-size:14px; max-width:480px; margin:0 auto;">The 2026 Olympiad is scheduled for June. Winners will be published here within one week of the competition day.</p>
           </div>
         </div>
-      </div>
-    </details>
+      </details>
 
-    <details class="acc">
-      <summary><div class="title-wrap"><span class="kind">Accordion 2 · Team Selection Test</span><h3>TST Shortlist · Top 15 · 2026</h3></div><span class="chev">⌄</span></summary>
-      <div class="body">
-        <div class="shortlist">
-          <div>
-            <h4>Mathematics · Top 15 (alphabetical)</h4>
-            <ol>
-              <li>Arif Hossain <span class="s">· Class 6</span></li>
-              <li>Ayesha Siddika <span class="s">· Class 5</span></li>
-              <li>Farhan Kabir <span class="s">· Class 6</span></li>
-              <li>Mubasshir Alam <span class="s">· Class 6</span></li>
-              <li>Nayeem Rahman <span class="s">· Class 4</span></li>
-              <li>Rafid Chowdhury <span class="s">· Class 6</span></li>
-              <li>Sadia Islam <span class="s">· Class 6</span></li>
-              <li>Tahmid Khan <span class="s">· Class 5</span></li>
-              <li>…and 7 more shortlisted privately</li>
-            </ol>
-          </div>
-          <div>
-            <h4>Science · Top 15 (alphabetical)</h4>
-            <ol>
-              <li>Anika Jahan <span class="s">· Class 5</span></li>
-              <li>Ayan Mahmud <span class="s">· Class 5</span></li>
-              <li>Ishika Das <span class="s">· Class 4</span></li>
-              <li>Mir Sakib <span class="s">· Class 6</span></li>
-              <li>Raisa Hossain <span class="s">· Class 4</span></li>
-              <li>Sanjida Akter <span class="s">· Class 4</span></li>
-              <li>Tasneem Islam <span class="s">· Class 5</span></li>
-              <li>Zayan Ahmed <span class="s">· Class 6</span></li>
-              <li>…and 7 more shortlisted privately</li>
-            </ol>
-          </div>
+      <!-- Final Delegation accordion disabled - kept in source for re-enable. -->
+      <details class="acc" hidden>
+        <summary><div class="title-wrap"><span class="kind">Final Delegation</span><h3>IMSO 2026 Delegation · Indonesia</h3></div><span class="chev">⌄</span></summary>
+        <div class="body">
+          <p style="font-size:14px; color:var(--ink-3); margin-bottom:16px;">Published once airfare and logistics are fully confirmed.</p>
+          <div class="delegation"></div>
         </div>
-        <div class="logic-note">
-          <strong>How the top 6 is chosen:</strong> Only the top 6 per subject are invited to the final delegation. If a shortlisted student declines, the next eligible name is automatically promoted from the internal ranking — no public reshuffle.
-        </div>
-      </div>
-    </details>
+      </details>
+    </div>
+  </div>
 
-    <details class="acc">
-      <summary><div class="title-wrap"><span class="kind">Accordion 3 · Final Delegation</span><h3>IMSO 2026 Delegation · Indonesia</h3></div><span class="chev">⌄</span></summary>
-      <div class="body">
-        <p style="font-size:14px; color:var(--ink-3); margin-bottom:16px;">Published once airfare and logistics are fully confirmed.</p>
-        <div class="delegation">
-          <div class="deleg"><div class="ph ph-gold"></div><div class="n">Arif Hossain</div><div class="r">Math · Class 6</div></div>
-          <div class="deleg"><div class="ph"></div><div class="n">Ayesha Siddika</div><div class="r">Math · Class 5</div></div>
-          <div class="deleg"><div class="ph ph-navy"></div><div class="n">Farhan Kabir</div><div class="r">Math · Class 6</div></div>
-          <div class="deleg"><div class="ph"></div><div class="n">Mubasshir Alam</div><div class="r">Math · Class 6</div></div>
-          <div class="deleg"><div class="ph ph-gold"></div><div class="n">Nayeem Rahman</div><div class="r">Math · Class 4</div></div>
-          <div class="deleg"><div class="ph"></div><div class="n">Sadia Islam</div><div class="r">Math · Class 6</div></div>
-          <div class="deleg"><div class="ph"></div><div class="n">Anika Jahan</div><div class="r">Science · Class 5</div></div>
-          <div class="deleg"><div class="ph ph-navy"></div><div class="n">Ishika Das</div><div class="r">Science · Class 4</div></div>
-          <div class="deleg"><div class="ph"></div><div class="n">Mir Sakib</div><div class="r">Science · Class 6</div></div>
-          <div class="deleg"><div class="ph ph-gold"></div><div class="n">Sanjida Akter</div><div class="r">Science · Class 4</div></div>
-          <div class="deleg"><div class="ph"></div><div class="n">Tasneem Islam</div><div class="r">Science · Class 5</div></div>
-          <div class="deleg"><div class="ph ph-navy"></div><div class="n">Zayan Ahmed</div><div class="r">Science · Class 6</div></div>
+  <!-- ── 2025 ─────────────────────────────────────────────────── -->
+  <div class="year-panel" data-year="2025" hidden>
+    <div class="accordion">
+      <details class="acc" open>
+        <summary>
+          <div class="title-wrap"><span class="kind">Olympiad · Mathematics</span><h3>BdMSO 2025 · Mathematics Winners</h3></div>
+          <span class="chev">⌄</span>
+        </summary>
+        <div class="body">
+          <div class="medal-block">
+            <div class="medal-col gold"><h4><span class="disc">G</span>Gold Medal</h4>
+              <ul>
+                <li>Ali Omar <span class="school">St. Joseph HSS · 5</span></li>
+                <li>Arijit Saha <span class="school">St. Joseph HSS · 5</span></li>
+                <li>Md. Nabeeh Hossain <span class="school">St. Joseph HSS · 5</span></li>
+                <li>Nowshin Saiyara Sahrin <span class="school">BAF Shaheen Kurmitola · 5</span></li>
+              </ul>
+            </div>
+            <div class="medal-col silver"><h4><span class="disc">S</span>Silver Medal</h4>
+              <ul>
+                <li>Abdul Muhaimin Afif <span class="school">St. Joseph HSS · 4</span></li>
+                <li>Ahanaf Adib <span class="school">St. Joseph Int'l · 5</span></li>
+                <li>Ehan Abrad Rahman <span class="school">St. Joseph HSS · 5</span></li>
+                <li>Labiba Binte Fazlay Rabbee <span class="school">Mastermind · 5</span></li>
+                <li>Md. Shahid Morsalin <span class="school">St. Joseph HSS · 5</span></li>
+                <li>Md. Tahsin Ul Islam <span class="school">St. Joseph Int'l · 5</span></li>
+                <li>Rafsan Shafiq Talukder <span class="school">Bonwary Lal Govt. HS · 5</span></li>
+                <li>Rushan Mahmud <span class="school">St. Joseph HSS · 4</span></li>
+                <li>Wafia Hasan Othoi <span class="school">SFX Greenherald · 5</span></li>
+              </ul>
+            </div>
+            <div class="medal-col bronze"><h4><span class="disc">B</span>Bronze Medal</h4>
+              <ul>
+                <li>Abdullah Abrar Wasi <span class="school">Dhaka Residential · 5</span></li>
+                <li>Abdullah Al Mueed Ahnaf <span class="school">St. Joseph HSS · 5</span></li>
+                <li>Abrar Jahin <span class="school">St. Joseph HSS · 4</span></li>
+                <li>Mahjabeen Binte Reza <span class="school">Excel Academy · 5</span></li>
+                <li>Md. Faiyaz Awsaf <span class="school">St. Francis Xavier · 4</span></li>
+                <li>Md. Samin Saif <span class="school">St. Joseph HSS · 5</span></li>
+                <li>Mohammad Ismail <span class="school">St. Joseph HSS · 4</span></li>
+                <li>Noyon Mondal <span class="school">St. Joseph HSS · 5</span></li>
+                <li>Priyangshu Riddhi Roy <span class="school">SFX Greenherald · 5</span></li>
+                <li>Ramiza Hasan <span class="school">SFX Greenherald · 5</span></li>
+                <li>Ratul Saha <span class="school">St. Joseph HSS · 5</span></li>
+                <li>Uddipto Biswas <span class="school">St. Joseph HSS · 4</span></li>
+                <li>Zarif Wahed <span class="school">St. Joseph HSS · 5</span></li>
+              </ul>
+            </div>
+          </div>
         </div>
-      </div>
-    </details>
+      </details>
+
+      <details class="acc">
+        <summary>
+          <div class="title-wrap"><span class="kind">Olympiad · Science</span><h3>BdMSO 2025 · Science Winners</h3></div>
+          <span class="chev">⌄</span>
+        </summary>
+        <div class="body">
+          <div class="medal-block">
+            <div class="medal-col gold"><h4><span class="disc">G</span>Gold Medal</h4>
+              <ul>
+                <li>Aaqib Fattah Mustofi <span class="school">St. Joseph Int'l · 5</span></li>
+                <li>Ali Omar <span class="school">St. Joseph HSS · 5</span></li>
+                <li>Avigyan Roy Golpo <span class="school">SFX Greenherald · 5</span></li>
+                <li>Md. Miftahul Islam <span class="school">Mymensingh Int'l · 4</span></li>
+                <li>Syed Ayaan Isa <span class="school">Lighthouse Int'l · 5</span></li>
+              </ul>
+            </div>
+            <div class="medal-col silver"><h4><span class="disc">S</span>Silver Medal</h4>
+              <ul>
+                <li>Ahanaf Adib <span class="school">St. Joseph Int'l · 5</span></li>
+                <li>Arham Abid <span class="school">Baseerah Int'l · 5</span></li>
+                <li>Fariq Sahel Mustofi <span class="school">St. Joseph Int'l · 4</span></li>
+                <li>Md. Mahamudur Rahman <span class="school">St. Joseph HSS · 4</span></li>
+                <li>Md. Tahsin Ul Islam <span class="school">St. Joseph Int'l · 5</span></li>
+                <li>Noyon Mondal <span class="school">St. Joseph HSS · 5</span></li>
+                <li>Shahabi Ibn Kabbo <span class="school">St. Joseph HSS · 5</span></li>
+                <li>Taaseen Mahmud Farhan <span class="school">St. Joseph HSS · 5</span></li>
+                <li>Wafia Hasan Othoi <span class="school">SFX Greenherald · 5</span></li>
+              </ul>
+            </div>
+            <div class="medal-col bronze"><h4><span class="disc">B</span>Bronze Medal</h4>
+              <ul>
+                <li>Ahnaf Adel Helali Foiz <span class="school">Wheaton Int'l · 4</span></li>
+                <li>Arijit Saha <span class="school">St. Joseph HSS · 5</span></li>
+                <li>Haris Al Fihri Aaban <span class="school">St. Joseph HSS · 5</span></li>
+                <li>Mahbub Alam Khan Tahan <span class="school">Daffodil Int'l · 5</span></li>
+                <li>Mahjabeen Binte Reza <span class="school">Excel Academy · 5</span></li>
+                <li>Mohammad Jawad Khan <span class="school">Daffodil Int'l · 5</span></li>
+                <li>Nuwaib Ashraf Samawat <span class="school">Daffodil Int'l Uttara · 5</span></li>
+                <li>Priyangshu Riddhi Roy <span class="school">SFX Greenherald · 5</span></li>
+                <li>Raihanur Emu <span class="school">Daffodil Int'l · 5</span></li>
+                <li>Ratul Saha <span class="school">St. Joseph HSS · 5</span></li>
+                <li>Shayan Murad Sarker <span class="school">Glenrich Int'l · 4</span></li>
+                <li>Tahmid Hasan <span class="school">Manarat Dhaka Int'l · 5</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </details>
+    </div>
   </div>
 </section>
 </main>
@@ -216,6 +245,10 @@
 document.querySelectorAll('.years button').forEach(b => b.addEventListener('click', () => {
   document.querySelectorAll('.years button').forEach(x => x.classList.remove('active'));
   b.classList.add('active');
+  const yr = b.dataset.year;
+  document.querySelectorAll('.year-panel').forEach(p => {
+    p.hidden = p.dataset.year !== yr;
+  });
 }));
 </script>
 </body>

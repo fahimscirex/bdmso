@@ -1,5 +1,13 @@
 // Minimal Markdown parser for BdMSO blog posts.
 
+export function escHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function safeUrl(url) {
+  return /^(https?:\/\/|\/|#|\.\.?\/)/i.test(url) ? url : '#';
+}
+
 export function parseFrontmatter(raw) {
   const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
   if (!m) return { meta: {}, body: raw };
@@ -15,12 +23,13 @@ export function parseFrontmatter(raw) {
 }
 
 function inline(t) {
+  t = escHtml(t);
   return t
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, url) => `<a href="${safeUrl(url)}">${text}</a>`);
 }
 
 export function markdownToHtml(md) {
@@ -83,11 +92,12 @@ export function markdownToHtml(md) {
     // Image (standalone line)
     const imgm = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
     if (imgm) {
-      out.push(`<figure><img src="${imgm[2]}" alt="${imgm[1]}"><figcaption>${imgm[1]}</figcaption></figure>`);
+      const altText = escHtml(imgm[1]);
+      out.push(`<figure><img src="${safeUrl(imgm[2])}" alt="${altText}"><figcaption>${altText}</figcaption></figure>`);
       i++; continue;
     }
 
-    // Paragraph — collect contiguous non-blank lines
+    // Paragraph - collect contiguous non-blank lines
     const para = [];
     while (i < lines.length && lines[i].trim() && !/^(#{1,4}\s|[-*+]\s|\d+\.\s|> |---$|!\[)/.test(lines[i])) {
       para.push(lines[i]);

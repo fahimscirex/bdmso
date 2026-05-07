@@ -38,7 +38,7 @@
         <div class="container">
           <nav class="nav" aria-label="Primary">
             <a class="brand" href="index.html" aria-label="BdMSO home">
-              <img class="brand-logo" src="images/logo.png" alt="BdMSO 2026 logo" />
+              <img class="brand-logo" src="images/logo.webp" alt="BdMSO 2026 logo" />
             </a>
             ${mobileLoginHtml}
             <button class="menu-toggle" aria-label="Open menu" aria-expanded="false">
@@ -86,7 +86,7 @@
           <div class="footer-grid">
             <div>
               <div class="footer-brand">
-                <img class="footer-logo" src="images/logo.png" alt="BdMSO 2026 logo" />
+                <img class="footer-logo" src="images/logo.webp" alt="BdMSO 2026 logo" />
               </div>
               <p>Bangladesh's official qualifying platform to select primary school students to represent the country at the International Mathematics and Science Olympiad (IMSO).</p>
               <div class="partner-logos">

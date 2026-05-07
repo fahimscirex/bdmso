@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Blog — BdMSO</title>
+<title>Blog - BdMSO</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -103,7 +103,7 @@
 <div id="site-footer"></div>
 <script src="js/site.js"></script>
 <script type="module">
-import { parseFrontmatter, markdownToHtml } from './js/md.js';
+import { markdownToHtml, escHtml } from './js/md.js';
 
 const slug = new URLSearchParams(location.search).get('slug') || '';
 
@@ -119,37 +119,46 @@ function formatDate(str) {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+function stripFrontmatter(raw) {
+  const m = raw.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n([\s\S]*)$/);
+  return m ? m[1] : raw;
+}
+
 async function load() {
   if (!slug) return showError('No post specified.');
 
-  let raw;
+  // Metadata from index.json (single source of truth, generated at build time).
+  let meta;
   try {
-    const res = await fetch(`posts/${slug}.md`);
-    if (!res.ok) throw new Error(res.status);
-    raw = await res.text();
+    const idx = await fetch('posts/index.json').then(r => r.ok ? r.json() : []);
+    meta = idx.find(p => p.slug === slug);
+    if (!meta) throw new Error('not in index');
   } catch {
     return showError('Post not found.');
   }
 
-  const { meta, body } = parseFrontmatter(raw);
+  // Body from the .md file.
+  let body = '';
+  try {
+    const res = await fetch(`posts/${slug}.md`);
+    if (res.ok) body = stripFrontmatter(await res.text());
+  } catch { /* body stays empty */ }
 
-  document.title = `${meta.title || 'Post'} — BdMSO`;
+  document.title = `${meta.title || 'Post'} - BdMSO`;
 
-  // Meta bar
   const parts = [];
-  if (meta.category) parts.push(`<span class="eyebrow">${meta.category}</span>`);
-  if (meta.date)     parts.push(`<span class="sep">·</span><span class="date">${formatDate(meta.date)}</span>`);
-  if (meta.author)   parts.push(`<span class="sep">·</span><span class="author">${meta.author}</span>`);
+  if (meta.category) parts.push(`<span class="eyebrow">${escHtml(meta.category)}</span>`);
+  if (meta.date)     parts.push(`<span class="sep">·</span><span class="date">${escHtml(formatDate(meta.date))}</span>`);
+  if (meta.author)   parts.push(`<span class="sep">·</span><span class="author">${escHtml(meta.author)}</span>`);
   show('post-meta-bar', parts.join(' '));
 
-  show('post-title', meta.title || '');
-  show('post-excerpt', meta.excerpt || '');
+  show('post-title', escHtml(meta.title || ''));
+  show('post-excerpt', escHtml(meta.excerpt || ''));
 
-  // Cover image
   const coverEl = document.getElementById('post-cover');
   if (meta.image) {
     coverEl.style.display = '';
-    coverEl.innerHTML = `<img src="${meta.image}" alt="${meta.title || ''}">`;
+    coverEl.innerHTML = `<img src="${escHtml(meta.image)}" alt="${escHtml(meta.title || '')}">`;
   }
 
   show('post-body', markdownToHtml(body));

@@ -31,14 +31,14 @@ Update all 7 step dates:
 
 ## `public/data/results.json`
 
-- Remove all 4 items from the `"stats"` array (the hall of fame stats block is being removed — see index.html below)
+- Remove all 4 items from the `"stats"` array (the hall of fame stats block is being removed - see index.html below)
 
 ---
 
 ## `public/data/programs.json`
 
-- Item 03: change `"description"` — remove "immersive": `"4-hour hands-on lab sessions in Physics, Biology, Chemistry."`
-- Item 04: change `"description"` — remove "olympiad": `"Specialised classes on advanced topics."`
+- Item 03: change `"description"` - remove "immersive": `"4-hour hands-on lab sessions in Physics, Biology, Chemistry."`
+- Item 04: change `"description"` - remove "olympiad": `"Specialised classes on advanced topics."`
 - Item 07: rename title `"SPSB Summer Camp"` → `"SPSB Nature Camp"`; change description → `"Activity-based 4-day residential nature camp."`
 - Item 08: change description → `"Activity-based international residential camp with global experts and alumni."`
 - Add new item: `{ "id": "09", "title": "BdMSO Exchange Program", "description": "30-day international exchange program for top BdMSO students." }`
@@ -72,7 +72,7 @@ Update all 7 step dates:
 - Replace both `<p>` tags inside `.about-text` with:
   ```html
   <p>Bangladesh Mathematics and Science Olympiad (BdMSO) is designed to introduce primary school students to the world of mathematics and science from an early age, nurturing their natural curiosity and problem-solving skills.</p>
-  <p>BdMSO serves as the official qualifying platform to select primary school students (up to Grade 6) to represent Bangladesh internationally. Each year, the competition selects a national team of twelve students — six for Mathematics and six for Science — to participate in the International Mathematics and Science Olympiad (IMSO). In 2026, the 23rd IMSO will be held in Indonesia.</p>
+  <p>BdMSO serves as the official qualifying platform to select primary school students (up to Grade 6) to represent Bangladesh internationally. Each year, the competition selects a national team of twelve students - six for Mathematics and six for Science - to participate in the International Mathematics and Science Olympiad (IMSO). In 2026, the 23rd IMSO will be held in Indonesia.</p>
   ```
 
 - In `.about-highlights`, change:
@@ -81,7 +81,7 @@ Update all 7 step dates:
 ### Road to IMSO (`<!-- SECTION 4: ROAD TO IMSO -->`)
 
 - Change `<p>` description from:
-  `"Seven carefully designed stages — from your first registration all the way to representing Bangladesh on the international stage."`
+  `"Seven carefully designed stages - from your first registration all the way to representing Bangladesh on the international stage."`
   → `"Your journey all the way to representing Bangladesh on the international stage."`
 
 ### Hall of Fame (`<!-- SECTION 5: HALL OF FAME -->`)
@@ -105,12 +105,12 @@ Update all 7 step dates:
 - Change section `<h2>` from `"Where should your child begin?"`
   → `"Unlock your child's potential in math and science."`
 
-- Beginner level card — add two items to `<ul>`:
+- Beginner level card - add two items to `<ul>`:
   - `<li>SPSB Nature Camp</li>`
   - `<li>STEM Masterclass Series</li>`
   (Add after existing items)
 
-- Open for All card — change `<p>` from:
+- Open for All card - change `<p>` from:
   `"Immersive camps open to all children who love science."`
   → `"Activity-based camps open to all children who love science."`
   
@@ -137,12 +137,12 @@ Update all 7 step dates:
 
 - Who it's for: `"Class 4–6"` → `"Class 3 to 5"`
 - Duration: `"16 weeks"` → `"12 classes"`
-- Description (oneliner): change to `"Preparatory course for the national round — advanced problem-solving and structured training."`
+- Description (oneliner): change to `"Preparatory course for the national round - advanced problem-solving and structured training."`
 
 ### STEM Masterclass Series (article 03)
 
 - Duration: `"8 sessions"` → `"4 classes"`
-- Description: `"Specialised classes on advanced olympiad topics"` → `"Specialised classes on advanced topics — from number theory to experimental design."`
+- Description: `"Specialised classes on advanced olympiad topics"` → `"Specialised classes on advanced topics - from number theory to experimental design."`
 
 ### Mock Test Program (article 04)
 
@@ -176,7 +176,7 @@ Add after article 08:
   <div>
     <span class="eyebrow" style="font-size:10px; padding:3px 8px;">09 · Exchange</span>
     <h3 style="margin-top:10px;">BdMSO Exchange Program</h3>
-    <p class="oneliner">A 30-day international exchange for top BdMSO students — collaborative learning with peers from across the world.</p>
+    <p class="oneliner">A 30-day international exchange for top BdMSO students - collaborative learning with peers from across the world.</p>
     <div class="p-meta">
       <div><div class="k">Who it's for</div><div class="v">Top BdMSO students</div></div>
       <div><div class="k">Duration</div><div class="v">30 days</div></div>
@@ -218,7 +218,7 @@ Add after article 08:
     <tr><td>Multiple Choice</td><td class="num" data-label="National">20 × 2 = 40</td><td data-label="Time">45 min</td></tr>
     <tr><td>Short Answer</td><td class="num" data-label="National">10 × 4 = 40</td><td data-label="Time">60 min</td></tr>
     <tr><td>Problem Solving</td><td class="num" data-label="National">2 × 10 = 20</td><td data-label="Time">75 min</td></tr>
-    <tr><td><strong>Total</strong></td><td class="num" data-label="National"><strong>100</strong></td><td data-label="Time"><strong>—</strong></td></tr>
+    <tr><td><strong>Total</strong></td><td class="num" data-label="National"><strong>100</strong></td><td data-label="Time"><strong>-</strong></td></tr>
   </tbody>
 </table>
 ```
@@ -243,7 +243,7 @@ Add after article 08:
   ```html
   <div class="guide-item">
     <h4>Explore Programs</h4>
-    <p>From foundation courses to residential camps — browse all year-round programs to find the right fit for your child. <a href="programs.html" style="color:var(--navy-700); text-decoration:underline;">View all programs →</a></p>
+    <p>From foundation courses to residential camps - browse all year-round programs to find the right fit for your child. <a href="programs.html" style="color:var(--navy-700); text-decoration:underline;">View all programs →</a></p>
   </div>
   ```
 
@@ -272,7 +272,7 @@ Add after article 08:
 - Change description from `"Requires qualification through the National Round."` → `"Requires qualification through TST."`
 - Remove `"Logistics and airfare managed centrally."` sentence.
 
-### Step 1 — Student Info form
+### Step 1 - Student Info form
 
 - Add gender field after the Class field:
   ```html
@@ -287,7 +287,7 @@ Add after article 08:
 
 - Add `{ id: "f-gender", label: "Gender" }` to the `fields` array
 - Add `"f-gender"` to the `requiredByStep[1]` array
-- Add `["Gender", valueOf("f-gender") || "—"]` to `fillSummary()` rows
+- Add `["Gender", valueOf("f-gender") || "-"]` to `fillSummary()` rows
 - Add `gender: valueOf("f-gender")` to `registrationPayload()` under `student`
 
 ---
@@ -312,7 +312,7 @@ Add after article 08:
 
 ## `public/team.html`
 
-- Find and remove the paragraph beginning with `"BdMSO has sent a national…"` — located in the International Team Delegation panel description (currently: `"Portraits and credentials of our 6+6 national team, team leader, and travelling mentors."` — verify if additional text follows this or if this sentence is the one to remove)
+- Find and remove the paragraph beginning with `"BdMSO has sent a national…"` - located in the International Team Delegation panel description (currently: `"Portraits and credentials of our 6+6 national team, team leader, and travelling mentors."` - verify if additional text follows this or if this sentence is the one to remove)
 - Change `"6+6"` references in team.html → `"12"` (6 Math + 6 Science = 12 total)
 
 ---
@@ -330,8 +330,8 @@ Add after article 08:
 
 ### Backend for forgot password (`worker/index.js`)
 - New table `password_reset_tokens (token, account_id, expires_at, created_at)`
-- `POST /api/forgot-password` — validates email, creates token, sends reset email via Brevo
-- `POST /api/reset-password` — validates token, accepts new password, clears token
+- `POST /api/forgot-password` - validates email, creates token, sends reset email via Brevo
+- `POST /api/reset-password` - validates token, accepts new password, clears token
 
 ### New migration for reset tokens
 - `db/migrations/008_password_reset_tokens.sql`
@@ -345,15 +345,15 @@ Add after article 08:
 - Migration: `db/migrations/009_coupons.sql`
 
 ### Backend (`worker/index.js`)
-- `POST /api/validate-coupon` — checks code validity, returns discount info
-- Update `handleCreatePayment` — accept optional `couponCode`, apply discount to `amount`
+- `POST /api/validate-coupon` - checks code validity, returns discount info
+- Update `handleCreatePayment` - accept optional `couponCode`, apply discount to `amount`
 
 ### Frontend (`public/dashboard.html`)
 - Add coupon code input + "Apply" button in the payment flow (before the "Pay Now" button or as a modal step)
 
 ---
 
-## `public/index.html` — Resource cards (Section 6)
+## `public/index.html` - Resource cards (Section 6)
 
 Update the two broken `href` values so they deep-link into the resources page:
 - Regulations card: `href="resources.html"` → `href="resources.html#regulations"`
@@ -366,7 +366,7 @@ Update the two broken `href` values so they deep-link into the resources page:
 Allow users to edit their registration info within a set time period after submission.
 
 ### Backend
-- `PUT /api/registration` — requires auth, checks `created_at` is within edit window (e.g. 24h), updates allowed fields (student info, guardian info — not status/member_id)
+- `PUT /api/registration` - requires auth, checks `created_at` is within edit window (e.g. 24h), updates allowed fields (student info, guardian info - not status/member_id)
 
 ### Frontend (`public/dashboard.html`)
 - Show "Edit" button on reg cards where `status === 'submitted'` and within edit window
