@@ -263,6 +263,61 @@ async function sendReceiptEmail(env, reg, memberId) {
   }
 }
 
+async function sendSponsorshipNotification(env, lead) {
+  const recipient = "info.bdmso@gmail.com";
+  console.log(`[email-sponsorship] notifying ${recipient} for lead ${lead.leadId}`);
+  if (!env.BREVO_API_KEY) return;
+
+  const sender = parseEmailFrom(env.EMAIL_FROM);
+  const submittedAt = new Date().toLocaleString("en-GB", { dateStyle: "long", timeStyle: "short" });
+  const messageHtml = escapeHtml(lead.message).replace(/\n/g, "<br>");
+  const html = `
+    <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#0b1b3f;">
+      <div style="background:#0b1b3f;padding:24px 28px;border-radius:12px 12px 0 0;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.18em;color:#fcd34d;text-transform:uppercase;">New Sponsorship Enquiry</div>
+        <h1 style="margin:6px 0 0;color:white;font-size:20px;">${escapeHtml(lead.organization)}</h1>
+      </div>
+      <div style="background:white;border:1px solid #e5e7eb;border-top:none;padding:24px 28px;">
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+          <tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:9px 0;color:#6b7280;">Contact</td><td style="padding:9px 0;font-weight:600;text-align:right;">${escapeHtml(lead.contactPerson)}</td></tr>
+          <tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:9px 0;color:#6b7280;">Email</td><td style="padding:9px 0;font-weight:600;text-align:right;"><a href="mailto:${escapeHtml(lead.email)}" style="color:#0b1b3f;">${escapeHtml(lead.email)}</a></td></tr>
+          ${lead.phone ? `<tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:9px 0;color:#6b7280;">Phone</td><td style="padding:9px 0;font-weight:600;text-align:right;">${escapeHtml(lead.phone)}</td></tr>` : ""}
+          <tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:9px 0;color:#6b7280;">Interested in</td><td style="padding:9px 0;font-weight:600;text-align:right;">${escapeHtml(lead.interest)}</td></tr>
+          <tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:9px 0;color:#6b7280;">Source</td><td style="padding:9px 0;font-weight:600;text-align:right;">${escapeHtml(lead.sourcePage || "-")}</td></tr>
+          <tr><td style="padding:9px 0;color:#6b7280;">Submitted</td><td style="padding:9px 0;font-weight:600;text-align:right;">${escapeHtml(submittedAt)}</td></tr>
+        </table>
+        <div style="margin-top:18px;padding:16px 18px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;line-height:1.6;color:#374151;">
+          ${messageHtml}
+        </div>
+        <div style="margin-top:18px;font-size:12px;color:#9ca3af;">Lead ID: <code>${escapeHtml(lead.leadId)}</code></div>
+      </div>
+    </div>`;
+
+  try {
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": env.BREVO_API_KEY,
+        "content-type": "application/json",
+        "accept": "application/json",
+      },
+      body: JSON.stringify({
+        sender,
+        to: [{ email: recipient, name: "BdMSO Partnerships" }],
+        replyTo: { email: lead.email, name: lead.contactPerson },
+        subject: `New sponsorship enquiry - ${lead.organization}`,
+        htmlContent: html,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.log(`[email-sponsorship] brevo error ${res.status}: ${body}`);
+    }
+  } catch (err) {
+    console.log("[email-sponsorship] brevo fetch failed:", err.message);
+  }
+}
+
 async function assignMemberIdAndSendReceipt(env, tranId) {
   const row = await env.DB.prepare(`
     SELECT r.id, r.guardian_account_id, r.registration_type, r.student_full_name,
@@ -717,6 +772,10 @@ async function handleSponsorship(request, env) {
   await env.DB.prepare(
     "INSERT INTO sponsorship_enquiries (id, organization, contact_person, email, phone, interest, message, status, source_page, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
   ).bind(leadId, organization, contactPerson, email, phone, interest, message, "new", sourcePage, new Date().toISOString()).run();
+
+  // Notify the partnerships inbox. Failure is non-blocking - the enquiry is already saved.
+  sendSponsorshipNotification(env, { leadId, organization, contactPerson, email, phone, interest, message, sourcePage })
+    .catch(err => console.log("[email-sponsorship] notify failed:", err.message));
 
   return jsonResponse({ ok: true, leadId });
 }

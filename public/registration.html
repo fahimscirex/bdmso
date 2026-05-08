@@ -139,12 +139,26 @@
 <section class="page-head">
   <div class="container">
     <span class="eyebrow">Registration Portal</span>
-    <h1>Register your child for BdMSO 2026.</h1>
-    <p>Two competitions are open now: the <strong style="color:white;">BdMSO National Round</strong> (Olympiad, Class 6 or below) and the <strong style="color:white;">BdMSO Quiz Competition</strong> (Quiz, Class 3 or below). You may register for one of the two. Create your BdMSO ID once and use it across every stage.</p>
+    <h1>Registrations are not open right now.</h1>
+    <p>Dates for the next BdMSO cycle will be announced here when registration reopens. Please check back later.</p>
   </div>
 </section>
 
-<section class="container reg-wrap">
+<section class="container reg-wrap" style="margin-top:-56px; padding-bottom:96px;">
+  <div style="background:white; border:1px solid var(--line); border-radius:var(--r-xl); box-shadow:var(--shadow); padding:48px 32px; max-width:640px; margin:0 auto; text-align:center;">
+    <div style="width:64px; height:64px; border-radius:50%; background:var(--bg-alt); display:grid; place-items:center; margin:0 auto 18px;">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+    </div>
+    <h2 style="font-family:var(--font-display); color:var(--navy-900); margin:0 0 10px;">Check back later</h2>
+    <p style="color:var(--ink-2); font-size:15px; max-width:460px; margin:0 auto 24px;">Registration is currently closed. We'll announce here as soon as the next BdMSO cycle opens, so you can sign your child up for the National Round or the Quiz Competition.</p>
+    <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+      <a class="btn btn-primary" href="index.html">Back to home</a>
+      <a class="btn btn-ghost" href="programs.html">Explore programs</a>
+    </div>
+  </div>
+</section>
+
+<section class="container reg-wrap" hidden>
   <div class="instructions">
     <div class="step"><div class="st-num">1</div><div><h3>Select what to register for</h3><p>Choose the <strong>BdMSO National Round</strong> (Olympiad, Class 6 or below) or the <strong>BdMSO Quiz Competition</strong> (Quiz,Class 3 or below). Each student may register for only one of the two.</p></div></div>
     <div class="step"><div class="st-num">2</div><div><h3>Fill in the form - 5 minutes</h3><p>Student details → Guardian contact → Set password. Your BdMSO Member ID is issued after payment is confirmed.</p></div></div>
@@ -182,7 +196,7 @@
   <p style="margin-bottom: 20px; color:var(--ink-3); font-size:14px;">Locked stages require qualification through an earlier stage - they open automatically when you're eligible.</p>
   <div class="card-grid">
     <div class="reg-card"><span class="status open">Open · Olympiad · Class 6 or below</span><h3>BdMSO National Round</h3><p>Your journey to Bangladesh Mathematics &amp; Science Olympiad begins here.</p><span class="meta">Closes June 15, 2026 · 1,000 BDT</span><a class="btn btn-primary" href="#form">Register</a></div>
-    <div class="reg-card"><span class="status open">Open · Quiz · Pre-primary–Class 3</span><h3>BdMSO Quiz Competition</h3><p>General knowledge quiz for pre-primary to Class 3 students - open to both Bangla and English mediums.</p><span class="meta">Closes June 15, 2026 · 1,000 BDT</span><a class="btn btn-primary" href="#form">Register</a></div>
+    <div class="reg-card"><span class="status open">Open · Quiz · Class 3 or below</span><h3>BdMSO Quiz Competition</h3><p>General knowledge quiz for pre-primary to Class 3 students - open to both Bangla and English mediums.</p><span class="meta">Closes June 15, 2026 · 1,000 BDT</span><a class="btn btn-primary" href="#form">Register</a></div>
     <div class="reg-card"><span class="status open">Open · Enrollment</span><h3>Programs &amp; Courses</h3><p>Enroll in year-round training modules - prep courses, camps, workshops.</p><span class="meta">Rolling admissions</span><a class="btn btn-ghost" href="programs.html">Browse Programs</a></div>
     <div class="reg-card locked"><span class="status locked-s">🔒 Locked</span><h3>National Residential Camp</h3><p>Three-day camp for Olympiad winners (approx. top 20%). 3,000–5,000 BDT.</p><span class="meta">Opens July 2026</span></div>
     <div class="reg-card locked"><span class="status locked-s">🔒 Locked</span><h3>Team Selection Test (TST)</h3><p>Day-long per-subject evaluation, ~7 days after the camp. 1,000 BDT per subject.</p><span class="meta">Opens July 2026</span></div>
@@ -509,6 +523,10 @@ function applyVenueVisibility() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Registration is closed for now - skip all form initialisation so
+  // the static "check back later" notice rendered above is what the user sees.
+  if (true) return;
+
   initQuickEnroll();
 
   document.getElementById('f-competition').addEventListener('change', () => {
