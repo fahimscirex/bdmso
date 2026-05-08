@@ -318,6 +318,11 @@ p { margin: 0 0 1em; color: var(--ink-2); text-wrap: pretty; }
 }
 /* Collapse stacked padding when two same-background sections are adjacent. */
 .section-alt + .section-alt { padding-top: 0; }
+/* …also collapse when a hidden section sits between them (visually adjacent). */
+.section-alt + [hidden] + .section-alt,
+.section-alt + .section[hidden] + .section-alt { padding-top: 0; }
+/* Hidden sections must take no space, even if `display` is overridden elsewhere. */
+section[hidden] { display: none !important; }
 .section-alt { background: var(--bg-alt); }
 .section-dark { background: var(--navy-900); color: var(--on-dark); }
 .section-dark h2, .section-dark h3 { color: white; }
