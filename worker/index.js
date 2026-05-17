@@ -1,3 +1,5 @@
+import { Hono } from "hono";
+
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
 function jsonResponse(body, status = 200) {
@@ -1009,35 +1011,41 @@ async function handleValidateCoupon(request, env, url) {
   });
 }
 
-// ─── Router ───────────────────────────────────────────────────────────────────
+// ─── Router (Hono) ────────────────────────────────────────────────────────────
+//
+// All API routes mount under /api/* via Hono. Handler bodies are unchanged —
+// Hono only replaces the dispatch + error handling. The handlers all take
+// (request, env [, url]) so we pass c.req.raw and c.env through unchanged.
+//
+// Future shape: split routes into worker/routes/{public,guardian,admin}.js and
+// add session / requireRole / auditLog middleware. For now, everything is
+// public-tier (same as before).
 
-async function handleApi(request, env, url) {
-  const { pathname } = url;
-  const method = request.method;
+const api = new Hono().basePath("/api");
 
-  try {
-    if (pathname === "/api/login"                  && method === "POST") return await handleLogin(request, env);
-    if (pathname === "/api/logout"                 && method === "POST") return await handleLogout(request, env);
-    if (pathname === "/api/me"                     && method === "GET")  return await handleMe(request, env);
-    if (pathname === "/api/submit-registration"    && method === "POST") return await handleRegistration(request, env);
-    if (pathname === "/api/add-enrollment"         && method === "POST") return await handleAddEnrollment(request, env);
-    if (pathname === "/api/validate-coupon"        && method === "GET")  return await handleValidateCoupon(request, env, url);
-    if (pathname === "/api/submit-sponsorship"     && method === "POST") return await handleSponsorship(request, env);
-    if (pathname === "/api/create-payment"         && method === "POST") return await handleCreatePayment(request, env);
-    if (pathname === "/api/payment-callback")                            return await handlePaymentCallback(request, env, url);
-    if (pathname === "/api/verify-email"           && method === "GET")  return await handleVerifyEmail(request, env, url);
-    if (pathname === "/api/resend-verification"    && method === "POST") return await handleResendVerification(request, env);
+api.post("/login",                 (c) => handleLogin(c.req.raw, c.env));
+api.post("/logout",                (c) => handleLogout(c.req.raw, c.env));
+api.get ("/me",                    (c) => handleMe(c.req.raw, c.env));
+api.post("/submit-registration",   (c) => handleRegistration(c.req.raw, c.env));
+api.post("/add-enrollment",        (c) => handleAddEnrollment(c.req.raw, c.env));
+api.get ("/validate-coupon",       (c) => handleValidateCoupon(c.req.raw, c.env, new URL(c.req.url)));
+api.post("/submit-sponsorship",    (c) => handleSponsorship(c.req.raw, c.env));
+api.post("/create-payment",        (c) => handleCreatePayment(c.req.raw, c.env));
+api.all ("/payment-callback",      (c) => handlePaymentCallback(c.req.raw, c.env, new URL(c.req.url)));
+api.get ("/verify-email",          (c) => handleVerifyEmail(c.req.raw, c.env, new URL(c.req.url)));
+api.post("/resend-verification",   (c) => handleResendVerification(c.req.raw, c.env));
 
-    return badRequest("Not found.", 404);
-  } catch (error) {
-    // Intentional user-facing errors carry an explicit `.status` (see requireAuth, requireField, etc).
-    // Anything else is an internal failure (D1 errors, bugs, etc) — never surface its message to the
-    // client, or we leak things like "D1_ERROR: no such table: login_attempts: SQLITE_ERROR".
-    if (error.status) return badRequest(error.message, error.status);
-    console.log(`[api-error] ${method} ${pathname}:`, error?.stack || error?.message || error);
-    return badRequest("Something went wrong. Please try again.", 500);
-  }
-}
+// Mirrors the previous try/catch in handleApi:
+//  - Intentional user-facing errors carry `.status` (requireAuth, requireField, etc.) → surface as-is.
+//  - Anything else is internal (D1 errors, bugs) → log + opaque 500 message so we don't leak
+//    e.g. "D1_ERROR: no such table: login_attempts: SQLITE_ERROR".
+api.onError((err, c) => {
+  if (err.status) return c.json({ error: err.message }, err.status);
+  console.log(`[api-error] ${c.req.method} ${c.req.path}:`, err?.stack || err?.message || err);
+  return c.json({ error: "Something went wrong. Please try again." }, 500);
+});
+
+api.notFound((c) => c.json({ error: "Not found." }, 404));
 
 // ─── Security Headers ─────────────────────────────────────────────────────────
 
@@ -1140,7 +1148,7 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname.startsWith("/api/")) {
-      const response = await handleApi(request, env, url);
+      const response = await api.fetch(request, env);
       return withSecurityHeaders(response, url);
     }
 

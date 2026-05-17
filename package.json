@@ -2,6 +2,7 @@
   "name": "bdmso-site",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "BdMSO static marketing site prepared for Cloudflare Pages and Workers with D1.",
   "scripts": {
     "dev:local": "npx live-server public --port=3000",
@@ -18,5 +19,8 @@
   },
   "devDependencies": {
     "wrangler": "^4.90.0"
+  },
+  "dependencies": {
+    "hono": "^4.12.19"
   }
 }
