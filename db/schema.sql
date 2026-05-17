@@ -1,7 +1,13 @@
--- Full schema for a fresh DB. Apply with:
+-- Full schema. Idempotent (uses CREATE TABLE IF NOT EXISTS), so re-apply anytime.
+--
+-- Apply:
 --   wrangler d1 execute bdmso --local  --file=./db/schema.sql
 --   wrangler d1 execute bdmso --remote --file=./db/schema.sql --config wrangler.prod.toml
--- For incremental changes on a DB that already has data, write a numbered migration in db/migrations/.
+--
+-- This file is the canonical source of truth. As long as production has no data
+-- you want to preserve, schema changes happen here and the DB gets re-applied.
+-- Once production has live data, add a db/migrations/ folder with timestamped
+-- apply-scripts for incremental ALTERs.
 
 CREATE TABLE IF NOT EXISTS guardian_accounts (
   id TEXT PRIMARY KEY,
@@ -13,6 +19,7 @@ CREATE TABLE IF NOT EXISTS guardian_accounts (
   phone TEXT,
   email_verified INTEGER NOT NULL DEFAULT 0,
   member_id TEXT,
+  role TEXT NOT NULL DEFAULT 'guardian',   -- 'guardian' | 'admin' | 'editor' | 'mentor'
   created_at TEXT NOT NULL
 );
 
@@ -143,3 +150,69 @@ CREATE TABLE IF NOT EXISTS coupons (
 -- Dev seed: 100% off coupon for local testing. Remove before applying to production.
 INSERT OR IGNORE INTO coupons (code, discount_type, discount_value, max_uses, applies_to, created_at)
 VALUES ('TESTBDMSO', 'percent', 100, 50, NULL, CURRENT_TIMESTAMP);
+
+-- ─── Dashboard tables (added 2026-05-17) ──────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS admin_audit_log (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  action TEXT NOT NULL,             -- e.g. 'post.publish', 'registration.update_status'
+  target_type TEXT,                 -- 'post' | 'program' | 'registration' | ...
+  target_id TEXT,
+  payload_json TEXT,                -- before/after diff or relevant params
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (account_id) REFERENCES guardian_accounts (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_account_created
+ON admin_audit_log (account_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_audit_target
+ON admin_audit_log (target_type, target_id);
+
+CREATE TABLE IF NOT EXISTS programs (
+  slug TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  tagline TEXT,
+  cohort TEXT,
+  image TEXT,                       -- R2 key or /images/ path
+  start_date TEXT,                  -- ISO date
+  end_date TEXT,
+  venue TEXT,
+  audience TEXT,
+  subjects_json TEXT,               -- JSON array: ["Mathematics","Science","Both"]
+  body_md TEXT,                     -- markdown body, rendered at request time
+  routine_json TEXT,                -- JSON: [{day,date,blocks:[{subject,slots:[{time,label}]}]}]
+  pricing_json TEXT,                -- JSON: [{name,price,currency,perks,featured}]
+  registration_url TEXT,
+  published INTEGER NOT NULL DEFAULT 0,
+  published_at TEXT,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_by TEXT,
+  FOREIGN KEY (updated_by) REFERENCES guardian_accounts (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_programs_published
+ON programs (published, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS posts (
+  slug TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  excerpt TEXT,
+  category TEXT,
+  author TEXT,
+  image TEXT,                       -- R2 key or /images/ path
+  body_md TEXT NOT NULL,            -- markdown body, rendered at request time
+  published INTEGER NOT NULL DEFAULT 0,
+  featured INTEGER NOT NULL DEFAULT 0,
+  published_at TEXT,                -- ISO date (display date)
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_by TEXT,
+  FOREIGN KEY (updated_by) REFERENCES guardian_accounts (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_posts_published
+ON posts (published, published_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_posts_category
+ON posts (category) WHERE published = 1;
