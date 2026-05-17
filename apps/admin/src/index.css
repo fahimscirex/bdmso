@@ -176,6 +176,47 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 .btn-secondary:hover:not(:disabled) { background: var(--navy-50); border-color: var(--navy-700); }
 .btn-secondary:disabled { opacity: 0.55; cursor: not-allowed; }
 
+.btn-primary {
+  font: inherit; font-weight: 600; font-size: 13px; padding: 8px 16px;
+  border: 1px solid var(--navy-900); background: var(--navy-900); color: white;
+  border-radius: 8px; cursor: pointer;
+}
+.btn-primary:hover:not(:disabled) { background: var(--navy-700); border-color: var(--navy-700); }
+.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.btn-danger {
+  font: inherit; font-weight: 600; font-size: 13px; padding: 8px 14px;
+  border: 1px solid #fecaca; background: white; color: var(--red);
+  border-radius: 8px; cursor: pointer;
+}
+.btn-danger:hover:not(:disabled) { background: var(--red-bg); border-color: var(--red); }
+.btn-danger:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ─── Forms (editors: posts, programs) ──────────────────────────────────── */
+
+.form-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px;
+  background: white; border: 1px solid var(--line); border-radius: 12px; padding: 20px;
+}
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field-full { grid-column: 1 / -1; }
+.field label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--ink-3);
+}
+.field input[type="text"], .field input[type="date"], .field input[type="search"],
+.field textarea, .field select {
+  font: inherit; padding: 8px 11px; border: 1px solid var(--line); border-radius: 8px;
+  background: white; color: var(--navy-900); width: 100%;
+}
+.field input:focus, .field textarea:focus, .field select:focus {
+  outline: 2px solid var(--navy-700); outline-offset: 1px; border-color: var(--navy-700);
+}
+.field textarea { resize: vertical; }
+.field-hint { font-size: 12px; color: var(--ink-3); margin: 2px 0 0; }
+.checkbox-inline { display: flex; align-items: center; gap: 8px; font-size: 13.5px; padding: 4px 0; cursor: pointer; }
+.checkbox-inline input { width: 16px; height: 16px; }
+
 /* Activity feed on the dashboard. */
 .activity { list-style: none; padding: 0; margin: 0; }
 .activity li { padding: 8px 0; border-bottom: 1px solid var(--line-2); font-size: 13.5px; }
@@ -194,6 +235,7 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 @media (max-width: 900px) {
   .stat-row { grid-template-columns: 1fr 1fr; }
   .detail-grid { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
   .layout { grid-template-columns: 1fr; }
   .sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 14px; gap: 10px; }
   .sidebar nav { flex-direction: row; flex-wrap: wrap; gap: 6px; }

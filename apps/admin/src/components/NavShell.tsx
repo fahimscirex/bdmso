@@ -11,7 +11,7 @@ const NAV: Section[] = [
   { label: 'Registrations', href: '/registrations' },
   { label: 'Payments',      href: '/payments' },
   { label: 'Sponsorships',  href: '/sponsorships' },
-  { label: 'Posts',         href: '/posts',    soon: true },
+  { label: 'Posts',         href: '/posts' },
   { label: 'Programs',      href: '/programs', soon: true },
   { label: 'Users',         href: '/users' },
   { label: 'Audit log',     href: '/audit' },

@@ -267,6 +267,180 @@ admin.patch("/sponsorships/:id/status", async (c) => {
   return c.json({ ok: true, id, status });
 });
 
+// ─── Posts (blog) ────────────────────────────────────────────────────────────
+//
+// Drafts vs published are distinguished by the `published` flag (0|1).
+// Slug is the primary key — caller supplies it; we don't auto-generate
+// because editors need to lock URLs before publishing.
+//
+// Note: the public site currently reads blog posts from files in
+// public/blog/. This D1-backed surface is the new pipeline; the
+// file-based one will continue to work until we migrate the renderer.
+
+const POST_FIELDS = [
+  "title", "excerpt", "category", "author", "image", "body_md",
+  "published", "featured", "published_at",
+];
+
+admin.get("/posts", async (c) => {
+  const status = c.req.query("status");  // 'published' | 'draft' | 'featured'
+  const q      = c.req.query("q");
+  const limit  = Math.min(Number(c.req.query("limit")) || 200, 1000);
+
+  const wheres = [];
+  const binds  = [];
+  if (status === "published") { wheres.push("published = 1"); }
+  if (status === "draft")     { wheres.push("published = 0"); }
+  if (status === "featured")  { wheres.push("featured = 1"); }
+  if (q) {
+    wheres.push("(title LIKE ? OR excerpt LIKE ? OR slug LIKE ?)");
+    const like = `%${q}%`;
+    binds.push(like, like, like);
+  }
+  const whereSql = wheres.length ? `WHERE ${wheres.join(" AND ")}` : "";
+
+  const rows = await c.env.DB.prepare(`
+    SELECT slug, title, excerpt, category, author, image,
+           published, featured, published_at, updated_at
+    FROM posts
+    ${whereSql}
+    ORDER BY COALESCE(published_at, updated_at) DESC
+    LIMIT ?
+  `).bind(...binds, limit).all();
+
+  const summary = await c.env.DB.prepare(`
+    SELECT
+      COUNT(*)                                         AS total,
+      SUM(CASE WHEN published = 1 THEN 1 ELSE 0 END)   AS published,
+      SUM(CASE WHEN published = 0 THEN 1 ELSE 0 END)   AS drafts,
+      SUM(CASE WHEN featured  = 1 THEN 1 ELSE 0 END)   AS featured
+    FROM posts
+  `).first();
+
+  return c.json({
+    ok: true,
+    rows: rows.results,
+    summary: {
+      total:     Number(summary?.total)     || 0,
+      published: Number(summary?.published) || 0,
+      drafts:    Number(summary?.drafts)    || 0,
+      featured:  Number(summary?.featured)  || 0,
+    },
+    filter: { status: status || null, q: q || null, limit },
+  });
+});
+
+admin.get("/posts/:slug", async (c) => {
+  const slug = c.req.param("slug");
+  const row = await c.env.DB.prepare(
+    "SELECT * FROM posts WHERE slug = ? LIMIT 1"
+  ).bind(slug).first();
+  if (!row) return c.json({ error: "Post not found." }, 404);
+  return c.json({ ok: true, post: row });
+});
+
+// POST /api/admin/posts  — create. Body: { slug, ...POST_FIELDS }
+admin.post("/posts", async (c) => {
+  const body = await c.req.json();
+  const slug = (body.slug || "").trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9-]{1,80}$/.test(slug)) {
+    return c.json({ error: "Slug must be 2–81 chars: a–z, 0–9, hyphens; can't start with a hyphen." }, 400);
+  }
+  if (!body.title || !body.body_md) {
+    return c.json({ error: "Title and body are required." }, 400);
+  }
+
+  const existing = await c.env.DB.prepare("SELECT slug FROM posts WHERE slug = ?").bind(slug).first();
+  if (existing) return c.json({ error: `A post with slug "${slug}" already exists.` }, 409);
+
+  const session = c.get("session");
+  const now = new Date().toISOString();
+  await c.env.DB.prepare(`
+    INSERT INTO posts (
+      slug, title, excerpt, category, author, image, body_md,
+      published, featured, published_at, updated_at, updated_by
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    slug,
+    body.title,
+    body.excerpt    || null,
+    body.category   || null,
+    body.author     || null,
+    body.image      || null,
+    body.body_md,
+    body.published ? 1 : 0,
+    body.featured  ? 1 : 0,
+    body.published_at || (body.published ? now : null),
+    now,
+    session.account_id,
+  ).run();
+
+  await recordAudit(c.env, session.account_id, "post.create", {
+    type: "post", id: slug, payload: { title: body.title, published: !!body.published },
+  });
+
+  return c.json({ ok: true, slug });
+});
+
+// PATCH /api/admin/posts/:slug — partial update. Any of POST_FIELDS allowed.
+admin.patch("/posts/:slug", async (c) => {
+  const slug = c.req.param("slug");
+  const body = await c.req.json();
+
+  const before = await c.env.DB.prepare("SELECT * FROM posts WHERE slug = ? LIMIT 1").bind(slug).first();
+  if (!before) return c.json({ error: "Post not found." }, 404);
+
+  const sets  = [];
+  const binds = [];
+  for (const f of POST_FIELDS) {
+    if (f in body) {
+      sets.push(`${f} = ?`);
+      // Normalise booleans for integer columns.
+      if (f === "published" || f === "featured") binds.push(body[f] ? 1 : 0);
+      else binds.push(body[f] || null);
+    }
+  }
+  if (!sets.length) return c.json({ error: "Nothing to update." }, 400);
+
+  const session = c.get("session");
+  // Auto-stamp published_at the first time we flip from draft → published.
+  if (body.published && !before.published && !body.published_at) {
+    sets.push("published_at = ?");
+    binds.push(new Date().toISOString());
+  }
+  sets.push("updated_at = ?"); binds.push(new Date().toISOString());
+  sets.push("updated_by = ?"); binds.push(session.account_id);
+
+  await c.env.DB.prepare(`UPDATE posts SET ${sets.join(", ")} WHERE slug = ?`).bind(...binds, slug).run();
+
+  await recordAudit(c.env, session.account_id, "post.update", {
+    type: "post", id: slug,
+    payload: {
+      fields: Object.keys(body).filter((k) => POST_FIELDS.includes(k)),
+      ...(before.published !== (body.published ? 1 : 0) && "published" in body
+        ? { published: { from: !!before.published, to: !!body.published } }
+        : {}),
+    },
+  });
+
+  return c.json({ ok: true, slug });
+});
+
+admin.delete("/posts/:slug", async (c) => {
+  const slug = c.req.param("slug");
+  const before = await c.env.DB.prepare("SELECT slug, title FROM posts WHERE slug = ?").bind(slug).first();
+  if (!before) return c.json({ error: "Post not found." }, 404);
+
+  await c.env.DB.prepare("DELETE FROM posts WHERE slug = ?").bind(slug).run();
+
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "post.delete", {
+    type: "post", id: slug, payload: { title: before.title },
+  });
+
+  return c.json({ ok: true, slug });
+});
+
 // ─── Users (accounts) ────────────────────────────────────────────────────────
 //
 // All accounts (guardians + staff) live in guardian_accounts.role.

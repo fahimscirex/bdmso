@@ -17,6 +17,8 @@ import { Payments } from './pages/Payments';
 import { Sponsorships } from './pages/Sponsorships';
 import { AuditLog } from './pages/AuditLog';
 import { Users } from './pages/Users';
+import { Posts } from './pages/Posts';
+import { PostEditor } from './pages/PostEditor';
 import { NavShell } from './components/NavShell';
 
 type Identity = { email: string; role: string };
@@ -76,15 +78,21 @@ export function App() {
 }
 
 function renderPage(route: string) {
-  // /registrations/:id — detail view. Match before the literal /registrations.
+  // /registrations/:id — detail view.
   const regDetail = route.match(/^\/registrations\/([\w-]+)$/);
   if (regDetail) return <RegistrationDetail id={regDetail[1]} />;
+
+  // /posts/new and /posts/:slug/edit — same editor, slug=null means create.
+  if (route === '/posts/new') return <PostEditor slug={null} />;
+  const postEdit = route.match(/^\/posts\/([a-z0-9][a-z0-9-]*)\/edit$/);
+  if (postEdit) return <PostEditor slug={postEdit[1]} />;
 
   switch (route) {
     case '/':              return <Dashboard />;
     case '/registrations': return <Registrations />;
     case '/payments':      return <Payments />;
     case '/sponsorships':  return <Sponsorships />;
+    case '/posts':         return <Posts />;
     case '/users':         return <Users />;
     case '/audit':         return <AuditLog />;
     default:               return <NotFound route={route} />;
