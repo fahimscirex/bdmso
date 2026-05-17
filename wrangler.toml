@@ -22,3 +22,11 @@ binding = "DB"
 database_name = "bdmso"
 database_id = "86bd0e2c-7ae3-4d41-a83e-cea098727326"
 preview_database_id = "86bd0e2c-7ae3-4d41-a83e-cea098727326"
+
+# R2 bucket for dashboard image uploads (post covers, program banners, etc.)
+# Create the bucket once:
+#   wrangler r2 bucket create bdmso-assets
+[[r2_buckets]]
+binding = "ASSETS_R2"
+bucket_name = "bdmso-assets"
+preview_bucket_name = "bdmso-assets"
