@@ -73,3 +73,7 @@ entities.json
 
 # File-manager image metadata sidecars (Dolphin/Nautilus)
 .comments/
+
+# TypeScript incremental build artifacts
+*.tsbuildinfo
+tsconfig.tsbuildinfo
