@@ -441,6 +441,187 @@ admin.delete("/posts/:slug", async (c) => {
   return c.json({ ok: true, slug });
 });
 
+// ─── Programs ────────────────────────────────────────────────────────────────
+//
+// Same shape as posts but with extra JSON columns for subjects, routine
+// and pricing. Validate that the JSON columns parse before writing so
+// editors don't ship malformed data to the renderer.
+
+const PROGRAM_FIELDS = [
+  "title", "tagline", "cohort", "image", "start_date", "end_date", "venue",
+  "audience", "subjects_json", "body_md", "routine_json", "pricing_json",
+  "registration_url", "published", "published_at",
+];
+
+function isValidJsonOrNull(s) {
+  if (s == null || s === "") return true;
+  try { JSON.parse(s); return true; } catch { return false; }
+}
+
+admin.get("/programs", async (c) => {
+  const status = c.req.query("status");  // 'published' | 'draft'
+  const q      = c.req.query("q");
+  const limit  = Math.min(Number(c.req.query("limit")) || 200, 1000);
+
+  const wheres = [];
+  const binds  = [];
+  if (status === "published") wheres.push("published = 1");
+  if (status === "draft")     wheres.push("published = 0");
+  if (q) {
+    wheres.push("(title LIKE ? OR tagline LIKE ? OR slug LIKE ?)");
+    const like = `%${q}%`;
+    binds.push(like, like, like);
+  }
+  const whereSql = wheres.length ? `WHERE ${wheres.join(" AND ")}` : "";
+
+  const rows = await c.env.DB.prepare(`
+    SELECT slug, title, tagline, cohort, image, start_date, end_date,
+           venue, audience, published, published_at, updated_at
+    FROM programs
+    ${whereSql}
+    ORDER BY COALESCE(published_at, updated_at) DESC
+    LIMIT ?
+  `).bind(...binds, limit).all();
+
+  const summary = await c.env.DB.prepare(`
+    SELECT
+      COUNT(*)                                         AS total,
+      SUM(CASE WHEN published = 1 THEN 1 ELSE 0 END)   AS published,
+      SUM(CASE WHEN published = 0 THEN 1 ELSE 0 END)   AS drafts
+    FROM programs
+  `).first();
+
+  return c.json({
+    ok: true,
+    rows: rows.results,
+    summary: {
+      total:     Number(summary?.total)     || 0,
+      published: Number(summary?.published) || 0,
+      drafts:    Number(summary?.drafts)    || 0,
+    },
+    filter: { status: status || null, q: q || null, limit },
+  });
+});
+
+admin.get("/programs/:slug", async (c) => {
+  const slug = c.req.param("slug");
+  const row = await c.env.DB.prepare(
+    "SELECT * FROM programs WHERE slug = ? LIMIT 1"
+  ).bind(slug).first();
+  if (!row) return c.json({ error: "Program not found." }, 404);
+  return c.json({ ok: true, program: row });
+});
+
+admin.post("/programs", async (c) => {
+  const body = await c.req.json();
+  const slug = (body.slug || "").trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9-]{1,80}$/.test(slug)) {
+    return c.json({ error: "Slug must be 2–81 chars: a–z, 0–9, hyphens; can't start with a hyphen." }, 400);
+  }
+  if (!body.title) return c.json({ error: "Title is required." }, 400);
+
+  for (const f of ["subjects_json", "routine_json", "pricing_json"]) {
+    if (!isValidJsonOrNull(body[f])) {
+      return c.json({ error: `${f} must be valid JSON or empty.` }, 400);
+    }
+  }
+
+  const existing = await c.env.DB.prepare("SELECT slug FROM programs WHERE slug = ?").bind(slug).first();
+  if (existing) return c.json({ error: `A program with slug "${slug}" already exists.` }, 409);
+
+  const session = c.get("session");
+  const now = new Date().toISOString();
+  await c.env.DB.prepare(`
+    INSERT INTO programs (
+      slug, title, tagline, cohort, image, start_date, end_date, venue,
+      audience, subjects_json, body_md, routine_json, pricing_json,
+      registration_url, published, published_at, updated_at, updated_by
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    slug,
+    body.title,
+    body.tagline          || null,
+    body.cohort           || null,
+    body.image            || null,
+    body.start_date       || null,
+    body.end_date         || null,
+    body.venue            || null,
+    body.audience         || null,
+    body.subjects_json    || null,
+    body.body_md          || null,
+    body.routine_json     || null,
+    body.pricing_json     || null,
+    body.registration_url || null,
+    body.published ? 1 : 0,
+    body.published_at || (body.published ? now : null),
+    now,
+    session.account_id,
+  ).run();
+
+  await recordAudit(c.env, session.account_id, "program.create", {
+    type: "program", id: slug, payload: { title: body.title, published: !!body.published },
+  });
+
+  return c.json({ ok: true, slug });
+});
+
+admin.patch("/programs/:slug", async (c) => {
+  const slug = c.req.param("slug");
+  const body = await c.req.json();
+
+  for (const f of ["subjects_json", "routine_json", "pricing_json"]) {
+    if (f in body && !isValidJsonOrNull(body[f])) {
+      return c.json({ error: `${f} must be valid JSON or empty.` }, 400);
+    }
+  }
+
+  const before = await c.env.DB.prepare("SELECT * FROM programs WHERE slug = ? LIMIT 1").bind(slug).first();
+  if (!before) return c.json({ error: "Program not found." }, 404);
+
+  const sets  = [];
+  const binds = [];
+  for (const f of PROGRAM_FIELDS) {
+    if (f in body) {
+      sets.push(`${f} = ?`);
+      if (f === "published") binds.push(body[f] ? 1 : 0);
+      else binds.push(body[f] || null);
+    }
+  }
+  if (!sets.length) return c.json({ error: "Nothing to update." }, 400);
+
+  const session = c.get("session");
+  if (body.published && !before.published && !body.published_at) {
+    sets.push("published_at = ?");
+    binds.push(new Date().toISOString());
+  }
+  sets.push("updated_at = ?"); binds.push(new Date().toISOString());
+  sets.push("updated_by = ?"); binds.push(session.account_id);
+
+  await c.env.DB.prepare(`UPDATE programs SET ${sets.join(", ")} WHERE slug = ?`).bind(...binds, slug).run();
+
+  await recordAudit(c.env, session.account_id, "program.update", {
+    type: "program", id: slug,
+    payload: { fields: Object.keys(body).filter((k) => PROGRAM_FIELDS.includes(k)) },
+  });
+
+  return c.json({ ok: true, slug });
+});
+
+admin.delete("/programs/:slug", async (c) => {
+  const slug = c.req.param("slug");
+  const before = await c.env.DB.prepare("SELECT slug, title FROM programs WHERE slug = ?").bind(slug).first();
+  if (!before) return c.json({ error: "Program not found." }, 404);
+
+  await c.env.DB.prepare("DELETE FROM programs WHERE slug = ?").bind(slug).run();
+
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "program.delete", {
+    type: "program", id: slug, payload: { title: before.title },
+  });
+
+  return c.json({ ok: true, slug });
+});
+
 // ─── Users (accounts) ────────────────────────────────────────────────────────
 //
 // All accounts (guardians + staff) live in guardian_accounts.role.

@@ -53,6 +53,9 @@ function summarizePayload(json: string | null): string {
 function linkForTarget(type: string | null, id: string | null): string | null {
   if (!type || !id) return null;
   if (type === 'registration') return href(`/registrations/${id}`);
+  if (type === 'post')         return href(`/posts/${id}/edit`);
+  if (type === 'program')      return href(`/programs/${id}/edit`);
+  if (type === 'user')         return href(`/users`);
   return null;
 }
 

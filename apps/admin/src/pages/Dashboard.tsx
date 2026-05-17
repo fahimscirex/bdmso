@@ -101,8 +101,11 @@ export function Dashboard() {
               <ul class="activity">
                 {data.audit.map((a) => {
                   const change = summarizePayload(a.payload_json);
-                  const targetHref = a.target_type === 'registration' && a.target_id
-                    ? href(`/registrations/${a.target_id}`) : null;
+                  const targetHref = !a.target_id ? null
+                    : a.target_type === 'registration' ? href(`/registrations/${a.target_id}`)
+                    : a.target_type === 'post'         ? href(`/posts/${a.target_id}/edit`)
+                    : a.target_type === 'program'      ? href(`/programs/${a.target_id}/edit`)
+                    : null;
                   return (
                     <li>
                       <span class="cell-sub">{formatDateTime(a.created_at)}</span>{' '}

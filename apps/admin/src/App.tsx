@@ -19,6 +19,8 @@ import { AuditLog } from './pages/AuditLog';
 import { Users } from './pages/Users';
 import { Posts } from './pages/Posts';
 import { PostEditor } from './pages/PostEditor';
+import { Programs } from './pages/Programs';
+import { ProgramEditor } from './pages/ProgramEditor';
 import { NavShell } from './components/NavShell';
 
 type Identity = { email: string; role: string };
@@ -87,12 +89,18 @@ function renderPage(route: string) {
   const postEdit = route.match(/^\/posts\/([a-z0-9][a-z0-9-]*)\/edit$/);
   if (postEdit) return <PostEditor slug={postEdit[1]} />;
 
+  // /programs/new and /programs/:slug/edit — same pattern as posts.
+  if (route === '/programs/new') return <ProgramEditor slug={null} />;
+  const progEdit = route.match(/^\/programs\/([a-z0-9][a-z0-9-]*)\/edit$/);
+  if (progEdit) return <ProgramEditor slug={progEdit[1]} />;
+
   switch (route) {
     case '/':              return <Dashboard />;
     case '/registrations': return <Registrations />;
     case '/payments':      return <Payments />;
     case '/sponsorships':  return <Sponsorships />;
     case '/posts':         return <Posts />;
+    case '/programs':      return <Programs />;
     case '/users':         return <Users />;
     case '/audit':         return <AuditLog />;
     default:               return <NotFound route={route} />;
