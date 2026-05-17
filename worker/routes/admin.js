@@ -725,6 +725,167 @@ admin.patch("/users/:id/role", async (c) => {
   return c.json({ ok: true, id, role });
 });
 
+// ─── Coupons ─────────────────────────────────────────────────────────────────
+//
+// Coupons are how we hand out partner / scholarship discounts. The
+// public /api/validate-coupon endpoint reads from this table; here we
+// give admins list / create / update / delete.
+//
+// Codes are stored verbatim (upper-cased on write) so the public
+// validator can compare case-insensitively without indexing trickery.
+
+const COUPON_UPDATE_FIELDS = ["discount_type", "discount_value", "max_uses", "applies_to", "expires_at"];
+
+admin.get("/coupons", async (c) => {
+  const q     = c.req.query("q");
+  const limit = Math.min(Number(c.req.query("limit")) || 200, 1000);
+
+  const wheres = [];
+  const binds  = [];
+  if (q) {
+    wheres.push("(code LIKE ? OR IFNULL(applies_to, '') LIKE ?)");
+    const like = `%${q.toUpperCase()}%`;
+    binds.push(like, like);
+  }
+  const whereSql = wheres.length ? `WHERE ${wheres.join(" AND ")}` : "";
+
+  const rows = await c.env.DB.prepare(`
+    SELECT code, discount_type, discount_value, max_uses, used_count,
+           applies_to, expires_at, created_at
+    FROM coupons
+    ${whereSql}
+    ORDER BY created_at DESC
+    LIMIT ?
+  `).bind(...binds, limit).all();
+
+  const now = new Date().toISOString();
+  const summary = await c.env.DB.prepare(`
+    SELECT
+      COUNT(*) AS total,
+      SUM(CASE WHEN expires_at IS NULL OR expires_at > ? THEN 1 ELSE 0 END) AS active,
+      SUM(CASE WHEN expires_at IS NOT NULL AND expires_at <= ? THEN 1 ELSE 0 END) AS expired,
+      SUM(CASE WHEN max_uses IS NOT NULL AND used_count >= max_uses THEN 1 ELSE 0 END) AS exhausted,
+      COALESCE(SUM(used_count), 0) AS total_redemptions
+    FROM coupons
+  `).bind(now, now).first();
+
+  return c.json({
+    ok: true,
+    rows: rows.results,
+    summary: {
+      total:             Number(summary?.total)             || 0,
+      active:            Number(summary?.active)            || 0,
+      expired:           Number(summary?.expired)           || 0,
+      exhausted:         Number(summary?.exhausted)         || 0,
+      total_redemptions: Number(summary?.total_redemptions) || 0,
+    },
+    filter: { q: q || null, limit },
+  });
+});
+
+admin.post("/coupons", async (c) => {
+  const body = await c.req.json();
+  const code = (body.code || "").trim().toUpperCase();
+  if (!/^[A-Z0-9][A-Z0-9_-]{2,31}$/.test(code)) {
+    return c.json({ error: "Code must be 3–32 chars: A–Z, 0–9, _ or -; can't start with _ or -." }, 400);
+  }
+  const type  = body.discount_type === "fixed" ? "fixed" : "percent";
+  const value = Number(body.discount_value);
+  if (!Number.isFinite(value) || value <= 0) {
+    return c.json({ error: "discount_value must be a positive number." }, 400);
+  }
+  if (type === "percent" && value > 100) {
+    return c.json({ error: "Percent discount can't exceed 100." }, 400);
+  }
+  const maxUses = body.max_uses == null || body.max_uses === ""
+    ? null : Math.max(0, Math.floor(Number(body.max_uses)));
+
+  const existing = await c.env.DB.prepare("SELECT code FROM coupons WHERE code = ?").bind(code).first();
+  if (existing) return c.json({ error: `Coupon "${code}" already exists.` }, 409);
+
+  const now = new Date().toISOString();
+  await c.env.DB.prepare(`
+    INSERT INTO coupons (code, discount_type, discount_value, max_uses, used_count,
+                         applies_to, expires_at, created_at)
+    VALUES (?, ?, ?, ?, 0, ?, ?, ?)
+  `).bind(
+    code, type, value, maxUses,
+    body.applies_to || null,
+    body.expires_at || null,
+    now,
+  ).run();
+
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "coupon.create", {
+    type: "coupon", id: code, payload: { discount_type: type, discount_value: value, max_uses: maxUses },
+  });
+
+  return c.json({ ok: true, code });
+});
+
+admin.patch("/coupons/:code", async (c) => {
+  const code = c.req.param("code").toUpperCase();
+  const body = await c.req.json();
+
+  const before = await c.env.DB.prepare("SELECT * FROM coupons WHERE code = ? LIMIT 1").bind(code).first();
+  if (!before) return c.json({ error: "Coupon not found." }, 404);
+
+  const sets  = [];
+  const binds = [];
+  for (const f of COUPON_UPDATE_FIELDS) {
+    if (!(f in body)) continue;
+    let value = body[f];
+    if (f === "discount_value") {
+      const n = Number(value);
+      if (!Number.isFinite(n) || n <= 0) return c.json({ error: "discount_value must be positive." }, 400);
+      const type = body.discount_type || before.discount_type;
+      if (type === "percent" && n > 100) return c.json({ error: "Percent discount can't exceed 100." }, 400);
+      value = n;
+    }
+    if (f === "max_uses") {
+      value = value == null || value === "" ? null : Math.max(0, Math.floor(Number(value)));
+    }
+    if ((f === "applies_to" || f === "expires_at") && value === "") value = null;
+    sets.push(`${f} = ?`);
+    binds.push(value);
+  }
+  if (!sets.length) return c.json({ error: "Nothing to update." }, 400);
+
+  await c.env.DB.prepare(`UPDATE coupons SET ${sets.join(", ")} WHERE code = ?`).bind(...binds, code).run();
+
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "coupon.update", {
+    type: "coupon", id: code,
+    payload: { fields: Object.keys(body).filter((k) => COUPON_UPDATE_FIELDS.includes(k)) },
+  });
+
+  return c.json({ ok: true, code });
+});
+
+admin.delete("/coupons/:code", async (c) => {
+  const code = c.req.param("code").toUpperCase();
+  const before = await c.env.DB.prepare("SELECT code, used_count FROM coupons WHERE code = ?").bind(code).first();
+  if (!before) return c.json({ error: "Coupon not found." }, 404);
+
+  // Refuse to hard-delete coupons that have been used — referenced by
+  // payments.coupon_code; deleting would orphan that history. Expire
+  // instead by setting expires_at in the past.
+  if (Number(before.used_count) > 0) {
+    return c.json({
+      error: `Coupon "${code}" has been used ${before.used_count} time(s). Expire it instead of deleting.`,
+    }, 409);
+  }
+
+  await c.env.DB.prepare("DELETE FROM coupons WHERE code = ?").bind(code).run();
+
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "coupon.delete", {
+    type: "coupon", id: code, payload: {},
+  });
+
+  return c.json({ ok: true, code });
+});
+
 // ─── Uploads (R2) ────────────────────────────────────────────────────────────
 //
 // POST /api/admin/uploads  (multipart/form-data)

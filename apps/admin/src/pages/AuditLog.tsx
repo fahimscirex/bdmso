@@ -55,6 +55,7 @@ function linkForTarget(type: string | null, id: string | null): string | null {
   if (type === 'registration') return href(`/registrations/${id}`);
   if (type === 'post')         return href(`/posts/${id}/edit`);
   if (type === 'program')      return href(`/programs/${id}/edit`);
+  if (type === 'coupon')       return href(`/coupons`);
   if (type === 'user')         return href(`/users`);
   return null;
 }

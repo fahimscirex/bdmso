@@ -13,6 +13,7 @@ const NAV: Section[] = [
   { label: 'Sponsorships',  href: '/sponsorships' },
   { label: 'Posts',         href: '/posts' },
   { label: 'Programs',      href: '/programs' },
+  { label: 'Coupons',       href: '/coupons' },
   { label: 'Users',         href: '/users' },
   { label: 'Audit log',     href: '/audit' },
   { label: 'Settings',      href: '/settings' },
