@@ -16,6 +16,7 @@ import { RegistrationDetail } from './pages/RegistrationDetail';
 import { Payments } from './pages/Payments';
 import { Sponsorships } from './pages/Sponsorships';
 import { AuditLog } from './pages/AuditLog';
+import { Users } from './pages/Users';
 import { NavShell } from './components/NavShell';
 
 type Identity = { email: string; role: string };
@@ -84,6 +85,7 @@ function renderPage(route: string) {
     case '/registrations': return <Registrations />;
     case '/payments':      return <Payments />;
     case '/sponsorships':  return <Sponsorships />;
+    case '/users':         return <Users />;
     case '/audit':         return <AuditLog />;
     default:               return <NotFound route={route} />;
   }

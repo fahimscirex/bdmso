@@ -267,6 +267,109 @@ admin.patch("/sponsorships/:id/status", async (c) => {
   return c.json({ ok: true, id, status });
 });
 
+// ─── Users (accounts) ────────────────────────────────────────────────────────
+//
+// All accounts (guardians + staff) live in guardian_accounts.role.
+// Admins can list everyone and bump a role. Never expose password hashes.
+//
+// GET /api/admin/users
+// Query params: role (filter), q (substring on email|full_name|member_id),
+//               limit (default 200)
+admin.get("/users", async (c) => {
+  const role  = c.req.query("role");
+  const q     = c.req.query("q");
+  const limit = Math.min(Number(c.req.query("limit")) || 200, 1000);
+
+  const wheres = [];
+  const binds  = [];
+  if (role) { wheres.push("role = ?"); binds.push(role); }
+  if (q) {
+    wheres.push("(email LIKE ? OR full_name LIKE ? OR IFNULL(member_id, '') LIKE ?)");
+    const like = `%${q}%`;
+    binds.push(like, like, like);
+  }
+  const whereSql = wheres.length ? `WHERE ${wheres.join(" AND ")}` : "";
+
+  const rows = await c.env.DB.prepare(`
+    SELECT
+      a.id, a.email, a.full_name, a.phone, a.email_verified, a.member_id,
+      a.role, a.created_at,
+      (SELECT COUNT(*) FROM registrations r WHERE r.guardian_account_id = a.id)
+        AS registration_count
+    FROM guardian_accounts a
+    ${whereSql}
+    ORDER BY a.created_at DESC
+    LIMIT ?
+  `).bind(...binds, limit).all();
+
+  const summary = await c.env.DB.prepare(`
+    SELECT
+      COUNT(*)                                                AS total,
+      SUM(CASE WHEN role = 'admin'    THEN 1 ELSE 0 END)      AS admins,
+      SUM(CASE WHEN role = 'editor'   THEN 1 ELSE 0 END)      AS editors,
+      SUM(CASE WHEN role = 'guardian' THEN 1 ELSE 0 END)      AS guardians,
+      SUM(CASE WHEN email_verified = 1 THEN 1 ELSE 0 END)     AS verified
+    FROM guardian_accounts
+  `).first();
+
+  return c.json({
+    ok: true,
+    rows: rows.results,
+    summary: {
+      total:     Number(summary?.total)     || 0,
+      admins:    Number(summary?.admins)    || 0,
+      editors:   Number(summary?.editors)   || 0,
+      guardians: Number(summary?.guardians) || 0,
+      verified:  Number(summary?.verified)  || 0,
+    },
+    filter: { role: role || null, q: q || null, limit },
+  });
+});
+
+// PATCH /api/admin/users/:id/role
+// Body: { role: 'guardian' | 'admin' | 'editor' | 'mentor' }
+// Guardrails:
+//   * Admins cannot demote themselves (avoid locking themselves out).
+//   * Demoting the LAST admin is rejected.
+admin.patch("/users/:id/role", async (c) => {
+  const id = c.req.param("id");
+  const { role } = await c.req.json();
+  const allowed = ["guardian", "admin", "editor", "mentor"];
+  if (!allowed.includes(role)) {
+    return c.json({ error: `Invalid role. Allowed: ${allowed.join(", ")}` }, 400);
+  }
+
+  const session = c.get("session");
+  if (id === session.account_id && role !== "admin") {
+    return c.json({ error: "You cannot remove your own admin role." }, 400);
+  }
+
+  const before = await c.env.DB.prepare(
+    "SELECT id, role FROM guardian_accounts WHERE id = ? LIMIT 1"
+  ).bind(id).first();
+  if (!before) return c.json({ error: "User not found." }, 404);
+
+  // Block demoting the last admin in the system.
+  if (before.role === "admin" && role !== "admin") {
+    const remaining = await c.env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM guardian_accounts WHERE role = 'admin' AND id != ?"
+    ).bind(id).first();
+    if (!Number(remaining?.n)) {
+      return c.json({ error: "Refusing to demote the last admin." }, 400);
+    }
+  }
+
+  await c.env.DB.prepare("UPDATE guardian_accounts SET role = ? WHERE id = ?").bind(role, id).run();
+
+  await recordAudit(c.env, session.account_id, "user.update_role", {
+    type: "user",
+    id,
+    payload: { from: before.role, to: role },
+  });
+
+  return c.json({ ok: true, id, role });
+});
+
 // ─── Audit log ───────────────────────────────────────────────────────────────
 //
 // GET /api/admin/audit
