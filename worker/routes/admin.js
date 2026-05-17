@@ -267,4 +267,51 @@ admin.patch("/sponsorships/:id/status", async (c) => {
   return c.json({ ok: true, id, status });
 });
 
+// ─── Audit log ───────────────────────────────────────────────────────────────
+//
+// GET /api/admin/audit
+// Query params: limit (default 200), action (substring filter),
+//               target_type, target_id, account_id
+// Joined to guardian_accounts so the UI can render the actor's email
+// without a second round-trip.
+admin.get("/audit", async (c) => {
+  const limit       = Math.min(Number(c.req.query("limit")) || 200, 1000);
+  const action      = c.req.query("action");
+  const targetType  = c.req.query("target_type");
+  const targetId    = c.req.query("target_id");
+  const accountId   = c.req.query("account_id");
+
+  const wheres = [];
+  const binds  = [];
+  if (action)     { wheres.push("l.action LIKE ?");    binds.push(`%${action}%`); }
+  if (targetType) { wheres.push("l.target_type = ?");  binds.push(targetType); }
+  if (targetId)   { wheres.push("l.target_id = ?");    binds.push(targetId); }
+  if (accountId)  { wheres.push("l.account_id = ?");   binds.push(accountId); }
+  const whereSql = wheres.length ? `WHERE ${wheres.join(" AND ")}` : "";
+
+  const rows = await c.env.DB.prepare(`
+    SELECT
+      l.id, l.account_id, l.action, l.target_type, l.target_id,
+      l.payload_json, l.created_at,
+      a.email AS account_email
+    FROM admin_audit_log l
+    LEFT JOIN guardian_accounts a ON a.id = l.account_id
+    ${whereSql}
+    ORDER BY l.created_at DESC
+    LIMIT ?
+  `).bind(...binds, limit).all();
+
+  return c.json({
+    ok: true,
+    rows: rows.results,
+    filter: {
+      action:      action     || null,
+      target_type: targetType || null,
+      target_id:   targetId   || null,
+      account_id:  accountId  || null,
+      limit,
+    },
+  });
+});
+
 export default admin;

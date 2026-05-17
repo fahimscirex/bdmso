@@ -14,6 +14,7 @@ const NAV: Section[] = [
   { label: 'Posts',         href: '/posts',    soon: true },
   { label: 'Programs',      href: '/programs', soon: true },
   { label: 'Users',         href: '/users',    soon: true },
+  { label: 'Audit log',     href: '/audit' },
   { label: 'Settings',      href: '/settings', soon: true },
 ];
 
