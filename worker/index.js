@@ -16,8 +16,20 @@ import {
   handleCreatePayment, handlePaymentCallback,
   handleVerifyEmail, handleResendVerification,
 } from "./routes/public.js";
+import guardianRoutes from "./routes/guardian.js";
+import adminRoutes from "./routes/admin.js";
 
 // ─── API (Hono) ───────────────────────────────────────────────────────────────
+//
+// Three tiers:
+//   /api/*           public (this file) — anyone can hit, may self-authenticate
+//   /api/me/*        guardian (routes/guardian.js) — any authed role, mounted below
+//   /api/admin/*     admin   (routes/admin.js)    — role-gated, mounted below
+//
+// Note: `GET /api/me` (exact match) is the existing public-tier dashboard
+// payload (account + registrations). The guardian sub-app handles deeper
+// paths like /api/me/profile. Hono's trie router routes the exact match
+// first, so both coexist cleanly.
 
 const api = new Hono().basePath("/api");
 
@@ -32,6 +44,9 @@ api.post("/create-payment",        (c) => handleCreatePayment(c.req.raw, c.env))
 api.all ("/payment-callback",      (c) => handlePaymentCallback(c.req.raw, c.env, new URL(c.req.url)));
 api.get ("/verify-email",          (c) => handleVerifyEmail(c.req.raw, c.env, new URL(c.req.url)));
 api.post("/resend-verification",   (c) => handleResendVerification(c.req.raw, c.env));
+
+api.route("/me",    guardianRoutes);   // /api/me/profile, ...
+api.route("/admin", adminRoutes);      // /api/admin/health, ...
 
 // Intentional user-facing errors carry `.status` (from requireAuth, requireField,
 // etc.) — surface as-is. Anything else is internal (D1 errors, bugs) → log + opaque
