@@ -16,7 +16,7 @@ export async function verifySession(env, token) {
   if (!token) return null;
   const now = new Date().toISOString();
   const row = await env.DB.prepare(`
-    SELECT s.account_id, a.email, a.full_name, a.role
+    SELECT s.id, s.account_id, a.email, a.full_name, a.role
     FROM sessions s
     JOIN guardian_accounts a ON a.id = s.account_id
     WHERE s.id = ? AND s.expires_at > ?

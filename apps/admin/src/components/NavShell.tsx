@@ -15,7 +15,7 @@ const NAV: Section[] = [
   { label: 'Programs',      href: '/programs' },
   { label: 'Users',         href: '/users' },
   { label: 'Audit log',     href: '/audit' },
-  { label: 'Settings',      href: '/settings', soon: true },
+  { label: 'Settings',      href: '/settings' },
 ];
 
 type Props = {

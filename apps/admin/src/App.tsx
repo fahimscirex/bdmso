@@ -21,6 +21,7 @@ import { Posts } from './pages/Posts';
 import { PostEditor } from './pages/PostEditor';
 import { Programs } from './pages/Programs';
 import { ProgramEditor } from './pages/ProgramEditor';
+import { Settings } from './pages/Settings';
 import { NavShell } from './components/NavShell';
 
 type Identity = { email: string; role: string };
@@ -103,6 +104,7 @@ function renderPage(route: string) {
     case '/programs':      return <Programs />;
     case '/users':         return <Users />;
     case '/audit':         return <AuditLog />;
+    case '/settings':      return <Settings />;
     default:               return <NotFound route={route} />;
   }
 }
