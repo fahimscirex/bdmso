@@ -18,7 +18,8 @@
     "cf:deploy": "npm run build:all && wrangler deploy --config wrangler.prod.toml",
     "cf:d1:init": "wrangler d1 execute bdmso --local --file=./db/schema.sql",
     "cf:d1:init:prod": "wrangler d1 execute bdmso --file=./db/schema.sql",
-    "admin:create": "node scripts/create-admin.mjs"
+    "admin:create": "node scripts/create-admin.mjs",
+    "seed:registrations": "node scripts/seed-registrations.mjs"
   },
   "engines": {
     "node": ">=20"

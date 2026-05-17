@@ -1,95 +1,165 @@
-/* Minimal styles for the admin login + signed-in shells. Replaced by
-   packages/ui in Sprint 1. */
+/* Admin SPA styles — tokenised after BdMSO marketing palette so future
+   packages/ui can hoist without rework. Compact + tabular, designed for
+   high information density, not marketing flourish. */
+
 :root {
   --navy-900: #16254d;
+  --navy-800: #2f448c;
   --navy-700: #4252ab;
   --navy-100: #e8ecfb;
-  --ink-2: #49566f;
-  --ink-3: #7a8497;
-  --bg: #fbfcfe;
-  --line: #dbe1ec;
-  --red: #dc2626;
+  --navy-50:  #f5f7ff;
+  --ink:      #17284a;
+  --ink-2:    #49566f;
+  --ink-3:    #7a8497;
+  --bg:       #fbfcfe;
+  --bg-alt:   #f3f7fc;
+  --line:     #dbe1ec;
+  --line-2:   #ebeff6;
+  --green:    #15803d;
+  --green-bg: #d1fae5;
+  --amber:    #b45309;
+  --amber-bg: #fef3c7;
+  --red:      #dc2626;
+  --red-bg:   #fee2e2;
+  --muted:    #6b7280;
+  --muted-bg: #f3f4f6;
   font-family: -apple-system, 'Plus Jakarta Sans', Segoe UI, Roboto, sans-serif;
+  font-size: 14px;
   color: var(--navy-900);
   background: var(--bg);
 }
 
 * { box-sizing: border-box; }
 html, body, #app { height: 100%; margin: 0; }
-
-.shell {
-  min-height: 100%;
-  display: grid;
-  place-items: center;
-  padding: 32px;
-}
-
-.card {
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 32px;
-  max-width: 420px;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.eyebrow {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--navy-700);
-}
-
-h1 { margin: 0; font-size: 1.6rem; }
-.sub { color: var(--ink-2); font-size: 14px; line-height: 1.5; margin: 0 0 6px; }
+a { color: inherit; text-decoration: none; }
 code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-size: 0.88em; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 
-label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
-label span { color: var(--ink-2); }
-input {
-  font: inherit;
-  padding: 11px 13px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: white;
-  color: var(--navy-900);
-  font-weight: 400;
-}
-input:focus { outline: 2px solid var(--navy-700); outline-offset: 1px; border-color: var(--navy-700); }
+/* ─── Auth shell (login + bare states) ──────────────────────────────────── */
 
-button {
-  font: inherit;
-  padding: 11px 18px;
-  border: 0;
-  border-radius: 9px;
+.shell { min-height: 100%; display: grid; place-items: center; padding: 32px; }
+.shell .card { max-width: 420px; width: 100%; background: white; border: 1px solid var(--line); border-radius: 14px; padding: 32px; display: flex; flex-direction: column; gap: 14px; }
+.shell .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--navy-700); }
+.shell h1 { margin: 0; font-size: 1.6rem; }
+.shell .sub { color: var(--ink-2); font-size: 14px; line-height: 1.5; margin: 0 0 6px; }
+.shell label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.shell input { font: inherit; padding: 11px 13px; border: 1px solid var(--line); border-radius: 9px; background: white; color: var(--navy-900); font-weight: 400; }
+.shell input:focus { outline: 2px solid var(--navy-700); outline-offset: 1px; border-color: var(--navy-700); }
+.shell button { font: inherit; padding: 11px 18px; border: 0; border-radius: 9px; background: var(--navy-900); color: white; font-weight: 600; cursor: pointer; margin-top: 4px; }
+.shell button:hover { background: var(--navy-700); }
+.shell button:disabled { background: var(--ink-3); cursor: progress; }
+
+/* ─── Layout (sidebar + main) ───────────────────────────────────────────── */
+
+.layout { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+
+.sidebar {
   background: var(--navy-900);
-  color: white;
-  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+  padding: 24px 16px;
+  display: flex; flex-direction: column; gap: 18px;
+  position: sticky; top: 0; height: 100vh;
+}
+.brand { display: flex; align-items: center; gap: 12px; padding: 0 8px 8px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.brand-mark {
+  width: 36px; height: 36px; border-radius: 9px;
+  background: linear-gradient(135deg, #35baa6, #4252ab);
+  display: grid; place-items: center;
+  font-weight: 800; color: white; font-size: 14px; letter-spacing: -0.02em;
+}
+.brand-name { font-weight: 700; color: white; font-size: 15px; letter-spacing: -0.01em; }
+.brand-sub  { font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.14em; margin-top: 1px; }
+.sidebar nav { display: flex; flex-direction: column; gap: 2px; }
+.nav-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 12px; border-radius: 8px;
+  color: rgba(255,255,255,0.7);
+  font-weight: 500; font-size: 13.5px;
+  transition: background 0.12s, color 0.12s;
   cursor: pointer;
-  margin-top: 4px;
 }
-button:hover { background: var(--navy-700); }
-button:disabled { background: var(--ink-3); cursor: progress; }
+.nav-item:hover:not(.soon) { background: rgba(255,255,255,0.08); color: white; }
+.nav-item.active { background: rgba(255,255,255,0.12); color: white; font-weight: 600; }
+.nav-item.soon { color: rgba(255,255,255,0.32); cursor: default; }
+.nav-item .badge { font-size: 9.5px; padding: 2px 6px; border-radius: 999px; background: rgba(255,255,255,0.08); letter-spacing: 0.06em; text-transform: uppercase; }
 
-.error {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: var(--red);
-  padding: 10px 14px;
-  border-radius: 9px;
-  font-size: 13px;
+.main { display: flex; flex-direction: column; min-width: 0; }
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 28px; background: white; border-bottom: 1px solid var(--line);
 }
+.topbar-user { display: flex; align-items: baseline; gap: 10px; }
+.topbar-email { font-weight: 600; font-size: 13.5px; }
+.topbar-role  { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--navy-700); background: var(--navy-100); padding: 2px 8px; border-radius: 999px; }
+.link {
+  background: none; border: 0; padding: 6px 10px; border-radius: 7px;
+  font: inherit; color: var(--ink-2); cursor: pointer;
+}
+.link:hover { background: var(--navy-50); color: var(--navy-900); }
 
-.kv {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 8px 16px;
-  margin: 0;
-  font-size: 14px;
-}
+.content { padding: 28px; flex: 1; min-width: 0; }
+
+/* ─── Page primitives ───────────────────────────────────────────────────── */
+
+.page-header { margin-bottom: 22px; }
+.page-header h1 { font-size: 1.7rem; margin: 0 0 4px; letter-spacing: -0.01em; }
+.page-header .sub { color: var(--ink-2); font-size: 14px; margin: 0; }
+
+.card { background: white; border: 1px solid var(--line); border-radius: 12px; padding: 24px; margin: 0 0 18px; }
+.card h2 { margin: 0 0 12px; font-size: 1rem; color: var(--navy-900); }
+
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 8px 18px; margin: 0; font-size: 13.5px; }
 .kv dt { font-weight: 600; color: var(--ink-2); }
-.kv dd { margin: 0; color: var(--navy-900); }
+.kv dd { margin: 0; }
+
+.muted { color: var(--ink-3); font-size: 13.5px; }
+.error { background: var(--red-bg); border: 1px solid #fecaca; color: var(--red); padding: 10px 14px; border-radius: 9px; font-size: 13px; }
+.empty { background: white; border: 1px dashed var(--line); border-radius: 12px; padding: 28px; text-align: center; color: var(--ink-2); }
+.empty p { margin: 4px 0; }
+.empty code { background: var(--navy-100); }
+
+/* ─── Stat row (KPI cards) ──────────────────────────────────────────────── */
+
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.stat { background: white; border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; }
+.stat-value { font-size: 1.6rem; font-weight: 700; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1.1; }
+.stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); margin-top: 4px; }
+.stat-ok .stat-value    { color: var(--green); }
+.stat-warn .stat-value  { color: var(--amber); }
+.stat-muted .stat-value { color: var(--muted); }
+
+/* ─── Toolbar (filters above tables) ────────────────────────────────────── */
+
+.toolbar { display: flex; gap: 16px; align-items: end; margin-bottom: 14px; flex-wrap: wrap; }
+.toolbar label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.toolbar select, .toolbar input {
+  font: inherit; padding: 7px 11px; border: 1px solid var(--line); border-radius: 8px;
+  background: white; color: var(--navy-900); min-width: 220px;
+}
+.toolbar select:focus, .toolbar input:focus { outline: 2px solid var(--navy-700); outline-offset: 1px; border-color: var(--navy-700); }
+
+/* ─── Tables ────────────────────────────────────────────────────────────── */
+
+.table-wrap { background: white; border: 1px solid var(--line); border-radius: 12px; overflow: auto; }
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); text-align: left; padding: 11px 14px; background: var(--bg-alt); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.data-table td { padding: 12px 14px; border-bottom: 1px solid var(--line-2); vertical-align: top; }
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover { background: var(--navy-50); }
+.cell-strong { font-weight: 600; color: var(--navy-900); }
+.cell-sub    { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+
+/* ─── Badges ────────────────────────────────────────────────────────────── */
+
+.badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.06em; }
+.badge-ok    { background: var(--green-bg); color: var(--green); }
+.badge-warn  { background: var(--amber-bg); color: var(--amber); }
+.badge-bad   { background: var(--red-bg);   color: var(--red); }
+.badge-muted { background: var(--muted-bg); color: var(--muted); }
+
+@media (max-width: 900px) {
+  .stat-row { grid-template-columns: 1fr 1fr; }
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 14px; gap: 10px; }
+  .sidebar nav { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+  .nav-item { padding: 7px 10px; font-size: 13px; }
+}

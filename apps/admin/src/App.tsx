@@ -1,165 +1,90 @@
-// Admin SPA shell with a real login flow you can try end-to-end.
+// Top-level: auth gate + route switch. Two-state UI:
+//   1. No token → show Login. On success, save token + re-render.
+//   2. Token   → show NavShell with the right page for the current URL.
 //
-// Login flow:
-//   1. POST /api/login → { token, role, ... }
-//   2. If role !== 'admin' → show "not admin" message, no token saved
-//   3. Otherwise → save token to localStorage and fetch /api/admin/health
-//      to confirm the admin namespace works with the new bearer token
-//
-// This is intentionally bare — no router, no TanStack Query yet. Sprint 1
-// replaces this with real screens (users, posts, programs, ops).
+// Sign-out (or any 401 from the API client) clears the token, dropping back
+// to state 1.
 
 import { useEffect, useState } from 'preact/hooks';
+import { getToken, clearToken } from './auth';
+import { useRoute } from './router';
+import { api, ApiError } from './api';
+import { Login } from './pages/Login';
+import { Dashboard } from './pages/Dashboard';
+import { Registrations } from './pages/Registrations';
+import { NavShell } from './components/NavShell';
 
-const TOKEN_KEY = 'bdmso.admin.token';
-
-type LoginResponse = {
-  ok: true;
-  token: string;
-  accountId: string;
-  fullName: string;
-  email: string;
-  role: string;
-  emailVerified: boolean;
-};
-
-type HealthResponse = {
-  ok: true;
-  accountId: string;
-  email: string;
-  role: string;
-  serverTime: string;
-};
+type Identity = { email: string; role: string };
 
 export function App() {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY));
+  const [token, setTokenState] = useState<string | null>(() => getToken());
+  const [identity, setIdentity] = useState<Identity | null>(null);
+  const [identityError, setIdentityError] = useState<string | null>(null);
+  const route = useRoute();
 
-  if (!token) {
-    return <Login onLogin={(t) => { localStorage.setItem(TOKEN_KEY, t); setToken(t); }} />;
-  }
-
-  return (
-    <SignedIn
-      token={token}
-      onLogout={() => { localStorage.removeItem(TOKEN_KEY); setToken(null); }}
-    />
-  );
-}
-
-function Login({ onLogin }: { onLogin: (token: string) => void }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function submit(e: Event) {
-    e.preventDefault();
-    setError(null);
-    setBusy(true);
-    try {
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
-      const data = body as LoginResponse;
-      if (data.role !== 'admin') {
-        throw new Error(`Your account has role "${data.role}". Admin access only.`);
-      }
-      onLogin(data.token);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <main class="shell">
-      <form class="card" onSubmit={submit}>
-        <div class="eyebrow">BdMSO admin</div>
-        <h1>Sign in</h1>
-        <p class="sub">Admin-only. Guardians log in at <code>/dashboard</code>.</p>
-
-        <label>
-          <span>Email</span>
-          <input
-            type="email"
-            value={email}
-            onInput={(e) => setEmail((e.target as HTMLInputElement).value)}
-            required
-            autocomplete="username"
-            autofocus
-          />
-        </label>
-
-        <label>
-          <span>Password</span>
-          <input
-            type="password"
-            value={password}
-            onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
-            required
-            autocomplete="current-password"
-          />
-        </label>
-
-        {error && <div class="error">{error}</div>}
-
-        <button type="submit" disabled={busy}>
-          {busy ? 'Signing in…' : 'Sign in'}
-        </button>
-      </form>
-    </main>
-  );
-}
-
-function SignedIn({ token, onLogout }: { token: string; onLogout: () => void }) {
-  const [health, setHealth] = useState<HealthResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
+  // Once we have a token, fetch /api/admin/health to populate the topbar.
+  // A 401 here means the token is dead — drop it and bounce to login.
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch('/api/admin/health', {
-          headers: { authorization: `Bearer ${token}` },
-        });
-        const body = await res.json();
-        if (!res.ok) {
-          if (res.status === 401) { onLogout(); return; }
-          throw new Error(body.error || `HTTP ${res.status}`);
-        }
-        setHealth(body as HealthResponse);
-      } catch (err) {
-        setError((err as Error).message);
-      }
-    })();
-  }, [token, onLogout]);
+    if (!token) { setIdentity(null); return; }
+    api.get<{ email: string; role: string }>('/api/admin/health')
+      .then((d) => setIdentity({ email: d.email, role: d.role }))
+      .catch((err: ApiError) => {
+        if (err.status === 401) signOut();
+        else setIdentityError(err.message);
+      });
+  }, [token]);
+
+  function onSignedIn() {
+    setTokenState(getToken());
+    setIdentityError(null);
+  }
+
+  function signOut() {
+    clearToken();
+    setTokenState(null);
+    setIdentity(null);
+  }
+
+  if (!token) return <Login onSignedIn={onSignedIn} />;
+
+  if (identityError) {
+    return (
+      <main class="shell">
+        <div class="card">
+          <h2>Couldn't reach the admin API</h2>
+          <p class="error">{identityError}</p>
+          <button onClick={signOut}>Sign out</button>
+        </div>
+      </main>
+    );
+  }
+
+  if (!identity) {
+    return <main class="shell"><div class="muted">Loading…</div></main>;
+  }
 
   return (
-    <main class="shell">
-      <div class="card">
-        <div class="eyebrow">BdMSO admin</div>
-        <h1>You're in.</h1>
-        <p class="sub">
-          This is the admin SPA shell. Real screens (users, posts, programs, ops)
-          land in Sprint 1.
-        </p>
+    <NavShell currentRoute={route} userEmail={identity.email} onSignOut={signOut}>
+      {renderPage(route)}
+    </NavShell>
+  );
+}
 
-        {error && <div class="error">{error}</div>}
-        {health && (
-          <dl class="kv">
-            <dt>Email</dt><dd>{health.email}</dd>
-            <dt>Role</dt><dd>{health.role}</dd>
-            <dt>Account ID</dt><dd><code>{health.accountId}</code></dd>
-            <dt>Server time</dt><dd>{new Date(health.serverTime).toLocaleString()}</dd>
-          </dl>
-        )}
+function renderPage(route: string) {
+  switch (route) {
+    case '/':              return <Dashboard />;
+    case '/registrations': return <Registrations />;
+    default:               return <NotFound route={route} />;
+  }
+}
 
-        <button type="button" onClick={onLogout}>Sign out</button>
+function NotFound({ route }: { route: string }) {
+  return (
+    <>
+      <div class="page-header">
+        <h1>Page not found</h1>
+        <p class="sub">No route matches <code>{route}</code>. Try the sidebar.</p>
       </div>
-    </main>
+    </>
   );
 }
