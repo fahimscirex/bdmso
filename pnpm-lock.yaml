@@ -12,6 +12,25 @@ importers:
         specifier: ^4.12.19
         version: 4.12.19
 
+  apps/admin:
+    dependencies:
+      preact:
+        specifier: ^10.27.2
+        version: 10.29.1
+    devDependencies:
+      '@preact/preset-vite':
+        specifier: ^2.10.2
+        version: 2.10.5(@babel/core@7.29.0)(preact@10.29.1)(rollup@4.60.4)(vite@7.3.3(@types/node@25.8.0))
+      '@types/node':
+        specifier: ^25.8.0
+        version: 25.8.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^7.1.12
+        version: 7.3.3(@types/node@25.8.0)
+
   apps/guardian:
     dependencies:
       preact:

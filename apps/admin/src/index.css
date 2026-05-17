@@ -1,0 +1,95 @@
+/* Minimal styles for the admin login + signed-in shells. Replaced by
+   packages/ui in Sprint 1. */
+:root {
+  --navy-900: #16254d;
+  --navy-700: #4252ab;
+  --navy-100: #e8ecfb;
+  --ink-2: #49566f;
+  --ink-3: #7a8497;
+  --bg: #fbfcfe;
+  --line: #dbe1ec;
+  --red: #dc2626;
+  font-family: -apple-system, 'Plus Jakarta Sans', Segoe UI, Roboto, sans-serif;
+  color: var(--navy-900);
+  background: var(--bg);
+}
+
+* { box-sizing: border-box; }
+html, body, #app { height: 100%; margin: 0; }
+
+.shell {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+}
+
+.card {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 32px;
+  max-width: 420px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--navy-700);
+}
+
+h1 { margin: 0; font-size: 1.6rem; }
+.sub { color: var(--ink-2); font-size: 14px; line-height: 1.5; margin: 0 0 6px; }
+code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-size: 0.88em; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+label span { color: var(--ink-2); }
+input {
+  font: inherit;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: white;
+  color: var(--navy-900);
+  font-weight: 400;
+}
+input:focus { outline: 2px solid var(--navy-700); outline-offset: 1px; border-color: var(--navy-700); }
+
+button {
+  font: inherit;
+  padding: 11px 18px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--navy-900);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 4px;
+}
+button:hover { background: var(--navy-700); }
+button:disabled { background: var(--ink-3); cursor: progress; }
+
+.error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: var(--red);
+  padding: 10px 14px;
+  border-radius: 9px;
+  font-size: 13px;
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 16px;
+  margin: 0;
+  font-size: 14px;
+}
+.kv dt { font-weight: 600; color: var(--ink-2); }
+.kv dd { margin: 0; color: var(--navy-900); }
