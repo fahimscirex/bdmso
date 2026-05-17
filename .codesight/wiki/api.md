@@ -2,11 +2,11 @@
 
 > **Navigation aid.** Route list and file locations extracted via AST. Read the source files listed below before implementing or modifying this subsystem.
 
-The Api subsystem handles **1 routes** and touches: auth, cache, email.
+The Api subsystem handles **1 routes** and touches: auth, db, cache, email, payment.
 
 ## Routes
 
-- `ALL` `/api/` [auth, cache, email] `[inferred]`
+- `ALL` `/api/` [auth, db, cache, email, payment] `[inferred]`
   `worker/index.js`
 
 ## Source Files

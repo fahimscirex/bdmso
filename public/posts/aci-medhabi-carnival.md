@@ -2,7 +2,7 @@
 title: ACI Medhabi Carnival: A Day of Learning and Celebration
 slug: aci-medhabi-carnival
 category: Event
-date: 2025-04-29
+date: 2026-04-29
 author: Samin Yasar Ahmed
 excerpt: Primary students joined a full day of chess against a Grandmaster, art stations, tangram puzzles, book reading, robotics demos, and telescope activities at the ACI Centre in Tejgaon.
 image: images/aci-medhabi-carnival.webp

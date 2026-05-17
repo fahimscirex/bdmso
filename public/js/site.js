@@ -3,14 +3,14 @@
   const CURRENT = document.body.dataset.page || '';
 
   const NAV_LINKS = [
-    { href: 'index.html', label: 'Home', key: 'home' },
-    { href: 'about.html', label: 'About', key: 'about' },
-    { href: 'programs.html', label: 'Programs', key: 'programs' },
-    { href: 'resources.html', label: 'Resources', key: 'resources' },
-    { href: 'results.html', label: 'Results', key: 'results' },
-    { href: 'team.html', label: 'Team', key: 'team' },
-    { href: 'blog.html', label: 'Blog', key: 'blog' },
-    { href: 'media.html', label: 'Media', key: 'media' },
+    { href: '/', label: 'Home', key: 'home' },
+    { href: '/about', label: 'About', key: 'about' },
+    { href: '/programs', label: 'Programs', key: 'programs' },
+    { href: '/resources', label: 'Resources', key: 'resources' },
+    { href: '/results', label: 'Results', key: 'results' },
+    { href: '/team', label: 'Team', key: 'team' },
+    { href: '/blog', label: 'Blog', key: 'blog' },
+    { href: '/media', label: 'Media', key: 'media' },
   ];
 
   function escapeHtml(s) {
@@ -28,17 +28,17 @@
     const session = getSession();
     const firstName = session ? escapeHtml(session.fullName.split(' ')[0]) : '';
 
-    const mobileLoginHtml = session ? '' : '<a class="mobile-login" href="login.html">Log in</a>';
+    const mobileLoginHtml = session ? '' : '<a class="mobile-login" href="/login">Log in</a>';
     const ctaHtml = session
-      ? `<span class="nav-user">${firstName}</span><a class="btn btn-ghost" href="dashboard.html">Dashboard</a><button class="btn btn-ghost nav-logout">Log out</button>`
-      : `<a class="login" href="login.html">Log in</a><a class="btn btn-primary" href="registration.html">Register Now</a>`;
+      ? `<span class="nav-user">${firstName}</span><a class="btn btn-ghost" href="/dashboard">Dashboard</a><button class="btn btn-ghost nav-logout">Log out</button>`
+      : `<a class="login" href="/login">Log in</a><a class="btn btn-primary" href="/registration">Register Now</a>`;
 
     host.innerHTML = `
       <header class="site-header">
         <div class="container">
           <nav class="nav" aria-label="Primary">
-            <a class="brand" href="index.html" aria-label="BdMSO home">
-              <img class="brand-logo" src="images/logo.webp" alt="BdMSO 2026 logo" />
+            <a class="brand" href="/" aria-label="BdMSO home">
+              <img class="brand-logo" src="/images/logo.webp" alt="BdMSO 2026 logo" width="120" height="84" />
             </a>
             ${mobileLoginHtml}
             <button class="menu-toggle" aria-label="Open menu" aria-expanded="false">
@@ -63,7 +63,7 @@
           try { await fetch('/api/logout', { method: 'POST', headers: { Authorization: `Bearer ${s.token}` } }); } catch {}
         }
         localStorage.removeItem('bdmso_user');
-        window.location.href = 'login.html';
+        window.location.href = '/login';
       });
     }
 
@@ -86,9 +86,9 @@
           <div class="footer-grid">
             <div>
               <div class="footer-brand">
-                <img class="footer-logo" src="images/logo.webp" alt="BdMSO 2026 logo" />
+                <img class="footer-logo" src="/images/logo.webp" alt="BdMSO 2026 logo" width="160" height="112" loading="lazy" />
               </div>
-              <p>Bangladesh's official qualifying platform to select primary school students to represent the country at the International Mathematics and Science Olympiad (IMSO).</p>
+              <p>A platform dedicated to identifying and nurturing early age STEM talent across Bangladesh.</p>
               <div class="partner-logos">
                 <span class="ph">BdOSN</span>
                 <span class="ph">SPSB</span>
@@ -98,28 +98,28 @@
             <div>
               <h4>Quick Links</h4>
               <ul>
-                <li><a href="registration.html">Registration</a></li>
-                <li><a href="resources.html">Syllabus</a></li>
-                <li><a href="resources.html">Regulations</a></li>
-                <li><a href="resources.html#faq">FAQ</a></li>
-                <li><a href="media.html">Media</a></li>
+                <li><a href="/registration">Registration</a></li>
+                <li><a href="/resources">Syllabus</a></li>
+                <li><a href="/resources">Regulations</a></li>
+                <li><a href="/resources#faq">FAQ</a></li>
+                <li><a href="/media">Media</a></li>
               </ul>
             </div>
             <div>
               <h4>Explore</h4>
               <ul>
-                <li><a href="programs.html">Programs</a></li>
-                <li><a href="results.html">Results</a></li>
-                <li><a href="team.html">Our Team</a></li>
-                <li><a href="sponsorship.html">Sponsorship</a></li>
-                <li><a href="blog.html">Announcements</a></li>
+                <li><a href="/programs">Programs</a></li>
+                <li><a href="/results">Results</a></li>
+                <li><a href="/team">Our Team</a></li>
+                <li><a href="/sponsorship">Sponsorship</a></li>
+                <li><a href="/blog">Announcements</a></li>
               </ul>
             </div>
             <div>
               <h4>Contact Us</h4>
               <div class="contact-line">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                <span>Building #758, Green City Centre,<br>Sat Masjid Road, Dhanmondi, Dhaka 1209</span>
+                <span>Level 12, Building #758, Green City Center,<br>Sat Masjid Road, Dhanmondi, Dhaka 1209</span>
               </div>
               <div class="contact-line">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>

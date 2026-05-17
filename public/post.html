@@ -3,11 +3,14 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex,follow">
+<base href="/">
 <title>Blog - BdMSO</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css" />
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/css/styles.css" />
 <style>
 .post-hero {
   background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-page-dark) 100%);
@@ -87,7 +90,7 @@
 
 <section class="post-hero" id="post-hero">
   <div class="container">
-    <a class="back-link" href="blog.html">Back to Blog</a>
+    <a class="back-link" href="/blog">Back to Blog</a>
     <div id="post-meta-bar" class="post-meta-bar"></div>
     <h1 class="post-title" id="post-title">Loading…</h1>
     <p class="post-excerpt" id="post-excerpt"></p>
@@ -101,11 +104,14 @@
 
 </main>
 <div id="site-footer"></div>
-<script src="js/site.js"></script>
+<script src="/js/site.js"></script>
 <script type="module">
 import { markdownToHtml, escHtml } from './js/md.js';
 
-const slug = new URLSearchParams(location.search).get('slug') || '';
+// Slug can come either from /posts/<slug> path or ?slug= query.
+const pathMatch = location.pathname.match(/\/posts\/([^/]+?)(?:\.html)?$/);
+const slug = pathMatch ? decodeURIComponent(pathMatch[1])
+           : (new URLSearchParams(location.search).get('slug') || '');
 
 function show(id, html) {
   const el = document.getElementById(id);
@@ -158,7 +164,7 @@ async function load() {
   const coverEl = document.getElementById('post-cover');
   if (meta.image) {
     coverEl.style.display = '';
-    coverEl.innerHTML = `<img src="${escHtml(meta.image)}" alt="${escHtml(meta.title || '')}">`;
+    coverEl.innerHTML = `<img loading="lazy" src="${escHtml(meta.image)}" alt="${escHtml(meta.title || '')}">`;
   }
 
   show('post-body', markdownToHtml(body));
@@ -167,7 +173,7 @@ async function load() {
 function showError(msg) {
   document.getElementById('post-title').textContent = 'Post not found';
   document.getElementById('post-excerpt').textContent = '';
-  show('post-body', `<div class="post-error"><h2>Oops.</h2><p>${msg}</p><a class="btn btn-ghost" href="blog.html">← Back to Blog</a></div>`);
+  show('post-body', `<div class="post-error"><h2>Oops.</h2><p>${msg}</p><a class="btn btn-ghost" href="/blog">← Back to Blog</a></div>`);
 }
 
 load();

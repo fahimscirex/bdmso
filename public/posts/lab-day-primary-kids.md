@@ -2,7 +2,7 @@
 title: "Lab Day for Primary Kids: A Day of Hands-On Discovery"
 slug: lab-day-primary-kids
 category: Workshop
-date: 2025-05-01
+date: 2026-05-01
 author: Samin Yasar Ahmed
 excerpt: Twelve students spent a full day mapping skeletal structures, exploring light and prisms, using microscopes, and creating Elephant Toothpaste while learning about chemical reactions.
 image: images/lab-day-primary.webp
@@ -32,4 +32,4 @@ The day's showstopper: a chemical reaction between hydrogen peroxide and yeast t
 
 The IMSO Science paper includes an experimental component. Students who have never held lab equipment are at a significant disadvantage when faced with a timed experiment. Lab Day is BdMSO's way of closing that gap - giving students exposure to the process of science, not just the content.
 
-More Lab Days are planned ahead of BdMSO 2026. Keep an eye on the [programs page](programs.html) for dates.
+More Lab Days are planned ahead of BdMSO 2026. Keep an eye on the [programs page](/programs) for dates.

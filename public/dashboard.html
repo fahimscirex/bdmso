@@ -4,10 +4,30 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Dashboard - BdMSO</title>
+<link rel="canonical" href="https://bdmso.org/dashboard">
+<meta name="robots" content="noindex,follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="BdMSO">
+<meta property="og:locale" content="en_US">
+<meta property="og:url" content="https://bdmso.org/dashboard">
+<meta property="og:title" content="Dashboard - BdMSO">
+<meta property="og:image" content="https://bdmso.org/images/logo.webp">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Dashboard - BdMSO">
+<meta name="twitter:image" content="https://bdmso.org/images/logo.webp">
+<meta name="theme-color" content="#0b1b3f">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css" />
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/css/styles.css" />
 <style>
 [hidden] { display: none !important; }
 
@@ -148,7 +168,7 @@
       <h2>Your Registrations</h2>
       <div class="sub">All programs and qualifying rounds your child is enrolled in.</div>
     </div>
-    <a class="btn btn-primary" href="registration.html">+ New Registration</a>
+    <a class="btn btn-primary" href="/registration">+ New Registration</a>
   </div>
   <div id="reg-list" class="reg-grid">
     <div class="spinner">Loading…</div>
@@ -160,7 +180,7 @@
         <h2>Explore Programs</h2>
         <div class="sub">Add another program to your child's registrations.</div>
       </div>
-      <a class="btn btn-ghost" href="programs.html" style="font-size:13px;">View all &rarr;</a>
+      <a class="btn btn-ghost" href="/programs" style="font-size:13px;">View all &rarr;</a>
     </div>
     <div class="prog-grid">
 
@@ -170,7 +190,7 @@
         <p>The gateway to BdMSO. Open to any student from Class 3 to 6. Participate in the national olympiad and qualify for residential camp.</p>
         <div class="prog-foot">
           <span class="prog-price">৳ 500</span>
-          <a class="btn btn-primary" href="registration.html" style="font-size:13px; padding:8px 16px;">Register</a>
+          <a class="btn btn-primary" href="/registration" style="font-size:13px; padding:8px 16px;">Register</a>
         </div>
       </div>
 
@@ -180,7 +200,7 @@
         <p>Practice under real exam conditions before the national round. Receive detailed performance feedback and identify areas to improve.</p>
         <div class="prog-foot">
           <span class="prog-price">৳ 3,000</span>
-          <a class="btn btn-primary" href="registration.html" style="font-size:13px; padding:8px 16px;">Register</a>
+          <a class="btn btn-primary" href="/registration" style="font-size:13px; padding:8px 16px;">Register</a>
         </div>
       </div>
 
@@ -190,7 +210,7 @@
         <p>A structured year-round training program covering mathematics, physics, and logical reasoning - designed to build olympiad-level thinking.</p>
         <div class="prog-foot">
           <span class="prog-price">৳ 8,000</span>
-          <a class="btn btn-primary" href="registration.html" style="font-size:13px; padding:8px 16px;">Register</a>
+          <a class="btn btn-primary" href="/registration" style="font-size:13px; padding:8px 16px;">Register</a>
         </div>
       </div>
 
@@ -201,13 +221,13 @@
 <div id="auth-error" hidden>
   <div class="auth-error-inner">
     <p>You need to be signed in to view this page.</p>
-    <a class="btn btn-primary" href="login.html">Sign in</a>
+    <a class="btn btn-primary" href="/login">Sign in</a>
   </div>
 </div>
 
 </main>
 <div id="site-footer"></div>
-<script src="js/site.js"></script>
+<script src="/js/site.js"></script>
 <script type="module">
 import { buildFunctionUrl } from './js/api.js';
 
@@ -360,7 +380,7 @@ function renderRegistrations(regs) {
       <div class="empty-state">
         <h3>No registrations yet</h3>
         <p>Register your child for an upcoming program or the national qualifying round.</p>
-        <a class="btn btn-primary" href="registration.html">Register Now</a>
+        <a class="btn btn-primary" href="/registration">Register Now</a>
       </div>`;
     return;
   }

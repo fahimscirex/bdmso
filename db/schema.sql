@@ -1,3 +1,8 @@
+-- Full schema for a fresh DB. Apply with:
+--   wrangler d1 execute bdmso --local  --file=./db/schema.sql
+--   wrangler d1 execute bdmso --remote --file=./db/schema.sql --config wrangler.prod.toml
+-- For incremental changes on a DB that already has data, write a numbered migration in db/migrations/.
+
 CREATE TABLE IF NOT EXISTS guardian_accounts (
   id TEXT PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,
@@ -7,9 +12,12 @@ CREATE TABLE IF NOT EXISTS guardian_accounts (
   full_name TEXT NOT NULL,
   phone TEXT,
   email_verified INTEGER NOT NULL DEFAULT 0,
-  member_id TEXT UNIQUE,
+  member_id TEXT,
   created_at TEXT NOT NULL
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_guardian_accounts_member_id
+ON guardian_accounts (member_id) WHERE member_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS email_verification_tokens (
   token TEXT PRIMARY KEY,
@@ -123,11 +131,15 @@ CREATE TABLE IF NOT EXISTS bkash_token_cache (
 
 CREATE TABLE IF NOT EXISTS coupons (
   code TEXT PRIMARY KEY,
-  discount_type TEXT NOT NULL DEFAULT 'percent',
+  discount_type TEXT NOT NULL DEFAULT 'percent', -- 'percent' or 'fixed'
   discount_value REAL NOT NULL,
-  max_uses INTEGER,
+  max_uses INTEGER,               -- NULL = unlimited
   used_count INTEGER NOT NULL DEFAULT 0,
-  applies_to TEXT,
+  applies_to TEXT,                -- NULL = all programs; comma-separated slugs otherwise
   expires_at TEXT,
   created_at TEXT NOT NULL
 );
+
+-- Dev seed: 100% off coupon for local testing. Remove before applying to production.
+INSERT OR IGNORE INTO coupons (code, discount_type, discount_value, max_uses, applies_to, created_at)
+VALUES ('TESTBDMSO', 'percent', 100, 50, NULL, CURRENT_TIMESTAMP);

@@ -2,30 +2,42 @@
 
 > **Stack:** raw-http | none | unknown | javascript
 
-> 12 routes (12 inferred) | 10 models | 0 components | 2 lib files | 1 env vars | 0 middleware
-> **Token savings:** this file is ~1,100 tokens. Without it, AI exploration would cost ~14,500 tokens. **Saves ~13,400 tokens per conversation.**
-> **Last scanned:** 2026-05-08 17:18 — re-run after significant changes
+> 13 routes (13 inferred) | 10 models | 0 components | 2 lib files | 1 env vars | 0 middleware
+> **Token savings:** this file is ~1,100 tokens. Without it, AI exploration would cost ~13,900 tokens. **Saves ~12,800 tokens per conversation.**
+> **Last scanned:** 2026-05-17 07:12 — re-run after significant changes
 
 ---
 
 # Routes
 
-- `POST` `/api/login` [auth, cache, email, payment] `[inferred]`
-- `POST` `/api/logout` [auth, cache, email, payment] `[inferred]`
-- `GET` `/api/me` [auth, cache, email, payment] `[inferred]`
-- `POST` `/api/submit-registration` [auth, cache, email, payment] `[inferred]`
-- `POST` `/api/add-enrollment` [auth, cache, email, payment] `[inferred]`
-- `GET` `/api/validate-coupon` [auth, cache, email, payment] `[inferred]`
-- `POST` `/api/submit-sponsorship` [auth, cache, email, payment] `[inferred]`
-- `POST` `/api/create-payment` [auth, cache, email, payment] `[inferred]`
-- `ALL` `/api/payment-callback` [auth, cache, email, payment] `[inferred]`
-- `GET` `/api/verify-email` [auth, cache, email, payment] `[inferred]`
-- `POST` `/api/resend-verification` [auth, cache, email, payment] `[inferred]`
-- `ALL` `/api/` [auth, cache, email, payment] `[inferred]`
+- `POST` `/api/login` [auth, db, cache, email, payment] `[inferred]`
+- `POST` `/api/logout` [auth, db, cache, email, payment] `[inferred]`
+- `GET` `/api/me` [auth, db, cache, email, payment] `[inferred]`
+- `POST` `/api/submit-registration` [auth, db, cache, email, payment] `[inferred]`
+- `POST` `/api/add-enrollment` [auth, db, cache, email, payment] `[inferred]`
+- `GET` `/api/validate-coupon` [auth, db, cache, email, payment] `[inferred]`
+- `POST` `/api/submit-sponsorship` [auth, db, cache, email, payment] `[inferred]`
+- `POST` `/api/create-payment` [auth, db, cache, email, payment] `[inferred]`
+- `ALL` `/api/payment-callback` [auth, db, cache, email, payment] `[inferred]`
+- `GET` `/api/verify-email` [auth, db, cache, email, payment] `[inferred]`
+- `POST` `/api/resend-verification` [auth, db, cache, email, payment] `[inferred]`
+- `ALL` `/post` [auth, db, cache, email, payment] `[inferred]`
+- `ALL` `/api/` [auth, db, cache, email, payment] `[inferred]`
 
 ---
 
 # Schema
+
+### guardian_accounts
+- id: text (pk)
+- email: text (required)
+- password_hash: text (required)
+- password_salt: text (required)
+- password_iterations: integer (required)
+- full_name: text (required)
+- phone: text
+- email_verified: integer (required)
+- member_id: text (fk)
 
 ### email_verification_tokens
 - token: text (pk)
@@ -38,16 +50,6 @@
 - success: integer (required)
 - attempted_at: text (required)
 
-### member_id_seq
-- id: integer (pk)
-- reserved_at: text (required)
-
-### coupons
-- code: text (pk)
-- discount_type: text (required)
-- max_uses: integer
-- applies_to: text
-
 ### registrations
 - id: text (pk)
 - registration_type: text (required)
@@ -55,6 +57,7 @@
 - student_date_of_birth: text (required)
 - student_class_name: text (required)
 - student_gender: text (required)
+- student_medium: text
 - student_school: text (required)
 - student_district: text (required)
 - guardian_account_id: text (required, fk)
@@ -63,35 +66,14 @@
 - guardian_phone: text (required)
 - guardian_email: text (required)
 - guardian_address: text (required)
+- preferred_venue: text
 - terms_accepted: integer (required)
 - status: text (required)
 - source_page: text
 
-### payments
-- id: text (pk)
-- registration_id: text (required, fk)
-- amount: real (required)
-- currency: text (required)
-- tran_id: text (unique, fk)
-- val_id: text (fk)
-- gateway_status: text
-- status: text (required)
-
-### bkash_token_cache
+### member_id_seq
 - id: integer (pk)
-- id_token: text (required)
-- expires_at: text (required)
-
-### guardian_accounts
-- id: text (pk)
-- email: text (required)
-- password_hash: text (required)
-- password_salt: text (required)
-- password_iterations: integer (required)
-- full_name: text (required)
-- phone: text
-- email_verified: integer (required)
-- member_id: text (unique, fk)
+- reserved_at: text (required)
 
 ### sponsorship_enquiries
 - id: text (pk)
@@ -108,6 +90,23 @@
 - id: text (pk)
 - account_id: text (required, fk)
 - expires_at: text (required)
+
+### payments
+- id: text (pk)
+- registration_id: text (required, fk)
+- amount: real (required)
+- currency: text (required)
+- tran_id: text (unique, fk)
+
+### bkash_token_cache
+- id: integer (pk)
+- expires_at: text (required)
+
+### coupons
+- code: text (pk)
+- discount_type: text (required)
+- max_uses: integer
+- applies_to: text
 
 ---
 
@@ -139,10 +138,12 @@
 ## Most Imported Files (change these carefully)
 
 - `public/js/api.js` — imported by **2** files
+- `public/js/md.js` — imported by **1** files
 
 ## Import Map (who imports what)
 
 - `public/js/api.js` ← `public/js/registration.js`, `public/js/sponsorship.js`
+- `public/js/md.js` ← `scripts/build.mjs`
 
 ---
 

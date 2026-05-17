@@ -74,7 +74,7 @@ async function renderResults() {
 async function renderPrograms() {
   const items = await load('programs.json');
   set('prog-grid', items.map(({ id, title, description }) =>
-    `<a class="prog-card" href="programs.html">
+    `<a class="prog-card" href="/programs">
       <span class="num">${id}</span>
       <h4>${title}</h4>
       <p>${description}</p>
@@ -85,7 +85,7 @@ async function renderPrograms() {
 async function renderNews() {
   const items = await load('../posts/index.json');
   set('updates-grid', items.slice(0, 4).map(({ slug, category, date, title, excerpt, featured, image }) => {
-    const url = `post.html?slug=${slug}`;
+    const url = `/posts/${slug}`;
     const formattedDate = date ? new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
     return `<a href="${url}" class="update-card${featured ? ' main' : ''}">
       <div class="cover">
@@ -146,8 +146,8 @@ async function adaptRegisterCta() {
   const hasNqr = regs.some(r => (r.registration_type || '').startsWith('national-qualifying'));
   if (!hasNqr) return;
 
-  document.querySelectorAll('a[href="registration.html"]').forEach(a => {
-    a.href = 'dashboard.html';
+  document.querySelectorAll('a[href="/registration"]').forEach(a => {
+    a.href = '/dashboard';
     if (a.classList.contains('btn')) a.textContent = 'Open Dashboard';
     else {
       const h4 = a.querySelector('h4');
