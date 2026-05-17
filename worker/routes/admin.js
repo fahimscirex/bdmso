@@ -725,6 +725,76 @@ admin.patch("/users/:id/role", async (c) => {
   return c.json({ ok: true, id, role });
 });
 
+// ─── Uploads (R2) ────────────────────────────────────────────────────────────
+//
+// POST /api/admin/uploads  (multipart/form-data)
+//   file:   the image File (jpeg | png | webp | gif | svg)
+//   prefix: optional folder ("posts" | "programs" | ...). Defaults to "misc".
+//
+// Returns { url, key, size, type }. `url` is the public path the
+// renderer can drop into an <img src>; it's served from the same origin
+// at /r2/<key> so it stays under our CSP.
+//
+// Orphan files (uploaded then never referenced) are tolerated for now —
+// cheap on R2, easy to sweep later if it ever matters.
+
+const ALLOWED_IMAGE_TYPES = {
+  "image/jpeg": "jpg",
+  "image/png":  "png",
+  "image/webp": "webp",
+  "image/gif":  "gif",
+  "image/svg+xml": "svg",
+};
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;   // 10 MB — cover-image sized.
+
+admin.post("/uploads", async (c) => {
+  if (!c.env.ASSETS_R2) {
+    return c.json({ error: "R2 bucket binding ASSETS_R2 is not configured." }, 500);
+  }
+
+  const form = await c.req.parseBody();
+  const file = form.file;
+  if (!file || typeof file === "string") {
+    return c.json({ error: "Missing 'file' field." }, 400);
+  }
+  const ext = ALLOWED_IMAGE_TYPES[file.type];
+  if (!ext) {
+    return c.json({
+      error: `Unsupported type ${file.type || "unknown"}. Allowed: ${Object.keys(ALLOWED_IMAGE_TYPES).join(", ")}.`,
+    }, 415);
+  }
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return c.json({ error: `File too large (max ${MAX_UPLOAD_BYTES / 1024 / 1024} MB).` }, 413);
+  }
+
+  // Sanitise the prefix to a single safe path segment.
+  const rawPrefix = (form.prefix || "misc").toString().toLowerCase();
+  const prefix = /^[a-z0-9][a-z0-9-]{0,30}$/.test(rawPrefix) ? rawPrefix : "misc";
+
+  const now = new Date();
+  const yyyy = now.getUTCFullYear();
+  const mm = String(now.getUTCMonth() + 1).padStart(2, "0");
+  const id = crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+  const key = `${prefix}/${yyyy}/${mm}/${id}.${ext}`;
+
+  await c.env.ASSETS_R2.put(key, file.stream(), {
+    httpMetadata: { contentType: file.type },
+  });
+
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "upload.create", {
+    type: "upload", id: key, payload: { size: file.size, type: file.type },
+  });
+
+  return c.json({
+    ok: true,
+    url:  `/r2/${key}`,
+    key,
+    size: file.size,
+    type: file.type,
+  });
+});
+
 // ─── Audit log ───────────────────────────────────────────────────────────────
 //
 // GET /api/admin/audit

@@ -59,6 +59,37 @@ api.onError((err, c) => {
 
 api.notFound((c) => c.json({ error: "Not found." }, 404));
 
+// ─── R2 read path (/r2/<key>) ─────────────────────────────────────────────────
+//
+// Reads from env.ASSETS_R2 and streams. Used to serve admin-uploaded
+// images under our own domain (so the public CSP's img-src 'self' applies
+// and we don't need a separate R2 custom domain). Returns 404 for unknown
+// keys, 405 for non-GET/HEAD methods, 405 for path-traversal attempts.
+
+async function serveR2(request, env, url) {
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    return new Response("Method not allowed", { status: 405 });
+  }
+  if (!env.ASSETS_R2) {
+    return new Response("R2 binding missing", { status: 500 });
+  }
+  const key = decodeURIComponent(url.pathname.slice("/r2/".length));
+  // Reject path-traversal attempts and leading slashes outright.
+  if (!key || key.includes("..") || key.startsWith("/")) {
+    return new Response("Bad key", { status: 400 });
+  }
+
+  const object = await env.ASSETS_R2.get(key);
+  if (!object) return new Response("Not found", { status: 404 });
+
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  headers.set("etag", object.httpEtag);
+  // Random keys → safe to cache aggressively. Content for a given key is immutable.
+  headers.set("Cache-Control", "public, max-age=31536000, immutable");
+  return new Response(request.method === "HEAD" ? null : object.body, { headers });
+}
+
 // ─── Security Headers ─────────────────────────────────────────────────────────
 
 const CSP = [
@@ -180,6 +211,13 @@ export default {
     if (url.pathname.startsWith("/api/")) {
       const response = await api.fetch(request, env);
       return withSecurityHeaders(response, url);
+    }
+
+    // R2-backed user uploads. Public, immutable — keys are random so the
+    // URL itself is unguessable enough for this content tier.
+    if (url.pathname.startsWith("/r2/")) {
+      const r2 = await serveR2(request, env, url);
+      return withSecurityHeaders(r2, url);
     }
 
     // Pretty-URL canonicalization with 301s (replaces the assets binding's default 307s).

@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { api, ApiError } from '../api';
 import { navigate, href } from '../router';
+import { ImageField } from '../components/ImageField';
 
 type Program = {
   slug: string;
@@ -222,9 +223,13 @@ export function ProgramEditor({ slug }: { slug: string | null }) {
             <input type="text" value={form.registration_url} onInput={(e) => patch('registration_url', (e.target as HTMLInputElement).value)} />
           </Field>
 
-          <Field label="Cover image URL" full hint="/images/foo.webp or a full URL.">
-            <input type="text" value={form.image} onInput={(e) => patch('image', (e.target as HTMLInputElement).value)} />
-          </Field>
+          <ImageField
+            label="Cover image"
+            prefix="programs"
+            hint="Upload a file or paste a URL / /images/* path."
+            value={form.image}
+            onChange={(v) => patch('image', v)}
+          />
 
           <Field label="Body (Markdown)" full>
             <textarea
