@@ -143,9 +143,27 @@ function tryPrettyRedirect(url) {
 
 // With html_handling = "none" the assets binding doesn't auto-add .html or
 // redirect /foo.html → /foo. The worker is solely responsible for URL routing.
+//
+// Dashboard SPA paths (/dashboard/*, /admin/*) are an exception: the Vite
+// builds emit a single index.html + hashed assets under dist/<app>/, and the
+// SPA owns its own client-side routing. Any extensionless path inside those
+// prefixes serves the app's index.html so deep links work after refresh.
+const SPA_PREFIXES = ["/dashboard", "/admin"];
+
 function rewriteForAsset(pathname) {
-  // /                         → /index.html
   if (pathname === "/") return "/index.html";
+
+  // SPA fallback: /dashboard, /dashboard/foo, /admin/anything/deep → app index.
+  // Hashed assets like /dashboard/assets/index-K6O-itQ-.js still pass through
+  // because they have a dot in the last segment.
+  for (const app of SPA_PREFIXES) {
+    if (pathname === app || pathname.startsWith(`${app}/`)) {
+      const lastSeg = pathname.slice(pathname.lastIndexOf("/") + 1);
+      if (!lastSeg.includes(".")) return `${app}/index.html`;
+      return pathname;
+    }
+  }
+
   // /about, /team etc.        → /about.html (only for known top-level pages)
   // /posts/<slug>             → /posts/<slug>.html
   // Anything whose last path segment already has a "." stays as-is (.css, .webp,
