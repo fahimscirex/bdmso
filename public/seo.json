@@ -1,0 +1,211 @@
+{
+  "/": {
+    "title": "BdMSO - Bangladesh Mathematics & Science Olympiad",
+    "description": "Official qualifying platform to select primary school students (Class 3–6) to represent Bangladesh at the International Mathematics and Science Olympiad (IMSO).",
+    "image": "/images/group-winner.webp",
+    "schema": [
+      {
+        "@context": "https://schema.org",
+        "@type": "EducationalOrganization",
+        "name": "Bangladesh Mathematics & Science Olympiad",
+        "alternateName": "BdMSO",
+        "url": "https://bdmso.org",
+        "logo": "https://bdmso.org/images/logo.webp",
+        "description": "A platform dedicated to identifying and nurturing early age STEM talent across Bangladesh.",
+        "parentOrganization": [
+          { "@type": "Organization", "name": "Bangladesh Open Source Network", "url": "https://bdosn.org" },
+          { "@type": "Organization", "name": "Society for the Popularization of Science, Bangladesh", "url": "https://spsb.org" }
+        ],
+        "contactPoint": { "@type": "ContactPoint", "email": "info.bdmso@gmail.com", "contactType": "customer support" }
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "Event",
+        "name": "BdMSO 2026 National Round",
+        "startDate": "2026-06-15",
+        "eventStatus": "https://schema.org/EventScheduled",
+        "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+        "location": { "@type": "Place", "name": "Multiple regional venues, Bangladesh", "address": { "@type": "PostalAddress", "addressCountry": "BD" } },
+        "image": "https://bdmso.org/images/national-round-winners.webp",
+        "description": "BdMSO 2026 National Round - the official qualifying olympiad for primary-school students competing for the Bangladesh team at IMSO 2026.",
+        "organizer": { "@type": "Organization", "name": "BdMSO", "url": "https://bdmso.org" }
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "Event",
+        "name": "23rd International Mathematics and Science Olympiad (IMSO 2026)",
+        "startDate": "2026-10-01",
+        "eventStatus": "https://schema.org/EventScheduled",
+        "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+        "location": { "@type": "Place", "name": "Indonesia", "address": { "@type": "PostalAddress", "addressCountry": "ID" } },
+        "description": "23rd IMSO - Bangladesh sends a 6+6 delegation of primary-school students selected through the BdMSO qualifying pathway.",
+        "organizer": { "@type": "Organization", "name": "International Mathematics and Science Olympiad" }
+      }
+    ]
+  },
+
+  "/about": {
+    "title": "About BdMSO — Bangladesh's Official IMSO Qualifying Olympiad",
+    "description": "BdMSO is the official qualifying platform that selects primary-school students from Bangladesh to compete at the International Mathematics & Science Olympiad.",
+    "image": "/images/exchange.webp",
+    "schema": {
+      "@context": "https://schema.org",
+      "@type": "AboutPage",
+      "name": "About BdMSO",
+      "description": "BdMSO is the official qualifying platform that selects primary-school students from Bangladesh to compete at the International Mathematics and Science Olympiad.",
+      "url": "https://bdmso.org/about",
+      "about": {
+        "@type": "EducationalOrganization",
+        "name": "Bangladesh Mathematics & Science Olympiad",
+        "alternateName": "BdMSO",
+        "url": "https://bdmso.org",
+        "description": "A platform dedicated to identifying and nurturing early age STEM talent across Bangladesh.",
+        "parentOrganization": [
+          { "@type": "Organization", "name": "Bangladesh Open Source Network", "url": "https://bdosn.org" },
+          { "@type": "Organization", "name": "Society for the Popularization of Science, Bangladesh", "url": "https://spsb.org" }
+        ]
+      }
+    }
+  },
+
+  "/blog": {
+    "title": "Blog — BdMSO News, Workshops & Olympiad Updates",
+    "description": "Updates from BdMSO: orientation announcements, lab-day workshops, ACI Medhabi Carnival, and STEM foundation course.",
+    "image": "/images/aci-medhabi-carnival.webp",
+    "schema": {
+      "@context": "https://schema.org",
+      "@type": "Blog",
+      "name": "BdMSO Blog",
+      "description": "Updates from BdMSO: orientation announcements, lab-day workshops, ACI Medhabi Carnival, and STEM foundation course.",
+      "url": "https://bdmso.org/blog",
+      "about": {
+        "@type": "EducationalOrganization",
+        "name": "Bangladesh Mathematics & Science Olympiad",
+        "url": "https://bdmso.org",
+        "description": "A platform dedicated to identifying and nurturing early age STEM talent across Bangladesh."
+      }
+    }
+  },
+
+  "/media": {
+    "title": "Media & Press Coverage — BdMSO in the News",
+    "description": "BdMSO in the news - coverage from The Business Standard, Prothom Alo, Daily ICT News, and Bigganchinta.",
+    "image": "/images/press.webp",
+    "schema": {
+      "@context": "https://schema.org",
+      "@type": "NewsMediaOrganization",
+      "name": "Bangladesh Mathematics & Science Olympiad",
+      "alternateName": "BdMSO",
+      "url": "https://bdmso.org",
+      "description": "A platform dedicated to identifying and nurturing early age STEM talent across Bangladesh.",
+      "logo": "https://bdmso.org/images/logo.webp"
+    }
+  },
+
+  "/team": {
+    "title": "Our Team — BdMSO Organizers, Mentors & Bangladesh IMSO Delegation",
+    "description": "Meet the 2026 and 2025 Bangladesh delegations, advisors, organizing team, mentors, and volunteers behind BdMSO.",
+    "image": "/images/group-pre-international.webp",
+    "schema": {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Bangladesh Mathematics & Science Olympiad",
+      "alternateName": "BdMSO",
+      "url": "https://bdmso.org",
+      "description": "Meet the 2026 and 2025 Bangladesh IMSO delegations, advisors, organizing team, mentors, and volunteers behind BdMSO.",
+      "logo": "https://bdmso.org/images/logo.webp",
+      "member": [
+        { "@type": "Person", "name": "Munir Hasan", "jobTitle": "Advisor, BdMSO & General Secretary, BdOSN" },
+        { "@type": "Person", "name": "Samin Yasar Ahmed", "jobTitle": "Coordinator, BdMSO" }
+      ]
+    }
+  },
+
+  "/programs": {
+    "title": "Programs & Courses - BdMSO",
+    "description": "Year-round STEM, Olympiad prep, lab days, and residential camp programs from BdMSO for primary-school students in Bangladesh.",
+    "image": "/images/stem.webp",
+    "schema": {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Programs & Courses",
+      "description": "Year-round STEM, Olympiad prep, lab days, and residential camp programs from BdMSO for primary-school students in Bangladesh.",
+      "url": "https://bdmso.org/programs",
+      "about": {
+        "@type": "EducationalOrganization",
+        "name": "Bangladesh Mathematics & Science Olympiad",
+        "url": "https://bdmso.org",
+        "description": "A platform dedicated to identifying and nurturing early age STEM talent across Bangladesh."
+      }
+    }
+  },
+
+  "/resources": {
+    "title": "Preparation Hub - BdMSO",
+    "description": "Syllabus, regulations, sample questions, and parent guides for the BdMSO National Round and IMSO qualifying pathway.",
+    "image": "/images/exam.webp",
+    "schema": {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "Who is eligible to participate in BdMSO?", "acceptedAnswer": { "@type": "Answer", "text": "BdMSO is open to students across Bangladesh who are 13 years old or younger, born on or after October 1, 2013, and enrolled in Grade 6 or lower as of October 1, 2026. Students in the British curriculum (or similar streams) who are promoted to Grade 7 in July/August 2026 are not eligible." } },
+        { "@type": "Question", "name": "What is the format of the Olympiad?", "acceptedAnswer": { "@type": "Answer", "text": "The BdMSO National Round is a single 120-minute combined exam covering both Mathematics and Science (50 + 50 = 100 marks). It is held at multiple regional venues. The day includes the National Anthem, the exam, a lunch break, a cultural program, and a prize-giving ceremony." } },
+        { "@type": "Question", "name": "How do I register and what is the fee?", "acceptedAnswer": { "@type": "Answer", "text": "Registration is online at bdmso.org. The Olympiad registration fee is 1000 BDT per student. Subsequent stages have separate fees: National Residential Camp 3,000-5,000 BDT, TST 1,000 BDT per subject, and the international participation fee is announced after the TST." } },
+        { "@type": "Question", "name": "What prizes are awarded?", "acceptedAnswer": { "@type": "Answer", "text": "Approximately the top 20-30% of participants are designated Winners and receive a medal and Certificate of Achievement. Winners are classified as All-Round Winners (top 10% in both Mathematics and Science independently), Mathematics Winners (top 10% in Mathematics), or Science Winners (top 10% in Science). A Champion Trophy is awarded to the highest scorer in each section, presented on the final day of the National Residential Camp." } },
+        { "@type": "Question", "name": "Is financial aid available?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. The organizing committee may consider partial waivers of up to 50% on Olympiad, Camp, or TST fees for gifted students with significant financial need. Independent sponsorship is also encouraged." } },
+        { "@type": "Question", "name": "How are IMSO team members selected?", "acceptedAnswer": { "@type": "Answer", "text": "Olympiad winners are invited to a three-day National Residential Camp. About a week after the camp, the Team Selection Test (TST) - a day-long evaluation per subject - is held. The primary National Team is determined by the top six students per subject based on a weighted average of their National Round, Camp performance, and TST scores. The 12 students (6 Math + 6 Science), 2 Tutors, and 1 Team Leader form the standard 15-member delegation." } },
+        { "@type": "Question", "name": "What is IMSO and how does BdMSO connect to it?", "acceptedAnswer": { "@type": "Answer", "text": "IMSO (International Mathematics and Science Olympiad) is a prestigious annual competition for primary school students under 13 from around the world. BdMSO is Bangladesh's official national qualifying round for IMSO." } },
+        { "@type": "Question", "name": "How should my child prepare?", "acceptedAnswer": { "@type": "Answer", "text": "Follow the official BdMSO syllabus. It is recommended to practice elementary-level creative problems and study IMSO sample questions and past papers. Elementary-level Mathematics and Science textbooks are also useful." } }
+      ]
+    }
+  },
+
+  "/results": {
+    "title": "Hall of Excellence - BdMSO",
+    "description": "BdMSO Olympiad results - gold, silver, and bronze medalists in Mathematics and Science across the National Round (2026 and 2025 archives).",
+    "image": "/images/group-winner.webp"
+  },
+
+  "/registration": {
+    "title": "BdMSO Registration — Bangladesh Mathematics & Science Olympiad",
+    "description": "Register for the BdMSO National Round — the official qualifying pathway for primary-school students to represent Bangladesh at the International Mathematics & Science Olympiad (IMSO).",
+    "image": "/images/group-winner.webp"
+  },
+
+  "/sponsorship": {
+    "title": "Collaborate - BdMSO",
+    "description": "Partner with BdMSO 2026 - Title Sponsor, Powered By, and custom partnership opportunities reaching 10,000+ primary students nationwide.",
+    "image": "/images/national-round-winners.webp",
+    "schema": {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Collaborate with BdMSO",
+      "description": "Partner with BdMSO 2026 - Title Sponsor, Powered By, and custom partnership opportunities reaching 10,000+ primary students nationwide.",
+      "url": "https://bdmso.org/sponsorship",
+      "about": {
+        "@type": "EducationalOrganization",
+        "name": "Bangladesh Mathematics & Science Olympiad",
+        "url": "https://bdmso.org",
+        "description": "A platform dedicated to identifying and nurturing early age STEM talent across Bangladesh."
+      }
+    }
+  },
+
+  "/404": {
+    "title": "Page not found - BdMSO",
+    "description": "",
+    "robots": "noindex,follow"
+  },
+
+  "/dashboard": {
+    "title": "Dashboard - BdMSO",
+    "description": "",
+    "robots": "noindex,follow"
+  },
+
+  "/login": {
+    "title": "Log in - BdMSO",
+    "description": "",
+    "robots": "noindex,follow"
+  }
+}

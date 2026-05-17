@@ -3,11 +3,34 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Blog - BdMSO</title>
+<title>Blog — BdMSO News, Workshops &amp; Olympiad Updates</title>
+<meta name="description" content="Updates from BdMSO: orientation announcements, lab-day workshops, ACI Medhabi Carnival, and STEM foundation course.">
+<link rel="canonical" href="https://bdmso.org/blog">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="BdMSO">
+<meta property="og:locale" content="en_US">
+<meta property="og:url" content="https://bdmso.org/blog">
+<meta property="og:title" content="Blog — BdMSO News, Workshops &amp; Olympiad Updates">
+<meta property="og:description" content="Updates from BdMSO: orientation announcements, lab-day workshops, ACI Medhabi Carnival, and STEM foundation course.">
+<meta property="og:image" content="https://bdmso.org/images/aci-medhabi-carnival.webp">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Blog — BdMSO News, Workshops &amp; Olympiad Updates">
+<meta name="twitter:description" content="Updates from BdMSO: orientation announcements, lab-day workshops, ACI Medhabi Carnival, and STEM foundation course.">
+<meta name="twitter:image" content="https://bdmso.org/images/aci-medhabi-carnival.webp">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Blog","name":"BdMSO Blog","description":"Updates from BdMSO: orientation announcements, lab-day workshops, ACI Medhabi Carnival, and STEM foundation course.","url":"https://bdmso.org/blog","about":{"@type":"EducationalOrganization","name":"Bangladesh Mathematics & Science Olympiad","url":"https://bdmso.org","description":"A platform dedicated to identifying and nurturing early age STEM talent across Bangladesh."}}</script>
+<meta name="theme-color" content="#0b1b3f">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css" />
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/css/styles.css" />
 <style>
 .page-head { background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-page-dark) 100%); color: white; padding: 80px 0 100px; position: relative; overflow: hidden; }
 .page-head::before { content:""; position:absolute; inset:0; background: radial-gradient(600px 300px at 50% 100%, var(--glow-gold-sm), transparent 60%); }
@@ -79,7 +102,7 @@
 </section>
 </main>
 <div id="site-footer"></div>
-<script src="js/site.js"></script>
+<script src="/js/site.js"></script>
 <script>
 (async () => {
   const res = await fetch('posts/index.json').catch(() => null);
@@ -108,7 +131,7 @@
   });
 
   function postUrl(p) {
-    return `post.html?slug=${p.slug}`;
+    return `/posts/${p.slug}`;
   }
 
   function formatDate(str) {
@@ -120,7 +143,7 @@
   function featureCard(p) {
     return `<a class="feature" href="${postUrl(p)}">
       <div class="cover">${p.image
-        ? `<img src="${escHtml(p.image)}" alt="${escHtml(p.title)}">`
+        ? `<img loading="lazy" src="${escHtml(p.image)}" alt="${escHtml(p.title)}">`
         : `<div class="ph">[cover]</div>`}
       </div>
       <div class="body">
@@ -135,7 +158,7 @@
   function postCard(p) {
     return `<a class="post" href="${postUrl(p)}">
       <div class="cover">${p.image
-        ? `<img src="${escHtml(p.image)}" alt="${escHtml(p.title)}">`
+        ? `<img loading="lazy" src="${escHtml(p.image)}" alt="${escHtml(p.title)}">`
         : `<div class="ph">[${escHtml(p.category)}]</div>`}
       </div>
       <div class="body">

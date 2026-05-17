@@ -2,11 +2,11 @@
 
 > **Navigation aid.** Route list and file locations extracted via AST. Read the source files listed below before implementing or modifying this subsystem.
 
-The Add-enrollment subsystem handles **1 routes** and touches: auth, cache, email.
+The Add-enrollment subsystem handles **1 routes** and touches: auth, db, cache, email, payment.
 
 ## Routes
 
-- `POST` `/api/add-enrollment` [auth, cache, email] `[inferred]`
+- `POST` `/api/add-enrollment` [auth, db, cache, email, payment] `[inferred]`
   `worker/index.js`
 
 ## Source Files

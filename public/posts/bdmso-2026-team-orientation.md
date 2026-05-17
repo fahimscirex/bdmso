@@ -27,4 +27,4 @@ The session covered everything the team needs to run a smooth cycle:
 
 With orientation complete, the team moves into the active preparation phase. Registration for the National Qualifying Round opens in May 2026. In the meantime, mentors will begin structured preparation sessions for returning students.
 
-If your child is in Class 3–6 and interested in mathematics or science, [register early](registration.html) and start preparing with the official BdMSO syllabus.
+If your child is in Class 3–6 and interested in mathematics or science, [register early](/registration) and start preparing with the official BdMSO syllabus.

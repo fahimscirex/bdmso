@@ -1030,8 +1030,12 @@ async function handleApi(request, env, url) {
 
     return badRequest("Not found.", 404);
   } catch (error) {
+    // Intentional user-facing errors carry an explicit `.status` (see requireAuth, requireField, etc).
+    // Anything else is an internal failure (D1 errors, bugs, etc) — never surface its message to the
+    // client, or we leak things like "D1_ERROR: no such table: login_attempts: SQLITE_ERROR".
     if (error.status) return badRequest(error.message, error.status);
-    return badRequest(error.message || "The request could not be completed.");
+    console.log(`[api-error] ${method} ${pathname}:`, error?.stack || error?.message || error);
+    return badRequest("Something went wrong. Please try again.", 500);
   }
 }
 
@@ -1042,7 +1046,7 @@ const CSP = [
   "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data:",
+  "img-src 'self' data: https:",
   "connect-src 'self'",
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -1066,12 +1070,97 @@ function withSecurityHeaders(response, url) {
   return res;
 }
 
+// ─── Cache-Control by content type ────────────────────────────────────────────
+
+const CACHE_RULES = [
+  { test: /\.(?:webp|png|jpe?g|gif|svg|ico|woff2?|ttf|otf|eot)$/i, value: "public, max-age=31536000, immutable" },
+  { test: /\.(?:css|js|mjs)$/i,                                    value: "public, max-age=600, must-revalidate" },
+  { test: /\.json$/i,                                              value: "public, max-age=300, must-revalidate" },
+  { test: /\.html$/i,                                              value: "public, max-age=0, must-revalidate" },
+];
+
+function applyCacheHeaders(response, pathname) {
+  const rule = CACHE_RULES.find(r => r.test.test(pathname));
+  if (!rule) return response;
+  const res = new Response(response.body, response);
+  res.headers.set("Cache-Control", rule.value);
+  return res;
+}
+
+// ─── Pretty-URL redirects (301) ───────────────────────────────────────────────
+
+function tryPrettyRedirect(url) {
+  let pathname = url.pathname;
+
+  // /post?slug=foo  →  /posts/foo  (and /post with no slug → /blog)
+  if (pathname === "/post" || pathname === "/post.html") {
+    const slug = url.searchParams.get("slug");
+    if (slug) {
+      const target = new URL(`/posts/${encodeURIComponent(slug)}`, url);
+      return Response.redirect(target.toString(), 301);
+    }
+    return Response.redirect(new URL("/blog", url).toString(), 301);
+  }
+
+  // /<page>.html  →  /<page>  (except blog post static files served at /posts/<slug>.html
+  //  which we don't want to expose with .html either - both 301 to extensionless)
+  if (pathname.endsWith(".html") && pathname !== "/index.html") {
+    const target = new URL(pathname.slice(0, -5) + url.search, url);
+    return Response.redirect(target.toString(), 301);
+  }
+  if (pathname === "/index.html") {
+    return Response.redirect(new URL("/" + url.search, url).toString(), 301);
+  }
+
+  // Trailing slash on non-root  →  no slash
+  if (pathname.length > 1 && pathname.endsWith("/")) {
+    const target = new URL(pathname.slice(0, -1) + url.search, url);
+    return Response.redirect(target.toString(), 301);
+  }
+
+  return null;
+}
+
+// With html_handling = "none" the assets binding doesn't auto-add .html or
+// redirect /foo.html → /foo. The worker is solely responsible for URL routing.
+function rewriteForAsset(pathname) {
+  // /                         → /index.html
+  if (pathname === "/") return "/index.html";
+  // /about, /team etc.        → /about.html (only for known top-level pages)
+  // /posts/<slug>             → /posts/<slug>.html
+  // Anything whose last path segment already has a "." stays as-is (.css, .webp,
+  // .webmanifest, .ico, .json, etc.).
+  const lastSeg = pathname.slice(pathname.lastIndexOf("/") + 1);
+  if (lastSeg.includes(".")) return pathname;
+  return `${pathname}.html`;
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    const response = url.pathname.startsWith("/api/")
-      ? await handleApi(request, env, url)
-      : await env.ASSETS.fetch(request);
-    return withSecurityHeaders(response, url);
+
+    if (url.pathname.startsWith("/api/")) {
+      const response = await handleApi(request, env, url);
+      return withSecurityHeaders(response, url);
+    }
+
+    // Pretty-URL canonicalization with 301s (replaces the assets binding's default 307s).
+    if (request.method === "GET" || request.method === "HEAD") {
+      const redirect = tryPrettyRedirect(url);
+      if (redirect) return withSecurityHeaders(redirect, url);
+    }
+
+    // Map extensionless URL → underlying .html asset (no redirect; transparent rewrite).
+    const assetPath = rewriteForAsset(url.pathname);
+    let assetRequest = request;
+    if (assetPath !== url.pathname) {
+      const rewritten = new URL(request.url);
+      rewritten.pathname = assetPath;
+      assetRequest = new Request(rewritten.toString(), request);
+    }
+
+    const response = await env.ASSETS.fetch(assetRequest);
+    const cached = applyCacheHeaders(response, url.pathname);
+    return withSecurityHeaders(cached, url);
   }
 };

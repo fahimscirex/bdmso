@@ -34,4 +34,4 @@ The transition from screen to lab was telling. Students who had been quiet durin
 
 ## What's Next
 
-Students who completed the STEM Foundation Course will be given priority access to the BdMSO Preparatory Course ahead of the 2026 national round. For new students, the next cohort will be announced on the [programs page](programs.html).
+Students who completed the STEM Foundation Course will be given priority access to the BdMSO Preparatory Course ahead of the 2026 national round. For new students, the next cohort will be announced on the [programs page](/programs).

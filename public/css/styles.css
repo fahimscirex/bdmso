@@ -8,6 +8,7 @@
   --navy-700: #4252ab;   /* medium indigo - "S" letterform */
   --navy-600: #6f7fd0;
   --navy-500: #8b97e0;
+  --navy-200: #c5d0ea;
   --navy-100: #e8ecfb;
   --navy-50:  #f5f7ff;
 
@@ -21,6 +22,7 @@
   --green-500:#88c63f;   /* flask green dot */
 
   --ink:      #17284a;
+  --ink-1:    #17284a;   /* alias for --ink — primary darkest text */
   --ink-2:    #49566f;
   --ink-3:    #7a8497;
   --line:     #dbe1ec;

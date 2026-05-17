@@ -2,7 +2,21 @@
 
 > **Navigation aid.** Schema shapes and field types extracted via AST. Read the actual schema source files before writing migrations or query logic.
 
-**unknown** — 9 models
+**unknown** — 10 models
+
+### guardian_accounts
+
+pk: `id` (text) · fk: member_id
+
+- `id`: text _(pk)_
+- `email`: text _(required)_
+- `password_hash`: text _(required)_
+- `password_salt`: text _(required)_
+- `password_iterations`: integer _(required)_
+- `full_name`: text _(required)_
+- `phone`: text
+- `email_verified`: integer _(required)_
+- `member_id`: text _(fk)_
 
 ### email_verification_tokens
 
@@ -21,46 +35,17 @@ pk: `id` (integer)
 - `success`: integer _(required)_
 - `attempted_at`: text _(required)_
 
-### member_id_seq
-
-pk: `id` (integer)
-
-- `id`: integer _(pk)_
-- `reserved_at`: text _(required)_
-
-### coupons
-
-pk: `code` (text)
-
-- `code`: text _(pk)_
-- `discount_type`: text _(required)_
-- `max_uses`: integer
-- `applies_to`: text
-
-### guardian_accounts
-
-pk: `id` (text)
-
-- `id`: text _(pk)_
-- `email`: text _(required)_
-- `password_hash`: text _(required)_
-- `password_salt`: text _(required)_
-- `password_iterations`: integer _(required)_
-- `full_name`: text _(required)_
-- `phone`: text
-- `email_verified`: integer _(required)_
-
 ### registrations
 
-pk: `id` (text) · fk: member_id, guardian_account_id
+pk: `id` (text) · fk: guardian_account_id
 
 - `id`: text _(pk)_
-- `member_id`: text _(unique, fk)_
 - `registration_type`: text _(required)_
 - `student_full_name`: text _(required)_
 - `student_date_of_birth`: text _(required)_
 - `student_class_name`: text _(required)_
 - `student_gender`: text _(required)_
+- `student_medium`: text
 - `student_school`: text _(required)_
 - `student_district`: text _(required)_
 - `guardian_account_id`: text _(required, fk)_
@@ -69,9 +54,17 @@ pk: `id` (text) · fk: member_id, guardian_account_id
 - `guardian_phone`: text _(required)_
 - `guardian_email`: text _(required)_
 - `guardian_address`: text _(required)_
+- `preferred_venue`: text
 - `terms_accepted`: integer _(required)_
 - `status`: text _(required)_
 - `source_page`: text
+
+### member_id_seq
+
+pk: `id` (integer)
+
+- `id`: integer _(pk)_
+- `reserved_at`: text _(required)_
 
 ### sponsorship_enquiries
 
@@ -97,18 +90,29 @@ pk: `id` (text) · fk: account_id
 
 ### payments
 
-pk: `id` (text) · fk: registration_id, account_id, tran_id, val_id
+pk: `id` (text) · fk: registration_id, tran_id
 
 - `id`: text _(pk)_
 - `registration_id`: text _(required, fk)_
-- `account_id`: text _(required, fk)_
 - `amount`: real _(required)_
 - `currency`: text _(required)_
 - `tran_id`: text _(unique, fk)_
-- `val_id`: text _(fk)_
-- `gateway_status`: text
-- `status`: text _(required)_
-- _relations_: registration_id -> registrations.id
+
+### bkash_token_cache
+
+pk: `id` (integer)
+
+- `id`: integer _(pk)_
+- `expires_at`: text _(required)_
+
+### coupons
+
+pk: `code` (text)
+
+- `code`: text _(pk)_
+- `discount_type`: text _(required)_
+- `max_uses`: integer
+- `applies_to`: text
 
 ## Schema Source Files
 

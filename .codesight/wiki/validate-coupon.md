@@ -2,11 +2,11 @@
 
 > **Navigation aid.** Route list and file locations extracted via AST. Read the source files listed below before implementing or modifying this subsystem.
 
-The Validate-coupon subsystem handles **1 routes** and touches: auth, cache, email.
+The Validate-coupon subsystem handles **1 routes** and touches: auth, db, cache, email, payment.
 
 ## Routes
 
-- `GET` `/api/validate-coupon` [auth, cache, email] `[inferred]`
+- `GET` `/api/validate-coupon` [auth, db, cache, email, payment] `[inferred]`
   `worker/index.js`
 
 ## Source Files
