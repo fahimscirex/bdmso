@@ -15,9 +15,12 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    port: 5174,
+    // Override with VITE_PORT=NNNN and WRANGLER_PORT=NNNN to run on different
+    // ports (e.g. when :5174 or :8787 are in use, or to run several stacks
+    // side by side).
+    port: Number(process.env.VITE_PORT) || 5174,
     proxy: {
-      '/api': 'http://localhost:8787',
+      '/api': `http://localhost:${Number(process.env.WRANGLER_PORT) || 8787}`,
     },
   },
 });

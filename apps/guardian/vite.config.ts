@@ -15,10 +15,11 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    port: 5173,
-    // Proxy /api requests to the Worker dev server so cookies/auth flow naturally.
+    // Override with VITE_PORT=NNNN and WRANGLER_PORT=NNNN to run on different
+    // ports. Proxy points to the Worker dev server so cookies/auth flow naturally.
+    port: Number(process.env.VITE_PORT) || 5173,
     proxy: {
-      '/api': 'http://localhost:8787',
+      '/api': `http://localhost:${Number(process.env.WRANGLER_PORT) || 8787}`,
     },
   },
 });
