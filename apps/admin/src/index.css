@@ -123,6 +123,10 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 .stat { background: white; border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; }
 .stat-value { font-size: 1.6rem; font-weight: 700; font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1.1; }
 .stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); margin-top: 4px; }
+/* Buttonised stat (clickable dashboard tile). */
+.stat-tile { font: inherit; text-align: left; cursor: pointer; width: 100%; }
+.stat-tile:hover { border-color: var(--navy-700); background: var(--navy-50); }
+
 .stat-ok .stat-value    { color: var(--green); }
 .stat-warn .stat-value  { color: var(--amber); }
 .stat-bad .stat-value   { color: var(--red); }
@@ -171,6 +175,12 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 }
 .btn-secondary:hover:not(:disabled) { background: var(--navy-50); border-color: var(--navy-700); }
 .btn-secondary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Activity feed on the dashboard. */
+.activity { list-style: none; padding: 0; margin: 0; }
+.activity li { padding: 8px 0; border-bottom: 1px solid var(--line-2); font-size: 13.5px; }
+.activity li:last-child { border-bottom: none; }
+.activity code { background: var(--navy-50); padding: 1px 6px; border-radius: 4px; font-size: 12px; }
 
 /* Inline status dropdown used in Sponsorships list. */
 .inline-select {
