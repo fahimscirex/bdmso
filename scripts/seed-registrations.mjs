@@ -106,14 +106,47 @@ for (let i = 0; i < COUNT; i++) {
   }
 }
 
+// ─── Sponsorship enquiries (smaller pool) ───────────────────────────────────
+// Adds ~1 enquiry per 5 registrations, spread across the three statuses,
+// so the Sponsorships screen has something to show out of the box.
+
+const ORGS = [
+  "Robi Axiata", "Grameenphone", "BRAC", "Pathao", "bKash", "Daraz",
+  "Square Pharma", "Beximco", "City Bank", "Walton Group",
+];
+const INTERESTS = [
+  "Title Sponsor", "Gold Tier", "Silver Tier", "Bronze Tier",
+  "Venue Partner", "Logistics Partner", "Media Partner",
+];
+const STATUSES = ["new", "new", "new", "contacted", "contacted", "closed"];
+
+const sponsorshipCount = Math.max(3, Math.round(COUNT / 5));
+for (let i = 0; i < sponsorshipCount; i++) {
+  const org    = pick(ORGS);
+  const first  = pick(FIRST);
+  const last   = pick(LAST);
+  const intr   = pick(INTERESTS);
+  const status = pick(STATUSES);
+  const createdAt = new Date(now.getTime() - Math.floor(Math.random() * 45 * 86400000)).toISOString();
+  const enqId = id("enq");
+  const email = `${first.toLowerCase()}.${last.toLowerCase()}+sponsor${i}@${org.toLowerCase().replace(/[^a-z]/g, "")}.example`;
+  const phone = `+8801${String(700000000 + Math.floor(Math.random() * 99999999)).slice(0, 9)}`;
+  const message = `Hi, we're exploring ways ${org} can partner with BdMSO 2026. Interested in the ${intr} package — please share the deck and timeline.`;
+
+  sqlLines.push(
+    `INSERT INTO sponsorship_enquiries (id, organization, contact_person, email, phone, interest, message, status, source_page, created_at) ` +
+    `VALUES (${esc(enqId)}, ${esc(org)}, ${esc(`${first} ${last}`)}, ${esc(email)}, ${esc(phone)}, ${esc(intr)}, ${esc(message)}, ${esc(status)}, 'seed', ${esc(createdAt)});`
+  );
+}
+
 const tmpFile = `/tmp/bdmso-seed-${Date.now()}.sql`;
 writeFileSync(tmpFile, sqlLines.join("\n") + "\n");
 
 try {
   execSync(`wrangler d1 execute bdmso --local --file=${tmpFile}`, { stdio: "inherit" });
   console.log("");
-  console.log(`✓ Seeded ${COUNT} registrations (mix of paid / submitted / cancelled).`);
-  console.log(`  Open /admin → Registrations to see them.`);
+  console.log(`✓ Seeded ${COUNT} registrations + ${sponsorshipCount} sponsorship enquiries.`);
+  console.log(`  Open /admin → Registrations / Sponsorships to see them.`);
   console.log(`  Seeded guardians all share password: test1234`);
 } finally {
   unlinkSync(tmpFile);

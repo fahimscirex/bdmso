@@ -125,6 +125,7 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 .stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); margin-top: 4px; }
 .stat-ok .stat-value    { color: var(--green); }
 .stat-warn .stat-value  { color: var(--amber); }
+.stat-bad .stat-value   { color: var(--red); }
 .stat-muted .stat-value { color: var(--muted); }
 
 /* ─── Toolbar (filters above tables) ────────────────────────────────────── */
@@ -156,8 +157,33 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 .badge-bad   { background: var(--red-bg);   color: var(--red); }
 .badge-muted { background: var(--muted-bg); color: var(--muted); }
 
+/* ─── Detail page (registration / payment / sponsorship) ────────────────── */
+
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+.back-link { display: inline-block; font-size: 13px; color: var(--ink-2); text-decoration: none; padding: 4px 0; }
+.back-link:hover { color: var(--navy-700); }
+
+.action-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.btn-secondary {
+  font: inherit; font-weight: 600; font-size: 13px; padding: 8px 14px;
+  border: 1px solid var(--line); background: white; color: var(--navy-900);
+  border-radius: 8px; cursor: pointer;
+}
+.btn-secondary:hover:not(:disabled) { background: var(--navy-50); border-color: var(--navy-700); }
+.btn-secondary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Inline status dropdown used in Sponsorships list. */
+.inline-select {
+  font: inherit; font-size: 12px; padding: 4px 6px;
+  border: 1px solid var(--line); border-radius: 6px; background: white; color: var(--navy-900);
+}
+
+/* Make rows feel clickable in lists that link to a detail view. */
+.data-table tr.row-link { cursor: pointer; }
+
 @media (max-width: 900px) {
   .stat-row { grid-template-columns: 1fr 1fr; }
+  .detail-grid { grid-template-columns: 1fr; }
   .layout { grid-template-columns: 1fr; }
   .sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 14px; gap: 10px; }
   .sidebar nav { flex-direction: row; flex-wrap: wrap; gap: 6px; }

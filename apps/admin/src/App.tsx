@@ -12,6 +12,9 @@ import { api, ApiError } from './api';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Registrations } from './pages/Registrations';
+import { RegistrationDetail } from './pages/RegistrationDetail';
+import { Payments } from './pages/Payments';
+import { Sponsorships } from './pages/Sponsorships';
 import { NavShell } from './components/NavShell';
 
 type Identity = { email: string; role: string };
@@ -71,9 +74,15 @@ export function App() {
 }
 
 function renderPage(route: string) {
+  // /registrations/:id — detail view. Match before the literal /registrations.
+  const regDetail = route.match(/^\/registrations\/([\w-]+)$/);
+  if (regDetail) return <RegistrationDetail id={regDetail[1]} />;
+
   switch (route) {
     case '/':              return <Dashboard />;
     case '/registrations': return <Registrations />;
+    case '/payments':      return <Payments />;
+    case '/sponsorships':  return <Sponsorships />;
     default:               return <NotFound route={route} />;
   }
 }

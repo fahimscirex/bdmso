@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from 'preact/hooks';
 import { api, ApiError } from '../api';
+import { navigate } from '../router';
 
 type Row = {
   id: string;
@@ -134,7 +135,7 @@ export function Registrations() {
             </thead>
             <tbody>
               {data.rows.map((r) => (
-                <tr>
+                <tr class="row-link" onClick={() => navigate(`/registrations/${r.id}`)}>
                   <td>
                     <div class="cell-strong">{r.student_full_name}</div>
                     <div class="cell-sub">{r.student_gender}</div>

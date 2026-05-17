@@ -31,3 +31,12 @@ export function navigate(to: string): void {
   history.pushState(null, '', full);
   window.dispatchEvent(new PopStateEvent('popstate'));
 }
+
+/**
+ * Build the public URL for a route — useful for <a href> so middle-click
+ * and right-click → copy-link work properly. Pair with onClick={(e) => {
+ * e.preventDefault(); navigate(to); }} to keep SPA navigation on left-click.
+ */
+export function href(to: string): string {
+  return PREFIX + (to === '/' ? '' : to);
+}

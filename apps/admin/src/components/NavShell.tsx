@@ -9,12 +9,12 @@ type Section = { label: string; href: string; soon?: boolean };
 const NAV: Section[] = [
   { label: 'Dashboard',     href: '/' },
   { label: 'Registrations', href: '/registrations' },
-  { label: 'Payments',      href: '/payments',      soon: true },
-  { label: 'Sponsorships',  href: '/sponsorships',  soon: true },
-  { label: 'Posts',         href: '/posts',         soon: true },
-  { label: 'Programs',      href: '/programs',      soon: true },
-  { label: 'Users',         href: '/users',         soon: true },
-  { label: 'Settings',      href: '/settings',      soon: true },
+  { label: 'Payments',      href: '/payments' },
+  { label: 'Sponsorships',  href: '/sponsorships' },
+  { label: 'Posts',         href: '/posts',    soon: true },
+  { label: 'Programs',      href: '/programs', soon: true },
+  { label: 'Users',         href: '/users',    soon: true },
+  { label: 'Settings',      href: '/settings', soon: true },
 ];
 
 type Props = {
@@ -43,7 +43,10 @@ export function NavShell({ currentRoute, userEmail, onSignOut, children }: Props
         </div>
         <nav>
           {NAV.map((s) => {
-            const active = s.href === currentRoute;
+            // Exact match for /, prefix match for /registrations vs /registrations/abc.
+            const active = s.href === '/'
+              ? currentRoute === '/'
+              : currentRoute === s.href || currentRoute.startsWith(`${s.href}/`);
             return (
               <a
                 href={`/admin${s.href === '/' ? '' : s.href}`}
