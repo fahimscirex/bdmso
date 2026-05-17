@@ -131,36 +131,63 @@ Two sections: `featured` (the three portrait cards) and `stats` (the number stri
 
 ## Local Development
 
-```bash
-npm install
-cp .env.example .env              # set SITE_URL for build output
-cp .dev.vars.example .dev.vars    # fill in BKASH_*, BREVO_API_KEY, EMAIL_FROM
-npm run dev:local                 # serves public/ with live reload at localhost:3000
-```
-
-`.dev.vars` holds local Worker secrets (bKash, Brevo). It is gitignored - never commit it.
-
-To test Worker API endpoints locally (including Markdown blog watcher):
+### One-time setup
 
 ```bash
-# First run only - apply schema + migrations to local D1
-npm exec -- wrangler d1 execute bdmso --local --file=./db/schema.sql
-for f in db/migrations/*.sql; do
-  npm exec -- wrangler d1 execute bdmso --local --file="$f"
-done
+# Tools (install globally if not already):
+npm install -g wrangler pnpm
 
-npm run cf:dev                    # wrangler dev at localhost:8787 + posts watcher
+# Workspace deps (root, apps/, packages/):
+pnpm install
+
+# Local secrets:
+cp .env.example .env                   # SITE_URL for build output
+cp .dev.vars.example .dev.vars         # BKASH_*, BREVO_API_KEY, EMAIL_FROM (gitignored — never commit)
+
+# Initialise local D1 with the canonical schema (idempotent; safe to re-run):
+wrangler d1 execute bdmso --local --file=./db/schema.sql
 ```
 
-`cf:dev` runs two processes in parallel via `scripts/dev.mjs`: `wrangler dev --live-reload` and `node scripts/build.mjs --watch`. Editing any `.md` in `public/posts/` regenerates `posts/index.json` automatically.
+`TESTBDMSO` is seeded by `db/schema.sql` — a 100%-off coupon for local checkout testing (50 uses, all programs).
 
-### Test coupon (local only)
+### Daily dev — pick the workflow
 
-A test coupon `TESTBDMSO` (100% off, 50 uses, all programs) is seeded by `db/migrations/008_add_coupons.sql`. Apply it once to your local D1 and use it at checkout:
+The site has three independent dev surfaces. You'll usually only run one at a time.
+
+| What you're working on | Command | URL |
+|---|---|---|
+| **Marketing site + Worker API** | `npm run cf:dev` | http://localhost:8787 |
+| **Guardian dashboard** (HMR) | `npm run dev:guardian` | http://localhost:5173 |
+| **Admin dashboard** (HMR) | `npm run dev:admin` | http://localhost:5174 |
+| **Production-like preview** (full integration) | `npm run preview` | http://localhost:8787 |
+
+`dev:guardian` and `dev:admin` each spawn **two** processes: `wrangler dev` (API on :8787) and a Vite dev server (HMR on :5173 or :5174). The Vite server proxies `/api/*` to wrangler so cookies and auth flow naturally during development.
+
+`preview` builds the marketing site + both SPAs into `dist/` then serves the result via `wrangler dev --config wrangler.prod.toml`. Use this when you want to verify production routing, asset paths, or anything else that differs between dev and prod.
+
+### Try the admin dashboard
 
 ```bash
-npm exec -- wrangler d1 execute bdmso --local --file=./db/migrations/008_add_coupons.sql
+# Create an admin account (one-time; idempotent on conflict):
+npm run admin:create -- admin@bdmso.org admin1234
+
+# Start the admin dev server (vite + wrangler dev together):
+npm run dev:admin
+
+# Open http://localhost:5174 and sign in with the credentials above.
 ```
+
+The login flow `POST`s to `/api/login`, role-gates on `role='admin'`, stores the bearer token in `localStorage`, then calls `GET /api/admin/health` to confirm the admin namespace works end-to-end.
+
+To create more admins, re-run `admin:create` with a different email. To demote an admin back to a guardian:
+
+```bash
+wrangler d1 execute bdmso --local --command "UPDATE guardian_accounts SET role='guardian' WHERE email='admin@bdmso.org';"
+```
+
+### Blog post watcher
+
+Whenever `npm run cf:dev` (or `dev:guardian` / `dev:admin`) is running, edits to any `.md` in `public/posts/` regenerate `posts/index.json` and per-post HTML in the background via `scripts/build.mjs --watch`.
 
 ---
 
