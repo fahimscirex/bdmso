@@ -9,7 +9,7 @@ import { createSession, extractToken, requireAuth } from "../lib/sessions.js";
 import { checkLoginRateLimit, recordLoginAttempt } from "../lib/rate-limit.js";
 import { createVerificationToken, sendVerificationEmail, sendSponsorshipNotification, assignMemberIdAndSendReceipt } from "../lib/email.js";
 import { PROGRAM_PRICES } from "../lib/programs.js";
-import { getBkashConfig, bkashGrantToken, bkashCreatePayment, bkashExecutePayment } from "../lib/bkash.js";
+import { getShurjopayConfig, shurjopayGetToken, shurjopayCreatePayment, shurjopayVerify } from "../lib/shurjopay.js";
 
 export async function handleLogin(request, env) {
   const payload = await parseJson(request);
@@ -346,63 +346,83 @@ export async function handleCreatePayment(request, env) {
     return jsonResponse({ ok: true, free: true });
   }
 
-  const bkashConfig = getBkashConfig(env);
-  let bkashRes;
+  // Capture the caller's IP for shurjoPay's risk engine (required field).
+  // Behind Cloudflare the real IP is in `cf-connecting-ip`; fall back to a
+  // sane default so a missing header in local dev doesn't 400 the request.
+  const clientIp = request.headers.get("cf-connecting-ip")
+                || request.headers.get("x-forwarded-for")?.split(",")[0].trim()
+                || "0.0.0.0";
+
+  const config = getShurjopayConfig(env);
+  let spRes;
   try {
-    const idToken = await bkashGrantToken(bkashConfig, env);
-    bkashRes = await bkashCreatePayment(bkashConfig, idToken, {
-      amount,
-      merchantInvoiceNumber: tranId,
-      callbackURL:           `${base}/api/payment-callback`,
-      payerReference:        reg.guardian_phone || reg.guardian_email,
+    const tokenInfo = await shurjopayGetToken(config, env);
+    spRes = await shurjopayCreatePayment(config, tokenInfo, {
+      order_id:           tranId,
+      amount:             String(amount),
+      client_ip:          clientIp,
+      return_url:         `${base}/api/payment-callback`,
+      cancel_url:         `${base}/api/payment-callback`,
+      customer_name:      reg.guardian_full_name,
+      customer_phone:     reg.guardian_phone,
+      customer_email:     reg.guardian_email,
+      customer_address:   reg.guardian_address || reg.student_district,
+      customer_city:      reg.student_district,
+      customer_post_code: "1000",
     });
   } catch (err) {
     return badRequest(err.message || "Payment gateway error. Please try again.");
   }
 
+  // val_id starts out holding shurjoPay's order id. We need this because
+  // the post-payment redirect identifies the txn by sp_order_id, not by
+  // our merchant tran_id.
   const paymentId = createId("pay");
   await env.DB.prepare(
-    "INSERT INTO payments (id, registration_id, amount, currency, tran_id, coupon_code, status, created_at, updated_at) VALUES (?, ?, ?, 'BDT', ?, ?, 'pending', ?, ?)"
-  ).bind(paymentId, registrationId, amount, bkashRes.paymentID, couponCode || null, now, now).run();
+    "INSERT INTO payments (id, registration_id, amount, currency, tran_id, val_id, coupon_code, status, created_at, updated_at) VALUES (?, ?, ?, 'BDT', ?, ?, ?, 'pending', ?, ?)"
+  ).bind(paymentId, registrationId, amount, tranId, spRes.sp_order_id || null, couponCode || null, now, now).run();
 
-  return jsonResponse({ ok: true, bkashURL: bkashRes.bkashURL });
+  return jsonResponse({ ok: true, checkoutURL: spRes.checkout_url });
 }
 
 export async function handlePaymentCallback(request, env, url) {
-  const base      = getBaseUrl(request);
-  const paymentID = url.searchParams.get("paymentID");
-  const status    = url.searchParams.get("status");
+  const base       = getBaseUrl(request);
+  // shurjoPay appends ?order_id=<sp_order_id> on the return redirect.
+  // Misleading name — it's their order id, not the merchant's. Confirmed
+  // against the official usage example (return.js).
+  const spOrderId = url.searchParams.get("order_id");
+  if (!spOrderId) return redirectTo(`${base}/dashboard.html?payment=failed`);
 
-  if (status === "cancel")           return redirectTo(`${base}/dashboard.html?payment=cancelled`);
-  if (status === "failure" || !paymentID) return redirectTo(`${base}/dashboard.html?payment=failed`);
-
-  // Reject callbacks for unknown or already-processed paymentIDs
+  // Reject callbacks for unknown or already-processed payments.
   const pendingPayment = await env.DB.prepare(
-    "SELECT id, coupon_code FROM payments WHERE tran_id = ? AND status = 'pending' LIMIT 1"
-  ).bind(paymentID).first();
+    "SELECT id, tran_id, coupon_code FROM payments WHERE val_id = ? AND status = 'pending' LIMIT 1"
+  ).bind(spOrderId).first();
   if (!pendingPayment) return redirectTo(`${base}/dashboard.html?payment=failed`);
 
   try {
-    const config  = getBkashConfig(env);
-    const idToken = await bkashGrantToken(config, env);
-    const result  = await bkashExecutePayment(config, idToken, paymentID);
-    const now     = new Date().toISOString();
+    const config    = getShurjopayConfig(env);
+    const tokenInfo = await shurjopayGetToken(config, env);
+    const result    = await shurjopayVerify(config, tokenInfo, spOrderId);
+    const now       = new Date().toISOString();
+    const status    = result.transaction_status || result.sp_message || "Unknown";
 
-    if (result.transactionStatus !== "Completed") {
+    // shurjoPay returns "Success" on a confirmed paid txn. Anything else
+    // (Cancel / Failed / Initiated / Pending) is treated as not-yet-paid.
+    if (status !== "Success") {
       await env.DB.prepare(
-        "UPDATE payments SET status = 'failed', gateway_status = ?, updated_at = ? WHERE tran_id = ?"
-      ).bind(result.transactionStatus || "FAILED", now, paymentID).run();
-      return redirectTo(`${base}/dashboard.html?payment=failed`);
+        "UPDATE payments SET status = 'failed', gateway_status = ?, updated_at = ? WHERE val_id = ?"
+      ).bind(status, now, spOrderId).run();
+      return redirectTo(`${base}/dashboard.html?payment=${status.toLowerCase() === "cancel" ? "cancelled" : "failed"}`);
     }
 
     const batchOps = [
       env.DB.prepare(
-        "UPDATE payments SET status = 'paid', gateway_status = 'Completed', val_id = ?, updated_at = ? WHERE tran_id = ?"
-      ).bind(result.trxID, now, paymentID),
+        "UPDATE payments SET status = 'paid', gateway_status = 'Success', updated_at = ? WHERE val_id = ?"
+      ).bind(now, spOrderId),
       env.DB.prepare(`
         UPDATE registrations SET status = 'paid'
-        WHERE id = (SELECT registration_id FROM payments WHERE tran_id = ? LIMIT 1)
-      `).bind(paymentID),
+        WHERE id = (SELECT registration_id FROM payments WHERE val_id = ? LIMIT 1)
+      `).bind(spOrderId),
     ];
     if (pendingPayment.coupon_code) {
       batchOps.push(
@@ -412,13 +432,13 @@ export async function handlePaymentCallback(request, env, url) {
     }
     await env.DB.batch(batchOps);
 
-    try { await assignMemberIdAndSendReceipt(env, paymentID); } catch (err) {
+    try { await assignMemberIdAndSendReceipt(env, pendingPayment.tran_id); } catch (err) {
       console.log("[payment-callback] receipt error:", err.message);
     }
 
     return redirectTo(`${base}/dashboard.html?payment=success`);
   } catch (err) {
-    console.log("[payment-callback] bKash error:", err.message);
+    console.log("[payment-callback] shurjoPay error:", err.message);
     return redirectTo(`${base}/dashboard.html?payment=failed`);
   }
 }

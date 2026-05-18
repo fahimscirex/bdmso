@@ -61,7 +61,7 @@ export function Payments() {
     <>
       <div class="page-header">
         <h1>Payments</h1>
-        <p class="sub">All payment attempts — bKash and SSLCommerz. Updated-first.</p>
+        <p class="sub">All payment attempts via shurjoPay. Updated-first.</p>
       </div>
 
       {data && (

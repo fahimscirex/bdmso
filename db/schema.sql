@@ -105,18 +105,18 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS idx_sessions_account_id
 ON sessions (account_id);
 
--- Gateway column mapping (bKash Tokenized Checkout):
---   tran_id        = bKash paymentID        (from /create, used as lookup key throughout)
---   val_id         = bKash trxID            (from /execute, final transaction reference)
---   gateway_status = bKash transactionStatus (e.g. "Completed")
+-- Gateway column mapping (shurjoPay):
+--   tran_id        = merchant order_id      (we generate; sent as order_id to /api/secret-pay)
+--   val_id         = sp_order_id            (from secret-pay response; used to look up the row in /payment-callback because shurjoPay's redirect identifies the txn by sp_order_id, not by our id)
+--   gateway_status = transaction_status     (from /api/verification: "Success" on paid)
 CREATE TABLE IF NOT EXISTS payments (
   id TEXT PRIMARY KEY,
   registration_id TEXT NOT NULL,
   amount REAL NOT NULL,
   currency TEXT NOT NULL DEFAULT 'BDT',
-  tran_id TEXT UNIQUE,       -- bKash paymentID
-  val_id TEXT,               -- bKash trxID (set after /execute)
-  gateway_status TEXT,       -- bKash transactionStatus
+  tran_id TEXT UNIQUE,       -- merchant order_id
+  val_id TEXT,               -- shurjoPay sp_order_id (set at create-payment time)
+  gateway_status TEXT,       -- shurjoPay transaction_status
   coupon_code TEXT,          -- coupon applied at checkout (used_count incremented on success)
   status TEXT NOT NULL DEFAULT 'pending',
   created_at TEXT NOT NULL,
@@ -130,9 +130,18 @@ ON payments (registration_id);
 CREATE INDEX IF NOT EXISTS idx_payments_tran_id
 ON payments (tran_id);
 
-CREATE TABLE IF NOT EXISTS bkash_token_cache (
-  id INTEGER PRIMARY KEY CHECK (id = 1),  -- single-row table
-  id_token TEXT NOT NULL,
+CREATE INDEX IF NOT EXISTS idx_payments_val_id
+ON payments (val_id);
+
+-- shurjoPay /api/get_token returns a bearer token valid for ~1 hour plus
+-- the store_id we need on every /api/secret-pay call. Cached in this
+-- single-row table so concurrent worker invocations don't each spend an
+-- extra round-trip to grant a fresh token.
+CREATE TABLE IF NOT EXISTS shurjopay_token_cache (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  token TEXT NOT NULL,
+  token_type TEXT NOT NULL,
+  store_id TEXT NOT NULL,
   expires_at TEXT NOT NULL
 );
 

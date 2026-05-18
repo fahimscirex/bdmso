@@ -319,12 +319,12 @@ async function pay(registrationId, regType, btn) {
       const couponCode = validatedCoupons.get(registrationId) || document.getElementById(`coupon-${registrationId}`)?.value.trim().toUpperCase() || '';
       try {
         const data = await apiPost('create-payment', { registrationId, couponCode }, session.token);
-        if (data.free || !data.bkashURL) {
+        if (data.free || !data.checkoutURL) {
           validatedCoupons.delete(registrationId);
           window.location.href = 'dashboard.html?payment=success';
           return;
         }
-        window.location.href = data.bkashURL;
+        window.location.href = data.checkoutURL;
       } catch (err) {
         confirmBtn.disabled = false;
         confirmBtn.textContent = 'Confirm & Pay →';

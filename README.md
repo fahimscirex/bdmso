@@ -142,7 +142,7 @@ pnpm install
 
 # Local secrets:
 cp .env.example .env                   # SITE_URL for build output
-cp .dev.vars.example .dev.vars         # BKASH_*, BREVO_API_KEY, EMAIL_FROM (gitignored — never commit)
+cp .dev.vars.example .dev.vars         # SHURJOPAY_*, BREVO_API_KEY, EMAIL_FROM (gitignored — never commit)
 
 # Initialise local D1 with the canonical schema (idempotent; safe to re-run):
 wrangler d1 execute bdmso --local --file=./db/schema.sql
@@ -228,12 +228,11 @@ Some migrations may report "duplicate column" - that's expected when `schema.sql
 4. Set production secrets (one-time):
 
 ```bash
-npm exec -- wrangler secret put BKASH_APP_KEY    --config wrangler.prod.toml
-npm exec -- wrangler secret put BKASH_APP_SECRET --config wrangler.prod.toml
-npm exec -- wrangler secret put BKASH_USERNAME   --config wrangler.prod.toml
-npm exec -- wrangler secret put BKASH_PASSWORD   --config wrangler.prod.toml
-npm exec -- wrangler secret put BREVO_API_KEY    --config wrangler.prod.toml
-npm exec -- wrangler secret put EMAIL_FROM       --config wrangler.prod.toml
+npm exec -- wrangler secret put SHURJOPAY_USERNAME --config wrangler.prod.toml
+npm exec -- wrangler secret put SHURJOPAY_PASSWORD --config wrangler.prod.toml
+npm exec -- wrangler secret put SHURJOPAY_PREFIX   --config wrangler.prod.toml
+npm exec -- wrangler secret put BREVO_API_KEY      --config wrangler.prod.toml
+npm exec -- wrangler secret put EMAIL_FROM         --config wrangler.prod.toml
 ```
 
 5. Deploy:
