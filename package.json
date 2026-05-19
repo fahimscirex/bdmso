@@ -5,13 +5,12 @@
   "type": "module",
   "description": "BdMSO static marketing site prepared for Cloudflare Pages and Workers with D1.",
   "scripts": {
-    "dev:local": "npx live-server public --port=3000",
     "build": "node scripts/build.mjs",
     "build:apps": "pnpm -r build",
     "build:all": "npm run build && npm run build:apps",
     "clean": "rm -rf dist apps/*/dist",
     "posts:watch": "node scripts/build.mjs --watch",
-    "cf:dev": "node scripts/dev.mjs",
+    "dev:worker": "node scripts/dev.mjs",
     "dev:admin": "node scripts/dev-admin.mjs",
     "dev:guardian": "node scripts/dev-guardian.mjs",
     "preview": "npm run build:all && wrangler dev --config wrangler.prod.toml",
@@ -19,6 +18,7 @@
     "cf:d1:init": "wrangler d1 execute bdmso --local --file=./db/schema.sql",
     "cf:d1:init:prod": "wrangler d1 execute bdmso --file=./db/schema.sql",
     "admin:create": "node scripts/create-admin.mjs",
+    "demo:user": "node scripts/create-demo-user.mjs",
     "seed:registrations": "node scripts/seed-registrations.mjs"
   },
   "engines": {

@@ -54,15 +54,32 @@ function formatBdt(n: number | null): string {
   return `৳ ${Number(n).toLocaleString('en-BD')}`;
 }
 
+type PaymentNotice = 'success' | 'cancelled' | 'failed';
+
+function readPaymentNotice(): PaymentNotice | null {
+  const v = new URLSearchParams(location.search).get('payment');
+  return v === 'success' || v === 'cancelled' || v === 'failed' ? v : null;
+}
+
 export function Home() {
-  const [data, setData]   = useState<Response | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [data, setData]     = useState<Response | null>(null);
+  const [error, setError]   = useState<string | null>(null);
+  const [notice, setNotice] = useState<PaymentNotice | null>(() => readPaymentNotice());
 
   useEffect(() => {
     api.get<Response>('/api/me')
       .then(setData)
       .catch((err: ApiError) => setError(err.message));
   }, []);
+
+  // Strip the ?payment= param from the URL once we've captured it, so a
+  // refresh or back-nav doesn't keep flashing the banner.
+  useEffect(() => {
+    if (!notice) return;
+    const url = new URL(location.href);
+    url.searchParams.delete('payment');
+    history.replaceState(null, '', url.toString());
+  }, [notice]);
 
   if (error) return <div class="error">{error}</div>;
   if (!data) return <p class="muted">Loading…</p>;
@@ -80,6 +97,25 @@ export function Home() {
         <h1>Welcome, {data.account.fullName.split(' ')[0]}.</h1>
         <p class="sub">Here's everything tied to your account.</p>
       </div>
+
+      {notice === 'success' && (
+        <div class="alert alert-ok">
+          <strong>Payment confirmed.</strong> Your registration is paid — your member ID and a receipt should be in your inbox within a minute.
+          <button type="button" class="alert-close" onClick={() => setNotice(null)} aria-label="Dismiss">×</button>
+        </div>
+      )}
+      {notice === 'cancelled' && (
+        <div class="alert">
+          <strong>Payment cancelled.</strong> No charge was made. You can try again from the registration below.
+          <button type="button" class="alert-close" onClick={() => setNotice(null)} aria-label="Dismiss">×</button>
+        </div>
+      )}
+      {notice === 'failed' && (
+        <div class="alert alert-bad">
+          <strong>Payment didn't go through.</strong> If money was deducted, contact <a href="mailto:hello@bdmso.org">hello@bdmso.org</a> with your transaction reference — otherwise just try again.
+          <button type="button" class="alert-close" onClick={() => setNotice(null)} aria-label="Dismiss">×</button>
+        </div>
+      )}
 
       {!data.account.emailVerified && (
         <div class="alert">

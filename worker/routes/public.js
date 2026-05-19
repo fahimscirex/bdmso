@@ -391,13 +391,13 @@ export async function handlePaymentCallback(request, env, url) {
   // Misleading name — it's their order id, not the merchant's. Confirmed
   // against the official usage example (return.js).
   const spOrderId = url.searchParams.get("order_id");
-  if (!spOrderId) return redirectTo(`${base}/dashboard.html?payment=failed`);
+  if (!spOrderId) return redirectTo(`${base}/dashboard?payment=failed`);
 
   // Reject callbacks for unknown or already-processed payments.
   const pendingPayment = await env.DB.prepare(
     "SELECT id, tran_id, coupon_code FROM payments WHERE val_id = ? AND status = 'pending' LIMIT 1"
   ).bind(spOrderId).first();
-  if (!pendingPayment) return redirectTo(`${base}/dashboard.html?payment=failed`);
+  if (!pendingPayment) return redirectTo(`${base}/dashboard?payment=failed`);
 
   try {
     const config    = getShurjopayConfig(env);
@@ -412,7 +412,7 @@ export async function handlePaymentCallback(request, env, url) {
       await env.DB.prepare(
         "UPDATE payments SET status = 'failed', gateway_status = ?, updated_at = ? WHERE val_id = ?"
       ).bind(status, now, spOrderId).run();
-      return redirectTo(`${base}/dashboard.html?payment=${status.toLowerCase() === "cancel" ? "cancelled" : "failed"}`);
+      return redirectTo(`${base}/dashboard?payment=${status.toLowerCase() === "cancel" ? "cancelled" : "failed"}`);
     }
 
     const batchOps = [
@@ -436,10 +436,10 @@ export async function handlePaymentCallback(request, env, url) {
       console.log("[payment-callback] receipt error:", err.message);
     }
 
-    return redirectTo(`${base}/dashboard.html?payment=success`);
+    return redirectTo(`${base}/dashboard?payment=success`);
   } catch (err) {
     console.log("[payment-callback] shurjoPay error:", err.message);
-    return redirectTo(`${base}/dashboard.html?payment=failed`);
+    return redirectTo(`${base}/dashboard?payment=failed`);
   }
 }
 

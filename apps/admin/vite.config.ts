@@ -19,8 +19,25 @@ export default defineConfig({
     // ports (e.g. when :5174 or :8787 are in use, or to run several stacks
     // side by side).
     port: Number(process.env.VITE_PORT) || 5174,
-    proxy: {
-      '/api': `http://localhost:${Number(process.env.WRANGLER_PORT) || 8787}`,
-    },
+    proxy: (() => {
+      const worker = `http://localhost:${Number(process.env.WRANGLER_PORT) || 8787}`;
+      // Same single-dev-origin trick as the guardian app — forward the
+      // marketing surface back to the worker so admins can preview posts
+      // / programs at :5174/blog/<slug> without origin-jumping.
+      // Vite still owns /admin and its internals (/@vite, /src, etc.).
+      const pass = [
+        '/api', '/r2',
+        '/programs', '/registration', '/blog', '/posts',
+        '/about', '/team', '/results', '/resources', '/media',
+        '/sponsorship', '/news', '/data', '/images', '/css', '/js',
+        '/downloads', '/favicon.ico', '/robots.txt', '/sitemap.xml',
+      ];
+      return Object.fromEntries(pass.map((p) => [p, worker]));
+    })(),
+    // Leading-dot entries are wildcard-subdomain matches. Needed because
+    // dev is reached through an extprod.indevs.in reverse-proxy tunnel
+    // and Vite's DNS-rebinding protection (default since v5) otherwise
+    // refuses non-localhost Host headers.
+    allowedHosts: ['.extprod.indevs.in'],
   },
 });

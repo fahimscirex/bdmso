@@ -74,7 +74,7 @@ Paragraphs, **bold**, *italic*, [links](https://example.com), lists, blockquotes
 |---|---|
 | Building for deploy | `npm run build` |
 | One-off regeneration | `node scripts/build.mjs` |
-| Live editing while a dev server is running | `npm run cf:dev` (rebuilds on every `.md` save) or `npm run posts:watch` in a second terminal |
+| Live editing while a dev server is running | `npm run dev:worker` (rebuilds on every `.md` save) or `npm run posts:watch` in a second terminal |
 
 Body content (everything after the frontmatter) is read directly from the `.md` file, so edits to the body show up on reload without re-running anything.
 
@@ -156,7 +156,7 @@ The site has three independent dev surfaces. You'll usually only run one at a ti
 
 | What you're working on | Command | URL |
 |---|---|---|
-| **Marketing site + Worker API** | `npm run cf:dev` | http://localhost:8787 |
+| **Marketing site + Worker API** | `npm run dev:worker` | http://localhost:8787 |
 | **Guardian dashboard** (HMR) | `npm run dev:guardian` | http://localhost:5173 |
 | **Admin dashboard** (HMR) | `npm run dev:admin` | http://localhost:5174 |
 | **Production-like preview** (full integration) | `npm run preview` | http://localhost:8787 |
@@ -187,7 +187,7 @@ wrangler d1 execute bdmso --local --command "UPDATE guardian_accounts SET role='
 
 ### Blog post watcher
 
-Whenever `npm run cf:dev` (or `dev:guardian` / `dev:admin`) is running, edits to any `.md` in `public/posts/` regenerate `posts/index.json` and per-post HTML in the background via `scripts/build.mjs --watch`.
+Whenever `npm run dev:worker` (or `dev:guardian` / `dev:admin`) is running, edits to any `.md` in `public/posts/` regenerate `posts/index.json` and per-post HTML in the background via `scripts/build.mjs --watch`.
 
 ---
 
@@ -283,5 +283,5 @@ db/
   schema.sql              - D1 table definitions
 scripts/
   build.mjs               - regenerates posts/index.json, copies public/ → dist/, writes sitemap + robots.txt; supports --watch
-  dev.mjs                 - dev orchestrator: runs wrangler dev + posts watcher in parallel (used by `npm run cf:dev`)
+  dev.mjs                 - dev orchestrator: runs wrangler dev + posts watcher in parallel (used by `npm run dev:worker`)
 ```

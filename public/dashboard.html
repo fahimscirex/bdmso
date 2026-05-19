@@ -321,7 +321,7 @@ async function pay(registrationId, regType, btn) {
         const data = await apiPost('create-payment', { registrationId, couponCode }, session.token);
         if (data.free || !data.checkoutURL) {
           validatedCoupons.delete(registrationId);
-          window.location.href = 'dashboard.html?payment=success';
+          window.location.href = '/dashboard?payment=success';
           return;
         }
         window.location.href = data.checkoutURL;

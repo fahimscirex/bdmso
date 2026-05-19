@@ -108,8 +108,17 @@ code { background: var(--navy-50); padding: 2px 6px; border-radius: 4px; font-si
 .alert {
   background: var(--amber-bg); border: 1px solid #f6d488; color: var(--amber);
   padding: 12px 16px; border-radius: 10px; margin-bottom: 18px; font-size: 13.5px;
+  position: relative; padding-right: 36px;
 }
-.alert a { color: var(--amber); text-decoration: underline; }
+.alert a { color: inherit; text-decoration: underline; }
+.alert-ok  { background: var(--green-bg); border-color: #bbe5cb; color: var(--green); }
+.alert-bad { background: var(--red-bg);   border-color: #fecaca; color: var(--red);   }
+.alert-close {
+  position: absolute; top: 8px; right: 10px;
+  background: transparent; border: none; color: inherit; opacity: 0.6;
+  font-size: 18px; line-height: 1; padding: 4px 6px; cursor: pointer; border-radius: 4px;
+}
+.alert-close:hover { opacity: 1; background: rgba(0,0,0,0.04); }
 
 /* KPI tiles. */
 .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
