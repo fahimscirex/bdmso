@@ -29,6 +29,25 @@ type Response = {
   registrations: Registration[];
 };
 
+// Local price map. Source of truth lives in worker/lib/programs.js — these
+// values must agree. Kept here only so we can show the parent the amount
+// inline; the server re-derives the actual charge from the same map.
+// When programs CRUD migrates to D1, swap this for an /api/programs lookup.
+const PROGRAM_PRICES: Record<string, number> = {
+  'national-qualifying-round':      1000,
+  'national-qualifying-round-both': 1500,
+  'national-quiz-competition':      1000,
+  'stem-foundation':                8000,
+  'bdmso-preparatory':             12000,
+  'stem-masterclass':               6000,
+  'mock-test':                      3000,
+  'lab-day':                        2000,
+  'robotics-foundation':            7000,
+  'summer-camp':                   15000,
+  'winter-camp':                   25000,
+  'exchange-program':              50000,
+};
+
 const TYPE_LABEL: Record<string, string> = {
   'national-qualifying-round':      'National Qualifying Round',
   'national-qualifying-round-both': 'National Qualifying Round (Math + Science)',
@@ -143,68 +162,7 @@ export function Home() {
         </div>
       ) : (
         <div class="reg-list">
-          {regs.map((r) => (
-            <article class="reg-card">
-              <header class="reg-card-head">
-                <div>
-                  <div class="reg-card-program">
-                    {TYPE_LABEL[r.registration_type] || r.registration_type}
-                  </div>
-                  <div class="reg-card-student">
-                    {r.student_full_name} · {r.student_class_name} · {r.student_gender}
-                  </div>
-                </div>
-                <span class={`badge badge-${r.status === 'paid' ? 'ok' : r.status === 'cancelled' ? 'muted' : 'warn'}`}>
-                  {r.status}
-                </span>
-              </header>
-
-              <div class="reg-card-body">
-                <div class="reg-card-meta">
-                  <div>
-                    <span class="cell-sub">School</span>
-                    <div>{r.student_school}</div>
-                  </div>
-                  <div>
-                    <span class="cell-sub">District</span>
-                    <div>{r.student_district}</div>
-                  </div>
-                  <div>
-                    <span class="cell-sub">Registered</span>
-                    <div>{formatDate(r.created_at)}</div>
-                  </div>
-                </div>
-
-                <div class={`reg-card-payment ${r.payment_status === 'paid' ? 'paid' : r.status === 'submitted' ? 'pending' : 'muted'}`}>
-                  {r.payment_status === 'paid' ? (
-                    <>
-                      <div class="reg-card-payment-label">Paid</div>
-                      <div class="reg-card-payment-value">{formatBdt(r.payment_amount)}</div>
-                      <div class="cell-sub">on {formatDate(r.payment_date)}</div>
-                    </>
-                  ) : r.payment_status === 'pending' ? (
-                    <>
-                      <div class="reg-card-payment-label">Awaiting payment</div>
-                      <div class="reg-card-payment-value">{formatBdt(r.payment_amount)}</div>
-                      <div class="cell-sub">
-                        Started {formatDate(r.payment_date)} — tran <code>{r.tran_id?.slice(0, 12)}…</code>
-                      </div>
-                    </>
-                  ) : r.status === 'cancelled' ? (
-                    <>
-                      <div class="reg-card-payment-label">Cancelled</div>
-                      <div class="cell-sub">Contact support if you'd like to reactivate.</div>
-                    </>
-                  ) : (
-                    <>
-                      <div class="reg-card-payment-label">Payment due</div>
-                      <div class="cell-sub">No payment attempt yet — head to the registration page to pay.</div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </article>
-          ))}
+          {regs.map((r) => <RegistrationCard key={r.id} reg={r} />)}
         </div>
       )}
     </>
@@ -217,5 +175,202 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: 'ok
       <div class="stat-value">{value}</div>
       <div class="stat-label">{label}</div>
     </div>
+  );
+}
+
+// One registration row. Owns its own pay/coupon UI state so cards don't
+// interfere with each other when a parent has multiple registrations.
+
+type CouponInfo = { code: string; description: string; discountedAmount: number; free: boolean };
+
+function RegistrationCard({ reg }: { reg: Registration }) {
+  const basePrice  = reg.payment_amount ?? PROGRAM_PRICES[reg.registration_type] ?? null;
+  const needsPay   = reg.status !== 'cancelled' && reg.payment_status !== 'paid';
+
+  const [showCoupon, setShowCoupon]     = useState(false);
+  const [couponInput, setCouponInput]   = useState('');
+  const [coupon, setCoupon]             = useState<CouponInfo | null>(null);
+  const [couponMsg, setCouponMsg]       = useState<{ text: string; ok: boolean } | null>(null);
+  const [validating, setValidating]     = useState(false);
+  const [paying, setPaying]             = useState(false);
+  const [payError, setPayError]         = useState<string | null>(null);
+
+  async function applyCoupon() {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) {
+      setCouponMsg({ text: 'Enter a coupon code first.', ok: false });
+      return;
+    }
+    setValidating(true);
+    setCouponMsg(null);
+    try {
+      const url = `/api/validate-coupon?code=${encodeURIComponent(code)}&type=${encodeURIComponent(reg.registration_type)}`;
+      const res  = await fetch(url);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Invalid coupon');
+
+      const discounted = data.discountType === 'percent'
+        ? Math.round((basePrice ?? 0) * (1 - Number(data.discountValue) / 100))
+        : Math.max(0, (basePrice ?? 0) - Number(data.discountValue));
+
+      setCoupon({
+        code,
+        description: data.description,
+        discountedAmount: discounted,
+        free: discounted === 0,
+      });
+      setCouponMsg({ text: `✓ ${data.description} applied`, ok: true });
+    } catch (err) {
+      setCoupon(null);
+      setCouponMsg({ text: (err as Error).message, ok: false });
+    } finally {
+      setValidating(false);
+    }
+  }
+
+  async function payNow() {
+    setPaying(true);
+    setPayError(null);
+    try {
+      const body = { registrationId: reg.id, couponCode: coupon?.code || '' };
+      const data = await api.post<{ ok: true; free?: boolean; checkoutURL?: string }>('/api/create-payment', body);
+      if (data.free || !data.checkoutURL) {
+        location.href = '/dashboard?payment=success';
+        return;
+      }
+      location.href = data.checkoutURL;
+    } catch (err) {
+      setPayError((err as Error).message);
+      setPaying(false);
+    }
+  }
+
+  return (
+    <article class="reg-card">
+      <header class="reg-card-head">
+        <div>
+          <div class="reg-card-program">
+            {TYPE_LABEL[reg.registration_type] || reg.registration_type}
+          </div>
+          <div class="reg-card-student">
+            {reg.student_full_name} · {reg.student_class_name} · {reg.student_gender}
+          </div>
+        </div>
+        <span class={`badge badge-${reg.status === 'paid' ? 'ok' : reg.status === 'cancelled' ? 'muted' : 'warn'}`}>
+          {reg.status}
+        </span>
+      </header>
+
+      <div class="reg-card-body">
+        <div class="reg-card-meta">
+          <div>
+            <span class="cell-sub">School</span>
+            <div>{reg.student_school}</div>
+          </div>
+          <div>
+            <span class="cell-sub">District</span>
+            <div>{reg.student_district}</div>
+          </div>
+          <div>
+            <span class="cell-sub">Registered</span>
+            <div>{formatDate(reg.created_at)}</div>
+          </div>
+        </div>
+
+        <div class={`reg-card-payment ${reg.payment_status === 'paid' ? 'paid' : reg.status === 'submitted' ? 'pending' : 'muted'}`}>
+          {reg.payment_status === 'paid' ? (
+            <>
+              <div class="reg-card-payment-label">Paid</div>
+              <div class="reg-card-payment-value">{formatBdt(reg.payment_amount)}</div>
+              <div class="cell-sub">on {formatDate(reg.payment_date)}</div>
+            </>
+          ) : reg.status === 'cancelled' ? (
+            <>
+              <div class="reg-card-payment-label">Cancelled</div>
+              <div class="cell-sub">Contact support if you'd like to reactivate.</div>
+            </>
+          ) : (
+            <>
+              <div class="reg-card-payment-label">
+                {reg.payment_status === 'pending' ? 'Awaiting payment' : 'Payment due'}
+              </div>
+              <div class="reg-card-payment-value">
+                {coupon && basePrice != null ? (
+                  <>
+                    <s class="reg-card-payment-strike">{formatBdt(basePrice)}</s>{' '}
+                    {coupon.free ? 'Free' : formatBdt(coupon.discountedAmount)}
+                  </>
+                ) : (
+                  formatBdt(basePrice)
+                )}
+              </div>
+
+              {reg.payment_status === 'pending' && (
+                <div class="cell-sub" style="margin-bottom:10px;">
+                  Last attempt didn't complete — try again below.
+                </div>
+              )}
+
+              {needsPay && (
+                <>
+                  <button
+                    type="button"
+                    class="btn-primary reg-card-pay-btn"
+                    disabled={paying || validating}
+                    onClick={payNow}
+                  >
+                    {paying
+                      ? 'Redirecting…'
+                      : coupon?.free
+                        ? 'Confirm free enrollment →'
+                        : coupon
+                          ? `Pay ${formatBdt(coupon.discountedAmount)} →`
+                          : reg.payment_status === 'pending'
+                            ? 'Try payment again →'
+                            : 'Pay now →'}
+                  </button>
+
+                  {payError && <div class="reg-card-pay-error">{payError}</div>}
+
+                  {!showCoupon ? (
+                    <button
+                      type="button"
+                      class="reg-card-coupon-toggle"
+                      onClick={() => setShowCoupon(true)}
+                    >
+                      Have a coupon?
+                    </button>
+                  ) : (
+                    <div class="reg-card-coupon">
+                      <input
+                        type="text"
+                        placeholder="Coupon code"
+                        value={couponInput}
+                        onInput={(e) => setCouponInput((e.target as HTMLInputElement).value.toUpperCase())}
+                        disabled={validating || paying}
+                      />
+                      <button
+                        type="button"
+                        class="btn-secondary"
+                        onClick={applyCoupon}
+                        disabled={validating || paying || !couponInput.trim()}
+                      >
+                        {validating ? 'Checking…' : 'Apply'}
+                      </button>
+                    </div>
+                  )}
+
+                  {couponMsg && (
+                    <div class={`reg-card-coupon-msg ${couponMsg.ok ? 'ok' : 'bad'}`}>
+                      {couponMsg.text}
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </article>
   );
 }

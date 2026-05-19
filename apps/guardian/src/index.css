@@ -199,7 +199,34 @@ code { background: var(--navy-50); padding: 2px 6px; border-radius: 4px; font-si
 .reg-card-payment.pending { background: var(--amber-bg); }
 .reg-card-payment.muted   { background: var(--bg-alt); color: var(--ink-3); }
 .reg-card-payment-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
-.reg-card-payment-value { font-size: 1.2rem; font-weight: 700; margin: 4px 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+.reg-card-payment-value { font-size: 1.2rem; font-weight: 700; margin: 4px 0 10px; font-family: 'Plus Jakarta Sans', sans-serif; }
+.reg-card-payment-strike { color: var(--ink-3); font-weight: 500; opacity: 0.7; }
+
+/* Pay-now CTA + coupon UI inside the amber payment panel. */
+.reg-card-pay-btn { width: 100%; margin-top: 4px; }
+.reg-card-pay-error { color: var(--red); font-size: 12.5px; margin-top: 8px; }
+
+.reg-card-coupon-toggle {
+  background: none; border: none; padding: 8px 0 0; font: inherit;
+  color: inherit; opacity: 0.75; text-decoration: underline; cursor: pointer; font-size: 12.5px;
+}
+.reg-card-coupon-toggle:hover { opacity: 1; }
+
+.reg-card-coupon {
+  display: flex; gap: 6px; align-items: stretch; margin-top: 10px;
+}
+.reg-card-coupon input {
+  flex: 1; min-width: 0; font: inherit; padding: 8px 10px;
+  border: 1px solid rgba(0,0,0,0.12); border-radius: 7px;
+  background: rgba(255,255,255,0.65); color: var(--navy-900);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; text-transform: uppercase;
+}
+.reg-card-coupon input:focus { outline: 2px solid var(--navy-700); outline-offset: 1px; border-color: var(--navy-700); }
+.reg-card-coupon .btn-secondary { padding: 8px 12px; font-size: 12.5px; }
+
+.reg-card-coupon-msg { font-size: 12.5px; margin-top: 6px; }
+.reg-card-coupon-msg.ok  { color: var(--green); }
+.reg-card-coupon-msg.bad { color: var(--red); }
 
 @media (max-width: 760px) {
   .gd-header { padding: 12px 16px; flex-wrap: wrap; gap: 16px; }
