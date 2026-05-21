@@ -24,7 +24,7 @@ export default defineConfig({
       // :5173 acts as a single dev origin (parents can nav dashboard →
       // /programs → /registration without origin-jumping). Vite still owns
       // /dashboard (the SPA) plus its internals (/@vite, /src, etc.).
-      // Prod doesn't care — wrangler serves all of these on one origin.
+      // Prod doesn't care - wrangler serves all of these on one origin.
       const pass = [
         '/api', '/r2',
         '/programs', '/registration', '/blog', '/posts',

@@ -1,12 +1,21 @@
 // Guardian login. Shared /api/login endpoint with the admin SPA. Any
-// authenticated role can sign in — admins who log in here just see
+// authenticated role can sign in - admins who log in here just see
 // their own registrations (the admin tools live at /admin).
 
 import { useState } from 'preact/hooks';
-import { setToken } from '../auth';
+import { setSession } from '../auth';
 import { api, ApiError } from '../api';
 
-type LoginResponse = { ok: true; token: string; account: { fullName: string; email: string; role: string } };
+// Flat response shape, matches public/login.html so marketing + SPA stay
+// in sync on what gets stored in localStorage.bdmso_user.
+type LoginResponse = {
+  ok: true;
+  token: string;
+  accountId: string;
+  fullName: string;
+  email: string;
+  role: string;
+};
 
 export function Login({ onSignedIn }: { onSignedIn: () => void }) {
   const [email, setEmail]       = useState('');
@@ -20,7 +29,12 @@ export function Login({ onSignedIn }: { onSignedIn: () => void }) {
     setBusy(true);
     try {
       const r = await api.post<LoginResponse>('/api/login', { email, password });
-      setToken(r.token);
+      setSession({
+        token:     r.token,
+        accountId: r.accountId,
+        fullName:  r.fullName,
+        email:     r.email,
+      });
       onSignedIn();
     } catch (err) {
       setError((err as ApiError).message);
@@ -71,7 +85,7 @@ export function Login({ onSignedIn }: { onSignedIn: () => void }) {
         </button>
 
         <p class="muted" style="margin-top:18px;font-size:12px;text-align:center;">
-          New here? Registration opens with each program — check the home page.
+          New here? Registration opens with each program - check the home page.
         </p>
       </form>
     </main>

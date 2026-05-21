@@ -1,8 +1,10 @@
-// Top-level: auth gate + route switch. Same pattern as the admin SPA
-// but bound to the guardian token and the /dashboard prefix.
+// Top-level: auth gate + route switch. Bound to the shared `bdmso_user`
+// session and the /dashboard prefix. The site chrome (header, footer,
+// "Dashboard" CTA when signed-in, sign-out wiring) is rendered by the
+// marketing site's /js/site.js via Shell - see Shell.tsx.
 
 import { useEffect, useState } from 'preact/hooks';
-import { getToken, clearToken } from './auth';
+import { getToken, clearSession } from './auth';
 import { useRoute } from './router';
 import { api, ApiError } from './api';
 import { Login } from './pages/Login';
@@ -10,53 +12,52 @@ import { Home } from './pages/Home';
 import { Profile } from './pages/Profile';
 import { Shell } from './components/Shell';
 
-type Identity = { fullName: string; email: string };
-
 export function App() {
   const [token, setTokenState] = useState<string | null>(() => getToken());
-  const [identity, setIdentity] = useState<Identity | null>(null);
-  const [identityError, setIdentityError] = useState<string | null>(null);
+  const [validateError, setValidateError] = useState<string | null>(null);
   const route = useRoute();
 
+  // Cheap liveness ping - if /api/me/profile 401s the token rotted and
+  // we drop back to the login screen. Don't gate render on the result;
+  // the header/content render immediately from cached session data.
   useEffect(() => {
-    if (!token) { setIdentity(null); return; }
-    api.get<Identity>('/api/me/profile')
-      .then(setIdentity)
-      .catch((err: ApiError) => {
-        if (err.status === 401) signOut();
-        else setIdentityError(err.message);
-      });
+    if (!token) return;
+    api.get<unknown>('/api/me/profile').catch((err: ApiError) => {
+      if (err.status === 401) signOut();
+      else setValidateError(err.message);
+    });
   }, [token]);
 
   function onSignedIn() {
     setTokenState(getToken());
-    setIdentityError(null);
+    setValidateError(null);
   }
 
   function signOut() {
-    clearToken();
+    clearSession();
     setTokenState(null);
-    setIdentity(null);
+    // site.js reads bdmso_user on render; force a re-render of the
+    // (now-logged-out) header by re-emitting DOMContentLoaded inside
+    // Shell on next mount. For a clean state, just bounce to /login.
+    location.href = '/login';
   }
 
   if (!token) return <Login onSignedIn={onSignedIn} />;
 
-  if (identityError) {
+  if (validateError) {
     return (
       <main class="auth-shell">
         <div class="auth-card">
           <h2>Couldn't reach the dashboard</h2>
-          <p class="error">{identityError}</p>
+          <p class="error">{validateError}</p>
           <button type="button" class="btn-secondary" onClick={signOut}>Sign out</button>
         </div>
       </main>
     );
   }
 
-  if (!identity) return <main class="auth-shell"><p class="muted">Loading…</p></main>;
-
   return (
-    <Shell currentRoute={route} userName={identity.fullName} userEmail={identity.email} onSignOut={signOut}>
+    <Shell currentRoute={route}>
       {renderPage(route)}
     </Shell>
   );
@@ -72,11 +73,9 @@ function renderPage(route: string) {
 
 function NotFound({ route }: { route: string }) {
   return (
-    <>
-      <div class="page-header">
-        <h1>Page not found</h1>
-        <p class="sub">No route matches <code>{route}</code>.</p>
-      </div>
-    </>
+    <div class="page-header">
+      <h1>Page not found</h1>
+      <p class="sub">No route matches <code>{route}</code>.</p>
+    </div>
   );
 }

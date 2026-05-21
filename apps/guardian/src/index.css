@@ -1,6 +1,14 @@
-/* Guardian dashboard styles. Same palette as /admin but a top-bar
-   layout and warmer card spacing — parents touch this rarely so the
-   page reads like a friendly summary, not a control room. */
+/* Guardian dashboard styles. The site chrome (header + footer) is
+   provided by the marketing site's /css/styles.css + /js/site.js, which
+   load BEFORE this stylesheet (see index.html). The rules below own:
+     - the auth-shell (login screen, rendered outside the marketing chrome)
+     - the signed-in content area (.gd-content) between header and footer
+   No selector here should redefine marketing chrome classes (.btn, .nav,
+   .site-header, etc.). Where the dashboard needs its own button, prefer
+   class names that don't collide (e.g. .gd-btn-*) or stay scoped under
+   .gd-content. Currently only .btn-primary overlaps; cascade order means
+   the dashboard's navy fill wins over the (also navy) marketing version,
+   so the visual outcome is identical. */
 
 :root {
   --navy-900: #16254d;
@@ -20,31 +28,34 @@
   --red-bg:   #fdecea;
   --muted:    #6e7a91;
   --muted-bg: #eef1f6;
-
-  font-family: -apple-system, 'Plus Jakarta Sans', Segoe UI, Roboto, sans-serif;
-  color: var(--navy-900);
-  background: var(--bg);
 }
 
-* { box-sizing: border-box; }
-html, body, #app { height: 100%; margin: 0; }
-a { color: var(--navy-700); }
-a:hover { color: var(--navy-900); }
-code { background: var(--navy-50); padding: 2px 6px; border-radius: 4px; font-size: 0.92em; }
+/* ─── Auth shell (login + transient error screen) ───────────────────────────
+   Rendered when there's no token, so it's outside the marketing chrome.
+   Uses min-height: 100vh to fill the viewport even though body isn't
+   forced to 100%. */
 
-/* ─── Auth shell (login + error states) ─────────────────────────────────── */
-
-.auth-shell { min-height: 100%; display: grid; place-items: center; padding: 24px; }
+.auth-shell {
+  min-height: 100vh; display: grid; place-items: center;
+  padding: 24px; background: var(--bg);
+  font-family: 'Plus Jakarta Sans', -apple-system, Segoe UI, Roboto, sans-serif;
+  color: var(--navy-900);
+}
 .auth-card {
   background: white; border: 1px solid var(--line); border-radius: 16px;
   padding: 36px 32px; width: 100%; max-width: 420px;
   box-shadow: 0 1px 3px rgba(22, 37, 77, 0.04);
 }
 .auth-card h1 { margin: 4px 0 0; font-size: 1.45rem; }
-.auth-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.auth-card h2 { margin: 0 0 8px; font-size: 1.2rem; }
+.auth-field {
+  display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px;
+  font-size: 13px; font-weight: 600; color: var(--ink-2);
+}
 .auth-field input {
   font: inherit; font-weight: 400; padding: 10px 12px;
-  border: 1px solid var(--line); border-radius: 9px; background: white; color: var(--navy-900);
+  border: 1px solid var(--line); border-radius: 9px; background: white;
+  color: var(--navy-900);
 }
 .auth-field input:focus { outline: 2px solid var(--navy-700); outline-offset: 1px; border-color: var(--navy-700); }
 .brand-row { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
@@ -53,62 +64,269 @@ code { background: var(--navy-50); padding: 2px 6px; border-radius: 4px; font-si
   background: var(--navy-900); color: white; font-weight: 800;
   border-radius: 9px; font-size: 14px; letter-spacing: 0.04em;
 }
-.brand-name { font-weight: 700; font-size: 15px; }
+.brand-name { font-weight: 700; font-size: 15px; color: var(--navy-900); }
 .brand-sub  { font-size: 11px; color: var(--ink-3); letter-spacing: 0.08em; text-transform: uppercase; }
 
-/* ─── Signed-in layout: top header + main ───────────────────────────────── */
+/* ─── Signed-in dashboard layout (inside marketing chrome) ───────────────── */
 
-.gd-layout { min-height: 100%; display: flex; flex-direction: column; }
-.gd-header {
-  display: flex; align-items: center; gap: 32px;
-  padding: 14px 28px; background: white; border-bottom: 1px solid var(--line);
+.gd-content {
+  /* Match the marketing site's body bg + the same .container width.
+     Don't set min-height - content flows naturally so the footer sits
+     directly under the last card on short pages. */
+  background: var(--bg);
+  padding-bottom: 64px;
 }
-.gd-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
-.gd-tabs { display: flex; gap: 4px; margin-left: auto; }
+
+.gd-subnav {
+  /* Sits below the site-header with a real breathing gap - the marketing
+     header has its own bottom shadow/edge, so we need air before the
+     dashboard's local nav so the two don't crowd. .container width comes
+     from marketing styles, lining up with every other page. */
+  padding-top: 40px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.gd-tabs {
+  display: inline-flex; gap: 2px;
+  background: var(--bg-alt); padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+}
 .gd-tab {
-  font-size: 13px; font-weight: 600; color: var(--ink-2);
-  padding: 8px 14px; border-radius: 8px; text-decoration: none;
+  font: inherit; font-size: 13.5px; font-weight: 700; color: var(--ink-2);
+  padding: 9px 18px; border-radius: 9px;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
 }
-.gd-tab:hover { background: var(--navy-50); color: var(--navy-900); }
-.gd-tab.active { background: var(--navy-900); color: white; }
-.gd-user { display: flex; align-items: center; gap: 14px; padding-left: 16px; border-left: 1px solid var(--line-2); }
-.gd-user-meta { text-align: right; }
-.gd-user-name  { font-size: 13px; font-weight: 600; }
-.gd-user-email { font-size: 11.5px; color: var(--ink-3); }
-.link {
-  font: inherit; background: none; border: none; color: var(--navy-700); cursor: pointer;
-  padding: 6px 10px; border-radius: 6px; font-size: 13px;
+.gd-tab:hover { color: var(--navy-900); }
+.gd-tab.active {
+  background: var(--navy-900); color: white;
+  box-shadow: 0 4px 10px -4px rgba(15, 31, 74, 0.4);
 }
-.link:hover { background: var(--navy-50); color: var(--navy-900); }
 
-.gd-main { max-width: 980px; width: 100%; margin: 0 auto; padding: 32px 24px 64px; }
+/* ── Notification bell + dropdown ────────────────────────────────────
+   Bell button on the right of the subnav; opens a popover panel
+   listing notifications derived from the guardian's registrations. */
+.notif { position: relative; flex-shrink: 0; }
+.notif-bell-btn {
+  width: 40px; height: 40px;
+  background: var(--bg-alt);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  border-radius: 11px;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; position: relative;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.notif-bell-btn:hover,
+.notif-bell-btn.is-open { background: white; border-color: var(--navy-200, #c8d2e8); color: var(--navy-900); }
+.notif-bell-btn svg { width: 17px; height: 17px; }
+.notif-bell-badge {
+  position: absolute; top: -5px; right: -5px;
+  min-width: 17px; height: 17px; padding: 0 4px;
+  background: #dc2626; color: white;
+  border: 2px solid white;
+  border-radius: 999px;
+  font-size: 9.5px; font-weight: 800;
+  display: inline-flex; align-items: center; justify-content: center;
+  line-height: 1;
+}
 
-/* ─── Page primitives (mirror /admin) ───────────────────────────────────── */
+/* Dropdown popover */
+.notif-panel {
+  position: absolute; top: calc(100% + 10px); right: 0;
+  width: 340px; max-width: calc(100vw - 32px);
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 24px 48px -20px rgba(15, 31, 74, 0.35);
+  z-index: 50;
+  overflow: hidden;
+  animation: notif-pop 160ms ease-out both;
+}
+@keyframes notif-pop {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.notif-panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line-2);
+}
+.notif-panel-title { font-size: 14px; font-weight: 800; color: var(--navy-900); }
+.notif-panel-action {
+  font: inherit; font-size: 12px; font-weight: 700;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--navy-700);
+}
+.notif-panel-action:hover { color: var(--navy-900); text-decoration: underline; }
+.notif-panel-list { max-height: 360px; overflow-y: auto; }
+.notif-empty { padding: 28px 16px; text-align: center; color: var(--ink-3); font-size: 13px; }
 
-.page-header { margin-bottom: 22px; }
-.page-header h1 { font-size: 1.7rem; margin: 0 0 4px; letter-spacing: -0.01em; }
-.page-header .sub { color: var(--ink-2); font-size: 14px; margin: 0; }
-.section-h2 { font-size: 1rem; margin: 28px 0 12px; color: var(--navy-900); text-transform: uppercase; letter-spacing: 0.08em; }
+.notif-row {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line-2);
+  text-decoration: none; color: inherit;
+  transition: background 0.13s;
+}
+.notif-row:last-child { border-bottom: none; }
+a.notif-row:hover { background: var(--bg-alt); }
+.notif-row.is-unread { background: #f5f8ff; }
+.notif-row.is-unread:hover { background: #eef3ff; }
+.notif-row-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  flex-shrink: 0; margin-top: 5px;
+  background: var(--navy-700);
+}
+.notif-row-dot.tone-warn   { background: #f59e0b; }
+.notif-row-dot.tone-danger { background: #dc2626; }
+.notif-row-dot.tone-ok     { background: var(--green); }
+.notif-row-dot.tone-info   { background: var(--navy-700); }
+.notif-row-body { flex: 1; min-width: 0; }
+.notif-row-top {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  margin-bottom: 2px;
+}
+.notif-row-title { font-size: 12.5px; font-weight: 800; color: var(--navy-900); }
+.notif-row-time { font-size: 10.5px; color: var(--ink-3); font-weight: 600; flex-shrink: 0; }
+.notif-row-text { font-size: 12px; color: var(--ink-2); margin: 0; line-height: 1.5; }
 
-.card {
+@media (max-width: 760px) {
+  .gd-subnav { flex-wrap: wrap; }
+  .notif-panel { width: 320px; }
+}
+
+.gd-page {
+  /* Inner column where page content sits - .container handles the
+     horizontal max-width + padding from marketing CSS. */
+  font-family: 'Plus Jakarta Sans', -apple-system, Segoe UI, Roboto, sans-serif;
+  color: var(--navy-900);
+}
+
+/* ─── Page primitives ──────────────────────────────────────────────────── */
+
+/* Welcome header is now a hero card - dark gradient background with a
+   gold-glow corner, BdMSO ID badge on the right with subtle gold tint
+   so it's the most eye-catching element. Falls back to a column on
+   narrow screens. */
+.page-header {
+  margin-bottom: 32px;
+  display: flex; justify-content: space-between; align-items: stretch;
+  gap: 24px; flex-wrap: wrap;
+  background: linear-gradient(135deg, #0f1f4a 0%, #16254d 60%, #1f3470 100%);
+  color: white;
+  border-radius: 16px;
+  padding: 28px 32px;
+  position: relative; overflow: hidden;
+  box-shadow: 0 16px 36px -24px rgba(15, 31, 74, 0.45);
+}
+.page-header::before {
+  content: ""; position: absolute; inset: 0;
+  background:
+    radial-gradient(420px 200px at 100% 0%, rgba(252, 211, 77, 0.18), transparent 60%),
+    radial-gradient(360px 200px at 0% 100%, rgba(252, 211, 77, 0.08), transparent 60%);
+  pointer-events: none;
+}
+.page-header > * { position: relative; }
+.page-header h1 { font-size: 1.9rem; margin: 0 0 6px; letter-spacing: -0.01em; color: white; font-weight: 800; }
+.page-header .sub { color: rgba(255, 255, 255, 0.72); font-size: 14.5px; margin: 0; }
+.page-header-text { min-width: 0; align-self: center; }
+/* Account-level BdMSO ID badge: shown once per student, not per
+   registration. Sits in the page header next to the welcome line.
+   Uppercase transform removed so "BdMSO ID" keeps the studly caps. */
+.member-id-block {
+  background: rgba(252, 211, 77, 0.12);
+  border: 1px solid rgba(252, 211, 77, 0.42);
+  border-radius: 12px;
+  padding: 12px 18px; min-width: 0;
+  display: flex; flex-direction: column; gap: 4px;
+  align-self: center;
+  backdrop-filter: blur(6px);
+}
+.member-id-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.14em;
+  color: #fcd34d;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.member-id-label::before {
+  content: ""; width: 14px; height: 14px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23fcd34d'><path d='M10 12a4 4 0 100-8 4 4 0 000 8zm-7 7a7 7 0 1114 0H3z'/></svg>");
+  background-repeat: no-repeat; background-size: contain;
+}
+.member-id-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 18px; font-weight: 700; letter-spacing: 1.5px;
+  color: white; background: transparent; padding: 0;
+}
+
+/* Section headers: a clear, bold display-style heading sized to match
+   the bigger card grids underneath them. */
+.section-h2 {
+  font-size: 1.3rem; margin: 40px 0 18px;
+  color: var(--navy-900); font-weight: 800;
+  letter-spacing: -0.015em;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+/* A smaller "subhead" within a section - e.g. "Paid" / "Pending" rows
+   under "Your registrations". */
+.section-h3 {
+  font-size: 0.78rem; margin: 24px 0 12px;
+  color: var(--ink-3); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.section-h3 .count {
+  color: var(--navy-900); background: var(--bg-alt);
+  border: 1px solid var(--line);
+  font-size: 11px; padding: 1px 8px; border-radius: 999px;
+  letter-spacing: 0;
+}
+.section-h3.paid    { color: var(--green); }
+.section-h3.pending { color: #b91c1c; }
+.section-h3.muted   { color: var(--ink-3); }
+
+.gd-page .card {
   background: white; border: 1px solid var(--line); border-radius: 12px;
-  padding: 24px; margin: 0 0 18px;
+  padding: 28px; margin: 0 0 24px;
 }
-.card h2 { margin: 0 0 12px; font-size: 1rem; color: var(--navy-900); }
+.gd-page .card h2 { margin: 0 0 12px; font-size: 1rem; color: var(--navy-900); }
 
 .kv { display: grid; grid-template-columns: max-content 1fr; gap: 8px 18px; margin: 0; font-size: 13.5px; }
 .kv dt { font-weight: 600; color: var(--ink-2); }
 .kv dd { margin: 0; }
 
-.muted { color: var(--ink-3); font-size: 13.5px; }
-.error { background: var(--red-bg); border: 1px solid #fecaca; color: var(--red); padding: 10px 14px; border-radius: 9px; font-size: 13px; }
-.empty { background: white; border: 1px dashed var(--line); border-radius: 12px; padding: 28px; text-align: center; color: var(--ink-2); }
-.empty p { margin: 4px 0; }
+/* Account card header: title + Edit button on one row. */
+.account-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.gd-page .card .account-head h2 { margin: 0; }
+
+/* "Resend verification email" link button under the unverified badge. */
+.resend-verify { margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.resend-link {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font: inherit; font-size: 12.5px; font-weight: 700;
+  color: var(--navy-700); text-decoration: underline;
+}
+.resend-link:hover:not(:disabled) { color: var(--navy-900); }
+.resend-link:disabled { opacity: 0.6; cursor: default; text-decoration: none; }
+.resend-msg { font-size: 12.5px; font-weight: 600; }
+.resend-msg.ok  { color: var(--green); }
+.resend-msg.bad { color: #b91c1c; }
+
+.gd-content .muted { color: var(--ink-3); font-size: 13.5px; }
+.gd-content .error { background: var(--red-bg); border: 1px solid #fecaca; color: var(--red); padding: 10px 14px; border-radius: 9px; font-size: 13px; }
+.gd-content .empty { background: white; border: 1px dashed var(--line); border-radius: 12px; padding: 28px; text-align: center; color: var(--ink-2); }
+.gd-content .empty p { margin: 4px 0; }
 
 .alert {
   background: var(--amber-bg); border: 1px solid #f6d488; color: var(--amber);
-  padding: 12px 16px; border-radius: 10px; margin-bottom: 18px; font-size: 13.5px;
-  position: relative; padding-right: 36px;
+  padding: 14px 18px; border-radius: 10px; margin-bottom: 24px; font-size: 13.5px;
+  position: relative; padding-right: 40px;
 }
 .alert a { color: inherit; text-decoration: underline; }
 .alert-ok  { background: var(--green-bg); border-color: #bbe5cb; color: var(--green); }
@@ -120,38 +338,84 @@ code { background: var(--navy-50); padding: 2px 6px; border-radius: 4px; font-si
 }
 .alert-close:hover { opacity: 1; background: rgba(0,0,0,0.04); }
 
-/* KPI tiles. */
-.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
-.stat { background: white; border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; }
-.stat-value { font-size: 1.5rem; font-weight: 700; line-height: 1.1; font-family: 'Plus Jakarta Sans', sans-serif; }
-.stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); margin-top: 4px; }
+/* KPI tiles: clean cards with a small icon and a coloured leading
+   strip per tone. The leading strip + soft glow on hover give the
+   row some texture without being noisy. */
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 36px; }
+.stat-row.stat-row-3 { grid-template-columns: repeat(3, 1fr); }
+.stat {
+  background: white; border: 1px solid var(--line); border-radius: 14px;
+  padding: 18px 20px;
+  position: relative; overflow: hidden;
+  transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+  display: flex; flex-direction: column; gap: 4px;
+  font: inherit; text-align: left; cursor: pointer; width: 100%;
+}
+.stat:hover { transform: translateY(-2px); box-shadow: 0 12px 32px -20px rgba(15, 31, 74, 0.28); border-color: var(--navy-200, #c8d2e8); }
+/* Active filter state - card the user has clicked to filter by. */
+.stat.is-active { border-color: var(--navy-700); box-shadow: 0 0 0 3px rgba(66, 82, 171, 0.12); }
+.stat.is-active.stat-ok   { border-color: var(--green); box-shadow: 0 0 0 3px rgba(31, 122, 74, 0.12); }
+.stat.is-active.stat-warn { border-color: var(--amber); box-shadow: 0 0 0 3px rgba(183, 110, 0, 0.14); }
+.stat::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 4px; background: var(--navy-700);
+  border-radius: 4px 0 0 4px;
+}
+.stat-ok::before    { background: linear-gradient(180deg, #34d399, var(--green)); }
+.stat-warn::before  { background: linear-gradient(180deg, #fbbf24, var(--amber)); }
+.stat-muted::before { background: linear-gradient(180deg, #cbd5e1, var(--muted)); }
+.stat::after {
+  content: ""; position: absolute; top: 16px; right: 16px;
+  width: 28px; height: 28px; opacity: 0.18;
+  background-repeat: no-repeat; background-position: center; background-size: contain;
+}
+.stat-icon-reg::after { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2316254d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z'/><path d='M14 2v6h6'/><path d='M9 13h6M9 17h6'/></svg>"); }
+.stat-icon-paid::after { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231f7a4a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M22 11.08V12a10 10 0 11-5.93-9.14'/><polyline points='22 4 12 14.01 9 11.01'/></svg>"); }
+.stat-icon-pending::after { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b76e00' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><polyline points='12 6 12 12 16 14'/></svg>"); }
+.stat-icon-cancelled::after { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236e7a91' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='15' y1='9' x2='9' y2='15'/><line x1='9' y1='9' x2='15' y2='15'/></svg>"); }
+/* Bangladeshi taka glyph (৳ U+09F3) rendered as text in an SVG so we
+   keep the same monochrome-svg pipeline as the other stat icons. */
+.stat-icon-money::after {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='25' text-anchor='middle' font-size='28' font-family='-apple-system,Segoe UI,Roboto,Noto Sans,sans-serif' font-weight='700' fill='%2316254d'>%E0%A7%B3</text></svg>");
+}
+
+.stat-value { font-size: 1.65rem; font-weight: 800; line-height: 1.05; font-family: 'Plus Jakarta Sans', sans-serif; color: var(--navy-900); letter-spacing: -0.01em; }
+.stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); margin-top: 2px; }
 .stat-ok    .stat-value { color: var(--green); }
 .stat-warn  .stat-value { color: var(--amber); }
 .stat-muted .stat-value { color: var(--muted); }
 
-.badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.06em; }
-.badge-ok    { background: var(--green-bg); color: var(--green); }
-.badge-warn  { background: var(--amber-bg); color: var(--amber); }
-.badge-muted { background: var(--muted-bg); color: var(--muted); }
+.gd-content .badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.06em; }
+.gd-content .badge-ok    { background: var(--green-bg); color: var(--green); }
+.gd-content .badge-warn  { background: var(--amber-bg); color: var(--amber); }
+.gd-content .badge-muted { background: var(--muted-bg); color: var(--muted); }
 
 .cell-sub { font-size: 12px; color: var(--ink-3); }
 
-/* Buttons. */
-.btn-primary {
+/* Buttons (dashboard-content scope only - marketing chrome buttons keep
+   their own .btn / .btn-primary styles). */
+.gd-content .btn-primary,
+.auth-shell .btn-primary {
   font: inherit; font-weight: 600; font-size: 14px; padding: 10px 18px;
   border: 1px solid var(--navy-900); background: var(--navy-900); color: white;
   border-radius: 9px; cursor: pointer; width: 100%;
+  box-shadow: none;          /* override marketing's drop shadow */
 }
-.btn-primary:hover:not(:disabled) { background: var(--navy-700); border-color: var(--navy-700); }
-.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+.gd-content .btn-primary:hover:not(:disabled),
+.auth-shell .btn-primary:hover:not(:disabled) { background: var(--navy-700); border-color: var(--navy-700); }
+.gd-content .btn-primary:disabled,
+.auth-shell .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
 
-.btn-secondary {
+.gd-content .btn-secondary,
+.auth-shell .btn-secondary {
   font: inherit; font-weight: 600; font-size: 13px; padding: 9px 14px;
   border: 1px solid var(--line); background: white; color: var(--navy-900);
   border-radius: 8px; cursor: pointer;
 }
-.btn-secondary:hover:not(:disabled) { background: var(--navy-50); border-color: var(--navy-700); }
-.btn-secondary:disabled { opacity: 0.55; cursor: not-allowed; }
+.gd-content .btn-secondary:hover:not(:disabled),
+.auth-shell .btn-secondary:hover:not(:disabled) { background: var(--navy-50); border-color: var(--navy-700); }
+.gd-content .btn-secondary:disabled,
+.auth-shell .btn-secondary:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .action-row { display: flex; gap: 10px; flex-wrap: wrap; }
 
@@ -169,52 +433,211 @@ code { background: var(--navy-50); padding: 2px 6px; border-radius: 4px; font-si
 .field input:focus { outline: 2px solid var(--navy-700); outline-offset: 1px; border-color: var(--navy-700); }
 .field-hint { font-size: 12px; color: var(--ink-3); margin: 2px 0 0; }
 
-/* ─── Registration cards (Home) ─────────────────────────────────────────── */
+/* ─── Registration rows (Home) ──────────────────────────────────────────────
+   Horizontal list-rows modelled on the /programs page list design:
+   main content on the left (title, student, fact strip), a divided
+   side rail on the right (amount + primary action). One row per
+   registration, stacked vertically. */
 
-.reg-list { display: grid; gap: 14px; }
+.reg-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+/* Each registration is one horizontal row: [accent stripe][main
+   content][side rail]. State (paid/pending/cancelled/on-enquiry) is
+   signalled by the left accent stripe + status badge; the body stays
+   white so the dashboard reads calmly. */
 .reg-card {
-  background: white; border: 1px solid var(--line); border-radius: 12px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  display: flex; align-items: stretch;
   overflow: hidden;
+  transition: box-shadow 0.18s, border-color 0.18s;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  position: relative;
 }
-.reg-card-head {
-  display: flex; justify-content: space-between; align-items: flex-start;
-  padding: 16px 20px; border-bottom: 1px solid var(--line-2);
+.reg-card:hover {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 14px 26px -22px rgba(15, 23, 42, 0.22);
+  border-color: var(--navy-200, #cbd5e1);
 }
-.reg-card-program { font-weight: 700; font-size: 15px; color: var(--navy-900); }
-.reg-card-student { font-size: 13px; color: var(--ink-2); margin-top: 3px; }
-.reg-card-body {
-  display: grid; grid-template-columns: 2fr 1fr; gap: 0;
+/* Left accent stripe per status. */
+.reg-card::before {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 0;
+  width: 4px; background: var(--line);
 }
-.reg-card-meta {
-  padding: 16px 20px;
-  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px 18px;
-  font-size: 13.5px;
-}
-.reg-card-meta > div span { display: block; margin-bottom: 3px; }
-.reg-card-payment {
-  padding: 16px 20px; border-left: 1px solid var(--line-2);
-  background: var(--bg-alt);
-}
-.reg-card-payment.paid    { background: var(--green-bg); }
-.reg-card-payment.pending { background: var(--amber-bg); }
-.reg-card-payment.muted   { background: var(--bg-alt); color: var(--ink-3); }
-.reg-card-payment-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
-.reg-card-payment-value { font-size: 1.2rem; font-weight: 700; margin: 4px 0 10px; font-family: 'Plus Jakarta Sans', sans-serif; }
-.reg-card-payment-strike { color: var(--ink-3); font-weight: 500; opacity: 0.7; }
+.reg-card:has(.reg-card-side.paid)::before    { background: var(--green); }
+.reg-card:has(.reg-card-side.pending)::before { background: #dc2626; }
+.reg-card:has(.reg-card-side.muted)::before   { background: var(--muted); }
 
-/* Pay-now CTA + coupon UI inside the amber payment panel. */
-.reg-card-pay-btn { width: 100%; margin-top: 4px; }
-.reg-card-pay-error { color: var(--red); font-size: 12.5px; margin-top: 8px; }
+/* Left: main content */
+.reg-card-main {
+  flex: 1; min-width: 0;
+  padding: 18px 22px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+/* Secondary-action footer (coupon toggle, cancel) - sits at the
+   bottom of the main column so the side rail can hold just the one
+   primary action. */
+.reg-card-foot {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  margin-top: 14px; padding-top: 12px;
+  border-top: 1px solid var(--line-2);
+}
+.reg-card-foot-link {
+  font: inherit; font-size: 12px; font-weight: 600;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--ink-3);
+  text-decoration: underline; text-underline-offset: 3px;
+  text-decoration-color: rgba(0, 0, 0, 0.2);
+  transition: color 0.15s;
+}
+.reg-card-foot-link:hover:not(:disabled) { color: var(--navy-900); }
+.reg-card-foot-link.danger:hover:not(:disabled) { color: var(--red); }
+.reg-card-foot-link:disabled { opacity: 0.55; cursor: not-allowed; }
+.reg-card-head {
+  display: flex; align-items: center; gap: 10px;
+}
+.reg-card-program {
+  font-weight: 700; font-size: 1.05rem;
+  color: var(--navy-900); letter-spacing: -0.01em; line-height: 1.3;
+}
+.reg-card-student {
+  font-size: 12.5px; color: var(--ink-2); font-weight: 500; line-height: 1.4;
+  text-transform: capitalize;
+}
+/* Horizontal fact strip - wraps on narrow screens. */
+.reg-card-facts {
+  display: flex; flex-wrap: wrap;
+  gap: 10px 28px;
+  margin-top: 12px;
+}
+.reg-fact { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.reg-fact .k {
+  font-size: 9.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.09em;
+  color: var(--ink-3);
+}
+.reg-fact .v {
+  font-size: 13px; font-weight: 600; color: var(--navy-900);
+  white-space: nowrap;
+}
+.reg-fact .v.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px; letter-spacing: 0.03em; color: var(--ink-2);
+}
+.reg-fact .v.mid {
+  color: var(--green); font-weight: 800;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+/* Middle: payment details - status label, amount, coupon, cancel.
+   Right: the single primary action, alone. Both divided by hairlines
+   and tinted faintly per status. */
+.reg-card-side {
+  width: 210px; flex-shrink: 0;
+  border-left: 1px solid var(--line-2);
+  padding: 18px 18px;
+  display: flex; flex-direction: column; gap: 7px; align-items: flex-start;
+  justify-content: center;
+}
+.reg-card-action {
+  width: 190px; flex-shrink: 0;
+  border-left: 1px solid var(--line-2);
+  padding: 18px 18px;
+  display: flex; flex-direction: column; gap: 6px;
+  justify-content: center;
+}
+.reg-card-side.paid,    .reg-card-action.paid    { background: #f6fdf9; }
+.reg-card-side.pending, .reg-card-action.pending { background: #fff7f7; }
+.reg-card-side.muted,   .reg-card-action.muted   { background: var(--bg-alt); }
+
+.reg-card-side-label {
+  font-size: 9.5px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--green);
+}
+.reg-card-side.pending .reg-card-side-label { color: #b91c1c; }
+.reg-card-side.muted   .reg-card-side-label { color: var(--muted); }
+.reg-card-side-amount {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.55rem; font-weight: 800; color: var(--navy-900);
+  letter-spacing: -0.015em; line-height: 1.05;
+}
+.reg-card-side-sub { font-size: 11.5px; color: var(--ink-3); }
+.reg-card-payment-strike { color: var(--ink-3); font-weight: 500; opacity: 0.7; font-size: 0.95rem; }
+
+/* BdMSO ID on a paid card - big, monospace, easy to read out loud.
+   Kept for any leftover usages; the dashboard now shows the BdMSO ID
+   at the page-header level instead of per registration. */
+.reg-card-member-id { margin: 4px 0 10px; }
+.reg-card-member-id code {
+  display: inline-block; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.05rem; font-weight: 700; color: var(--green);
+  background: rgba(255,255,255,0.55); padding: 4px 10px; border-radius: 6px;
+  letter-spacing: 0.02em;
+}
+/* Side-rail action buttons - receipt (green) and pay (navy). Both
+   full-width within the rail, same height/shape. */
+.reg-card-receipt-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  font-size: 13px; font-weight: 600;
+  padding: 9px 14px; border-radius: 9px;
+  background: var(--green); color: white;
+  border: 1px solid var(--green);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.12s;
+  text-decoration: none;
+  width: 100%;
+}
+.reg-card-receipt-btn::before {
+  content: ""; width: 14px; height: 14px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4'/><polyline points='7 10 12 15 17 10'/><line x1='12' y1='15' x2='12' y2='3'/></svg>");
+  background-repeat: no-repeat; background-position: center; background-size: contain;
+}
+.reg-card-receipt-btn:hover { background: #166534; border-color: #166534; }
+
+/* "Contact us" reuses the receipt button shape but is a mailto link,
+   not a download - drop the download glyph and use the navy palette. */
+.reg-card-contact-btn { background: var(--navy-900); border-color: var(--navy-900); }
+.reg-card-contact-btn::before { display: none; }
+.reg-card-contact-btn:hover { background: var(--navy-700); border-color: var(--navy-700); }
+
+/* Cancel registration: low-visual-weight text link centered under the
+   primary action. Red on hover so it reads as destructive without
+   screaming for attention. */
+.reg-card-cancel-btn {
+  font: inherit; font-size: 12px; font-weight: 500;
+  background: transparent; border: none;
+  color: var(--ink-3); cursor: pointer;
+  padding: 4px 0; margin: 0;
+  align-self: center;
+  text-align: center;
+  text-decoration: underline; text-underline-offset: 3px;
+  text-decoration-color: transparent;
+  transition: color 0.15s, text-decoration-color 0.15s;
+}
+.reg-card-cancel-btn:hover:not(:disabled) { color: var(--red); text-decoration-color: currentColor; }
+.reg-card-cancel-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Hidden by default - the meta grid + Pay Now button already
+   communicate "not complete yet"; the loud warning was redundant. */
+.reg-card-incomplete-warning { display: none; }
+
+/* Pay-now CTA + coupon UI inside the side rail. */
+.reg-card-pay-btn { width: 100%; font-size: 13px; padding: 9px 14px; }
+.reg-card-pay-error { color: var(--red); font-size: 11.5px; margin-top: 2px; line-height: 1.4; }
 
 .reg-card-coupon-toggle {
-  background: none; border: none; padding: 8px 0 0; font: inherit;
-  color: inherit; opacity: 0.75; text-decoration: underline; cursor: pointer; font-size: 12.5px;
+  background: none; border: none; padding: 2px 0; font: inherit;
+  color: var(--ink-3); text-decoration: underline; text-underline-offset: 2px;
+  cursor: pointer; font-size: 11.5px; align-self: center;
 }
-.reg-card-coupon-toggle:hover { opacity: 1; }
+.reg-card-coupon-toggle:hover { color: var(--navy-900); }
 
-.reg-card-coupon {
-  display: flex; gap: 6px; align-items: stretch; margin-top: 10px;
-}
+.reg-card-coupon { display: flex; gap: 6px; align-items: stretch; }
 .reg-card-coupon input {
   flex: 1; min-width: 0; font: inherit; padding: 8px 10px;
   border: 1px solid rgba(0,0,0,0.12); border-radius: 7px;
@@ -222,19 +645,475 @@ code { background: var(--navy-50); padding: 2px 6px; border-radius: 4px; font-si
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; text-transform: uppercase;
 }
 .reg-card-coupon input:focus { outline: 2px solid var(--navy-700); outline-offset: 1px; border-color: var(--navy-700); }
-.reg-card-coupon .btn-secondary { padding: 8px 12px; font-size: 12.5px; }
+.reg-card-coupon .btn-secondary { padding: 8px 12px; font-size: 12.5px; width: auto; }
 
 .reg-card-coupon-msg { font-size: 12.5px; margin-top: 6px; }
 .reg-card-coupon-msg.ok  { color: var(--green); }
 .reg-card-coupon-msg.bad { color: var(--red); }
 
+/* ─── Profile two-column layout ─────────────────────────────────────────── */
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+.profile-col { display: flex; flex-direction: column; }
+.profile-col > .card { margin-bottom: 22px; }
+.profile-col > .card:last-child { margin-bottom: 0; }
+
+/* Students list inside profile card - no nested box; multiple
+   students are separated by a divider rather than each sitting in
+   its own bordered card. */
+.students-list { display: flex; flex-direction: column; }
+.student-row { padding: 4px 0; }
+.student-row + .student-row {
+  border-top: 1px solid var(--line-2);
+  margin-top: 18px; padding-top: 22px;
+}
+.student-row-head {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+  padding-bottom: 14px; margin-bottom: 14px;
+  border-bottom: 1px solid var(--line-2);
+}
+.student-row-headinfo { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.student-row-name { font-weight: 800; font-size: 1rem; color: var(--navy-900); letter-spacing: -0.01em; }
+.student-row-meta { font-size: 12.5px; color: var(--ink-2); text-transform: capitalize; }
+.student-row-id {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 7px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.student-row-id code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--navy-900); color: #fff;
+  padding: 4px 10px; border-radius: 6px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: none;
+}
+.student-row-edit { padding: 6px 14px; font-size: 12.5px; flex-shrink: 0; }
+
+.student-row-fields {
+  display: grid;
+  grid-template-columns: minmax(96px, max-content) 1fr minmax(96px, max-content) 1fr;
+  gap: 9px 16px;
+  margin: 0; font-size: 13px;
+}
+@media (max-width: 560px) {
+  .student-row-fields { grid-template-columns: minmax(96px, max-content) 1fr; }
+}
+.student-row-fields dt {
+  color: var(--ink-3); font-weight: 700; font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  align-self: center;
+}
+.student-row-fields dd { margin: 0; color: var(--navy-900); font-weight: 600; }
+
+/* "Enrolled in" program chips - uniform neutral chips with a small
+   status dot, so the row reads as one organised block. */
+.student-row-progs {
+  margin-top: 16px; padding-top: 14px;
+  border-top: 1px solid var(--line-2);
+}
+.student-row-progs-label {
+  display: block;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--ink-3);
+  margin-bottom: 8px;
+}
+.student-row-progs-list { display: flex; gap: 7px; flex-wrap: wrap; }
+.student-prog-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; color: var(--navy-900);
+  background: var(--bg-alt); border: 1px solid var(--line);
+  padding: 5px 11px; border-radius: 999px;
+}
+.student-prog-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--navy-700); }
+.student-prog-dot.ok   { background: var(--green); }
+.student-prog-dot.warn { background: var(--amber); }
+
+.student-edit { margin-top: 4px; }
+/* No background/border here - the form sits directly inside its card,
+   so an inner box would just be a box-in-a-box. */
+.student-edit-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+}
+.student-edit-grid .field-full { grid-column: 1 / -1; }
+.student-edit-grid select {
+  font: inherit; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px;
+  background: white; color: var(--navy-900); width: 100%;
+}
+.student-edit-grid select:focus { outline: 2px solid var(--navy-700); outline-offset: 1px; border-color: var(--navy-700); }
+/* Date of birth: three selects (Day / Month / Year) so the order is
+   always dd/mm/yyyy, independent of the browser locale. */
+.dob-row { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 8px; }
+
+/* ─── Explore-programs section on Home ──────────────────────────────────── */
+
+.explore-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
+  margin-bottom: 28px;
+}
+/* "Explore all programs" - solid navy card so it stands apart from the
+   white program cards as the catalog entry point. Uses a two-class
+   selector so it always beats the plain `.explore-card` background
+   regardless of source order. */
+.explore-card.explore-card-all {
+  background: #16254d;
+  border-color: #16254d;
+}
+.explore-card.explore-card-all:hover {
+  background: #233a78;
+  border-color: #233a78;
+}
+.explore-card.explore-card-all .explore-card-eyebrow { color: rgba(255, 255, 255, 0.55); }
+.explore-card.explore-card-all .explore-card-title   { color: white; }
+.explore-card.explore-card-all .explore-card-desc    { color: rgba(255, 255, 255, 0.74); }
+.explore-card.explore-card-all .explore-card-foot    { color: white; font-weight: 700; }
+.explore-card {
+  background: white; border: 1px solid var(--line); border-radius: 14px;
+  padding: 22px 22px 20px; display: flex; flex-direction: column;
+  text-decoration: none; color: inherit;
+  transition: border-color .15s, transform .15s, box-shadow .15s;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+.explore-card:hover {
+  border-color: var(--navy-200, #cbd5e1);
+  transform: translateY(-2px);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 16px 28px -20px rgba(15, 23, 42, 0.18);
+}
+.explore-card-eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px;
+}
+.explore-card-title { font-weight: 700; font-size: 1.05rem; color: var(--navy-900); margin-bottom: 8px; line-height: 1.3; }
+.explore-card-desc  { font-size: 13.5px; color: var(--ink-2); margin: 0 0 16px; flex: 1; line-height: 1.55; }
+.explore-card-foot  { font-size: 13px; color: var(--navy-700); font-weight: 600; }
+
+/* ─── Payment-due banner (fixed, above the site header) ──────────────────── */
+
+/* The marketing .site-header is position:fixed; top:0. To place the
+   banner *above* it, the banner is also fixed and we shift the header
+   + body down by the banner's measured height (--pay-banner-h, set
+   by the PaymentBanner component). */
+.pay-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 101;
+  /* Amber, not navy - a notification bar should stand out against the
+     navy header below it. */
+  background: linear-gradient(120deg, #fbbf24 0%, #f59e0b 100%);
+  color: var(--navy-900);
+}
+body.bdmso-pay-banner .site-header { top: var(--pay-banner-h, 48px); }
+body.bdmso-pay-banner { padding-top: calc(70px + var(--pay-banner-h, 48px)); }
+.pay-banner-inner {
+  max-width: 1200px; margin: 0 auto;
+  padding: 0 24px;
+  min-height: 52px;          /* fixed bar height, independent of text length */
+  display: flex; align-items: center; gap: 12px;
+}
+.pay-banner-icon {
+  width: 28px; height: 28px; flex-shrink: 0;
+  background: rgba(11, 27, 63, 0.14);
+  border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--navy-900);
+}
+.pay-banner-icon svg { width: 15px; height: 15px; }
+.pay-banner-text {
+  flex: 1; min-width: 0;
+  font-size: 13.5px; line-height: 1.45;
+  color: rgba(11, 27, 63, 0.82);
+  /* One line only - keeps the bar height constant as it rotates
+     through notices of different lengths. */
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pay-banner-text strong { color: var(--navy-900); font-weight: 800; }
+.pay-banner-btn {
+  flex-shrink: 0;
+  font: inherit; font-size: 12.5px; font-weight: 700;
+  background: var(--navy-900); color: #fff;
+  border: none; border-radius: 8px;
+  padding: 8px 18px; cursor: pointer;
+  transition: background 0.15s;
+}
+.pay-banner-btn:hover { background: var(--navy-700); }
+.pay-banner-dots { display: flex; gap: 5px; flex-shrink: 0; }
+.pay-banner-dot {
+  width: 7px; height: 7px; padding: 0; border: none; border-radius: 50%;
+  background: rgba(11, 27, 63, 0.28); cursor: pointer;
+  transition: background 0.15s;
+}
+.pay-banner-dot:hover { background: rgba(11, 27, 63, 0.5); }
+.pay-banner-dot.is-active { background: var(--navy-900); }
+.pay-banner-close {
+  flex-shrink: 0;
+  width: 26px; height: 26px;
+  background: transparent; border: none; cursor: pointer;
+  color: rgba(11, 27, 63, 0.55); font-size: 18px; line-height: 1;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+.pay-banner-close:hover { background: rgba(11, 27, 63, 0.14); color: var(--navy-900); }
+
+@media (max-width: 560px) {
+  /* On mobile the bar already stacks onto its own row, so let the text
+     wrap and show in full - the fixed single-line height only matters
+     on desktop, where the bar rotates in place. */
+  .pay-banner-inner { flex-wrap: wrap; padding: 10px 16px; min-height: 0; }
+  /* The "Pay now" button only appears on some notices, so the controls
+     row's height would jump as the bar rotates. Pin the always-present
+     bell icon to the button's height so that row is constant. */
+  .pay-banner-icon { width: 36px; height: 36px; }
+  .pay-banner-btn  { min-height: 36px; padding-top: 0; padding-bottom: 0; }
+  .pay-banner-text {
+    flex-basis: 100%; order: 3;
+    white-space: normal;
+    /* Clamp to exactly 2 lines (and reserve 2 lines for short notices)
+       so the bar height stays constant as it rotates. */
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+    overflow: hidden; min-height: 2.9em;
+  }
+}
+
+/* ─── Dashboard hero ────────────────────────────────────────────────────── */
+
+.dash-hero {
+  position: relative; overflow: hidden;
+  background: linear-gradient(120deg, #16254d 0%, #1c2f60 100%);
+  color: white;
+  border-radius: 18px;
+  padding: 32px 36px;
+  margin-bottom: 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 36px; flex-wrap: wrap;
+}
+.dash-hero-text { position: relative; flex: 1; min-width: 280px; }
+.dash-hero-pill {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+  padding: 5px 12px; border-radius: 999px;
+  margin-bottom: 14px;
+}
+.dash-hero-text h1 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 2rem; font-weight: 800; letter-spacing: -0.02em;
+  color: white; margin: 0 0 8px;
+}
+.dash-hero-text p {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 14px; line-height: 1.6; margin: 0;
+  max-width: 460px;
+}
+.dash-hero-verify {
+  display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap;
+  margin-top: 14px;
+  background: rgba(220, 38, 38, 0.16);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  color: #fecaca;
+  font-size: 12.5px; font-weight: 600;
+  /* Rounded rectangle, not a pill - a 999px radius turns into an ugly
+     oval blob once the text wraps and the button drops to a new row. */
+  padding: 11px 14px; border-radius: 12px;
+}
+.dash-hero-verify .dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #f87171;
+  box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.6);
+  animation: stat-pulse 1.8s infinite;
+}
+.dash-hero-verify-btn {
+  border: 1px solid rgba(248, 113, 113, 0.5);
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 12px; font-weight: 700;
+  padding: 4px 11px; border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.dash-hero-verify-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.26); }
+.dash-hero-verify-btn:disabled { opacity: 0.6; cursor: default; }
+.dash-hero-verify-err { color: #fecaca; font-weight: 600; }
+.dash-hero-verify.is-sent {
+  background: rgba(22, 163, 74, 0.18);
+  border-color: rgba(74, 222, 128, 0.45);
+  color: #bbf7d0;
+}
+.dash-hero-verify.is-sent .dot { background: #4ade80; animation: none; box-shadow: none; }
+
+/* Virtual flippable student ID card. */
+.id-card {
+  position: relative; flex-shrink: 0;
+  width: 320px; height: 158px;
+  border: none; background: transparent; padding: 0;
+  cursor: pointer; perspective: 1200px;
+  font: inherit; text-align: left;
+}
+.id-card-face {
+  position: absolute; inset: 0;
+  border-radius: 14px; padding: 18px 20px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  backface-visibility: hidden;
+  transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.id-card-front {
+  background: #0f1d40;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.id-card-back {
+  background: #0f1d40;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transform: rotateY(180deg);
+  align-items: stretch; gap: 10px;
+}
+.id-card.is-flipped .id-card-front { transform: rotateY(180deg); }
+.id-card.is-flipped .id-card-back  { transform: rotateY(360deg); }
+.id-card-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.id-card-org { font-size: 11px; font-weight: 700; color: rgba(255, 255, 255, 0.92); line-height: 1.35; }
+.id-card-emblem {
+  width: 32px; height: 32px; flex-shrink: 0;
+  background: #fcd34d; color: var(--navy-900); border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; letter-spacing: -0.02em;
+}
+.id-card-label {
+  display: block;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+.id-card-name-block { display: flex; flex-direction: column; gap: 3px; }
+.id-card-name { font-size: 1.15rem; font-weight: 800; color: white; letter-spacing: -0.01em; }
+.id-card-foot {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 12px;
+}
+.id-card-id {
+  display: block; margin-top: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 16.5px; font-weight: 700; color: white; letter-spacing: 0.04em;
+}
+.id-card-class {
+  font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
+  background: rgba(255, 255, 255, 0.12); color: white;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 3px 9px; border-radius: 999px;
+}
+.id-card-barcode {
+  flex: 1; display: flex; align-items: stretch; gap: 3px;
+  background: white; border-radius: 8px; padding: 12px 14px;
+}
+.id-card-barcode span { background: var(--navy-900); display: block; }
+.id-card-back-note { font-size: 10.5px; color: rgba(255,255,255,0.6); margin: 0; line-height: 1.5; }
+.id-card--empty {
+  width: 320px; height: 158px;
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  border-radius: 14px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; cursor: default;
+}
+.id-card--empty .id-card-emblem { width: 40px; height: 40px; font-size: 20px; }
+.id-card--empty p { font-size: 12.5px; color: rgba(255,255,255,0.6); margin: 0; max-width: 180px; text-align: center; }
+
+/* ─── Dashboard sections ────────────────────────────────────────────────── */
+
+/* Registrations (left) + checklist/dates sidebar (right). */
+.dash-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  gap: 24px;
+  align-items: start;
+}
+.dash-grid-main { min-width: 0; }
+.dash-grid-side { display: flex; flex-direction: column; gap: 18px; }
+/* "Your registrations" is a distinct navy header band, set apart from
+   the white registration rows below it. */
+.dash-section-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: linear-gradient(120deg, #16254d 0%, #233a78 100%);
+  border-radius: 11px;
+  padding: 12px 18px;
+  margin-bottom: 16px;
+}
+.dash-section-head .section-h2 {
+  margin: 0; color: white; font-size: 1.05rem; font-weight: 800;
+}
+.dash-section-head .dash-clear-filter {
+  color: rgba(255, 255, 255, 0.78);
+}
+.dash-section-head .dash-clear-filter:hover { color: white; }
+.dash-clear-filter {
+  font: inherit; font-size: 12.5px; font-weight: 600;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--navy-700); text-decoration: underline; text-underline-offset: 3px;
+}
+.dash-clear-filter:hover { color: var(--navy-900); }
+
+/* Sidebar cards: checklist + key dates. */
+.side-card {
+  background: white; border: 1px solid var(--line);
+  border-radius: 14px; padding: 20px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+.side-card-title {
+  font-size: 0.95rem; font-weight: 800; color: var(--navy-900);
+  margin: 0 0 14px; letter-spacing: -0.01em;
+}
+.checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.checklist-item { display: flex; gap: 10px; align-items: flex-start; }
+.checklist-mark {
+  width: 20px; height: 20px; flex-shrink: 0; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800;
+  background: var(--amber-bg); color: var(--amber);
+}
+.checklist-item.is-done .checklist-mark { background: var(--green-bg); color: var(--green); }
+.checklist-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.checklist-label { font-size: 13px; font-weight: 700; color: var(--navy-900); }
+.checklist-sub { font-size: 11.5px; color: var(--ink-3); line-height: 1.45; }
+
+.datelist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.datelist-item {
+  display: flex; flex-direction: column; gap: 2px;
+  border-left: 2px solid var(--gold-500, #fcd34d); padding-left: 12px;
+}
+.datelist-date {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--navy-700);
+}
+.datelist-name { font-size: 12.5px; font-weight: 600; color: var(--navy-900); line-height: 1.4; }
+
+@media (max-width: 960px) {
+  /* Sidebar drops below the registrations; checklist + dates sit
+     side by side until the screen gets narrow. */
+  .dash-grid { grid-template-columns: 1fr; }
+  .dash-grid-side { flex-direction: row; flex-wrap: wrap; }
+  .dash-grid-side > .side-card { flex: 1; min-width: 240px; }
+}
+@media (max-width: 560px) {
+  .dash-grid-side { flex-direction: column; }
+}
+
 @media (max-width: 760px) {
-  .gd-header { padding: 12px 16px; flex-wrap: wrap; gap: 16px; }
-  .gd-tabs { order: 3; width: 100%; margin-left: 0; }
-  .gd-user { padding-left: 0; border-left: none; margin-left: auto; }
-  .gd-main { padding: 24px 16px 48px; }
-  .stat-row { grid-template-columns: 1fr 1fr; }
-  .reg-card-body { grid-template-columns: 1fr; }
-  .reg-card-payment { border-left: none; border-top: 1px solid var(--line-2); }
-  .reg-card-meta { grid-template-columns: 1fr 1fr; }
+  .gd-subnav { padding-top: 24px; margin-bottom: 28px; }
+  .stat-row { grid-template-columns: 1fr; margin-bottom: 24px; }
+  .section-h2 { margin: 32px 0 14px; }
+  .dash-hero { padding: 26px 22px; }
+  .dash-hero-text h1 { font-size: 1.6rem; }
+  .id-card, .id-card--empty { width: 100%; }
+  /* Registration row collapses to a stack: main content on top,
+     payment details + action below with top dividers. */
+  .reg-card { flex-direction: column; }
+  .reg-card-side, .reg-card-action {
+    width: auto;
+    border-left: none; border-top: 1px solid var(--line-2);
+    align-items: stretch;
+  }
+  .explore-grid { grid-template-columns: 1fr; }
+  .profile-grid { grid-template-columns: 1fr; gap: 0; }
+  .profile-col > .card { margin-bottom: 18px; }
+  .student-edit-grid { grid-template-columns: 1fr; }
 }
