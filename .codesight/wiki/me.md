@@ -2,11 +2,11 @@
 
 > **Navigation aid.** Route list and file locations extracted via AST. Read the source files listed below before implementing or modifying this subsystem.
 
-The Me subsystem handles **1 routes** and touches: auth, db, cache, email, payment.
+The Me subsystem handles **1 routes** and touches: auth, db, cache, email.
 
 ## Routes
 
-- `GET` `/api/me` [auth, db, cache, email, payment] `[inferred]`
+- `GET` `/me` [auth, db, cache, email, upload]
   `worker/index.js`
 
 ## Source Files

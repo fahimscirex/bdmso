@@ -2,11 +2,11 @@
 
 > **Navigation aid.** Route list and file locations extracted via AST. Read the source files listed below before implementing or modifying this subsystem.
 
-The Verify-email subsystem handles **1 routes** and touches: auth, db, cache, email, payment.
+The Verify-email subsystem handles **1 routes** and touches: auth, db, cache, email.
 
 ## Routes
 
-- `GET` `/api/verify-email` [auth, db, cache, email, payment] `[inferred]`
+- `GET` `/verify-email` [auth, db, cache, email, upload]
   `worker/index.js`
 
 ## Related Models

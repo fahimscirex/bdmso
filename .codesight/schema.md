@@ -1,5 +1,10 @@
 # Schema
 
+### member_id_class_seq
+- year: integer (required)
+- class_digit: integer (required)
+- next_seq: integer (required)
+
 ### guardian_accounts
 - id: text (pk)
 - email: text (required)
@@ -10,6 +15,7 @@
 - phone: text
 - email_verified: integer (required)
 - member_id: text (fk)
+- role: text (required)
 
 ### email_verification_tokens
 - token: text (pk)
@@ -39,13 +45,8 @@
 - guardian_email: text (required)
 - guardian_address: text (required)
 - preferred_venue: text
-- terms_accepted: integer (required)
-- status: text (required)
-- source_page: text
-
-### member_id_seq
-- id: integer (pk)
-- reserved_at: text (required)
+- preferred_subject: text
+- Prep: course subjects
 
 ### sponsorship_enquiries
 - id: text (pk)
@@ -70,8 +71,11 @@
 - currency: text (required)
 - tran_id: text (unique, fk)
 
-### bkash_token_cache
+### shurjopay_token_cache
 - id: integer (pk)
+- token: text (required)
+- token_type: text (required)
+- store_id: text (required, fk)
 - expires_at: text (required)
 
 ### coupons
@@ -79,3 +83,36 @@
 - discount_type: text (required)
 - max_uses: integer
 - applies_to: text
+
+### admin_audit_log
+- id: text (pk)
+- account_id: text (required, fk)
+- action: text (required)
+- payload_json: text
+
+### programs
+- slug: text (pk)
+- title: text (required)
+- tagline: text
+- cohort: text
+- image: text
+- venue: text
+- audience: text
+- subjects_json: text
+- rendered: at request time
+  routine_json text
+- published: integer (required)
+- published_at: text
+- updated_by: text
+
+### posts
+- slug: text (pk)
+- title: text (required)
+- excerpt: text
+- category: text
+- author: text
+- image: text
+- rendered: at request time
+  published integer (required)
+- featured: integer (required)
+- published_at: text

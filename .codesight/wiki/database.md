@@ -2,7 +2,13 @@
 
 > **Navigation aid.** Schema shapes and field types extracted via AST. Read the actual schema source files before writing migrations or query logic.
 
-**unknown** — 10 models
+**unknown** — 13 models
+
+### member_id_class_seq
+
+- `year`: integer _(required)_
+- `class_digit`: integer _(required)_
+- `next_seq`: integer _(required)_
 
 ### guardian_accounts
 
@@ -17,6 +23,7 @@ pk: `id` (text) · fk: member_id
 - `phone`: text
 - `email_verified`: integer _(required)_
 - `member_id`: text _(fk)_
+- `role`: text _(required)_
 
 ### email_verification_tokens
 
@@ -55,16 +62,8 @@ pk: `id` (text) · fk: guardian_account_id
 - `guardian_email`: text _(required)_
 - `guardian_address`: text _(required)_
 - `preferred_venue`: text
-- `terms_accepted`: integer _(required)_
-- `status`: text _(required)_
-- `source_page`: text
-
-### member_id_seq
-
-pk: `id` (integer)
-
-- `id`: integer _(pk)_
-- `reserved_at`: text _(required)_
+- `preferred_subject`: text
+- `Prep`: course subjects
 
 ### sponsorship_enquiries
 
@@ -98,11 +97,14 @@ pk: `id` (text) · fk: registration_id, tran_id
 - `currency`: text _(required)_
 - `tran_id`: text _(unique, fk)_
 
-### bkash_token_cache
+### shurjopay_token_cache
 
-pk: `id` (integer)
+pk: `id` (integer) · fk: store_id
 
 - `id`: integer _(pk)_
+- `token`: text _(required)_
+- `token_type`: text _(required)_
+- `store_id`: text _(required, fk)_
 - `expires_at`: text _(required)_
 
 ### coupons
@@ -113,6 +115,48 @@ pk: `code` (text)
 - `discount_type`: text _(required)_
 - `max_uses`: integer
 - `applies_to`: text
+
+### admin_audit_log
+
+pk: `id` (text) · fk: account_id
+
+- `id`: text _(pk)_
+- `account_id`: text _(required, fk)_
+- `action`: text _(required)_
+- `payload_json`: text
+
+### programs
+
+pk: `slug` (text)
+
+- `slug`: text _(pk)_
+- `title`: text _(required)_
+- `tagline`: text
+- `cohort`: text
+- `image`: text
+- `venue`: text
+- `audience`: text
+- `subjects_json`: text
+- `rendered`: at request time
+  routine_json text
+- `published`: integer _(required)_
+- `published_at`: text
+- `updated_by`: text
+
+### posts
+
+pk: `slug` (text)
+
+- `slug`: text _(pk)_
+- `title`: text _(required)_
+- `excerpt`: text
+- `category`: text
+- `author`: text
+- `image`: text
+- `rendered`: at request time
+  published integer _(required)_
+- `featured`: integer _(required)_
+- `published_at`: text
 
 ## Schema Source Files
 

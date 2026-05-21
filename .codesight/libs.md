@@ -1,7 +1,81 @@
 # Libraries
 
+- `apps/admin/src/api.ts` — class ApiError, const api
+- `apps/admin/src/auth.ts`
+  - function getToken: () => string | null
+  - function setToken: (token) => void
+  - function clearToken: () => void
+- `apps/admin/src/router.ts`
+  - function useRoute: () => string
+  - function navigate: (to) => void
+  - function href: (to) => string
+- `apps/guardian/src/api.ts` — class ApiError, const api
+- `apps/guardian/src/auth.ts`
+  - function getSession: () => Session | null
+  - function setSession: (s) => void
+  - function clearSession: () => void
+  - function syncSessionName: (fullName, email) => void
+  - function syncHeaderName: (studentFullName) => void
+  - function getToken: () => string | null
+  - _...2 more_
+- `apps/guardian/src/router.ts`
+  - function useRoute: () => string
+  - function navigate: (to) => void
+  - function href: (to) => string
 - `public/js/api.js` — function buildFunctionUrl: (name) => void, function postJson: (functionName, payload, token) => void
+- `public/js/bd-districts.js` — function canonicalDistrict: (value) => void, const BD_DISTRICTS
 - `public/js/md.js`
   - function escHtml: (s) => void
   - function parseFrontmatter: (raw) => void
   - function markdownToHtml: (md) => void
+- `public/js/program-catalog.js` — function loadCatalog: () => void, function programMaps: () => void
+- `public/js/program-options.js` — function programHasOptions: (slug) => void, function computeOptionsTotal: (slug, ids) => void
+- `worker/lib/audit-log.js` — function recordAudit: (env, accountId, action, target) => void
+- `worker/lib/crypto.js`
+  - function toHex: (buffer) => void
+  - function hashPassword: (password, salt, iterations) => void
+  - const PBKDF2_ITERATIONS_CURRENT
+  - const DUMMY_HASH_SALT
+- `worker/lib/districts.js` — function canonicalDistrict: (value) => void, const BD_DISTRICTS
+- `worker/lib/email.js`
+  - function createVerificationToken: (env, accountId) => void
+  - function parseEmailFrom: (raw) => void
+  - function sendReceiptEmail: (env, reg, memberId, baseUrl) => void
+  - function sendSponsorshipNotification: (env, lead) => void
+  - function assignMemberIdAndSendReceipt: (env, tranId, baseUrl) => void
+  - function sendVerificationEmail: (env, email, verifyUrl) => void
+  - _...1 more_
+- `worker/lib/program-options.js`
+  - function programHasOptions: (slug) => void
+  - function getProgramOptions: (slug) => void
+  - function validateAndPriceOptions: (slug, rawOptions) => void
+  - function prepFreeMockSlots: (prepOptionIds) => void
+- `worker/lib/rate-limit.js` — function checkLoginRateLimit: (env, email) => void, function recordLoginAttempt: (env, email, success) => void
+- `worker/lib/sessions.js`
+  - function createSession: (env, accountId) => void
+  - function verifySession: (env, token) => void
+  - function extractToken: (request) => void
+  - function requireAuth: (request, env) => void
+  - const SESSION_TTL_MS
+- `worker/lib/shurjopay.js`
+  - function getShurjopayConfig: (env) => void
+  - function shurjopayGetToken: (config, env) => void
+  - function shurjopayCreatePayment: (config, tokenInfo, payload) => void
+  - function shurjopayVerify: (config, tokenInfo, spOrderId) => void
+- `worker/lib/util.js`
+  - function jsonResponse: (body, status) => void
+  - function badRequest: (message, status) => void
+  - function redirectTo: (url) => void
+  - function createId: (prefix) => void
+  - function parseClassDigit: (className) => void
+  - function reserveMemberId: (env, year, classDigit) => void
+  - _...4 more_
+- `worker/lib/validation.js`
+  - function normalizeString: (value) => void
+  - function requireField: (value, label) => void
+  - function isEmail: (value) => void
+  - function isPhoneLike: (value) => void
+  - function escapeHtml: (s) => void
+- `worker/middleware/requireAuth.js` — function requireAuth: (c, next) => void
+- `worker/middleware/requireRole.js` — function requireRole: (...allowedRoles) => void
+- `worker/middleware/session.js` — function sessionMiddleware: (c, next) => void

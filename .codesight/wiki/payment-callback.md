@@ -2,11 +2,11 @@
 
 > **Navigation aid.** Route list and file locations extracted via AST. Read the source files listed below before implementing or modifying this subsystem.
 
-The Payment-callback subsystem handles **1 routes** and touches: auth, db, cache, email, payment.
+The Payment-callback subsystem handles **1 routes** and touches: auth, db, cache, email.
 
 ## Routes
 
-- `ALL` `/api/payment-callback` [auth, db, cache, email, payment] `[inferred]`
+- `ALL` `/payment-callback` [auth, db, cache, email, upload]
   `worker/index.js`
 
 ## Source Files

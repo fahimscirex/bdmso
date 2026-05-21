@@ -2,11 +2,11 @@
 
 > **Navigation aid.** Route list and file locations extracted via AST. Read the source files listed below before implementing or modifying this subsystem.
 
-The Create-payment subsystem handles **1 routes** and touches: auth, db, cache, email, payment.
+The Create-payment subsystem handles **1 routes** and touches: auth, db, cache, email.
 
 ## Routes
 
-- `POST` `/api/create-payment` [auth, db, cache, email, payment] `[inferred]`
+- `POST` `/create-payment` [auth, db, cache, email, upload]
   `worker/index.js`
 
 ## Source Files

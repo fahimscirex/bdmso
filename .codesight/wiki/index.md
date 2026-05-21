@@ -1,6 +1,6 @@
 # bdmso-site — Wiki
 
-_Generated 2026-05-17 — re-run `npx codesight --wiki` if the codebase has changed._
+_Generated 2026-05-20 — re-run `npx codesight --wiki` if the codebase has changed._
 
 Structural map compiled from source code via AST. No LLM — deterministic, 200ms.
 
@@ -12,23 +12,25 @@ Structural map compiled from source code via AST. No LLM — deterministic, 200m
 - [Database](./database.md)
 - [Auth](./auth.md)
 - [Add-enrollment](./add-enrollment.md)
+- [Admin](./admin.md)
 - [Create-payment](./create-payment.md)
+- [Guardian](./guardian.md)
 - [Me](./me.md)
 - [Payment-callback](./payment-callback.md)
-- [Post](./post.md)
 - [Resend-verification](./resend-verification.md)
 - [Submit-registration](./submit-registration.md)
 - [Submit-sponsorship](./submit-sponsorship.md)
 - [Validate-coupon](./validate-coupon.md)
 - [Verify-email](./verify-email.md)
-- [Api](./api.md)
+- [Ui](./ui.md)
+- [Libraries](./libraries.md)
 
 ## Quick Stats
 
-- Routes: **13**
-- Models: **10**
-- Components: **0**
-- Env vars: **0** required, **1** with defaults
+- Routes: **42**
+- Models: **13**
+- Components: **26**
+- Env vars: **2** required, **1** with defaults
 
 ## How to Use
 
@@ -36,6 +38,7 @@ Structural map compiled from source code via AST. No LLM — deterministic, 200m
 - **Architecture question:** read `overview.md` (~500 tokens)
 - **Domain question:** read the relevant article, then **read those source files**
 - **Database question:** read `database.md`, then read the actual schema files
+- **Library question:** read `libraries.md`, then read the listed source files
 - **Before implementing anything:** read the source files listed in the article
 - **Full source context:** read `.codesight/CODESIGHT.md`
 
@@ -54,4 +57,4 @@ These exist in your codebase but are **not** reflected in wiki articles:
 When in doubt, search the source. The wiki is a starting point, not a complete inventory.
 
 ---
-_Last compiled: 2026-05-17 · 15 articles · [codesight](https://github.com/Houseofmvps/codesight)_
+_Last compiled: 2026-05-20 · 17 articles · [codesight](https://github.com/Houseofmvps/codesight)_

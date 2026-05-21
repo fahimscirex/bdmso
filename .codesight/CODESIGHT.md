@@ -1,32 +1,61 @@
 # bdmso-site — AI Context Map
 
-> **Stack:** raw-http | none | unknown | javascript
+> **Stack:** hono | none | react | typescript
+> **Monorepo:** @bdmso/admin, @bdmso/guardian, dash
 
-> 13 routes (13 inferred) | 10 models | 0 components | 2 lib files | 1 env vars | 0 middleware
-> **Token savings:** this file is ~1,100 tokens. Without it, AI exploration would cost ~13,900 tokens. **Saves ~12,800 tokens per conversation.**
-> **Last scanned:** 2026-05-17 07:12 — re-run after significant changes
+> 42 routes | 13 models | 26 components | 24 lib files | 3 env vars | 22 middleware
+> **Token savings:** this file is ~4,300 tokens. Without it, AI exploration would cost ~56,800 tokens. **Saves ~52,500 tokens per conversation.**
+> **Last scanned:** 2026-05-20 19:18 — re-run after significant changes
 
 ---
 
 # Routes
 
-- `POST` `/api/login` [auth, db, cache, email, payment] `[inferred]`
-- `POST` `/api/logout` [auth, db, cache, email, payment] `[inferred]`
-- `GET` `/api/me` [auth, db, cache, email, payment] `[inferred]`
-- `POST` `/api/submit-registration` [auth, db, cache, email, payment] `[inferred]`
-- `POST` `/api/add-enrollment` [auth, db, cache, email, payment] `[inferred]`
-- `GET` `/api/validate-coupon` [auth, db, cache, email, payment] `[inferred]`
-- `POST` `/api/submit-sponsorship` [auth, db, cache, email, payment] `[inferred]`
-- `POST` `/api/create-payment` [auth, db, cache, email, payment] `[inferred]`
-- `ALL` `/api/payment-callback` [auth, db, cache, email, payment] `[inferred]`
-- `GET` `/api/verify-email` [auth, db, cache, email, payment] `[inferred]`
-- `POST` `/api/resend-verification` [auth, db, cache, email, payment] `[inferred]`
-- `ALL` `/post` [auth, db, cache, email, payment] `[inferred]`
-- `ALL` `/api/` [auth, db, cache, email, payment] `[inferred]`
+## CRUD Resources
+
+- **`/admin/posts`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Post
+- **`/admin/programs`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Program
+- **`/admin/coupons`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Coupon
+
+## Other Routes
+
+- `POST` `/login` params() [auth, db, cache, email, upload]
+- `POST` `/logout` params() [auth, db, cache, email, upload]
+- `GET` `/me` params() [auth, db, cache, email, upload]
+- `POST` `/submit-registration` params() [auth, db, cache, email, upload]
+- `POST` `/add-enrollment` params() [auth, db, cache, email, upload]
+- `GET` `/validate-coupon` params() [auth, db, cache, email, upload]
+- `POST` `/submit-sponsorship` params() [auth, db, cache, email, upload]
+- `POST` `/create-payment` params() [auth, db, cache, email, upload]
+- `ALL` `/payment-callback` params() [auth, db, cache, email, upload]
+- `GET` `/verify-email` params() [auth, db, cache, email, upload]
+- `POST` `/resend-verification` params() [auth, db, cache, email, upload]
+- `GET` `/admin/health` params() [auth, db, upload]
+- `GET` `/admin/registrations` params() [auth, db, upload]
+- `GET` `/admin/registrations/:id` params(id) [auth, db, upload]
+- `PATCH` `/admin/registrations/:id/status` params(id) [auth, db, upload]
+- `GET` `/admin/payments` params() [auth, db, upload]
+- `GET` `/admin/sponsorships` params() [auth, db, upload]
+- `PATCH` `/admin/sponsorships/:id/status` params(id) [auth, db, upload]
+- `GET` `/admin/users` params() [auth, db, upload]
+- `PATCH` `/admin/users/:id/role` params(id) [auth, db, upload]
+- `POST` `/admin/uploads` params() [auth, db, upload]
+- `GET` `/admin/audit` params() [auth, db, upload]
+- `GET` `/me/profile` params() [auth, payment]
+- `PATCH` `/me/profile` params() [auth, payment]
+- `PATCH` `/me/registrations/:id` params(id) [auth, payment]
+- `POST` `/me/registrations/:id/cancel` params(id) [auth, payment]
+- `POST` `/me/change-password` params() [auth, payment]
+- `POST` `/me/revoke-sessions` params() [auth, payment]
 
 ---
 
 # Schema
+
+### member_id_class_seq
+- year: integer (required)
+- class_digit: integer (required)
+- next_seq: integer (required)
 
 ### guardian_accounts
 - id: text (pk)
@@ -38,6 +67,7 @@
 - phone: text
 - email_verified: integer (required)
 - member_id: text (fk)
+- role: text (required)
 
 ### email_verification_tokens
 - token: text (pk)
@@ -67,13 +97,8 @@
 - guardian_email: text (required)
 - guardian_address: text (required)
 - preferred_venue: text
-- terms_accepted: integer (required)
-- status: text (required)
-- source_page: text
-
-### member_id_seq
-- id: integer (pk)
-- reserved_at: text (required)
+- preferred_subject: text
+- Prep: course subjects
 
 ### sponsorship_enquiries
 - id: text (pk)
@@ -98,8 +123,11 @@
 - currency: text (required)
 - tran_id: text (unique, fk)
 
-### bkash_token_cache
+### shurjopay_token_cache
 - id: integer (pk)
+- token: text (required)
+- token_type: text (required)
+- store_id: text (required, fk)
 - expires_at: text (required)
 
 ### coupons
@@ -108,15 +136,153 @@
 - max_uses: integer
 - applies_to: text
 
+### admin_audit_log
+- id: text (pk)
+- account_id: text (required, fk)
+- action: text (required)
+- payload_json: text
+
+### programs
+- slug: text (pk)
+- title: text (required)
+- tagline: text
+- cohort: text
+- image: text
+- venue: text
+- audience: text
+- subjects_json: text
+- rendered: at request time
+  routine_json text
+- published: integer (required)
+- published_at: text
+- updated_by: text
+
+### posts
+- slug: text (pk)
+- title: text (required)
+- excerpt: text
+- category: text
+- author: text
+- image: text
+- rendered: at request time
+  published integer (required)
+- featured: integer (required)
+- published_at: text
+
+---
+
+# Components
+
+- **App** — `apps/admin/src/App.tsx`
+- **ImageField** — props: label, hint, prefix, value, onChange — `apps/admin/src/components/ImageField.tsx`
+- **NavShell** — props: currentRoute, userEmail, onSignOut — `apps/admin/src/components/NavShell.tsx`
+- **AuditLog** — `apps/admin/src/pages/AuditLog.tsx`
+- **Coupons** — `apps/admin/src/pages/Coupons.tsx`
+- **Dashboard** — `apps/admin/src/pages/Dashboard.tsx`
+- **Login** — props: onSignedIn — `apps/admin/src/pages/Login.tsx`
+- **Payments** — `apps/admin/src/pages/Payments.tsx`
+- **PostEditor** — props: slug — `apps/admin/src/pages/PostEditor.tsx`
+- **Posts** — `apps/admin/src/pages/Posts.tsx`
+- **ProgramEditor** — props: slug — `apps/admin/src/pages/ProgramEditor.tsx`
+- **Programs** — `apps/admin/src/pages/Programs.tsx`
+- **RegistrationDetail** — props: id — `apps/admin/src/pages/RegistrationDetail.tsx`
+- **Registrations** — `apps/admin/src/pages/Registrations.tsx`
+- **Settings** — `apps/admin/src/pages/Settings.tsx`
+- **Sponsorships** — `apps/admin/src/pages/Sponsorships.tsx`
+- **Users** — `apps/admin/src/pages/Users.tsx`
+- **App** — `apps/guardian/src/App.tsx`
+- **Dropdown** — props: value, onChange, options, placeholder, ariaLabel — `apps/guardian/src/components/Dropdown.tsx`
+- **NotificationTicker** — `apps/guardian/src/components/NotificationTicker.tsx`
+- **PaymentBanner** — `apps/guardian/src/components/PaymentBanner.tsx`
+- **Shell** — props: currentRoute — `apps/guardian/src/components/Shell.tsx`
+- **Home** — `apps/guardian/src/pages/Home.tsx`
+- **Login** — props: onSignedIn — `apps/guardian/src/pages/Login.tsx`
+- **Profile** — `apps/guardian/src/pages/Profile.tsx`
+- **App** — `dash/src/App.jsx`
+
 ---
 
 # Libraries
 
+- `apps/admin/src/api.ts` — class ApiError, const api
+- `apps/admin/src/auth.ts`
+  - function getToken: () => string | null
+  - function setToken: (token) => void
+  - function clearToken: () => void
+- `apps/admin/src/router.ts`
+  - function useRoute: () => string
+  - function navigate: (to) => void
+  - function href: (to) => string
+- `apps/guardian/src/api.ts` — class ApiError, const api
+- `apps/guardian/src/auth.ts`
+  - function getSession: () => Session | null
+  - function setSession: (s) => void
+  - function clearSession: () => void
+  - function syncSessionName: (fullName, email) => void
+  - function syncHeaderName: (studentFullName) => void
+  - function getToken: () => string | null
+  - _...2 more_
+- `apps/guardian/src/router.ts`
+  - function useRoute: () => string
+  - function navigate: (to) => void
+  - function href: (to) => string
 - `public/js/api.js` — function buildFunctionUrl: (name) => void, function postJson: (functionName, payload, token) => void
+- `public/js/bd-districts.js` — function canonicalDistrict: (value) => void, const BD_DISTRICTS
 - `public/js/md.js`
   - function escHtml: (s) => void
   - function parseFrontmatter: (raw) => void
   - function markdownToHtml: (md) => void
+- `public/js/program-catalog.js` — function loadCatalog: () => void, function programMaps: () => void
+- `public/js/program-options.js` — function programHasOptions: (slug) => void, function computeOptionsTotal: (slug, ids) => void
+- `worker/lib/audit-log.js` — function recordAudit: (env, accountId, action, target) => void
+- `worker/lib/crypto.js`
+  - function toHex: (buffer) => void
+  - function hashPassword: (password, salt, iterations) => void
+  - const PBKDF2_ITERATIONS_CURRENT
+  - const DUMMY_HASH_SALT
+- `worker/lib/districts.js` — function canonicalDistrict: (value) => void, const BD_DISTRICTS
+- `worker/lib/email.js`
+  - function createVerificationToken: (env, accountId) => void
+  - function parseEmailFrom: (raw) => void
+  - function sendReceiptEmail: (env, reg, memberId, baseUrl) => void
+  - function sendSponsorshipNotification: (env, lead) => void
+  - function assignMemberIdAndSendReceipt: (env, tranId, baseUrl) => void
+  - function sendVerificationEmail: (env, email, verifyUrl) => void
+  - _...1 more_
+- `worker/lib/program-options.js`
+  - function programHasOptions: (slug) => void
+  - function getProgramOptions: (slug) => void
+  - function validateAndPriceOptions: (slug, rawOptions) => void
+  - function prepFreeMockSlots: (prepOptionIds) => void
+- `worker/lib/rate-limit.js` — function checkLoginRateLimit: (env, email) => void, function recordLoginAttempt: (env, email, success) => void
+- `worker/lib/sessions.js`
+  - function createSession: (env, accountId) => void
+  - function verifySession: (env, token) => void
+  - function extractToken: (request) => void
+  - function requireAuth: (request, env) => void
+  - const SESSION_TTL_MS
+- `worker/lib/shurjopay.js`
+  - function getShurjopayConfig: (env) => void
+  - function shurjopayGetToken: (config, env) => void
+  - function shurjopayCreatePayment: (config, tokenInfo, payload) => void
+  - function shurjopayVerify: (config, tokenInfo, spOrderId) => void
+- `worker/lib/util.js`
+  - function jsonResponse: (body, status) => void
+  - function badRequest: (message, status) => void
+  - function redirectTo: (url) => void
+  - function createId: (prefix) => void
+  - function parseClassDigit: (className) => void
+  - function reserveMemberId: (env, year, classDigit) => void
+  - _...4 more_
+- `worker/lib/validation.js`
+  - function normalizeString: (value) => void
+  - function requireField: (value, label) => void
+  - function isEmail: (value) => void
+  - function isPhoneLike: (value) => void
+  - function escapeHtml: (s) => void
+- `worker/middleware/requireAuth.js` — function requireAuth: (c, next) => void
+- `worker/middleware/requireRole.js` — function requireRole: (...allowedRoles) => void
+- `worker/middleware/session.js` — function sessionMiddleware: (c, next) => void
 
 ---
 
@@ -125,11 +291,54 @@
 ## Environment Variables
 
 - `SITE_URL` (has default) — .env.example
+- `VITE_PORT` **required** — apps/admin/vite.config.ts
+- `WRANGLER_PORT` **required** — apps/admin/vite.config.ts
 
 ## Config Files
 
 - `.env.example`
+- `apps/admin/vite.config.ts`
+- `apps/guardian/vite.config.ts`
+- `dash/vite.config.js`
 - `wrangler.toml`
+
+## Key Dependencies
+
+- hono: ^4.12.19
+
+---
+
+# Middleware
+
+## auth
+- auth — `apps/admin/src/auth.ts`
+- App — `apps/guardian/src/App.tsx`
+- api — `apps/guardian/src/api.ts`
+- auth — `apps/guardian/src/auth.ts`
+- Home — `apps/guardian/src/pages/Home.tsx`
+- Login — `apps/guardian/src/pages/Login.tsx`
+- Profile — `apps/guardian/src/pages/Profile.tsx`
+- requireAuth — `worker/middleware/requireAuth.js`
+- requireRole — `worker/middleware/requireRole.js`
+- session — `worker/middleware/session.js`
+- guardian — `worker/routes/guardian.js`
+- sessionMiddleware — `worker/routes/admin.js`
+
+## custom
+- Dropdown — `apps/guardian/src/components/Dropdown.tsx`
+- NotificationTicker — `apps/guardian/src/components/NotificationTicker.tsx`
+- PaymentBanner — `apps/guardian/src/components/PaymentBanner.tsx`
+- Shell — `apps/guardian/src/components/Shell.tsx`
+- main — `apps/guardian/src/main.tsx`
+- router — `apps/guardian/src/router.ts`
+- vite.config — `apps/guardian/vite.config.ts`
+- dev-guardian — `scripts/dev-guardian.mjs`
+
+## validation
+- districts — `apps/guardian/src/districts.ts`
+
+## rate-limit
+- rate-limit — `worker/lib/rate-limit.js`
 
 ---
 
@@ -137,13 +346,39 @@
 
 ## Most Imported Files (change these carefully)
 
+- `apps/admin/src/api.ts` — imported by **14** files
+- `apps/admin/src/router.ts` — imported by **11** files
+- `apps/guardian/src/auth.ts` — imported by **5** files
+- `worker/lib/crypto.js` — imported by **5** files
+- `apps/admin/src/auth.ts` — imported by **4** files
+- `apps/guardian/src/api.ts` — imported by **4** files
+- `worker/lib/util.js` — imported by **4** files
+- `apps/guardian/src/router.ts` — imported by **3** files
+- `worker/lib/programs.js` — imported by **3** files
+- `apps/admin/src/components/ImageField.tsx` — imported by **2** files
+- `apps/guardian/src/components/NotificationTicker.tsx` — imported by **2** files
 - `public/js/api.js` — imported by **2** files
-- `public/js/md.js` — imported by **1** files
+- `worker/lib/validation.js` — imported by **2** files
+- `worker/lib/sessions.js` — imported by **2** files
+- `worker/middleware/session.js` — imported by **2** files
+- `worker/lib/audit-log.js` — imported by **2** files
+- `worker/lib/email.js` — imported by **2** files
+- `worker/lib/districts.js` — imported by **2** files
+- `apps/admin/src/pages/Login.tsx` — imported by **1** files
+- `apps/admin/src/pages/Dashboard.tsx` — imported by **1** files
 
 ## Import Map (who imports what)
 
-- `public/js/api.js` ← `public/js/registration.js`, `public/js/sponsorship.js`
-- `public/js/md.js` ← `scripts/build.mjs`
+- `apps/admin/src/api.ts` ← `apps/admin/src/App.tsx`, `apps/admin/src/pages/AuditLog.tsx`, `apps/admin/src/pages/Coupons.tsx`, `apps/admin/src/pages/Dashboard.tsx`, `apps/admin/src/pages/Payments.tsx` +9 more
+- `apps/admin/src/router.ts` ← `apps/admin/src/App.tsx`, `apps/admin/src/components/NavShell.tsx`, `apps/admin/src/pages/AuditLog.tsx`, `apps/admin/src/pages/Dashboard.tsx`, `apps/admin/src/pages/Payments.tsx` +6 more
+- `apps/guardian/src/auth.ts` ← `apps/guardian/src/App.tsx`, `apps/guardian/src/api.ts`, `apps/guardian/src/pages/Home.tsx`, `apps/guardian/src/pages/Login.tsx`, `apps/guardian/src/pages/Profile.tsx`
+- `worker/lib/crypto.js` ← `scripts/create-admin.mjs`, `scripts/create-demo-user.mjs`, `scripts/seed-registrations.mjs`, `worker/routes/guardian.js`, `worker/routes/public.js`
+- `apps/admin/src/auth.ts` ← `apps/admin/src/App.tsx`, `apps/admin/src/api.ts`, `apps/admin/src/components/ImageField.tsx`, `apps/admin/src/pages/Login.tsx`
+- `apps/guardian/src/api.ts` ← `apps/guardian/src/App.tsx`, `apps/guardian/src/pages/Home.tsx`, `apps/guardian/src/pages/Login.tsx`, `apps/guardian/src/pages/Profile.tsx`
+- `worker/lib/util.js` ← `worker/lib/audit-log.js`, `worker/lib/email.js`, `worker/routes/guardian.js`, `worker/routes/public.js`
+- `apps/guardian/src/router.ts` ← `apps/guardian/src/App.tsx`, `apps/guardian/src/components/PaymentBanner.tsx`, `apps/guardian/src/components/Shell.tsx`
+- `worker/lib/programs.js` ← `worker/lib/email.js`, `worker/routes/admin.js`, `worker/routes/public.js`
+- `apps/admin/src/components/ImageField.tsx` ← `apps/admin/src/pages/PostEditor.tsx`, `apps/admin/src/pages/ProgramEditor.tsx`
 
 ---
 
