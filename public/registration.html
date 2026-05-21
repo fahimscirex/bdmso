@@ -3,22 +3,24 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>BdMSO Registration — Bangladesh Mathematics &amp; Science Olympiad</title>
-<meta name="description" content="Register for the BdMSO National Round — the official qualifying pathway for primary-school students to represent Bangladesh at the International Mathematics &amp; Science Olympiad (IMSO).">
+<!-- SEO:START (generated from seo.json - do not edit) -->
+<title>Register for BdMSO 2026 - Math &amp; Science Olympiad</title>
+<meta name="description" content="Register for the BdMSO 2026 National Olympiad - the official qualifying pathway for primary-school students aiming to represent Bangladesh at IMSO.">
 <link rel="canonical" href="https://bdmso.org/registration">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="BdMSO">
 <meta property="og:locale" content="en_US">
 <meta property="og:url" content="https://bdmso.org/registration">
-<meta property="og:title" content="BdMSO Registration — Bangladesh Mathematics &amp; Science Olympiad">
-<meta property="og:description" content="Register for the BdMSO National Round — the official qualifying pathway for primary-school students to represent Bangladesh at the International Mathematics &amp; Science Olympiad (IMSO).">
+<meta property="og:title" content="Register for BdMSO 2026 - Math &amp; Science Olympiad">
+<meta property="og:description" content="Register for the BdMSO 2026 National Olympiad - the official qualifying pathway for primary-school students aiming to represent Bangladesh at IMSO.">
 <meta property="og:image" content="https://bdmso.org/images/group-winner.webp">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="BdMSO Registration — Bangladesh Mathematics &amp; Science Olympiad">
-<meta name="twitter:description" content="Register for the BdMSO National Round — the official qualifying pathway for primary-school students to represent Bangladesh at the International Mathematics &amp; Science Olympiad (IMSO).">
+<meta name="twitter:title" content="Register for BdMSO 2026 - Math &amp; Science Olympiad">
+<meta name="twitter:description" content="Register for the BdMSO 2026 National Olympiad - the official qualifying pathway for primary-school students aiming to represent Bangladesh at IMSO.">
 <meta name="twitter:image" content="https://bdmso.org/images/group-winner.webp">
+<!-- SEO:END -->
 <meta name="theme-color" content="#0b1b3f">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
@@ -33,8 +35,13 @@
 <style>
 .page-head { background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-page-dark) 100%); color: white; padding: 80px 0 100px; text-align: center; position: relative; overflow: hidden; }
 .page-head::before { content:""; position:absolute; inset:0; background: radial-gradient(600px 300px at 50% 100%, var(--glow-gold-sm), transparent 60%); }
-.page-head .eyebrow { background: var(--navy-surface-dk); color: var(--gold-on-dark); border-color: var(--navy-border-dk); margin-bottom: 18px; }
-.page-head h1 { color: white; max-width: 780px; margin: 0 auto 12px; }
+/* Override the global hero-grid layout so this page's centered hero
+   stays centered (eyebrow above title), not split into 2 columns. */
+.page-head .container { display: block; }
+.page-head .container > .eyebrow { margin: 0 auto 18px; justify-self: auto; }
+.page-head .container > h1 { margin: 0 auto 12px; }
+.page-head .eyebrow { background: var(--navy-surface-dk); color: var(--gold-on-dark); border-color: var(--navy-border-dk); }
+.page-head h1 { color: white; max-width: 780px; }
 .page-head p { color: var(--on-dark-2); max-width: 640px; margin: 0 auto; font-size: 1.05rem; }
 
 .reg-wrap { margin-top: -56px; position: relative; z-index: 2; }
@@ -83,6 +90,40 @@
 .progress-label { font-size: 13px; color: var(--ink-3); font-weight: 600; }
 
 .form-body { padding: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+/* Program-options panel: rendered above the form body for programs
+   that need a selection up front (mock-test sessions, prep-course
+   subjects). Drives the displayed total live as boxes toggle. */
+#program-options-panel {
+  margin: 20px 32px 0;
+  padding: 18px 20px;
+  background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+}
+#program-options-panel[hidden] { display: none; }
+.opt-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.opt-title { font-size: 14px; font-weight: 800; color: var(--navy-900); letter-spacing: -0.005em; }
+.opt-total { font-family: var(--font-display); font-size: 1.2rem; font-weight: 800; color: var(--navy-900); }
+.opt-total .l { font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #b45309; display: block; margin-bottom: -2px; }
+.opt-help { font-size: 12.5px; color: #92400e; margin: 0 0 14px; }
+.opt-list { display: grid; gap: 8px; }
+.opt-item {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 11px 14px;
+  border: 1px solid rgba(252, 211, 77, 0.7);
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.opt-item:hover { border-color: var(--navy-700); background: white; }
+.opt-item input { margin-top: 3px; accent-color: var(--navy-900); }
+.opt-item.is-checked { border-color: var(--navy-900); background: white; box-shadow: 0 4px 12px -8px rgba(15, 31, 74, 0.35); }
+.opt-text { flex: 1; min-width: 0; }
+.opt-label-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.opt-label { font-weight: 700; font-size: 14px; color: var(--navy-900); }
+.opt-price { font-family: var(--font-display); font-weight: 800; color: var(--navy-900); font-size: 14.5px; }
+.opt-sub { font-size: 12.5px; color: var(--ink-3); margin-top: 2px; }
 .form-body .full { grid-column: span 2; }
 @media (max-width: 700px) { .form-body { grid-template-columns: 1fr; } .form-body .full { grid-column: auto; } }
 @media (max-width: 640px) {
@@ -93,7 +134,10 @@
   .form-head h3, .step-title { font-size: 0.95rem !important; }
   .progress { max-width: none; }
   .form-body { padding: 20px 16px; }
-  .form-foot { padding: 14px 16px; }
+  .form-foot { padding: 14px 16px; flex-wrap: wrap; }
+  /* Stack footer buttons full-width on mobile - "Submit & Create
+     Account" is too wide to sit beside "Back" on a phone. */
+  .form-foot .btn { flex: 1 1 100%; }
   .form-message { padding: 0 16px 14px; }
   .confirm-view { padding: 20px 16px; }
   .summary { grid-template-columns: 1fr; padding: 16px; }
@@ -109,6 +153,57 @@
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--navy-700); box-shadow: 0 0 0 4px var(--focus-ring); }
+/* Date of Birth: three selects (Day / Month / Year) so the order is
+   always dd/mm/yyyy regardless of the browser's locale - a native
+   <input type="date"> renders mm/dd/yyyy on US-locale browsers. */
+.dob-row { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 8px; }
+/* Phone-with-prefix composite: a single rounded box with "+880" baked
+   in on the left. The whole box highlights on focus inside, so it
+   reads as one input despite being a span + input. The actual <input>
+   takes exactly 10 digits (typical Bangladesh mobile - 1XXXXXXXXX). */
+.field .phone-group {
+  display: flex; align-items: stretch;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: white; overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.field .phone-group:focus-within { border-color: var(--navy-700); box-shadow: 0 0 0 4px var(--focus-ring); }
+.field .phone-group .phone-prefix {
+  display: inline-flex; align-items: center;
+  padding: 0 12px;
+  background: var(--bg-alt);
+  border-right: 1px solid var(--line);
+  font-weight: 700; color: var(--navy-900);
+  font-size: 14px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.04em;
+  user-select: none;
+}
+.field .phone-group input {
+  border: none; box-shadow: none !important; border-radius: 0;
+  padding: 11px 14px;
+  flex: 1; min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+.field .phone-group input:focus { box-shadow: none !important; border: none; }
+.field.is-error .phone-group { border-color: #dc2626; background: #fef2f2; }
+.field.is-error .phone-group .phone-prefix { background: #fee2e2; border-right-color: #fecaca; color: #991b1b; }
+.field.is-error .phone-group input { background: transparent; }
+/* Invalid field: red border + soft red glow, plus a small inline error
+   hint just below the input. The hint is cleared as soon as the user
+   edits the field (see registration.js). */
+.field.is-error label { color: #b91c1c; }
+.field.is-error input, .field.is-error select, .field.is-error textarea {
+  border-color: #dc2626; background: #fef2f2;
+}
+.field.is-error input:focus, .field.is-error select:focus, .field.is-error textarea:focus {
+  border-color: #dc2626; box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.15);
+}
+.field .field-error {
+  display: none;
+  font-size: 12.5px; color: #b91c1c; font-weight: 600;
+  margin-top: 2px;
+}
+.field.is-error .field-error { display: block; }
 .form-foot { padding: 20px 32px; border-top: 1px solid var(--line-2); display: flex; justify-content: space-between; gap: 12px; background: var(--bg-alt); }
 .confirm-view { padding: 32px; }
 .confirm-view h4 { font-family: var(--font-sans); color: var(--navy-900); font-size: 1rem; margin: 0 0 10px; }
@@ -124,13 +219,29 @@
   border: 1px solid var(--line);
 }
 .form-message {
-  min-height: 24px;
-  padding: 0 32px 20px;
+  margin: 0 32px 20px;
   font-size: 14px;
   font-weight: 600;
 }
-.form-message[data-kind="error"] { color: var(--color-error); }
-.form-message[data-kind="success"] { color: var(--color-success); }
+.form-message:empty { display: none; }
+.form-message[data-kind="error"], .form-message[data-kind="success"] {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid;
+  line-height: 1.45;
+}
+.form-message[data-kind="error"]   { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+.form-message[data-kind="success"] { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+.form-message::before {
+  content: "";
+  flex-shrink: 0;
+  width: 20px; height: 20px;
+  background-repeat: no-repeat; background-position: center; background-size: contain;
+}
+.form-message[data-kind="error"]::before   { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='12' y1='8' x2='12' y2='12'/><line x1='12' y1='16' x2='12.01' y2='16'/></svg>"); }
+.form-message[data-kind="success"]::before { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2316a34a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M5 12l5 5L20 7'/></svg>"); }
+@media (max-width: 640px) { .form-message { margin: 0 16px 14px; } }
 .success {
   padding: 48px 32px; text-align: center;
 }
@@ -162,14 +273,14 @@
   <div class="container">
     <span class="eyebrow">Registration Portal</span>
     <h1>Register your child for BdMSO 2026.</h1>
-    <p>Two competitions are open now: the <strong style="color:white;">BdMSO National Round</strong> (Olympiad, Class 6 or below) and the <strong style="color:white;">BdMSO Quiz Competition</strong> (Quiz, Class 3 or below). You may register for one of the two. Create your BdMSO ID once and use it across every stage.</p>
+    <p>Pick one: the <strong style="color:white;">BdMSO National Olympiad</strong> (Class 6 or below) or the <strong style="color:white;">BdMSO Quiz Competition</strong> (Class 3 or below). Create your BdMSO ID once and use it across every stage.</p>
   </div>
 </section>
 
 <section class="container reg-wrap">
   <div class="instructions">
-    <div class="step"><div class="st-num">1</div><div><h3>Select what to register for</h3><p>Choose the <strong>BdMSO National Round</strong> (Olympiad, Class 6 or below) or the <strong>BdMSO Quiz Competition</strong> (Quiz,Class 3 or below). Each student may register for only one of the two.</p></div></div>
-    <div class="step"><div class="st-num">2</div><div><h3>Fill in the form - 5 minutes</h3><p>Student details → Guardian contact → Set password. Your BdMSO Member ID is issued after payment is confirmed.</p></div></div>
+    <div class="step"><div class="st-num">1</div><div><h3>Select what to register for</h3><p>Choose the <strong>BdMSO National Olympiad</strong> (Olympiad, Class 6 or below) or the <strong>BdMSO Quiz Competition</strong> (Quiz,Class 3 or below). Each student may register for only one of the two.</p></div></div>
+    <div class="step"><div class="st-num">2</div><div><h3>Fill in the form - 5 minutes</h3><p>Student details → Guardian contact → Set password. Your BdMSO ID is issued after payment is confirmed.</p></div></div>
     <div class="step"><div class="st-num">3</div><div><h3>Verify email &amp; pay</h3><p>Check your inbox for a verification link, then complete payment through the portal.</p></div></div>
   </div>
 
@@ -188,6 +299,10 @@
           <div class="s-detail" id="qe-student-detail"></div>
         </div>
       </div>
+      <!-- Options picker for programs that need a per-cohort choice
+           (Mock Test sessions, Prep Course subjects). Hidden unless
+           the inline script finds matching options for the program. -->
+      <div id="qe-options-panel" hidden></div>
       <div id="qe-error" style="color:var(--color-error); font-size:14px; font-weight:600; display:none;"></div>
     </div>
     <div class="qe-foot">
@@ -203,8 +318,8 @@
   <h2 style="margin-bottom: 8px;">Choose what to register for</h2>
   <p style="margin-bottom: 20px; color:var(--ink-3); font-size:14px;">Locked stages require qualification through an earlier stage - they open automatically when you're eligible.</p>
   <div class="card-grid">
-    <div class="reg-card"><span class="status open">Open · Olympiad · Class 6 or below</span><h3>BdMSO National Round</h3><p>Your journey to Bangladesh Mathematics &amp; Science Olympiad begins here.</p><span class="meta">Closes June 15, 2026 · 1,000 BDT</span><a class="btn btn-primary" href="#form">Register</a></div>
-    <div class="reg-card"><span class="status open">Open · Quiz · Class 3 or below</span><h3>BdMSO Quiz Competition</h3><p>General knowledge quiz for pre-primary to Class 3 students - open to both Bangla and English mediums.</p><span class="meta">Closes June 15, 2026 · 1,000 BDT</span><a class="btn btn-primary" href="#form">Register</a></div>
+    <div class="reg-card"><span class="status open">Open · Olympiad · Class 6 or below</span><h3>BdMSO National Olympiad</h3><p>Your journey to Bangladesh Mathematics &amp; Science Olympiad begins here.</p><span class="meta">Closes June 15, 2026 · 1,000 BDT</span><a class="btn btn-primary" href="/registration?program=national-olympiad">Register</a></div>
+    <div class="reg-card"><span class="status open">Open · Quiz · Class 3 or below</span><h3>BdMSO Quiz Competition</h3><p>General knowledge quiz for pre-primary to Class 3 students - open to both Bangla and English mediums.</p><span class="meta">Closes June 15, 2026 · 1,000 BDT</span><a class="btn btn-primary" href="/registration?program=national-quiz-competition">Register</a></div>
     <div class="reg-card"><span class="status open">Open · Enrollment</span><h3>Programs &amp; Courses</h3><p>Enroll in year-round training modules - prep courses, camps, workshops.</p><span class="meta">Rolling admissions</span><a class="btn btn-ghost" href="/programs">Browse Programs</a></div>
     <div class="reg-card locked"><span class="status locked-s">🔒 Locked</span><h3>National Residential Camp</h3><p>Three-day camp for Olympiad winners (approx. top 20-30%). 3,000–5,000 BDT.</p><span class="meta">Opens July 2026</span></div>
     <div class="reg-card locked"><span class="status locked-s">🔒 Locked</span><h3>Team Selection Test (TST)</h3><p>Day-long per-subject evaluation, ~7 days after the camp. 1,000 BDT per subject.</p><span class="meta">Opens July 2026</span></div>
@@ -216,7 +331,7 @@
   <div id="form" class="form-shell" style="margin-bottom: 96px;">
     <div class="form-head">
       <div>
-        <div class="form-eyebrow" style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--navy-700); margin-bottom:4px;">BdMSO National Round 2026</div>
+        <div class="form-eyebrow" style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--navy-700); margin-bottom:4px;">BdMSO National Olympiad 2026</div>
         <h3 id="step-title" class="step-title">Step 1 · Student Info</h3>
       </div>
       <div class="progress" aria-label="Progress">
@@ -228,37 +343,55 @@
     </div>
 
     <div id="step-1">
+      <!-- Program options panel: filled by registration.js when the
+           selected program has selectable options (mock-test sessions,
+           prep-course subjects, etc.). Hidden when not applicable. -->
+      <div id="program-options-panel" hidden></div>
       <div class="form-body">
-        <div class="field full">
-          <label>Competition</label>
-          <select id="f-competition">
-            <option value="national-qualifying-round">Olympiad: BdMSO National Round (Class 6 or below) - 1,000 BDT</option>
-            <option value="national-quiz-competition">Quiz: BdMSO Quiz Competition (Class 3 or below) - 1,000 BDT</option>
-          </select>
-        </div>
         <div class="field"><label>Student's Full Name</label><input id="f-name" placeholder="e.g. Tasneem Islam" /></div>
-        <div class="field"><label>Date of Birth</label><input id="f-dob" type="date" /></div>
-        <div class="field"><label>Medium of Instruction</label>
+        <div class="field" id="field-dob">
+          <label>Date of Birth</label>
+          <div class="dob-row">
+            <input type="number" id="f-dob-day" aria-label="Day of birth" placeholder="DD" min="1" max="31" inputmode="numeric" />
+            <select id="f-dob-month" aria-label="Month of birth"></select>
+            <input type="number" id="f-dob-year" aria-label="Year of birth" placeholder="YYYY" inputmode="numeric" />
+          </div>
+          <input type="hidden" id="f-dob" />
+        </div>
+        <div class="field"><label>Curriculum</label>
           <select id="f-medium">
-            <option value="">Select medium</option>
-            <option value="bangla">Bangla (বাংলা)</option>
-            <option value="english">English</option>
+            <option value="">Select curriculum</option>
+            <option value="national">National (Bangla or English version)</option>
+            <option value="international">International (English Medium)</option>
           </select>
         </div>
-        <div class="field"><label>Class / Grade</label>
+        <div class="field"><label>Class</label>
           <select id="f-class"><option>Class 3</option><option>Class 4</option><option selected>Class 5</option><option>Class 6</option></select>
         </div>
         <div class="field"><label>Gender</label>
           <select id="f-gender"><option value="">Select</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select>
         </div>
         <div class="field"><label>School</label><input id="f-school" placeholder="e.g. Viqarunnisa Noon School" /></div>
-        <div class="field"><label>District</label><input id="f-district" placeholder="e.g. Dhaka" /></div>
+        <div class="field"><label>District</label>
+          <select id="f-district"><option value="">Select district</option></select>
+        </div>
+        <div class="field" id="field-subject" hidden>
+          <label>Preferred Subject</label>
+          <select id="f-subject">
+            <option value="">Select subject</option>
+            <option value="math">Mathematics</option>
+            <option value="science">Science</option>
+            <option value="both">Both (Math + Science)</option>
+          </select>
+        </div>
         <div class="field" id="field-venue" hidden>
-          <label>Preferred Exam Venue</label>
+          <label>Exam Region</label>
           <select id="f-venue">
-            <option value="">No preference</option>
+            <option value="">Select exam region</option>
             <option value="dhaka">Dhaka</option>
             <option value="chittagong">Chittagong</option>
+            <option value="rangpur">Rangpur</option>
+            <option value="sylhet">Sylhet</option>
           </select>
         </div>
       </div>
@@ -271,7 +404,14 @@
         <div class="field"><label>Relationship</label>
           <select id="g-rel"><option>Mother</option><option>Father</option><option>Guardian</option></select>
         </div>
-        <div class="field"><label>Mobile (WhatsApp preferred)</label><input id="g-phone" placeholder="+8801XXXXXXXXX" /></div>
+        <div class="field">
+          <label>Mobile (WhatsApp preferred)</label>
+          <div class="phone-group">
+            <span class="phone-prefix">+880</span>
+            <input id="g-phone" type="tel" inputmode="numeric" maxlength="10" pattern="[0-9]{10}"
+              placeholder="1XXXXXXXXX" autocomplete="tel-national" />
+          </div>
+        </div>
         <div class="field"><label>Email</label><input id="g-email" type="email" placeholder="guardian@example.com" /></div>
         <div class="field full"><label>Address</label><textarea id="g-addr" rows="2" placeholder="Flat, Road, Area, Postcode"></textarea></div>
       </div>
@@ -304,12 +444,22 @@
     <div id="step-4" hidden>
       <div class="success">
         <div class="ic"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg></div>
-        <h3 style="font-family:var(--font-display); color: var(--navy-900); font-size: 1.6rem; margin-bottom: 8px;">Registration received.</h3>
-        <p style="max-width:560px; margin:0 auto 18px;">Your BdMSO registration has been saved and the guardian account is now active for <strong id="account-email"></strong>.</p>
+        <h3 style="font-family:var(--font-display); color: var(--navy-900); font-size: 1.6rem; margin-bottom: 8px;">Details saved - one more step.</h3>
+        <p style="max-width:560px; margin:0 auto 18px;">Your BdMSO registration form has been saved and the guardian account is now active for <strong id="account-email"></strong>.</p>
+
+        <div style="max-width:560px; margin:0 auto 20px; padding:18px 20px; background:#fef2f2; border:2px solid #dc2626; border-radius:12px; text-align:left;">
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#991b1b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top:2px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div>
+              <div style="font-weight:800; color:#991b1b; margin-bottom:4px; font-size:14.5px; letter-spacing:0.02em;">Your registration is NOT complete until payment is confirmed.</div>
+              <div style="font-size:13.5px; color:#7f1d1d; line-height:1.55;">You will not receive a BdMSO ID, exam admit, or any program resources until your payment is confirmed. Go to your dashboard now to complete payment.</div>
+            </div>
+          </div>
+        </div>
 
         <div style="max-width:560px; margin:0 auto 20px; padding:18px 20px; background:var(--bg-alt); border:1px solid var(--line); border-radius:12px; text-align:center;">
-          <div style="font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">Member ID - Pending</div>
-          <div style="font-size:14px; color:var(--navy-800);">Your Member ID will be issued after your registration payment is confirmed. You can complete payment from your dashboard.</div>
+          <div style="font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">BdMSO ID - Pending</div>
+          <div style="font-size:14px; color:var(--navy-800);">Your student's BdMSO ID is issued only after payment is confirmed.</div>
           <div id="member-id" hidden></div>
         </div>
 
@@ -338,39 +488,252 @@
 <script src="/js/site.js"></script>
 <script type="module">
 import { postJson } from './js/api.js';
+import { PROGRAM_OPTIONS, programHasOptions, computeOptionsTotal } from './js/program-options.js';
+import { loadCatalog, programMaps } from './js/program-catalog.js';
 
-const PROGRAM_NAMES = {
-  'national-qualifying-round':      'BdMSO National Round',
-  'national-quiz-competition':      'BdMSO Quiz Competition',
-  'stem-foundation':                'STEM Foundation Program',
-  'bdmso-preparatory':              'BdMSO Preparatory Course',
-  'stem-masterclass':               'STEM Masterclass Series',
-  'mock-test':                      'Mock Test Program',
-  'lab-day':                        'Lab Day Workshop',
-  'robotics-foundation':            'Robotics Foundation Course',
-  'summer-camp':                    'SPSB Nature Camp',
-  'winter-camp':                    'International Summer/Winter Camp',
-  'exchange-program':               'BdMSO Exchange Program',
-};
-const PROGRAM_PRICES = {
-  'national-qualifying-round':      1000,
-  'national-quiz-competition':      1000,
-  'stem-foundation':                8000,
-  'bdmso-preparatory':              12000,
-  'stem-masterclass':               6000,
-  'mock-test':                      3000,
-  'lab-day':                        2000,
-  'robotics-foundation':            7000,
-  'summer-camp':                    15000,
-  'winter-camp':                    25000,
-  'exchange-program':               50000,
-};
+// Program names + prices come from the catalog (programs-detail.json),
+// the single source of truth. Populated by loadCatalogMaps() before
+// the quick-enroll panel needs them.
+let PROGRAM_NAMES = {};
+let PROGRAM_PRICES = {};
+let CATALOG_BY_SLUG = {};
+async function loadCatalogMaps() {
+  const { names, prices } = await programMaps();
+  PROGRAM_NAMES = names;
+  PROGRAM_PRICES = prices;
+  const catalog = await loadCatalog();
+  CATALOG_BY_SLUG = Object.fromEntries(catalog.map((p) => [p.slug, p]));
+}
 
+// Mirrors the worker's registrationOpenFor(). Returns the enrollability
+// state: 'open', 'upcoming' (registration window hasn't started yet),
+// or 'closed' (hidden, registration: false, or the window has ended).
+function registrationState(slug) {
+  const p = CATALOG_BY_SLUG[slug];
+  if (!p || p.hidden || p.registration === false) return 'closed';
+  const today = new Date().toISOString().slice(0, 10);
+  if (p.registrationStarts && today < p.registrationStarts) return 'upcoming';
+  if (p.registrationEnds && today > p.registrationEnds) return 'closed';
+  return 'open';
+}
+
+// Per-program hero + step instructions. When `?program=` is present we
+// swap the generic "pick one of two competitions" copy for content that
+// matches the specific program the user came from. Step 1 in particular
+// changes meaning - for a non-competition program the user isn't choosing
+// between Olympiad/Quiz, they're confirming enrollment in that program.
+const PROGRAM_CONTENT = {
+  'national-olympiad': {
+    eyebrow:  'Olympiad Registration',
+    title:    'Register for the BdMSO National Olympiad 2026.',
+    intro:    'A single combined exam in Mathematics &amp; Science (60 minutes per subject) for students Class 6 or below. Create your BdMSO ID once and use it across every stage.',
+    step1Title: 'Confirm Olympiad entry',
+    step1Body:  'You\'re registering for the <strong>BdMSO National Olympiad</strong> (Class 6 or below). Each student may register for either the Olympiad or the Quiz - not both.',
+  },
+  'national-quiz-competition': {
+    eyebrow:  'Quiz Registration',
+    title:    'Register for the BdMSO Quiz Competition 2026.',
+    intro:    'General-knowledge quiz for Class 3 or below - open to both National and International curricula. Create your BdMSO ID once and use it across every stage.',
+    step1Title: 'Confirm Quiz entry',
+    step1Body:  'You\'re registering for the <strong>BdMSO Quiz Competition</strong> (Class 3 or below). Each student may register for either the Olympiad or the Quiz - not both.',
+  },
+  'stem-foundation': {
+    eyebrow:  'STEM Foundation Program',
+    title:    'Enroll in the STEM Foundation Program.',
+    intro:    'A 24-class foundation course building early Math &amp; Science fundamentals for students starting their olympiad journey.',
+    step1Title: 'Confirm enrollment',
+    step1Body:  'You\'re enrolling in the <strong>STEM Foundation Program</strong>. We\'ll save the student details and reserve a seat in the next intake.',
+  },
+  'bdmso-preparatory': {
+    eyebrow:  'BdMSO Preparatory Course',
+    title:    'Enroll in the BdMSO Preparatory Course.',
+    intro:    'A focused 12-class Math &amp; Science syllabus aligned with the BdMSO National Olympiad - for Class 3 to 5.',
+    step1Title: 'Confirm enrollment',
+    step1Body:  'You\'re enrolling in the <strong>BdMSO Preparatory Course</strong>. We\'ll save the student details and reserve a seat in the next batch.',
+  },
+  'stem-masterclass': {
+    eyebrow:  'STEM Masterclass Series',
+    title:    'Enroll in the STEM Masterclass Series.',
+    intro:    'Advanced topical masterclasses for students preparing for higher olympiad rounds.',
+    step1Title: 'Confirm enrollment',
+    step1Body:  'You\'re enrolling in the <strong>STEM Masterclass Series</strong>. We\'ll save the student details and confirm your seat.',
+  },
+  'mock-test': {
+    eyebrow:  'BdMSO Mock Test',
+    title:    'Register for the BdMSO Mock Test.',
+    intro:    'Full-length mock examinations on 6 and 20 June 2026 - the closest practice to the real Olympiad paper.',
+    step1Title: 'Confirm mock-test entry',
+    step1Body:  'You\'re registering for the <strong>BdMSO Mock Test</strong>. Pick the sessions you want below - you can come back and add more later.',
+  },
+  'lab-day': {
+    eyebrow:  'Lab Day Workshop',
+    title:    'Register for a BdMSO Lab Day.',
+    intro:    'A 6-hour hands-on laboratory day in Physics, Chemistry and Biology - apparatus, demonstrations and guided experiments.',
+    step1Title: 'Confirm workshop seat',
+    step1Body:  'You\'re registering for the <strong>BdMSO Lab Day Workshop</strong>. Seats are limited per session.',
+  },
+  'kids-ai-ml': {
+    eyebrow:  'Kids AI &amp; ML',
+    title:    'Enroll in the Kids AI / Machine Learning Course.',
+    intro:    'A foundation course in Robotics, AI and Machine Learning - project-based, age-appropriate, hands-on.',
+    step1Title: 'Confirm enrollment',
+    step1Body:  'You\'re enrolling in the <strong>Kids AI and Machine Learning Course</strong>. We\'ll save the student details and reserve a seat.',
+  },
+  'summer-camp': {
+    eyebrow:  'SPSB Nature Camp',
+    title:    'Register for the SPSB Nature Camp.',
+    intro:    'A residential nature-and-science camp run with the Society for the Popularisation of Science Bangladesh.',
+    step1Title: 'Confirm camp seat',
+    step1Body:  'You\'re registering for the <strong>SPSB Nature Camp</strong>. Residential seats are allocated on a first-confirmed basis.',
+  },
+  'winter-camp': {
+    eyebrow:  'International Winter Camp',
+    title:    'Register for the International Winter Camp.',
+    intro:    'An activity-based international residential camp with mentorship from global olympiad coaches.',
+    step1Title: 'Confirm camp seat',
+    step1Body:  'You\'re registering for the <strong>International Winter Camp</strong>. Seats are limited and allocated on confirmation.',
+  },
+  'exchange-program': {
+    eyebrow:  'BdMSO Exchange Program',
+    title:    'Apply for the BdMSO Exchange Program.',
+    intro:    'A 30-day international exchange program for top BdMSO students - selection and logistics managed centrally.',
+    step1Title: 'Confirm application',
+    step1Body:  'You\'re applying for the <strong>BdMSO Exchange Program</strong>. Final selection is subject to BdMSO eligibility criteria.',
+  },
+};
 const params  = new URLSearchParams(location.search);
 const program = params.get('program');
 
+// Swap hero + 3-step instructions to match the program in the URL.
+// Skipped when the user lands on /registration with no program param -
+// in that case the default "pick one of two competitions" copy stays.
+function applyProgramContent(slug) {
+  const content = PROGRAM_CONTENT[slug];
+  if (!content) return;
+
+  const head = document.querySelector('.page-head');
+  if (head) {
+    const eyebrow = head.querySelector('.eyebrow');
+    const h1      = head.querySelector('h1');
+    const p       = head.querySelector('p');
+    if (eyebrow) eyebrow.innerHTML = content.eyebrow;
+    if (h1)      h1.textContent    = content.title;
+    if (p)       p.innerHTML       = content.intro;
+  }
+
+  // Step 1 changes from "choose between Olympiad/Quiz" to a
+  // program-specific confirmation. Steps 2 and 3 stay generic
+  // (form + verify/pay) since those parts of the flow don't differ.
+  const step1 = document.querySelector('.instructions .step:nth-child(1)');
+  if (step1) {
+    const h3 = step1.querySelector('h3');
+    const p  = step1.querySelector('p');
+    if (h3) h3.textContent = content.step1Title;
+    if (p)  p.innerHTML    = content.step1Body;
+  }
+}
+applyProgramContent(program);
+
 let session = null;
 try { session = JSON.parse(localStorage.getItem('bdmso_user')); } catch {}
+
+// Renders the option picker inside the logged-in quick-enroll panel
+// (Mock Test sessions, Prep subjects). Without this, add-enrollment
+// for an option-priced program is rejected by the worker.
+// Returns true when the picker rendered, false when every option is
+// already taken (repeatable programs - the guardian booked them all).
+function renderQuickEnrollOptions(slug, onChange, takenIds) {
+  const panel = document.getElementById('qe-options-panel');
+  if (!panel) return true;
+  const cfg = PROGRAM_OPTIONS[slug];
+  if (!cfg) { panel.hidden = true; return true; }
+  const taken = takenIds || new Set();
+  const items = cfg.items.filter((it) => !taken.has(it.id));
+  if (items.length === 0) { panel.hidden = true; return false; }
+  const inputType = cfg.kind === 'radio' ? 'radio' : 'checkbox';
+  panel.innerHTML = `
+    <div class="opt-head"><div class="opt-title">${cfg.label}</div></div>
+    <p class="opt-help">${cfg.help}</p>
+    <div class="opt-list">${items.map((it) => `
+      <label class="opt-item">
+        <input type="${inputType}" name="qe-program-option" value="${it.id}">
+        <div class="opt-text">
+          <div class="opt-label-row">
+            <span class="opt-label">${it.label}</span>
+            <span class="opt-price">৳ ${it.price.toLocaleString('en-BD')}</span>
+          </div>
+          ${it.sub ? `<div class="opt-sub">${it.sub}</div>` : ''}
+        </div>
+      </label>`).join('')}</div>`;
+  panel.hidden = false;
+  panel.querySelectorAll('input[name="qe-program-option"]').forEach((el) => {
+    el.addEventListener('change', () => {
+      panel.querySelectorAll('.opt-item').forEach((label) => {
+        const input = label.querySelector('input');
+        label.classList.toggle('is-checked', !!(input && input.checked));
+      });
+      if (onChange) onChange();
+    });
+  });
+  return true;
+}
+
+function getQuickEnrollOptions() {
+  return Array.from(
+    document.querySelectorAll('#qe-options-panel input[name="qe-program-option"]:checked'),
+  ).map((el) => el.value);
+}
+
+// Renders a not-enrollable screen: hero swapped, full form and
+// instructions hidden, and the panel repurposed with browse/dashboard
+// links. `state` is 'upcoming' (window not started) or 'closed'
+// (registration: false, hidden, or window ended).
+function showRegistrationClosed(programName, state, prog) {
+  const upcoming = state === 'upcoming';
+  let opensOn = '';
+  if (upcoming && prog?.registrationStarts) {
+    opensOn = new Date(prog.registrationStarts).toLocaleDateString('en-GB', {
+      day: 'numeric', month: 'short', year: 'numeric',
+    });
+  }
+
+  const head = document.querySelector('.page-head');
+  if (head) {
+    const eyebrow = head.querySelector('.eyebrow');
+    const h1      = head.querySelector('h1');
+    const p       = head.querySelector('p');
+    if (eyebrow) eyebrow.textContent = upcoming ? 'Opening soon' : 'Registration closed';
+    if (h1)      h1.textContent      = upcoming
+      ? `Registration for ${programName} hasn't opened yet.`
+      : `Registration for ${programName} is closed.`;
+    if (p)       p.textContent       = upcoming
+      ? (opensOn
+          ? `Registration opens on ${opensOn}. Browse our other programs in the meantime.`
+          : 'Registration for this program hasn\'t opened yet. Browse our other programs in the meantime.')
+      : 'This program is not open for enrollment right now. Browse our other programs or check back later.';
+  }
+
+  document.querySelector('.instructions')?.style.setProperty('display', 'none');
+  document.getElementById('full-reg-section')?.setAttribute('hidden', '');
+  document.getElementById('form')?.setAttribute('hidden', '');
+
+  const panel = document.getElementById('quick-enroll');
+  if (panel) {
+    panel.hidden = false;
+    document.getElementById('qe-program-tag').textContent  = upcoming ? 'Opening soon' : 'Registration closed';
+    document.getElementById('qe-program-name').textContent = programName;
+    const body = document.querySelector('.qe-body');
+    if (body) {
+      body.innerHTML = upcoming
+        ? `<p style="color:var(--ink-2); margin:0;">Registration for <strong>${programName}</strong> ${opensOn ? `opens on <strong>${opensOn}</strong>` : 'hasn\'t opened yet'}. You can browse other open programs or return to your dashboard.</p>`
+        : `<p style="color:var(--ink-2); margin:0;">Registration for <strong>${programName}</strong> is currently closed. You can browse other open programs or return to your dashboard.</p>`;
+    }
+    const foot = document.querySelector('.qe-foot');
+    if (foot) {
+      foot.innerHTML = `<div></div><div style="display:flex; gap:10px; flex-wrap:wrap;"><a class="btn btn-ghost" href="/programs">Browse programs</a><a class="btn btn-gold" href="/dashboard">Go to dashboard →</a></div>`;
+    }
+  }
+}
 
 async function initQuickEnroll() {
   const panel     = document.getElementById('quick-enroll');
@@ -378,10 +741,22 @@ async function initQuickEnroll() {
   const formShell = document.getElementById('form');
 
   // For logged-in users with no program param, treat the page as the NQR flow.
-  const effectiveProgram = program || (session?.token ? 'national-qualifying-round' : null);
+  const effectiveProgram = program || (session?.token ? 'national-olympiad' : null);
   if (!effectiveProgram) return;
 
+  await loadCatalogMaps();
+
   const programName = PROGRAM_NAMES[effectiveProgram] || effectiveProgram;
+
+  // Closed, hidden, or not-yet-open programs are not enrollable here,
+  // regardless of which button linked in. Show a clear screen instead
+  // of an enroll panel the worker would reject on submit anyway.
+  const regState = registrationState(effectiveProgram);
+  if (regState !== 'open') {
+    showRegistrationClosed(programName, regState, CATALOG_BY_SLUG[effectiveProgram]);
+    return;
+  }
+
   document.getElementById('qe-program-name').textContent = programName;
   document.getElementById('qe-program-tag').textContent  = 'Enrolling in';
 
@@ -436,10 +811,16 @@ async function initQuickEnroll() {
 
     // Block re-registration if already enrolled in this exact program,
     // OR if trying to register for the other competition (Olympiad ↔ Quiz are mutually exclusive).
-    const COMPETITION_PROGRAMS = ['national-qualifying-round', 'national-quiz-competition'];
-    const alreadyEnrolled = allRegs.some(r => r.registration_type === effectiveProgram);
+    // Cancelled rows don't count - a guardian who cancelled a program
+    // must be able to register for it again.
+    const COMPETITION_PROGRAMS = ['national-olympiad', 'national-quiz-competition'];
+    const activeRegs = allRegs.filter(r => r.status !== 'cancelled');
+    // Repeatable programs (BdMSO Mock Test) can be enrolled in more than
+    // once, so the "already enrolled" block doesn't apply to them.
+    const isRepeatable = CATALOG_BY_SLUG[effectiveProgram]?.repeatable === true;
+    const alreadyEnrolled = !isRepeatable && activeRegs.some(r => r.registration_type === effectiveProgram);
     const otherCompetition = COMPETITION_PROGRAMS.includes(effectiveProgram)
-      && allRegs.some(r => COMPETITION_PROGRAMS.includes(r.registration_type) && r.registration_type !== effectiveProgram);
+      && activeRegs.some(r => COMPETITION_PROGRAMS.includes(r.registration_type) && r.registration_type !== effectiveProgram);
     if (otherCompetition) {
       const head = document.querySelector('.page-head');
       if (head) {
@@ -458,7 +839,7 @@ async function initQuickEnroll() {
       if (head) {
         head.querySelector('.eyebrow').textContent = 'Already registered';
         head.querySelector('h1').textContent = `You're already registered for ${programName}.`;
-        head.querySelector('p').textContent  = 'Head to your dashboard to view your Member ID, complete payment, or browse other programs.';
+        head.querySelector('p').textContent  = 'Head to your dashboard to view your BdMSO ID, complete payment, or browse other programs.';
       }
       document.querySelector('.qe-body').innerHTML = `
         <p style="color:var(--ink-2); margin:0;">Your enrollment for ${programName} is already on file.
@@ -468,14 +849,66 @@ async function initQuickEnroll() {
       return;
     }
 
+    // Option-priced programs (Mock Test, Prep Course) need their
+    // picker shown here too - the live total drives the qe-price.
+    // For repeatable programs, sessions the guardian has already booked
+    // are excluded so they can't pay for the same seat twice.
+    const takenIds = new Set();
+    if (isRepeatable) {
+      for (const r of activeRegs) {
+        if (r.registration_type !== effectiveProgram) continue;
+        try {
+          JSON.parse(r.program_options || '[]').forEach((id) => takenIds.add(id));
+        } catch { /* ignore malformed */ }
+      }
+    }
+
+    const hasOpts = programHasOptions(effectiveProgram);
+    if (hasOpts) {
+      const rendered = renderQuickEnrollOptions(effectiveProgram, () => {
+        const total = computeOptionsTotal(effectiveProgram, getQuickEnrollOptions());
+        priceEl.textContent = total > 0 ? `৳ ${total.toLocaleString('en-BD')}` : 'Select an option';
+      }, takenIds);
+      if (!rendered) {
+        // Repeatable program with every session already booked.
+        const head = document.querySelector('.page-head');
+        if (head) {
+          head.querySelector('.eyebrow').textContent = 'All sessions booked';
+          head.querySelector('h1').textContent = `You're enrolled in every ${programName} session.`;
+          head.querySelector('p').textContent  = 'There are no more sessions left to add right now.';
+        }
+        document.querySelector('.qe-body').innerHTML = `
+          <p style="color:var(--ink-2); margin:0 0 10px;">All ${programName} sessions are already on your child's account, so there's nothing left to add here.</p>
+          <p style="color:var(--ink-3); margin:0; font-size:13px;">Didn't book them yourself? The BdMSO Preparatory Course includes free Mock Tests, which are added automatically. You can see every session on your dashboard.</p>`;
+        const foot = document.querySelector('.qe-foot');
+        if (foot) foot.innerHTML = `<div></div><div style="display:flex;gap:10px;flex-wrap:wrap;"><a class="btn btn-ghost" href="/programs">Browse other programs</a><a class="btn btn-gold" href="/dashboard">Go to dashboard →</a></div>`;
+        return;
+      }
+      priceEl.textContent = 'Select an option';
+    }
+
     document.getElementById('qe-confirm-btn').addEventListener('click', async (e) => {
       const btn = e.currentTarget;
-      btn.disabled = true;
-      btn.textContent = 'Adding enrollment…';
       const errEl = document.getElementById('qe-error');
       errEl.style.display = 'none';
+
+      let programOptions;
+      if (hasOpts) {
+        programOptions = getQuickEnrollOptions();
+        if (programOptions.length === 0) {
+          errEl.textContent = 'Please pick at least one option above.';
+          errEl.style.display = 'block';
+          return;
+        }
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Adding enrollment…';
       try {
-        await postJson('add-enrollment', { registrationType: effectiveProgram }, session.token);
+        await postJson('add-enrollment', {
+          registrationType: effectiveProgram,
+          ...(programOptions ? { programOptions } : {}),
+        }, session.token);
         window.location.href = 'dashboard.html?enrolled=1';
       } catch (err) {
         errEl.textContent = err.message;
@@ -504,51 +937,52 @@ async function initQuickEnroll() {
 }
 
 const NQR_CLASSES = {
-  bangla:  ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6'],
-  english: ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5'],
-  default: ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6'],
+  national:      ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6'],
+  international: ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5'],
+  default:       ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6'],
 };
 const QUIZ_CLASSES = ['Pre-primary', 'Class 1', 'Class 2', 'Class 3'];
 
+// The competition is decided by the ?program= URL parameter. When the
+// user visits /registration with no param, registration.js validation
+// defaults to the Olympiad, so we mirror that default here too -
+// otherwise the inline script would hide the Subject/Venue fields
+// while validation still requires them, leading to a "2 required
+// fields highlighted" message with nothing actually highlighted.
+const effectiveProgram = program || 'national-olympiad';
+
+// Class options now depend only on competition-from-URL + curriculum,
+// since the in-form competition dropdown was removed.
 function updateClassOptions() {
-  const comp   = document.getElementById('f-competition').value;
   const medium = document.getElementById('f-medium').value;
   const classEl = document.getElementById('f-class');
-  const isQuiz  = comp === 'national-quiz-competition';
+  const isQuiz  = effectiveProgram === 'national-quiz-competition';
   const opts    = isQuiz ? QUIZ_CLASSES : (NQR_CLASSES[medium] || NQR_CLASSES.default);
   const current = classEl.value;
   classEl.innerHTML = opts.map(c => `<option${c === current ? ' selected' : ''}>${c}</option>`).join('');
   if (!opts.includes(classEl.value)) classEl.value = opts[opts.length - 1];
 }
 
-function showVenueField() {
-  const comp = program || document.getElementById('f-competition')?.value || '';
-  return comp === 'national-qualifying-round' || comp === 'national-quiz-competition';
-}
+// Exam Region shows for Olympiad and Quiz (where students pick a
+// regional exam centre). Preferred Subject shows for the Olympiad only
+// (Math, Science or Both).
+function showVenueField()   { return effectiveProgram === 'national-olympiad' || effectiveProgram === 'national-quiz-competition'; }
+function showSubjectField() { return effectiveProgram === 'national-olympiad'; }
 
-function applyVenueVisibility() {
-  document.getElementById('field-venue').hidden = !showVenueField();
+function applyConditionalFields() {
+  document.getElementById('field-venue').hidden   = !showVenueField();
+  document.getElementById('field-subject').hidden = !showSubjectField();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   initQuickEnroll();
 
-  document.getElementById('f-competition').addEventListener('change', () => {
-    updateClassOptions();
-    applyVenueVisibility();
-  });
   document.getElementById('f-medium').addEventListener('change', () => {
     updateClassOptions();
   });
 
-  if (program && !program.startsWith('national-qualifying') && program !== 'national-quiz-competition') {
-    // Non-open-competition program from URL: hide competition dropdown, force-hide venue
-    const compField = document.getElementById('f-competition')?.closest('.field');
-    if (compField) compField.style.display = 'none';
-    document.getElementById('field-venue').hidden = true;
-  } else {
-    applyVenueVisibility();
-  }
+  updateClassOptions();
+  applyConditionalFields();
 });
 </script>
 <script type="module" src="/js/registration.js"></script>

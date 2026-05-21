@@ -5,6 +5,7 @@ category: Announcement
 date: 2026-05-01
 author: Samin Yasar Ahmed
 excerpt: Mentors and volunteers gathered for a four-hour orientation to prepare BdMSO 2026 - Bangladesh's national math and science olympiad pathway for primary students bound for IMSO in Indonesia.
+description: Mentors and volunteers met for a four-hour orientation launching BdMSO 2026 - Bangladesh's primary-school Math and Science Olympiad pathway to IMSO in Indonesia.
 image: images/team/team-orientation.webp
 ---
 
@@ -25,6 +26,6 @@ The session covered everything the team needs to run a smooth cycle:
 
 ## The Road Ahead
 
-With orientation complete, the team moves into the active preparation phase. Registration for the National Qualifying Round opens in May 2026. In the meantime, mentors will begin structured preparation sessions for returning students.
+With orientation complete, the team moves into the active preparation phase. Registration for the National Olympiad opens in May 2026. In the meantime, mentors will begin structured preparation sessions for returning students.
 
 If your child is in Class 3–6 and interested in mathematics or science, [register early](/registration) and start preparing with the official BdMSO syllabus.

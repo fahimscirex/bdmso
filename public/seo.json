@@ -45,7 +45,7 @@
   },
 
   "/about": {
-    "title": "About BdMSO — Bangladesh's Official IMSO Qualifying Olympiad",
+    "title": "About BdMSO - Bangladesh's Official IMSO Qualifying Olympiad",
     "description": "BdMSO is the official qualifying platform that selects primary-school students from Bangladesh to compete at the International Mathematics & Science Olympiad.",
     "image": "/images/exchange.webp",
     "schema": {
@@ -69,14 +69,14 @@
   },
 
   "/blog": {
-    "title": "Blog — BdMSO News, Workshops & Olympiad Updates",
-    "description": "Updates from BdMSO: orientation announcements, lab-day workshops, ACI Medhabi Carnival, and STEM foundation course.",
+    "title": "Blog - BdMSO News, Workshops & Olympiad Updates",
+    "description": "News and updates from BdMSO - team orientation, lab-day workshops, the ACI Medhabi Carnival, STEM foundation courses and Bangladesh's Olympiad journey.",
     "image": "/images/aci-medhabi-carnival.webp",
     "schema": {
       "@context": "https://schema.org",
       "@type": "Blog",
       "name": "BdMSO Blog",
-      "description": "Updates from BdMSO: orientation announcements, lab-day workshops, ACI Medhabi Carnival, and STEM foundation course.",
+      "description": "News and updates from BdMSO - team orientation, lab-day workshops, the ACI Medhabi Carnival, STEM foundation courses and Bangladesh's Olympiad journey.",
       "url": "https://bdmso.org/blog",
       "about": {
         "@type": "EducationalOrganization",
@@ -88,8 +88,8 @@
   },
 
   "/media": {
-    "title": "Media & Press Coverage — BdMSO in the News",
-    "description": "BdMSO in the news - coverage from The Business Standard, Prothom Alo, Daily ICT News, and Bigganchinta.",
+    "title": "Media & Press Coverage - BdMSO in the News",
+    "description": "BdMSO in the news - press coverage of Bangladesh's Math & Science Olympiad from The Business Standard, Prothom Alo, Daily ICT News and Bigganchinta.",
     "image": "/images/press.webp",
     "schema": {
       "@context": "https://schema.org",
@@ -103,8 +103,8 @@
   },
 
   "/team": {
-    "title": "Our Team — BdMSO Organizers, Mentors & Bangladesh IMSO Delegation",
-    "description": "Meet the 2026 and 2025 Bangladesh delegations, advisors, organizing team, mentors, and volunteers behind BdMSO.",
+    "title": "BdMSO Team - Organizers, Mentors & IMSO Delegation",
+    "description": "Meet the people behind BdMSO - the 2026 and 2025 Bangladesh IMSO delegations, advisors, organizing team, mentors and volunteers driving primary-school STEM.",
     "image": "/images/group-pre-international.webp",
     "schema": {
       "@context": "https://schema.org",
@@ -122,7 +122,7 @@
   },
 
   "/programs": {
-    "title": "Programs & Courses - BdMSO",
+    "title": "STEM & Olympiad Programs for Primary Students - BdMSO",
     "description": "Year-round STEM, Olympiad prep, lab days, and residential camp programs from BdMSO for primary-school students in Bangladesh.",
     "image": "/images/stem.webp",
     "schema": {
@@ -141,15 +141,15 @@
   },
 
   "/resources": {
-    "title": "Preparation Hub - BdMSO",
-    "description": "Syllabus, regulations, sample questions, and parent guides for the BdMSO National Round and IMSO qualifying pathway.",
+    "title": "BdMSO Preparation: Syllabus, Regulations & Sample Questions",
+    "description": "Syllabus, regulations, marks distribution, sample questions and parent guides to prepare for the BdMSO National Olympiad and the IMSO qualifying pathway.",
     "image": "/images/exam.webp",
     "schema": {
       "@context": "https://schema.org",
       "@type": "FAQPage",
       "mainEntity": [
         { "@type": "Question", "name": "Who is eligible to participate in BdMSO?", "acceptedAnswer": { "@type": "Answer", "text": "BdMSO is open to students across Bangladesh who are 13 years old or younger, born on or after October 1, 2013, and enrolled in Grade 6 or lower as of October 1, 2026. Students in the British curriculum (or similar streams) who are promoted to Grade 7 in July/August 2026 are not eligible." } },
-        { "@type": "Question", "name": "What is the format of the Olympiad?", "acceptedAnswer": { "@type": "Answer", "text": "The BdMSO National Round is a single 120-minute combined exam covering both Mathematics and Science (50 + 50 = 100 marks). It is held at multiple regional venues. The day includes the National Anthem, the exam, a lunch break, a cultural program, and a prize-giving ceremony." } },
+        { "@type": "Question", "name": "What is the format of the Olympiad?", "acceptedAnswer": { "@type": "Answer", "text": "The BdMSO National Olympiad is a Math + Science exam with 60 minutes allocated per subject (50 + 50 = 100 marks total). It is held at multiple regional venues. The day includes the National Anthem, the exam, a lunch break, a cultural program, and a prize-giving ceremony." } },
         { "@type": "Question", "name": "How do I register and what is the fee?", "acceptedAnswer": { "@type": "Answer", "text": "Registration is online at bdmso.org. The Olympiad registration fee is 1000 BDT per student. Subsequent stages have separate fees: National Residential Camp 3,000-5,000 BDT, TST 1,000 BDT per subject, and the international participation fee is announced after the TST." } },
         { "@type": "Question", "name": "What prizes are awarded?", "acceptedAnswer": { "@type": "Answer", "text": "Approximately the top 20-30% of participants are designated Winners and receive a medal and Certificate of Achievement. Winners are classified as All-Round Winners (top 10% in both Mathematics and Science independently), Mathematics Winners (top 10% in Mathematics), or Science Winners (top 10% in Science). A Champion Trophy is awarded to the highest scorer in each section, presented on the final day of the National Residential Camp." } },
         { "@type": "Question", "name": "Is financial aid available?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. The organizing committee may consider partial waivers of up to 50% on Olympiad, Camp, or TST fees for gifted students with significant financial need. Independent sponsorship is also encouraged." } },
@@ -161,19 +161,19 @@
   },
 
   "/results": {
-    "title": "Hall of Excellence - BdMSO",
+    "title": "BdMSO Results 2026 & 2025 - Olympiad Medal Winners",
     "description": "BdMSO Olympiad results - gold, silver, and bronze medalists in Mathematics and Science across the National Round (2026 and 2025 archives).",
     "image": "/images/group-winner.webp"
   },
 
   "/registration": {
-    "title": "BdMSO Registration — Bangladesh Mathematics & Science Olympiad",
-    "description": "Register for the BdMSO National Round — the official qualifying pathway for primary-school students to represent Bangladesh at the International Mathematics & Science Olympiad (IMSO).",
+    "title": "Register for BdMSO 2026 - Math & Science Olympiad",
+    "description": "Register for the BdMSO 2026 National Olympiad - the official qualifying pathway for primary-school students aiming to represent Bangladesh at IMSO.",
     "image": "/images/group-winner.webp"
   },
 
   "/sponsorship": {
-    "title": "Collaborate - BdMSO",
+    "title": "Sponsor BdMSO 2026 - Partnership Opportunities",
     "description": "Partner with BdMSO 2026 - Title Sponsor, Powered By, and custom partnership opportunities reaching 10,000+ primary students nationwide.",
     "image": "/images/national-round-winners.webp",
     "schema": {

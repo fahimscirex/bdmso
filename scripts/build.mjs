@@ -13,6 +13,12 @@ const postsDir   = path.join(publicDir, "posts");
 const SITE_URL = (process.env.SITE_URL?.replace(/\/$/, "") || "https://bdmso.org");
 const seoData  = JSON.parse(readFileSync(path.join(publicDir, "seo.json"), "utf8"));
 
+// Sentinels delimiting the build-managed SEO region in static HTML pages.
+// injectSeoIntoDir() rewrites everything between them on every build, so the
+// region is idempotent - never hand-edit inside it.
+const SEO_START = "<!-- SEO:START (generated from seo.json - do not edit) -->";
+const SEO_END   = "<!-- SEO:END -->";
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function parseFrontmatter(raw) {
@@ -45,6 +51,72 @@ function formatPostDate(str) {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 }
 
+// Reads the program catalog. Returns [] (with a warning) on any failure so
+// the rest of the build still proceeds.
+function readPrograms() {
+  try {
+    return JSON.parse(readFileSync(path.join(publicDir, "data", "programs-detail.json"), "utf8"));
+  } catch (e) {
+    console.warn(`[programs] could not read catalog: ${e.message}`);
+    return [];
+  }
+}
+
+// Writes a file only when its content actually differs. Keeps unchanged
+// pages' mtime stable (so sitemap <lastmod> stays honest) and avoids
+// needless churn in the working tree.
+function writeIfChanged(filePath, content) {
+  try {
+    if (readFileSync(filePath, "utf8") === content) return false;
+  } catch { /* file does not exist yet - fall through and write */ }
+  writeFileSync(filePath, content, "utf8");
+  return true;
+}
+
+// ── Shared SEO / Open Graph / Twitter / JSON-LD markup ───────────────────────
+// Single source of truth for SEO tag formatting. Static-page injection (from
+// seo.json), post pages, and program pages all build their <head> SEO through
+// this, so the markup shape lives in exactly one place.
+function buildSeoTags({
+  title, description, canonical, image, robots,
+  ogType = "website", ogImageSize = false, emitTitleTag = true,
+  articlePublished, articleAuthor, schema = [],
+}) {
+  const img = image
+    ? (image.startsWith("http") ? image : `${SITE_URL}/${image.replace(/^\//, "")}`)
+    : `${SITE_URL}/images/logo.webp`;
+
+  const lines = [];
+  if (title && emitTitleTag) lines.push(`<title>${escAttr(title)}</title>`);
+  if (description)           lines.push(`<meta name="description" content="${escAttr(description)}">`);
+  if (canonical)             lines.push(`<link rel="canonical" href="${canonical}">`);
+  if (robots)                lines.push(`<meta name="robots" content="${robots}">`);
+
+  lines.push(`<meta property="og:type" content="${ogType}">`);
+  lines.push(`<meta property="og:site_name" content="BdMSO">`);
+  lines.push(`<meta property="og:locale" content="en_US">`);
+  if (canonical)   lines.push(`<meta property="og:url" content="${canonical}">`);
+  if (title)       lines.push(`<meta property="og:title" content="${escAttr(title)}">`);
+  if (description) lines.push(`<meta property="og:description" content="${escAttr(description)}">`);
+  lines.push(`<meta property="og:image" content="${img}">`);
+  if (ogImageSize) {
+    lines.push(`<meta property="og:image:width" content="1200">`);
+    lines.push(`<meta property="og:image:height" content="630">`);
+  }
+  if (articlePublished) lines.push(`<meta property="article:published_time" content="${escAttr(articlePublished)}">`);
+  if (articleAuthor)    lines.push(`<meta property="article:author" content="${escAttr(articleAuthor)}">`);
+
+  lines.push(`<meta name="twitter:card" content="summary_large_image">`);
+  if (title)       lines.push(`<meta name="twitter:title" content="${escAttr(title)}">`);
+  if (description) lines.push(`<meta name="twitter:description" content="${escAttr(description)}">`);
+  lines.push(`<meta name="twitter:image" content="${img}">`);
+
+  for (const s of schema) {
+    lines.push(`<script type="application/ld+json">${JSON.stringify(s)}</script>`);
+  }
+  return lines.join("\n");
+}
+
 // ── Posts: generate index.json from frontmatter ──────────────────────────────
 
 function readPosts() {
@@ -63,6 +135,7 @@ function readPosts() {
         date:     meta.date     || "",
         author:   meta.author   || "",
         excerpt:  meta.excerpt  || "",
+        description: meta.description || "",
         image:    meta.image    || "",
         featured: meta.featured === "true",
       };
@@ -74,16 +147,17 @@ function readPosts() {
 function regeneratePosts() {
   const posts = readPosts();
   const slim = posts.map(({ file: _f, raw: _r, ...rest }) => rest);
-  writeFileSync(
+  writeIfChanged(
     path.join(postsDir, "index.json"),
-    JSON.stringify(slim, null, 2) + "\n",
-    "utf8"
+    JSON.stringify(slim, null, 2) + "\n"
   );
   console.log(`[posts] index.json regenerated (${slim.length} posts)`);
   // Also write per-post HTML and SEO files into public/ so wrangler dev (which
   // serves public/) can resolve /posts/<slug>, /robots.txt, /sitemap.xml.
   // The full build re-emits all of these into dist/.
   buildPostPages(posts, { target: "public" });
+  buildProgramPages({ target: "public" });
+  buildProgramOptionsData({ target: "public" });
   writeRobotsAndSitemap(posts, { target: "public" });
   return posts;
 }
@@ -122,31 +196,24 @@ function buildPostPages(posts, { target = "dist" } = {}) {
     const image  = post.image
       ? (post.image.startsWith("http") ? post.image : `${SITE_URL}/${post.image.replace(/^\//, "")}`)
       : `${SITE_URL}/images/group-winner.webp`;
+    // Dedicated meta description keeps SERP snippets in range; the longer
+    // excerpt still drives the visible blurb on the page and blog cards.
+    const metaDesc = post.description || post.excerpt;
 
-    const headInjection = [
-      `<meta name="description" content="${escAttr(post.excerpt)}">`,
-      `<link rel="canonical" href="${url}">`,
-      `<meta name="theme-color" content="#0b1b3f">`,
-      `<link rel="icon" href="/images/logo.webp" type="image/webp">`,
-      `<link rel="apple-touch-icon" href="/images/logo.webp">`,
-      `<meta property="og:type" content="article">`,
-      `<meta property="og:site_name" content="BdMSO">`,
-      `<meta property="og:locale" content="en_US">`,
-      `<meta property="og:url" content="${url}">`,
-      `<meta property="og:title" content="${escAttr(post.title)}">`,
-      `<meta property="og:description" content="${escAttr(post.excerpt)}">`,
-      `<meta property="og:image" content="${image}">`,
-      `<meta property="article:published_time" content="${escAttr(post.date)}">`,
-      `<meta property="article:author" content="${escAttr(post.author)}">`,
-      `<meta name="twitter:card" content="summary_large_image">`,
-      `<meta name="twitter:title" content="${escAttr(post.title)}">`,
-      `<meta name="twitter:description" content="${escAttr(post.excerpt)}">`,
-      `<meta name="twitter:image" content="${image}">`,
-      `<script type="application/ld+json">${JSON.stringify({
+    const seoTags = buildSeoTags({
+      title:        post.title,   // used for og:title / twitter:title only
+      emitTitleTag: false,        // post.html owns its <title>, filled below
+      description:  metaDesc,
+      canonical:    url,
+      image,
+      ogType:       "article",
+      articlePublished: post.date,
+      articleAuthor:    post.author,
+      schema: [{
         "@context": "https://schema.org",
         "@type": "BlogPosting",
         "headline": post.title,
-        "description": post.excerpt,
+        "description": metaDesc,
         "datePublished": post.date,
         "dateModified": post.date,
         "author": { "@type": "Person", "name": post.author },
@@ -157,7 +224,13 @@ function buildPostPages(posts, { target = "dist" } = {}) {
           "logo": { "@type": "ImageObject", "url": `${SITE_URL}/images/logo.webp` }
         },
         "mainEntityOfPage": url
-      })}</script>`,
+      }],
+    });
+    const headInjection = [
+      seoTags,
+      `<meta name="theme-color" content="#0b1b3f">`,
+      `<link rel="icon" href="/images/logo.webp" type="image/webp">`,
+      `<link rel="apple-touch-icon" href="/images/logo.webp">`,
     ].join("\n");
 
     const body     = stripFrontmatter(post.raw);
@@ -177,7 +250,7 @@ function buildPostPages(posts, { target = "dist" } = {}) {
       // post.html carries a noindex as a fallback for the unrendered shell;
       // generated /posts/<slug>.html pages are real content and MUST be indexable.
       .replace(/<meta\s+name="robots"\s+content="noindex,follow"\s*\/?>\s*\n?/i, "")
-      .replace(/<title>[^<]*<\/title>/, `<title>${escAttr(post.title)} - BdMSO Blog</title>`)
+      .replace(/<title>[^<]*<\/title>/, `<title>${escAttr(post.title)} - BdMSO</title>`)
       .replace("</head>", `${headInjection}\n</head>`)
       .replace(
         `<div id="post-meta-bar" class="post-meta-bar"></div>`,
@@ -199,12 +272,179 @@ function buildPostPages(posts, { target = "dist" } = {}) {
         `<div class="post-body" id="post-body"></div>`,
         `<div class="post-body" id="post-body">${bodyHtml}</div>`
       )
-      // The inline content loader is no longer needed — content is pre-rendered.
+      // The inline content loader is no longer needed - content is pre-rendered.
       .replace(/\n<script type="module">[\s\S]*?<\/script>/, "");
 
-    writeFileSync(path.join(outDir, `${post.slug}.html`), html, "utf8");
+    writeIfChanged(path.join(outDir, `${post.slug}.html`), html);
   }
   console.log(`[posts] generated ${posts.length} static post page(s) in ${path.relative(rootDir, outDir)}/`);
+}
+
+// ── Per-program static HTML ──────────────────────────────────────────────────
+
+// Generates public/js/program-options-data.js (and dist) from the
+// catalog. The browser's program-options.js imports this generated
+// file, so the option config has one editable home: the JSON.
+function buildProgramOptionsData({ target = "dist" } = {}) {
+  const programs = readPrograms();
+
+  const optionsBySlug = {};
+  for (const p of programs) {
+    if (p && p.options) optionsBySlug[p.slug] = p.options;
+  }
+
+  const outDir = target === "public"
+    ? path.join(publicDir, "js")
+    : path.join(distDir, "js");
+  mkdirSync(outDir, { recursive: true });
+
+  const file = `// GENERATED from public/data/programs-detail.json by scripts/build.mjs.
+// Do not edit by hand - change each program's "options" in the JSON.
+export const PROGRAM_OPTIONS = ${JSON.stringify(optionsBySlug, null, 2)};
+`;
+  writeIfChanged(path.join(outDir, "program-options-data.js"), file);
+  console.log(`[program-options] generated data for ${Object.keys(optionsBySlug).length} program(s) in ${path.relative(rootDir, outDir)}/`);
+}
+
+function buildProgramPages({ target = "dist" } = {}) {
+  const programs = readPrograms();
+
+  const outDir = target === "public"
+    ? path.join(publicDir, "programs")
+    : path.join(distDir, "programs");
+  mkdirSync(outDir, { recursive: true });
+
+  let generated = 0;
+  for (const p of programs) {
+    // Hidden programs (hidden: true in programs-detail.json) get no
+    // page at all - they're fully off.
+    if (p.hidden) continue;
+    // Some programs ship with a hand-authored static page (e.g. Maryam
+    // Mirzakhani School has bespoke styling that doesn't fit the
+    // generated template). Skip generating - the existing file stays as-is.
+    if (p.bespokePage) continue;
+    const url = `${SITE_URL}/programs/${p.slug}`;
+    const image = p.image
+      ? (p.image.startsWith("http") ? p.image : `${SITE_URL}${p.image.startsWith("/") ? p.image : `/${p.image}`}`)
+      : `${SITE_URL}/images/logo.webp`;
+    // metaDescription drives the <meta>/OG/schema description; tagline
+    // stays the visible hero lede.
+    const metaDesc = p.metaDescription || p.tagline;
+
+    const descPara  = (p.description || []).map(t => `<p>${escHtml(t)}</p>`).join("\n        ");
+    const bullets   = (p.what_youll_do || []).map(t => `<li>${escHtml(t)}</li>`).join("\n          ");
+    const nextSteps = (p.next_steps || []).map(t => `<li>${escHtml(t)}</li>`).join("\n          ");
+
+    const isExternal = /^https?:/.test(p.register_url || "");
+    const ctaAttrs   = isExternal ? ` target="_blank" rel="noopener"` : "";
+    // registration: false in programs-detail.json closes a program -
+    // no active Register button, no payment warning. When registration
+    // is true the active CTA carries the window dates so the inline
+    // script below can downgrade it to "opens on…" for upcoming
+    // programs (kept client-side so static pages never go stale).
+    const regOpen = p.registration !== false;
+    const closedBox = (text) =>
+      `<div class="pd-cta" style="text-align:center;padding:14px;border-radius:12px;background:var(--bg-alt,#f1f3f7);color:var(--ink-3);font-weight:700;font-size:14px;">${text}</div>`;
+    const winAttrs = `${p.registrationStarts ? ` data-reg-starts="${escAttr(p.registrationStarts)}"` : ""}${p.registrationEnds ? ` data-reg-ends="${escAttr(p.registrationEnds)}"` : ""}`;
+    const ctaHtml = regOpen
+      ? `<a class="btn btn-primary btn-lg pd-cta" id="pd-cta" href="${escAttr(p.register_url || "/registration")}"${ctaAttrs}${winAttrs}>${escHtml(p.register_label || "Register")} →</a>`
+      : closedBox("Registration closed");
+    const windowScript = (regOpen && (p.registrationStarts || p.registrationEnds))
+      ? `<script>(function(){var c=document.getElementById('pd-cta');if(!c)return;var t=new Date().toISOString().slice(0,10);var s=c.dataset.regStarts,e=c.dataset.regEnds,m='';if(s&&t<s){m='Registration opens '+new Date(s).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}else if(e&&t>e){m='Registration closed';}if(m){var b=document.createElement('div');b.className='pd-cta';b.style.cssText='text-align:center;padding:14px;border-radius:12px;background:var(--bg-alt,#f1f3f7);color:var(--ink-3);font-weight:700;font-size:14px;';b.textContent=m;c.replaceWith(b);}})();</script>`
+      : "";
+
+    const seoTags = buildSeoTags({
+      title:       `${p.title} - BdMSO`,
+      description: metaDesc,
+      canonical:   url,
+      image,
+      ogType:      "website",
+      schema: [{
+        "@context": "https://schema.org",
+        "@type": "Course",
+        "name": p.title,
+        "description": metaDesc,
+        "url": url,
+        "image": image,
+        "provider": {
+          "@type": "EducationalOrganization",
+          "name": "Bangladesh Mathematics & Science Olympiad",
+          "url": SITE_URL,
+        },
+      }],
+    });
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+${seoTags}
+<meta name="theme-color" content="#0b1b3f">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body data-page="program-detail">
+<div id="site-header"></div>
+<main>
+
+<section class="pd-hero"><div class="container">
+  <div class="pd-topbar">
+    <a class="pd-back" href="/programs">All programs</a>
+    <span class="eyebrow">${escHtml(p.eyebrow || "Program")}</span>
+  </div>
+  <h1>${escHtml(p.title)}</h1>
+  <p class="lede">${escHtml(p.tagline)}</p>
+</div></section>
+
+<section class="container pd-wrap">
+  <div class="pd-grid">
+    <article class="pd-main">
+      ${p.image ? `<img class="cover" loading="lazy" src="${escAttr(p.image)}" alt="${escAttr(p.title)}">` : ""}
+      <h2>About this program</h2>
+        ${descPara}
+      ${bullets ? `<h2>What you'll do</h2>\n      <ul>\n          ${bullets}\n        </ul>` : ""}
+      ${nextSteps ? `<h2>${escHtml(p.next_steps_label || "Next steps")}</h2>\n      <ul>\n          ${nextSteps}\n        </ul>` : ""}
+    </article>
+
+    <aside class="pd-side">
+      <div class="pd-card">
+        <div class="pd-price">${escHtml(p.price || "")}</div>
+        ${p.schedule ? `<p class="pd-schedule">${escHtml(p.schedule)}</p>` : ""}
+        ${ctaHtml}
+        <div class="pd-facts">
+          ${p.audience ? `<div class="pd-fact"><div class="k">Who it's for</div><div class="v">${escHtml(p.audience)}</div></div>` : ""}
+          ${p.duration ? `<div class="pd-fact"><div class="k">Duration</div><div class="v">${escHtml(p.duration)}</div></div>` : ""}
+          ${p.format   ? `<div class="pd-fact"><div class="k">Format</div><div class="v">${escHtml(p.format)}</div></div>` : ""}
+          ${p.outcome  ? `<div class="pd-fact"><div class="k">Outcome</div><div class="v">${escHtml(p.outcome)}</div></div>` : ""}
+        </div>
+      </div>
+
+      ${regOpen ? `<div class="pd-card pd-warning">
+        <div class="t">⚠ Registration isn't complete until payment is confirmed</div>
+        <div class="b">Submitting the registration form alone does not enroll your child. You'll need to complete payment from your dashboard to receive a BdMSO ID and access program resources.</div>
+      </div>` : ""}
+    </aside>
+  </div>
+</section>
+
+</main>
+<div id="site-footer"></div>
+<script src="/js/site.js"></script>
+${windowScript}
+</body>
+</html>
+`;
+
+    writeIfChanged(path.join(outDir, `${p.slug}.html`), html);
+    generated += 1;
+  }
+  console.log(`[programs] generated ${generated} static program page(s) in ${path.relative(rootDir, outDir)}/`);
 }
 
 // ── Full build ───────────────────────────────────────────────────────────────
@@ -217,7 +457,10 @@ function buildDist() {
 
   const posts = readPosts();
   buildPostPages(posts);
+  buildProgramPages({ target: "dist" });
+  buildProgramOptionsData({ target: "dist" });
   buildBlogIndex(posts);
+  buildProgramsIndex();
   injectSeoIntoDir(distDir);
   const { count } = writeRobotsAndSitemap(posts, { target: "dist" });
 
@@ -227,77 +470,55 @@ function buildDist() {
 
 // ── SEO injection from seo.json ───────────────────────────────────────────────
 
+// Rewrites the SEO region (between SEO_START / SEO_END) of every static page
+// from seo.json. Idempotent - safe to run on every build. Fails loud if a page
+// and seo.json disagree, so SEO can never silently disconnect again.
 function injectSeoIntoDir(targetDir) {
+  const dirLabel = path.relative(rootDir, targetDir) || ".";
   const files = readdirSync(targetDir).filter(f => f.endsWith(".html"));
+  const seen = new Set();
+
   for (const file of files) {
     const filePath = path.join(targetDir, file);
     let html = readFileSync(filePath, "utf8");
-    if (!html.includes("<!-- SEO_BLOCK -->")) continue;
-
+    const hasStart = html.includes(SEO_START);
+    const hasEnd   = html.includes(SEO_END);
     const pagePath = file === "index.html" ? "/" : `/${file.replace(/\.html$/, "")}`;
     const page = seoData[pagePath];
+
+    if (page && !(hasStart && hasEnd)) {
+      throw new Error(`[seo] ${dirLabel}/${file} has a seo.json entry ("${pagePath}") but is missing the SEO:START / SEO:END markers.`);
+    }
+    if ((hasStart || hasEnd) && !page) {
+      throw new Error(`[seo] ${dirLabel}/${file} has SEO markers but no "${pagePath}" entry in seo.json.`);
+    }
     if (!page) continue;
 
-    const seoBlock = buildSeoBlock(page, pagePath);
-    html = html.replace("<!-- SEO_BLOCK -->", seoBlock);
-    writeFileSync(filePath, html, "utf8");
+    seen.add(pagePath);
+    const block = buildSeoBlock(page, pagePath);
+    const from  = html.indexOf(SEO_START) + SEO_START.length;
+    const to    = html.indexOf(SEO_END);
+    html = `${html.slice(0, from)}\n${block}\n${html.slice(to)}`;
+    writeIfChanged(filePath, html);
   }
 
-  // Also handle posts/ directory if it exists
-  const postsOutDir = path.join(targetDir, "posts");
-  let postsFiles;
-  try { postsFiles = readdirSync(postsOutDir).filter(f => f.endsWith(".html")); } catch { postsFiles = []; }
-  for (const file of postsFiles) {
-    const filePath = path.join(postsOutDir, file);
-    let html = readFileSync(filePath, "utf8");
-    if (!html.includes("<!-- SEO_BLOCK -->")) continue;
-
-    const pagePath = `/posts/${file.replace(/\.html$/, "")}`;
-    const page = seoData[pagePath];
-    if (!page) continue;
-
-    const seoBlock = buildSeoBlock(page, pagePath);
-    html = html.replace("<!-- SEO_BLOCK -->", seoBlock);
-    writeFileSync(filePath, html, "utf8");
+  const orphaned = Object.keys(seoData).filter(k => !seen.has(k));
+  if (orphaned.length) {
+    throw new Error(`[seo] seo.json has entries with no matching HTML file in ${dirLabel}/: ${orphaned.join(", ")}`);
   }
 }
 
 function buildSeoBlock(page, pagePath) {
-  const canon = `${SITE_URL}${pagePath}`;
-  const img   = page.image
-    ? (page.image.startsWith("http") ? page.image : `${SITE_URL}${page.image.startsWith("/") ? page.image : `/${page.image}`}`)
-    : `${SITE_URL}/images/logo.webp`;
-
-  const lines = [];
-  if (page.title) lines.push(`<title>${escAttr(page.title)}</title>`);
-  if (page.description) lines.push(`<meta name="description" content="${escAttr(page.description)}">`);
-  lines.push(`<link rel="canonical" href="${canon}">`);
-  if (page.robots) lines.push(`<meta name="robots" content="${page.robots}">`);
-
-  // Open Graph
-  if (page.title || page.description) {
-    lines.push(`<meta property="og:type" content="website">`);
-    lines.push(`<meta property="og:site_name" content="BdMSO">`);
-    lines.push(`<meta property="og:locale" content="en_US">`);
-    lines.push(`<meta property="og:url" content="${canon}">`);
-    if (page.title) lines.push(`<meta property="og:title" content="${escAttr(page.title)}">`);
-    if (page.description) lines.push(`<meta property="og:description" content="${escAttr(page.description)}">`);
-    lines.push(`<meta property="og:image" content="${img}">`);
-    lines.push(`<meta property="og:image:width" content="1200">`);
-    lines.push(`<meta property="og:image:height" content="630">`);
-    lines.push(`<meta name="twitter:card" content="summary_large_image">`);
-    if (page.title) lines.push(`<meta name="twitter:title" content="${escAttr(page.title)}">`);
-    if (page.description) lines.push(`<meta name="twitter:description" content="${escAttr(page.description)}">`);
-    lines.push(`<meta name="twitter:image" content="${img}">`);
-  }
-
-  // Schema
-  const schemas = Array.isArray(page.schema) ? page.schema : (page.schema ? [page.schema] : []);
-  for (const s of schemas) {
-    lines.push(`<script type="application/ld+json">${JSON.stringify(s)}</script>`);
-  }
-
-  return lines.join("\n");
+  const schema = Array.isArray(page.schema) ? page.schema : (page.schema ? [page.schema] : []);
+  return buildSeoTags({
+    title:       page.title,
+    description: page.description,
+    canonical:   `${SITE_URL}${pagePath}`,
+    image:       page.image || "/images/logo.webp",
+    robots:      page.robots,
+    ogImageSize: true,
+    schema,
+  });
 }
 //
 // public/blog.html stays as the template (with placeholder markup that the
@@ -361,8 +582,78 @@ function buildBlogIndex(posts) {
       `<div class="posts" id="posts-grid">${gridHtml}</div>`
     );
 
-  writeFileSync(path.join(distDir, "blog.html"), html, "utf8");
+  writeIfChanged(path.join(distDir, "blog.html"), html);
   console.log(`[blog] pre-rendered dist/blog.html (${posts.length} posts)`);
+}
+
+// ── Programs index: pre-render program cards for crawlers ─────────────────────
+//
+// public/programs.html ships an empty card grid that JS hydrates from
+// programs-detail.json. We overwrite dist/programs.html with the cards
+// pre-rendered as real <a href="/programs/slug"> links so crawlers and
+// no-JS visitors get them; the page's own JS detects these and enhances
+// them in place. Card markup MUST stay in sync with the fallback template
+// in public/programs.html.
+
+function buildProgramsIndex() {
+  const programs = readPrograms().filter(p => p && p.slug && !p.hidden);
+  if (!programs.length) { console.warn("[programs] index skipped: empty catalog"); return; }
+
+  const ICON = {
+    person: "<svg viewBox='0 0 20 20' fill='currentColor'><path d='M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z'/></svg>",
+    clock:  "<svg viewBox='0 0 20 20' fill='none' stroke='currentColor' stroke-width='1.8'><circle cx='10' cy='10' r='7'/><path d='M10 6v4l2.5 2.5' stroke-linecap='round'/></svg>",
+    star:   "<svg viewBox='0 0 20 20' fill='none' stroke='currentColor' stroke-width='1.8'><path d='M10 3l2.5 5 5.5.5-4 4 1 5.5L10 15l-5 3 1-5.5-4-4L7.5 8z' stroke-linejoin='round'/></svg>",
+  };
+  const CTA_ARROW = "<svg viewBox='0 0 20 20' fill='currentColor'><path fill-rule='evenodd' d='M7.3 5.3a1 1 0 011.4 0l4 4a1 1 0 010 1.4l-4 4a1 1 0 11-1.4-1.4L10.6 10 7.3 6.7a1 1 0 010-1.4z'/></svg>";
+  const BADGE = { beginner: ["b-beginner", "Beginner"], advanced: ["b-advanced", "Advanced"], residential: ["b-residential", "Residential"] };
+
+  const cards = programs.map((p, i) => {
+    const no = String(i + 1).padStart(2, "0");
+    const [badgeClass, badgeLabel] = BADGE[p.category] || ["b-open", "Open"];
+    const dated = !!(p.registrationStarts && p.registrationEnds);
+    const facts = [
+      [ICON.person, p.audience],
+      [ICON.clock,  p.duration],
+      [ICON.star,   p.outcome],
+    ].filter(([, v]) => v).map(([icon, v]) =>
+      `<div class="p-card-fact">${icon}<span>${escHtml(v)}</span></div>`).join("");
+    const attrs = [
+      `data-slug="${escAttr(p.slug)}"`,
+      `data-tags="${escAttr(p.category || "")}"`,
+      `data-schedule="${dated ? "dated" : "year-round"}"`,
+      dated ? `data-starts="${escAttr(p.registrationStarts)}" data-ends="${escAttr(p.registrationEnds)}"` : "",
+      p.bespokePage ? 'data-no-modal="1"' : "",
+      p.registration === false ? 'data-registration="false"' : "",
+    ].filter(Boolean).join(" ");
+    const fee = p.feeAmount != null
+      ? `৳ ${Number(p.feeAmount).toLocaleString("en-BD")}`
+      : "On enquiry";
+    return `<a class="p-card" href="/programs/${escAttr(p.slug)}" ${attrs}>
+      <div class="p-card-topbar">
+        <div class="p-card-topbar-l">
+          <span class="p-card-no">${no}</span>
+          <span class="p-card-badge ${badgeClass}">${badgeLabel}</span>
+        </div>
+      </div>
+      <h3 class="p-card-title">${escHtml(p.title)}</h3>
+      <p class="p-card-desc">${escHtml(p.tagline || "")}</p>
+      <div class="p-card-facts">${facts}</div>
+      <div class="p-card-foot">
+        <span class="p-card-fee">${fee}</span>
+        <span class="p-card-cta">Details${CTA_ARROW}</span>
+      </div>
+    </a>`;
+  }).join("\n");
+
+  const template = readFileSync(path.join(publicDir, "programs.html"), "utf8");
+  const marker = '<div class="p-list" data-list="all"></div>';
+  if (!template.includes(marker)) {
+    console.warn("[programs] index skipped: grid placeholder not found in programs.html");
+    return;
+  }
+  const html = template.replace(marker, `<div class="p-list" data-list="all">\n${cards}\n</div>`);
+  writeIfChanged(path.join(distDir, "programs.html"), html);
+  console.log(`[programs] pre-rendered dist/programs.html (${programs.length} cards)`);
 }
 
 // ── robots.txt + sitemap.xml ─────────────────────────────────────────────────
@@ -370,26 +661,24 @@ function buildBlogIndex(posts) {
 function writeRobotsAndSitemap(posts, { target = "dist" } = {}) {
   const outDir = target === "public" ? publicDir : distDir;
 
-  writeFileSync(
+  writeIfChanged(
     path.join(outDir, "robots.txt"),
     [
       "User-agent: *",
       "Allow: /",
       // /dashboard and /login carry <meta name="robots" content="noindex,follow">
-      // — they intentionally remain crawlable so Google can read the noindex.
+      // - they intentionally remain crawlable so Google can read the noindex.
       "Disallow: /posts/index.json",
       "",
       `Sitemap: ${SITE_URL}/sitemap.xml`,
       "",
-    ].join("\n"),
-    "utf8"
+    ].join("\n")
   );
 
   const staticPages = [
     { slug: "",             priority: "1.0", changefreq: "weekly" },
     { slug: "registration", priority: "0.95", changefreq: "weekly" },
     { slug: "programs",     priority: "0.9",  changefreq: "monthly" },
-    { slug: "programs/maryam-mirzakhani-school", priority: "0.85", changefreq: "monthly" },
     { slug: "results",      priority: "0.85", changefreq: "monthly" },
     { slug: "team",         priority: "0.8",  changefreq: "monthly" },
     { slug: "resources",    priority: "0.8",  changefreq: "monthly" },
@@ -398,6 +687,14 @@ function writeRobotsAndSitemap(posts, { target = "dist" } = {}) {
     { slug: "media",        priority: "0.6",  changefreq: "monthly" },
     { slug: "sponsorship",  priority: "0.6",  changefreq: "monthly" },
   ];
+
+  // Program detail pages - derived from the catalog so the sitemap stays in
+  // sync with buildProgramPages(). Excludes hidden programs; includes both
+  // generated and bespoke pages (e.g. maryam-mirzakhani-school).
+  const programPages = readPrograms()
+    .filter(p => p && p.slug && !p.hidden)
+    .map(p => ({ slug: `programs/${p.slug}`, priority: "0.85", changefreq: "monthly" }));
+
   const now = new Date().toISOString();
   const pageMtime = (slug) => {
     const filename = slug ? `${slug}.html` : "index.html";
@@ -406,7 +703,7 @@ function writeRobotsAndSitemap(posts, { target = "dist" } = {}) {
   };
 
   const urls = [
-    ...staticPages.map(p => ({
+    ...[...staticPages, ...programPages].map(p => ({
       loc: `${SITE_URL}${p.slug ? `/${p.slug}` : "/"}`,
       lastmod: pageMtime(p.slug),
       changefreq: p.changefreq,
@@ -428,6 +725,6 @@ function writeRobotsAndSitemap(posts, { target = "dist" } = {}) {
     ).join("\n") +
     `\n</urlset>\n`;
 
-  writeFileSync(path.join(outDir, "sitemap.xml"), sitemap, "utf8");
+  writeIfChanged(path.join(outDir, "sitemap.xml"), sitemap);
   return { count: urls.length };
 }

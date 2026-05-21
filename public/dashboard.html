@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- SEO:START (generated from seo.json - do not edit) -->
 <title>Dashboard - BdMSO</title>
 <link rel="canonical" href="https://bdmso.org/dashboard">
 <meta name="robots" content="noindex,follow">
@@ -17,6 +18,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Dashboard - BdMSO">
 <meta name="twitter:image" content="https://bdmso.org/images/logo.webp">
+<!-- SEO:END -->
 <meta name="theme-color" content="#0b1b3f">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
@@ -151,7 +153,7 @@
   <div class="container">
     <span class="eyebrow">Guardian Dashboard</span>
     <h1 id="dash-name"><span class="no-id">Welcome back</span></h1>
-    <p id="dash-greeting">Manage your registrations, track payments, and enrol your child in upcoming programs - all from one place.</p>
+    <p id="dash-greeting">Manage your registrations, track payments, and enroll your child in upcoming programs - all from one place.</p>
     <div class="email" id="dash-email"></div>
   </div>
 </section>
@@ -166,7 +168,7 @@
   <div class="dash-toolbar">
     <div>
       <h2>Your Registrations</h2>
-      <div class="sub">All programs and qualifying rounds your child is enrolled in.</div>
+      <div class="sub">All programs and competitions your child is enrolled in.</div>
     </div>
     <a class="btn btn-primary" href="/registration">+ New Registration</a>
   </div>
@@ -196,7 +198,7 @@
 
       <div class="prog-card">
         <span class="prog-tag open">Open · Enrollment</span>
-        <h3>Mock Test Program</h3>
+        <h3>BdMSO Mock Test</h3>
         <p>Practice under real exam conditions before the national round. Receive detailed performance feedback and identify areas to improve.</p>
         <div class="prog-foot">
           <span class="prog-price">৳ 3,000</span>
@@ -230,6 +232,7 @@
 <script src="/js/site.js"></script>
 <script type="module">
 import { buildFunctionUrl } from './js/api.js';
+import { programMaps } from './js/program-catalog.js';
 
 // Stores validated coupon codes keyed by registrationId
 const validatedCoupons = new Map();
@@ -243,30 +246,10 @@ async function apiPost(name, payload, token) {
   return json;
 }
 
-const PROGRAM_NAMES = {
-  'national-qualifying-round': 'BdMSO National Round',
-  'national-quiz-competition': 'BdMSO Quiz Competition',
-  'stem-foundation':           'STEM Foundation Program',
-  'bdmso-preparatory':         'BdMSO Preparatory Course',
-  'stem-masterclass':          'STEM Masterclass Series',
-  'mock-test':                 'Mock Test Program',
-  'lab-day':                   'Lab Day Workshop',
-  'robotics-foundation':       'Robotics Foundation Course',
-  'summer-camp':               'SPSB Summer Camp',
-  'winter-camp':               'International Winter Camp',
-};
-
-const PROGRAM_PRICES = {
-  'national-qualifying-round': 500,
-  'stem-foundation':           8000,
-  'bdmso-preparatory':         12000,
-  'stem-masterclass':          6000,
-  'mock-test':                 3000,
-  'lab-day':                   2000,
-  'robotics-foundation':       7000,
-  'summer-camp':               15000,
-  'winter-camp':               25000,
-};
+// Program names + prices come from the catalog (programs-detail.json),
+// the single source of truth - loaded once before the dashboard renders.
+let PROGRAM_NAMES = {};
+let PROGRAM_PRICES = {};
 
 function getSession() {
   try { return JSON.parse(localStorage.getItem('bdmso_user') || 'null'); } catch { return null; }
@@ -379,7 +362,7 @@ function renderRegistrations(regs) {
     list.innerHTML = `
       <div class="empty-state">
         <h3>No registrations yet</h3>
-        <p>Register your child for an upcoming program or the national qualifying round.</p>
+        <p>Register your child for an upcoming program or the BdMSO National Olympiad.</p>
         <a class="btn btn-primary" href="/registration">Register Now</a>
       </div>`;
     return;
@@ -396,7 +379,7 @@ function renderRegistrations(regs) {
     return `
       <article class="reg-card">
         <div>
-          <div class="id-pill"><span class="k">Member ID</span><span>${escapeHtml(memberId)}</span></div>
+          <div class="id-pill"><span class="k">BdMSO ID</span><span>${escapeHtml(memberId)}</span></div>
           <span class="eyebrow">${escapeHtml(programName)}</span>
           <h3>${escapeHtml(r.student_full_name)}</h3>
           <p class="oneliner">Registered on ${escapeHtml(formatDate(r.created_at))}</p>
@@ -479,7 +462,7 @@ function printReceipt(r) {
       <p>Bangladesh Mathematical Science Olympiad</p>
     </div>
     <div class="member-band">
-      <div class="k">Member ID</div>
+      <div class="k">BdMSO ID</div>
       <div class="v">${escapeHtml(r.member_id || '-')}</div>
     </div>
     <div class="body">
@@ -523,11 +506,16 @@ async function init() {
     return;
   }
 
+  // Load the program catalog (single source of truth) before render.
+  const { names, prices } = await programMaps();
+  PROGRAM_NAMES = names;
+  PROGRAM_PRICES = prices;
+
   document.getElementById('page-head').hidden = false;
   document.getElementById('dash-wrap').hidden = false;
   // textContent is safe from XSS - no need to escape.
   document.getElementById('dash-greeting').textContent =
-    `Welcome back, ${session.fullName.split(' ')[0]} - manage your registrations, track payments, and enrol in upcoming programs.`;
+    `Welcome back, ${session.fullName.split(' ')[0]} - manage your registrations, track payments, and enroll in upcoming programs.`;
   document.getElementById('dash-email').textContent = session.email;
 
   const params = new URLSearchParams(location.search);

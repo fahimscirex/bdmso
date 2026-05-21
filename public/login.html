@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- SEO:START (generated from seo.json - do not edit) -->
 <title>Log in - BdMSO</title>
 <link rel="canonical" href="https://bdmso.org/login">
 <meta name="robots" content="noindex,follow">
@@ -17,6 +18,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Log in - BdMSO">
 <meta name="twitter:image" content="https://bdmso.org/images/logo.webp">
+<!-- SEO:END -->
 <meta name="theme-color" content="#0b1b3f">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
@@ -104,7 +106,7 @@ import { postJson } from './js/api.js';
 
 // Redirect if already logged in
 try {
-  if (JSON.parse(localStorage.getItem('bdmso_user'))) window.location.replace('dashboard.html');
+  if (JSON.parse(localStorage.getItem('bdmso_user'))) window.location.replace('/dashboard');
 } catch {}
 
 const form = document.getElementById('login-form');
@@ -129,7 +131,7 @@ form.addEventListener('submit', async e => {
       fullName: data.fullName,
       email: data.email
     }));
-    window.location.href = 'dashboard.html';
+    window.location.href = '/dashboard';
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.hidden = false;

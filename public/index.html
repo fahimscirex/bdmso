@@ -2,6 +2,7 @@
 <html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- SEO:START (generated from seo.json - do not edit) -->
 <title>BdMSO - Bangladesh Mathematics &amp; Science Olympiad</title>
 <meta name="description" content="Official qualifying platform to select primary school students (Class 3–6) to represent Bangladesh at the International Mathematics and Science Olympiad (IMSO).">
 <link rel="canonical" href="https://bdmso.org/">
@@ -21,6 +22,7 @@
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"EducationalOrganization","name":"Bangladesh Mathematics & Science Olympiad","alternateName":"BdMSO","url":"https://bdmso.org","logo":"https://bdmso.org/images/logo.webp","description":"A platform dedicated to identifying and nurturing early age STEM talent across Bangladesh.","parentOrganization":[{"@type":"Organization","name":"Bangladesh Open Source Network","url":"https://bdosn.org"},{"@type":"Organization","name":"Society for the Popularization of Science, Bangladesh","url":"https://spsb.org"}],"contactPoint":{"@type":"ContactPoint","email":"info.bdmso@gmail.com","contactType":"customer support"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Event","name":"BdMSO 2026 National Round","startDate":"2026-06-15","eventStatus":"https://schema.org/EventScheduled","eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode","location":{"@type":"Place","name":"Multiple regional venues, Bangladesh","address":{"@type":"PostalAddress","addressCountry":"BD"}},"image":"https://bdmso.org/images/national-round-winners.webp","description":"BdMSO 2026 National Round - the official qualifying olympiad for primary-school students competing for the Bangladesh team at IMSO 2026.","organizer":{"@type":"Organization","name":"BdMSO","url":"https://bdmso.org"}}</script>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Event","name":"23rd International Mathematics and Science Olympiad (IMSO 2026)","startDate":"2026-10-01","eventStatus":"https://schema.org/EventScheduled","eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode","location":{"@type":"Place","name":"Indonesia","address":{"@type":"PostalAddress","addressCountry":"ID"}},"description":"23rd IMSO - Bangladesh sends a 6+6 delegation of primary-school students selected through the BdMSO qualifying pathway.","organizer":{"@type":"Organization","name":"International Mathematics and Science Olympiad"}}</script>
+<!-- SEO:END -->
 <meta name="theme-color" content="#0b1b3f">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
@@ -688,6 +690,7 @@
   display: flex; flex-direction: column; gap: 10px;
 }
 .prog-card:hover { transform: translateY(-3px); border-color: var(--navy-600); box-shadow: var(--shadow); }
+.prog-card .prog-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .prog-card .num {
   font-family: var(--font-mono);
   font-size: 11px; font-weight: 500;
@@ -695,6 +698,33 @@
 }
 .prog-card h4 { font-size: 1.05rem; margin: 0; }
 .prog-card p { font-size: 13.5px; color: var(--ink-3); margin: 0; }
+/* Highlight cards whose registration window is currently open. We
+   keep the same outline as other cards (no thick green border) and
+   instead lift the card with a soft green-tinted background + the
+   "Open" pill in the topbar. */
+.prog-card.open {
+  background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 60%);
+  border-color: #bbf7d0;
+}
+.prog-card.open:hover { border-color: #86efac; box-shadow: var(--shadow); }
+.prog-card .open-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 10.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: #166534; background: #dcfce7;
+  padding: 3px 9px; border-radius: 999px;
+}
+.prog-card .open-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #16a34a;
+  box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.45);
+  animation: prog-open-pulse 1.8s ease-out infinite;
+}
+@keyframes prog-open-pulse {
+  0%   { box-shadow: 0 0 0 0   rgba(22, 163, 74, 0.55); }
+  70%  { box-shadow: 0 0 0 8px rgba(22, 163, 74, 0);    }
+  100% { box-shadow: 0 0 0 0   rgba(22, 163, 74, 0);    }
+}
 @media (max-width: 900px) { .prog-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 520px) { .prog-grid { grid-template-columns: 1fr; } }
 
@@ -741,8 +771,11 @@
   color: var(--navy-900);
   display: flex; justify-content: space-between; align-items: center; gap: 8px;
   box-shadow: 0 1px 0 var(--white-50) inset;
+  transition: border-color 0.15s, background 0.15s;
 }
-.level-card ul li::after { content: "→"; color: var(--ink-3); font-size: 16px; }
+.level-card ul li:has(> a:hover) { border-color: var(--navy-600); background: white; }
+.level-card ul li > a { color: inherit; text-decoration: none; flex: 1; min-width: 0; }
+.level-card ul li::after { content: "→"; color: var(--ink-3); font-size: 16px; flex-shrink: 0; }
 .level-card .btn {
   width: 100%;
   justify-content: center;
@@ -1103,33 +1136,21 @@
         <span class="tier"><span class="tier-dot"></span>Level · Beginner</span>
         <h3>Build a strong STEM foundation</h3>
         <p>Best for curious learners new to olympiad-style thinking.</p>
-        <ul>
-          <li>STEM Foundation Program</li>
-          <li>Lab Day Workshop</li>
-          <li>STEM Masterclass Series</li>
-        </ul>
+        <ul id="guide-beginner"></ul>
         <a class="btn btn-ghost" href="/programs">Explore Beginner</a>
       </div>
       <div class="level-card advance">
         <span class="tier"><span class="tier-dot"></span>Level · Advance</span>
         <h3>Train for the national round</h3>
         <p>Designed for students preparing seriously for BdMSO &amp; TST.</p>
-        <ul>
-          <li>BdMSO Preparatory Course</li>
-          <li>STEM Masterclass Series</li>
-          <li>Mock Test Program</li>
-        </ul>
+        <ul id="guide-advance"></ul>
         <a class="btn btn-ghost" href="/programs">Explore Advance</a>
       </div>
       <div class="level-card open">
         <span class="tier"><span class="tier-dot"></span>Open for All</span>
         <h3>Residential &amp; experience camps</h3>
         <p>Activity-based camps open to all children who love science.</p>
-        <ul>
-          <li>SPSB Nature Camp</li>
-          <li>International Summer/Winter Camp</li>
-          <li>International Exchange Programs</li>
-        </ul>
+        <ul id="guide-open"></ul>
         <a class="btn btn-gold" href="/programs">Explore Camps</a>
       </div>
     </div>
