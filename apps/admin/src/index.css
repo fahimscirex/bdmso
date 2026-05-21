@@ -1,4 +1,4 @@
-/* Admin SPA styles — tokenised after BdMSO marketing palette so future
+/* Admin SPA styles - tokenised after BdMSO marketing palette so future
    packages/ui can hoist without rework. Compact + tabular, designed for
    high information density, not marketing flourish. */
 
@@ -217,7 +217,7 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 .checkbox-inline { display: flex; align-items: center; gap: 8px; font-size: 13.5px; padding: 4px 0; cursor: pointer; }
 .checkbox-inline input { width: 16px; height: 16px; }
 
-/* Image upload field — text + upload button + clear + thumb. */
+/* Image upload field - text + upload button + clear + thumb. */
 .image-field { display: flex; gap: 8px; align-items: stretch; }
 .image-field input[type="text"] { width: auto; }
 .image-field-upload { display: inline-flex; align-items: center; cursor: pointer; white-space: nowrap; }

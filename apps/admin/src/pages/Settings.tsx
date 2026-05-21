@@ -48,9 +48,9 @@ export function Settings() {
                   : <span class="badge badge-muted">unverified</span>}
               </dd>
               <dt>Role</dt><dd><span class="badge badge-ok">{profile.role}</span></dd>
-              <dt>Phone</dt><dd>{profile.phone || <span class="muted">—</span>}</dd>
-              <dt>Member ID</dt><dd>
-                {profile.memberId ? <code>{profile.memberId}</code> : <span class="muted">—</span>}
+              <dt>Phone</dt><dd>{profile.phone || <span class="muted">-</span>}</dd>
+              <dt>BdMSO ID</dt><dd>
+                {profile.memberId ? <code>{profile.memberId}</code> : <span class="muted">-</span>}
               </dd>
               <dt>Account ID</dt><dd><code>{profile.accountId}</code></dd>
             </dl>
@@ -85,7 +85,7 @@ function PasswordCard() {
         new_password: next,
       });
       setCurrent(''); setNext(''); setConfirm('');
-      setSuccess('Password updated. Existing sessions still work — revoke them above if you changed it because of a compromise.');
+      setSuccess('Password updated. Existing sessions still work - revoke them above if you changed it because of a compromise.');
     } catch (err) {
       setError((err as Error).message);
     } finally {

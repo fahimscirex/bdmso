@@ -1,5 +1,5 @@
 // Audit log viewer. Every mutating admin endpoint records into
-// admin_audit_log via recordAudit() — this screen surfaces those rows.
+// admin_audit_log via recordAudit() - this screen surfaces those rows.
 // Compact one-row-per-event layout; payload is shown expanded inline
 // because most diffs are tiny (e.g. "from:submitted to:paid").
 
@@ -78,7 +78,7 @@ export function AuditLog() {
     <>
       <div class="page-header">
         <h1>Audit log</h1>
-        <p class="sub">Every mutating admin action — who, what, when, before/after.</p>
+        <p class="sub">Every mutating admin action - who, what, when, before/after.</p>
       </div>
 
       <div class="toolbar">
@@ -133,9 +133,9 @@ export function AuditLog() {
                             <code>{r.target_id?.slice(0, 12)}…</code>
                           )}
                         </>
-                      ) : <span class="muted">—</span>}
+                      ) : <span class="muted">-</span>}
                     </td>
-                    <td>{summarizePayload(r.payload_json) || <span class="muted">—</span>}</td>
+                    <td>{summarizePayload(r.payload_json) || <span class="muted">-</span>}</td>
                   </tr>
                 );
               })}

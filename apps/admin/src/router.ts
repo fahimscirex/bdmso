@@ -1,4 +1,4 @@
-// Minimal path-based router. No deps — we only have a handful of routes for now.
+// Minimal path-based router. No deps - we only have a handful of routes for now.
 // Switch to preact-iso (official Preact router) once routes pass ~10 or we
 // need nested layouts.
 //
@@ -33,7 +33,7 @@ export function navigate(to: string): void {
 }
 
 /**
- * Build the public URL for a route — useful for <a href> so middle-click
+ * Build the public URL for a route - useful for <a href> so middle-click
  * and right-click → copy-link work properly. Pair with onClick={(e) => {
  * e.preventDefault(); navigate(to); }} to keep SPA navigation on left-click.
  */

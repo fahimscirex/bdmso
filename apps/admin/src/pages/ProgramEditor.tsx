@@ -1,6 +1,6 @@
 // Program create/edit. Same pattern as PostEditor: one form, slug=null
 // for create. The three JSON columns (subjects, routine, pricing) get
-// raw JSON textareas — a structured editor can come later once we know
+// raw JSON textareas - a structured editor can come later once we know
 // which shapes editors actually reach for.
 
 import { useEffect, useState } from 'preact/hooks';
@@ -274,7 +274,7 @@ export function ProgramEditor({ slug }: { slug: string | null }) {
           <Field label="Flags">
             <label class="checkbox-inline">
               <input type="checkbox" checked={form.published} onChange={(e) => patch('published', (e.target as HTMLInputElement).checked)} />
-              <span>Published <span class="muted">— visible on the public site</span></span>
+              <span>Published <span class="muted">- visible on the public site</span></span>
             </label>
           </Field>
         </div>

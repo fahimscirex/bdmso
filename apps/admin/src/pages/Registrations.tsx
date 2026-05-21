@@ -1,4 +1,4 @@
-// Registrations list. The first real screen — answers an organiser's #1
+// Registrations list. The first real screen - answers an organiser's #1
 // question ("who signed up?"). Sort newest-first, summary header counts,
 // status + payment badges. Filters and pagination come once we hit the
 // 1000-row hard cap.
@@ -10,6 +10,7 @@ import { navigate } from '../router';
 type Row = {
   id: string;
   registration_type: string;
+  program_label: string;       // catalog-derived, from /api/admin/registrations
   student_full_name: string;
   student_class_name: string;
   student_gender: string;
@@ -35,28 +36,13 @@ type Response = {
   filter: { status: string | null; type: string | null; limit: number };
 };
 
-const TYPE_LABEL: Record<string, string> = {
-  'national-qualifying-round':      'National Round',
-  'national-qualifying-round-both': 'National Round (M+S)',
-  'national-quiz-competition':      'Quiz',
-  'stem-foundation':                'STEM Foundation',
-  'bdmso-preparatory':              'Prep Course',
-  'stem-masterclass':               'Masterclass',
-  'mock-test':                      'Mock Test',
-  'lab-day':                        'Lab Day',
-  'robotics-foundation':            'Robotics',
-  'summer-camp':                    'SPSB Camp',
-  'winter-camp':                    'Winter Camp',
-  'exchange-program':               'Exchange',
-};
-
 function formatDate(iso: string): string {
   if (!iso) return '';
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 function formatBdt(n: number | null): string {
-  if (n == null) return '—';
+  if (n == null) return '-';
   return `৳ ${Number(n).toLocaleString('en-BD')}`;
 }
 
@@ -145,7 +131,7 @@ export function Registrations() {
                     <div class="cell-strong">{r.student_school}</div>
                     <div class="cell-sub">{r.student_district}</div>
                   </td>
-                  <td>{TYPE_LABEL[r.registration_type] || r.registration_type}</td>
+                  <td>{r.program_label}</td>
                   <td>
                     <div class="cell-strong">{r.guardian_full_name}</div>
                     <div class="cell-sub">{r.guardian_email}</div>
@@ -180,7 +166,7 @@ function StatusBadge({ value }: { value: Row['status'] }) {
 }
 
 function PaymentCell({ status, amount }: { status: Row['payment_status']; amount: number | null }) {
-  if (!status) return <span class="muted">—</span>;
+  if (!status) return <span class="muted">-</span>;
   const tone = status === 'paid' ? 'ok' : status === 'failed' ? 'bad' : 'warn';
   return (
     <div>

@@ -29,7 +29,7 @@ type Response = {
 };
 
 function formatDate(iso: string | null): string {
-  if (!iso) return '—';
+  if (!iso) return '-';
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
@@ -135,8 +135,8 @@ export function Posts() {
                       onClick={(e) => e.stopPropagation()}
                     ><code>{p.slug}</code></a>
                   </td>
-                  <td>{p.category || <span class="muted">—</span>}</td>
-                  <td>{p.author || <span class="muted">—</span>}</td>
+                  <td>{p.category || <span class="muted">-</span>}</td>
+                  <td>{p.author || <span class="muted">-</span>}</td>
                   <td>
                     {p.published
                       ? <span class="badge badge-ok">published</span>

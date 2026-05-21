@@ -34,7 +34,7 @@ export function App() {
   const route = useRoute();
 
   // Once we have a token, fetch /api/admin/health to populate the topbar.
-  // A 401 here means the token is dead — drop it and bounce to login.
+  // A 401 here means the token is dead - drop it and bounce to login.
   useEffect(() => {
     if (!token) { setIdentity(null); return; }
     api.get<{ email: string; role: string }>('/api/admin/health')
@@ -82,16 +82,16 @@ export function App() {
 }
 
 function renderPage(route: string) {
-  // /registrations/:id — detail view.
+  // /registrations/:id - detail view.
   const regDetail = route.match(/^\/registrations\/([\w-]+)$/);
   if (regDetail) return <RegistrationDetail id={regDetail[1]} />;
 
-  // /posts/new and /posts/:slug/edit — same editor, slug=null means create.
+  // /posts/new and /posts/:slug/edit - same editor, slug=null means create.
   if (route === '/posts/new') return <PostEditor slug={null} />;
   const postEdit = route.match(/^\/posts\/([a-z0-9][a-z0-9-]*)\/edit$/);
   if (postEdit) return <PostEditor slug={postEdit[1]} />;
 
-  // /programs/new and /programs/:slug/edit — same pattern as posts.
+  // /programs/new and /programs/:slug/edit - same pattern as posts.
   if (route === '/programs/new') return <ProgramEditor slug={null} />;
   const progEdit = route.match(/^\/programs\/([a-z0-9][a-z0-9-]*)\/edit$/);
   if (progEdit) return <ProgramEditor slug={progEdit[1]} />;

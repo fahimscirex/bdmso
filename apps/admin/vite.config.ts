@@ -21,7 +21,7 @@ export default defineConfig({
     port: Number(process.env.VITE_PORT) || 5174,
     proxy: (() => {
       const worker = `http://localhost:${Number(process.env.WRANGLER_PORT) || 8787}`;
-      // Same single-dev-origin trick as the guardian app — forward the
+      // Same single-dev-origin trick as the guardian app - forward the
       // marketing surface back to the worker so admins can preview posts
       // / programs at :5174/blog/<slug> without origin-jumping.
       // Vite still owns /admin and its internals (/@vite, /src, etc.).

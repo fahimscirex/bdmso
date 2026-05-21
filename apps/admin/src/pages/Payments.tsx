@@ -1,5 +1,5 @@
 // Payments list. Mirrors Registrations but groups by payment intent.
-// Shows revenue at the top — the question finance asks most often.
+// Shows revenue at the top - the question finance asks most often.
 
 import { useEffect, useState } from 'preact/hooks';
 import { api, ApiError } from '../api';
@@ -139,16 +139,16 @@ export function Payments() {
                         ) : (
                           <span class="cell-strong">{p.student_full_name}</span>
                         )
-                      ) : <span class="muted">—</span>}
+                      ) : <span class="muted">-</span>}
                       <div class="cell-sub">{p.registration_type || ''}</div>
                     </td>
                     <td>
-                      <div class="cell-strong">{p.guardian_full_name || '—'}</div>
+                      <div class="cell-strong">{p.guardian_full_name || '-'}</div>
                       <div class="cell-sub">{p.guardian_email || ''}</div>
                     </td>
                     <td><code>{p.tran_id}</code></td>
-                    <td>{p.gateway_status || '—'}</td>
-                    <td>{p.coupon_code ? <code>{p.coupon_code}</code> : <span class="muted">—</span>}</td>
+                    <td>{p.gateway_status || '-'}</td>
+                    <td>{p.coupon_code ? <code>{p.coupon_code}</code> : <span class="muted">-</span>}</td>
                     <td class="cell-sub">{formatDateTime(p.updated_at)}</td>
                   </tr>
                 );

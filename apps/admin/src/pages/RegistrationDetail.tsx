@@ -26,7 +26,7 @@ type Registration = {
   source_page: string | null;
   created_at: string;
   guardian_email_verified: number;
-  guardian_member_id: string | null;
+  account_member_id: string | null;
 };
 
 type Payment = {
@@ -109,10 +109,15 @@ export function RegistrationDetail({ id }: { id: string }) {
             <dt>Class</dt><dd>{r.student_class_name}</dd>
             <dt>Gender</dt><dd>{r.student_gender}</dd>
             <dt>Date of birth</dt><dd>{r.student_date_of_birth}</dd>
-            <dt>Medium</dt><dd>{r.student_medium || '—'}</dd>
+            <dt>Medium</dt><dd>{r.student_medium || '-'}</dd>
             <dt>School</dt><dd>{r.student_school}</dd>
             <dt>District</dt><dd>{r.student_district}</dd>
-            {r.preferred_venue && <><dt>Preferred venue</dt><dd>{r.preferred_venue}</dd></>}
+            {r.preferred_venue && <><dt>Exam region</dt><dd>{r.preferred_venue}</dd></>}
+            <dt>BdMSO ID</dt><dd>
+              {r.account_member_id
+                ? <code>{r.account_member_id}</code>
+                : <span class="muted">Assigned on first paid receipt.</span>}
+            </dd>
           </dl>
         </section>
 
@@ -124,7 +129,6 @@ export function RegistrationDetail({ id }: { id: string }) {
             <dt>Email</dt><dd>{r.guardian_email} {r.guardian_email_verified ? <span class="badge badge-ok">verified</span> : <span class="badge badge-muted">unverified</span>}</dd>
             <dt>Phone</dt><dd>{r.guardian_phone}</dd>
             <dt>Address</dt><dd>{r.guardian_address}</dd>
-            <dt>Member ID</dt><dd>{r.guardian_member_id ? <code>{r.guardian_member_id}</code> : <span class="muted">—</span>}</dd>
           </dl>
         </section>
       </div>
@@ -147,8 +151,8 @@ export function RegistrationDetail({ id }: { id: string }) {
                     <td><span class={`badge badge-${p.status === 'paid' ? 'ok' : p.status === 'failed' ? 'bad' : 'warn'}`}>{p.status}</span></td>
                     <td><strong>{formatBdt(p.amount)}</strong></td>
                     <td><code>{p.tran_id}</code></td>
-                    <td>{p.gateway_status || '—'}</td>
-                    <td>{p.coupon_code ? <code>{p.coupon_code}</code> : <span class="muted">—</span>}</td>
+                    <td>{p.gateway_status || '-'}</td>
+                    <td>{p.coupon_code ? <code>{p.coupon_code}</code> : <span class="muted">-</span>}</td>
                     <td class="cell-sub">{formatDateTime(p.updated_at)}</td>
                   </tr>
                 ))}

@@ -1,5 +1,5 @@
 // Post create/edit. One screen handles both because the form is the
-// same — `slug=null` means create. Markdown body is a plain textarea
+// same - `slug=null` means create. Markdown body is a plain textarea
 // for now; switch to a CodeMirror or Lexical mode later if editors
 // ask for live preview / syntax highlighting.
 
@@ -185,11 +185,11 @@ export function PostEditor({ slug }: { slug: string | null }) {
           <Field label="Flags" full>
             <label class="checkbox-inline">
               <input type="checkbox" checked={form.published} onChange={(e) => patch('published', (e.target as HTMLInputElement).checked)} />
-              <span>Published <span class="muted">— visible on the public site</span></span>
+              <span>Published <span class="muted">- visible on the public site</span></span>
             </label>
             <label class="checkbox-inline">
               <input type="checkbox" checked={form.featured} onChange={(e) => patch('featured', (e.target as HTMLInputElement).checked)} />
-              <span>Featured <span class="muted">— pinned at the top of /blog</span></span>
+              <span>Featured <span class="muted">- pinned at the top of /blog</span></span>
             </label>
           </Field>
         </div>

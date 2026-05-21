@@ -30,7 +30,7 @@ type Response = {
 };
 
 function formatDate(iso: string | null): string {
-  if (!iso) return '—';
+  if (!iso) return '-';
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
@@ -134,12 +134,12 @@ export function Programs() {
                       onClick={(e) => e.stopPropagation()}
                     ><code>{p.slug}</code></a>
                   </td>
-                  <td>{p.cohort || <span class="muted">—</span>}</td>
+                  <td>{p.cohort || <span class="muted">-</span>}</td>
                   <td class="cell-sub">
-                    {p.start_date ? formatDate(p.start_date) : <span class="muted">—</span>}
+                    {p.start_date ? formatDate(p.start_date) : <span class="muted">-</span>}
                     {p.end_date && <> – {formatDate(p.end_date)}</>}
                   </td>
-                  <td>{p.venue || <span class="muted">—</span>}</td>
+                  <td>{p.venue || <span class="muted">-</span>}</td>
                   <td>
                     {p.published
                       ? <span class="badge badge-ok">published</span>

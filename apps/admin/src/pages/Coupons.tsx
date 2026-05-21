@@ -1,5 +1,5 @@
 // Coupons admin. List + create + inline edit. Coupons with redemptions
-// can't be hard-deleted (would orphan payments.coupon_code history) —
+// can't be hard-deleted (would orphan payments.coupon_code history) -
 // expire them instead by setting expires_at to a past date.
 
 import { useEffect, useState } from 'preact/hooks';
@@ -32,7 +32,7 @@ type Response = {
 };
 
 function formatDate(iso: string | null): string {
-  if (!iso) return '—';
+  if (!iso) return '-';
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 

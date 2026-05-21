@@ -1,6 +1,6 @@
 // Sponsorship enquiries inbox. New leads come in with status='new'; admins
 // move them to 'contacted' once they've reached out, 'closed' when wrapped.
-// Status mutation is inline (no detail page) — the message body is shown
+// Status mutation is inline (no detail page) - the message body is shown
 // expanded right in the row.
 
 import { useEffect, useState } from 'preact/hooks';

@@ -75,7 +75,7 @@ export function Users() {
     <>
       <div class="page-header">
         <h1>Users</h1>
-        <p class="sub">Everyone who can log in — guardians, staff, admins.</p>
+        <p class="sub">Everyone who can log in - guardians, staff, admins.</p>
       </div>
 
       {data && (
@@ -127,7 +127,7 @@ export function Users() {
               <tr>
                 <th>Name</th>
                 <th>Email</th>
-                <th>Member ID</th>
+                <th>BdMSO ID</th>
                 <th>Phone</th>
                 <th>Regs</th>
                 <th>Role</th>
@@ -144,8 +144,8 @@ export function Users() {
                       ? <span class="badge badge-ok">verified</span>
                       : <span class="badge badge-muted">unverified</span>}
                   </td>
-                  <td>{u.member_id ? <code>{u.member_id}</code> : <span class="muted">—</span>}</td>
-                  <td>{u.phone || <span class="muted">—</span>}</td>
+                  <td>{u.member_id ? <code>{u.member_id}</code> : <span class="muted">-</span>}</td>
+                  <td>{u.phone || <span class="muted">-</span>}</td>
                   <td>{u.registration_count}</td>
                   <td>
                     <select

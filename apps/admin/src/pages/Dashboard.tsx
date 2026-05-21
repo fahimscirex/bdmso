@@ -1,5 +1,5 @@
 // Landing page after sign-in. Pulls summaries from the existing list
-// endpoints in parallel — no extra API surface area — and renders a
+// endpoints in parallel - no extra API surface area - and renders a
 // KPI grid plus a short "latest activity" feed from the audit log.
 
 import { useEffect, useState } from 'preact/hooks';
