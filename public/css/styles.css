@@ -1,6 +1,11 @@
 /* BdMSO Official Website - Shared Styles */
 
 :root {
+  /* The site is a light design. Declaring this stops the browser from
+     rendering native controls (esp. <select> dropdowns) in OS dark mode,
+     which made hovered options turn white-on-white and disappear. */
+  color-scheme: light;
+
   /* ── Core brand palette - extracted from the BdMSO logo ── */
   /* Logo colors: teal "Bd", gold "M", indigo-navy "S"/number boxes, sky-blue flask */
   --navy-900: #16254d;
@@ -22,7 +27,7 @@
   --green-500:#88c63f;   /* flask green dot */
 
   --ink:      #17284a;
-  --ink-1:    #17284a;   /* alias for --ink — primary darkest text */
+  --ink-1:    #17284a;   /* alias for --ink - primary darkest text */
   --ink-2:    #49566f;
   --ink-3:    #7a8497;
   --line:     #dbe1ec;
@@ -133,6 +138,66 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   margin: 0 auto;
   padding: 0 24px;
 }
+
+/* Anchor jumps (#syllabus, #awards, etc.) need clearance for the fixed
+   .site-header - otherwise the target heading hides under it. Applies
+   to native hash-nav and JS scrollIntoView calls. */
+html { scroll-padding-top: 96px; }
+
+select { color-scheme: light; }
+
+/* ── Custom dropdown (replaces native <select>) ──────────────────────
+   Native <select> dropdowns are OS-rendered and their hovered-option
+   colours can't be styled reliably (white-on-white under OS dark mode).
+   select-enhance.js swaps each <select> for this fully CSS-controlled
+   dropdown; the native element stays hidden as the form value. */
+.bdsel { position: relative; }
+.bdsel > select {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); border: 0;
+}
+.bdsel-trigger {
+  width: 100%; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 11px 14px; font: inherit; font-size: 15px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: #fff; color: var(--ink, #16254d);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.bdsel-trigger::after {
+  content: ""; width: 8px; height: 8px; flex-shrink: 0; margin-top: -3px;
+  border-right: 2px solid var(--ink-3, #94a3b8);
+  border-bottom: 2px solid var(--ink-3, #94a3b8);
+  transform: rotate(45deg);
+}
+.bdsel-trigger.is-placeholder { color: var(--ink-3, #94a3b8); }
+.bdsel.is-open .bdsel-trigger {
+  border-color: var(--navy-700, #4252ab);
+  box-shadow: 0 0 0 4px var(--focus-ring, rgba(66, 82, 171, 0.15));
+}
+.field.is-error .bdsel-trigger { border-color: #dc2626; }
+.bdsel-panel {
+  position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 60;
+  background: #fff; border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 14px 34px -10px rgba(15, 23, 42, 0.3);
+  padding: 5px;
+}
+.bdsel-search {
+  width: 100%; box-sizing: border-box; margin-bottom: 5px;
+  padding: 8px 10px; font: inherit; font-size: 14px;
+  border: 1px solid var(--line); border-radius: 7px;
+}
+.bdsel-list { max-height: 240px; overflow-y: auto; }
+.bdsel-opt {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  padding: 9px 12px; font: inherit; font-size: 14px;
+  border: 0; background: transparent; border-radius: 7px;
+  color: var(--ink, #16254d);
+}
+.bdsel-opt:hover:not(:disabled) { background: var(--navy-50, #eef1f8); color: var(--navy-900, #16254d); }
+.bdsel-opt.is-selected { background: var(--navy-900, #16254d); color: #fff; font-weight: 600; }
+.bdsel-opt:disabled { color: var(--ink-3, #94a3b8); cursor: default; }
+.bdsel-empty { padding: 10px 12px; font-size: 13px; color: var(--ink-3, #94a3b8); }
 
 /* ---------- Header / Nav ---------- */
 .site-header {
@@ -611,5 +676,81 @@ body[data-page="home"] .prog-card:nth-child(8) { animation-delay: 0.54s; }
     animation: none !important;
     transition-duration: 0.01ms !important;
     transition-delay: 0ms !important;
+  }
+}
+
+/* ─── Program detail pages (shared with /programs modal) ─────────────────── */
+.pd-hero { background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-page-dark) 100%); color: white; padding: 64px 0 88px; position: relative; overflow: hidden; }
+.pd-hero::before { content:""; position:absolute; inset:0; background: radial-gradient(600px 300px at 50% 100%, var(--glow-gold-sm), transparent 60%); }
+.pd-hero .container { position: relative; z-index: 1; }
+.pd-topbar { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:24px; }
+.pd-back { display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:rgba(255,255,255,0.6); text-decoration:none; }
+.pd-back:hover { color:white; }
+.pd-back::before { content:"←"; }
+.pd-hero .eyebrow { background: var(--navy-surface-dk); color: var(--gold-on-dark); border-color: var(--navy-border-dk); margin:0; }
+@media (max-width: 540px) { .pd-topbar { flex-wrap:wrap; } }
+.pd-hero h1 { color: white; font-size: clamp(1.8rem, 4vw, 2.6rem); line-height:1.18; margin:0 0 14px; max-width:780px; }
+.pd-hero p.lede { color: var(--on-dark-2); font-size:1.05rem; max-width:680px; margin:0; }
+
+.pd-wrap { margin-top:-56px; position: relative; z-index: 2; padding-bottom: 96px; }
+.pd-grid { display:grid; grid-template-columns: minmax(0, 1.5fr) minmax(280px, 380px); gap: 28px; align-items: start; }
+@media (max-width: 900px) { .pd-grid { grid-template-columns: 1fr; } }
+
+.pd-main { background:white; border:1px solid var(--line); border-radius: var(--r-lg); padding:32px; box-shadow: var(--shadow-sm); }
+.pd-main img.cover { width:100%; aspect-ratio: 21/9; max-height: 280px; object-fit: cover; border-radius: var(--r); margin-bottom: 24px; }
+.pd-main h2 { font-size:1.25rem; color: var(--navy-900); margin: 28px 0 12px; }
+.pd-main h2:first-of-type { margin-top: 0; }
+.pd-main p { line-height:1.75; color: var(--ink-1); margin: 0 0 1.1em; }
+.pd-main ul { padding-left: 22px; margin: 0 0 1.2em; }
+.pd-main ul li { margin-bottom: 6px; color: var(--ink-1); line-height:1.65; }
+
+.pd-side { display:flex; flex-direction:column; gap:18px; position: sticky; top: 20px; }
+.pd-card { background:white; border:1px solid var(--line); border-radius: var(--r-lg); padding:24px; box-shadow: var(--shadow-sm); }
+.pd-price { font-family: var(--font-display); font-size:1.6rem; font-weight:700; color: var(--navy-900); margin-bottom: 6px; }
+.pd-schedule { font-size:13px; color: var(--ink-3); margin: 0 0 18px; }
+.pd-cta { width:100%; }
+.pd-facts { display:grid; gap: 14px; margin-top: 18px; }
+.pd-fact .k { font-size: 10.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing:0.1em; font-weight:600; margin-bottom:3px; }
+.pd-fact .v { color: var(--navy-900); font-weight:600; font-size:14px; }
+
+.pd-warning { background:#fffbeb; border:1px solid #fcd34d; border-radius: var(--r); padding:16px 18px; }
+.pd-warning .t { font-weight:700; color:#92400e; font-size:13.5px; margin-bottom:4px; display:flex; gap:8px; align-items:center; }
+.pd-warning .b { font-size: 13px; color:#78350f; line-height:1.55; }
+
+/* ─── Hero eyebrow on the right (all .page-head pages) ──────────────────
+   The first child of .page-head .container is always the .eyebrow pill
+   in source order; this grid pulls it into the right-hand column on
+   the same row as the H1, then drops everything else (paragraph,
+   stats, custom blocks) into the column-spanning rows below. */
+.page-head .container {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;  /* baseline-align so the pill text sits on the title's first-line baseline */
+  column-gap: 24px;
+  row-gap: 0;
+}
+.page-head .container > .eyebrow {
+  grid-column: 2; grid-row: 1;
+  margin: 0;
+  align-self: baseline;
+  justify-self: end;
+  white-space: nowrap;
+}
+.page-head .container > h1 {
+  grid-column: 1; grid-row: 1;
+  align-self: baseline;
+}
+/* Everything else (p, custom blocks) spans the full width below. */
+.page-head .container > :not(.eyebrow):not(h1) {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 700px) {
+  .page-head .container {
+    display: block;  /* normal flow on mobile - eyebrow above title */
+  }
+  .page-head .container > .eyebrow {
+    margin: 0 0 16px;
+    justify-self: auto;
   }
 }

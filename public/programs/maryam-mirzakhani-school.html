@@ -4,26 +4,26 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Maryam Mirzakhani School of Mathematics and Science - BdMSO</title>
-<meta name="description" content="A 3-day foundational program for primary students (Grade 5 and below) in Mathematics and Science. 23-25 May 2026 at MASLab, Dhanmondi, Dhaka. Inspired by the playful, visual problem-solving of Maryam Mirzakhani.">
+<meta name="description" content="A 3-day foundational program for primary students (Class 5 and below) in Mathematics and Science. 23-25 May 2026 at MASLab, Dhanmondi, Dhaka. Inspired by the playful, visual problem-solving of Maryam Mirzakhani.">
 <link rel="canonical" href="https://bdmso.org/programs/maryam-mirzakhani-school">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="BdMSO">
 <meta property="og:locale" content="en_US">
 <meta property="og:url" content="https://bdmso.org/programs/maryam-mirzakhani-school">
 <meta property="og:title" content="Maryam Mirzakhani School of Mathematics and Science - BdMSO">
-<meta property="og:description" content="A 3-day foundational program for primary students (Grade 5 and below) in Mathematics and Science. 23-25 May 2026 at MASLab, Dhanmondi, Dhaka.">
+<meta property="og:description" content="A 3-day foundational program for primary students (Class 5 and below) in Mathematics and Science. 23-25 May 2026 at MASLab, Dhanmondi, Dhaka.">
 <meta property="og:image" content="https://bdmso.org/images/maryam-mirzakhani-school.webp">
 <meta property="og:image:width" content="1920">
 <meta property="og:image:height" content="1080">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Maryam Mirzakhani School of Mathematics and Science - BdMSO">
-<meta name="twitter:description" content="A 3-day foundational program for primary students (Grade 5 and below) in Mathematics and Science. 23-25 May 2026 at MASLab, Dhanmondi, Dhaka.">
+<meta name="twitter:description" content="A 3-day foundational program for primary students (Class 5 and below) in Mathematics and Science. 23-25 May 2026 at MASLab, Dhanmondi, Dhaka.">
 <meta name="twitter:image" content="https://bdmso.org/images/maryam-mirzakhani-school.webp">
 <script type="application/ld+json">{
   "@context": "https://schema.org",
   "@type": "Course",
   "name": "Maryam Mirzakhani School of Mathematics and Science",
-  "description": "A 3-day foundational program for primary students (Grade 5 and below) in Mathematics and Science. Inspired by the playful, visual problem-solving of Maryam Mirzakhani, the first woman to win the Fields Medal.",
+  "description": "A 3-day foundational program for primary students (Class 5 and below) in Mathematics and Science. Inspired by the playful, visual problem-solving of Maryam Mirzakhani, the first woman to win the Fields Medal.",
   "provider": {
     "@type": "EducationalOrganization",
     "name": "Bangladesh Mathematics & Science Olympiad",
@@ -100,27 +100,52 @@
 .prog-body p { line-height: 1.8; color: var(--ink-1); margin: 0 0 1.2em; }
 .prog-body em { color: var(--ink-2); }
 
-.routine { display: grid; gap: 18px; margin: 14px 0 0; }
+.principles { display: grid; gap: 14px; grid-template-columns: repeat(2, 1fr); margin: 14px 0 0; }
+.principles .pr {
+  background: white; border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: 20px 22px;
+}
+.principles .pr .n { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--navy-700); display: block; margin-bottom: 8px; }
+.principles .pr p { margin: 0; font-size: 13.5px; line-height: 1.65; }
+@media (max-width: 720px) { .principles { grid-template-columns: 1fr; } }
+
+.dl-row {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  background: var(--navy-50); border: 1px solid var(--line);
+  border-radius: var(--r-lg); padding: 16px 20px; margin: 18px 0 0;
+}
+.dl-row .dl-meta { flex: 1 1 220px; }
+.dl-row .dl-meta .dl-t { font-weight: 700; color: var(--navy-900); font-size: 14px; }
+.dl-row .dl-meta .dl-s { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+.dl-row .btn { padding: 11px 18px; font-size: 13px; }
+
+.routine { display: grid; gap: 18px; margin: 18px 0 0; }
 .routine .day {
   background: white; border: 1px solid var(--line); border-radius: var(--r-lg);
   padding: 22px 24px;
 }
 .routine .day h3 {
-  font-family: var(--font-display); font-size: 1.05rem; margin: 0 0 14px;
+  font-family: var(--font-display); font-size: 1.05rem; margin: 0 0 6px;
   color: var(--navy-900); display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
 }
 .routine .day h3 .date { font-size: 12px; color: var(--ink-3); font-weight: 500; letter-spacing: 0.04em; }
-.routine .block { display: grid; grid-template-columns: 120px 1fr; gap: 12px 18px; margin: 10px 0; }
-.routine .block .subj { font-weight: 700; color: var(--navy-700); text-transform: uppercase; font-size: 11px; letter-spacing: 0.12em; padding-top: 4px; }
-.routine .block .slots { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--ink-1); }
-.routine .block .slots .row { display: flex; gap: 10px; align-items: baseline; }
-.routine .block .slots .t { font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-2); min-width: 130px; }
-.routine .lunch-note { font-size: 12px; color: var(--ink-3); font-style: italic; margin: 14px 0 0; padding-top: 12px; border-top: 1px dashed var(--line); }
+.routine .block { margin: 16px 0 0; }
+.routine .block .subj {
+  font-weight: 700; color: var(--navy-700); text-transform: uppercase;
+  font-size: 11px; letter-spacing: 0.12em;
+  display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; margin-bottom: 2px;
+}
+.routine .block .subj .when { color: var(--ink-3); font-weight: 600; letter-spacing: 0.05em; }
+.routine .ses {
+  display: grid; grid-template-columns: 132px 1fr; gap: 4px 16px;
+  padding: 11px 0; border-top: 1px dashed var(--line);
+}
+.routine .ses .t { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); padding-top: 2px; }
+.routine .ses .ses-h { font-weight: 700; color: var(--navy-900); font-size: 13.5px; }
+.routine .ses .ses-t { margin: 3px 0 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.6; }
+.routine .lunch-note { font-size: 12px; color: var(--ink-3); font-style: italic; margin: 2px 0 0; }
 @media (max-width: 640px) {
-  .routine .block { grid-template-columns: 1fr; gap: 6px; }
-  .routine .block .subj { padding-top: 0; }
-  .routine .block .slots .row { flex-direction: column; gap: 2px; }
-  .routine .block .slots .t { min-width: 0; }
+  .routine .ses { grid-template-columns: 1fr; gap: 2px; }
 }
 
 .pricing { display: grid; gap: 14px; grid-template-columns: repeat(3, 1fr); margin: 14px 0 0; }
@@ -154,7 +179,7 @@
   <div class="container">
     <a class="back-link" href="/programs">Back to Programs</a>
     <h1>Maryam Mirzakhani School of Mathematics and Science</h1>
-    <p class="tagline">A 3-day foundational program for primary students (Grade 5 and below) — inspired by the playful, visual problem-solving of the first woman to win the Fields Medal.</p>
+    <p class="tagline">A 3-day foundational program for primary students (Class 5 and below) - inspired by the playful, visual problem-solving of the first woman to win the Fields Medal.</p>
     <div class="fact-row">
       <div><span class="k">Dates</span>23, 24, 25 May 2026</div>
       <div><span class="k">Venue</span>MASLab, Dhanmondi, Dhaka</div>
@@ -170,74 +195,155 @@
 <div class="prog-body">
 
 <h2>About the program</h2>
-<p>This program provides a foundational intervention for primary students (Grade 5 and below), aiming to strengthen fundamental mathematics and science skills. Inspired by Maryam Mirzakhani's creative approach to problem-solving, our curriculum builds deep conceptual understanding and a lasting passion for STEM in early-age learners.</p>
-<p>Give your child an early, competitive edge with targeted, advanced training — to unlock their full potential and prepare them for a successful journey ahead.</p>
+<p>The Maryam Mirzakhani School of Mathematics and Science is a 3-day foundational program for primary students (Grade 5 and below). Inspired by Maryam Mirzakhani's playful, visual, and narrative approach to STEM, the curriculum builds deep conceptual understanding and a lasting passion for mathematics and science in early-age learners.</p>
+<p>Designed for students preparing for the Bangladesh Mathematics and Science Olympiad (BdMSO) 2026, the syllabus prioritises deep conceptual intuition, spatial reasoning, and creative problem-solving over rote memorisation - delivered across 6 mathematics and 6 science sessions, with 10.5 hours of teaching in each subject.</p>
 
-<h2>Class routine</h2>
+<h2>How we teach</h2>
+<div class="principles">
+  <div class="pr">
+    <span class="n">Principle 01</span>
+    <p>Every student receives a sketchbook. Complex equations and scientific systems are drawn out first, focusing on visual structures rather than memorising symbols.</p>
+  </div>
+  <div class="pr">
+    <span class="n">Principle 02</span>
+    <p>We prioritise <em>why</em> a system works - modular arithmetic clocks, for example - over speedy mental-arithmetic drills.</p>
+  </div>
+  <div class="pr">
+    <span class="n">Principle 03</span>
+    <p>Science concepts like genetic traits or the carbon cycle are framed as natural mysteries, positioning the student as an active detective.</p>
+  </div>
+  <div class="pr">
+    <span class="n">Principle 04</span>
+    <p>Material focuses on the structural principles tested in BdMSO - pigeonhole principle, combinations, Delta geography, basic genetics, force vectors - presented in an intuitive, age-appropriate way.</p>
+  </div>
+</div>
+
+<h2>Curriculum &amp; schedule</h2>
+<p>Cohort 1 runs over three days at MASLab, Dhanmondi. Mathematics covers 6 sessions across the themes below; science moves through 6 topic-led sessions. Each subject totals 10.5 hours of teaching.</p>
+<div class="dl-row">
+  <div class="dl-meta">
+    <div class="dl-t">Full curriculum (PDF)</div>
+    <div class="dl-s">Maryam Mirzakhani School - Cohort 1 syllabus, revised</div>
+  </div>
+  <a class="btn btn-primary" href="/downloads/Maryam-Mirzakhani-School-Curriculum-2026.pdf" download>Download curriculum ↓</a>
+</div>
 <div class="routine">
 
   <div class="day">
     <h3>Day One <span class="date">· 23 May 2026</span></h3>
     <div class="block">
-      <div class="subj">Science</div>
-      <div class="slots">
-        <div class="row"><span class="t">9:00 — 10:30 AM</span>Session 1</div>
-        <div class="row"><span class="t">10:30 — 11:00 AM</span>Snacks break</div>
-        <div class="row"><span class="t">11:10 AM — 1:00 PM</span>Session 2</div>
+      <div class="subj">Science <span class="when">· Morning</span></div>
+      <div class="ses">
+        <span class="t">9:00 - 10:30 AM</span>
+        <div>
+          <div class="ses-h">Session 1 · Scientific Foundations</div>
+          <p class="ses-t">The scientific method · Units, scale &amp; estimation · Data interpretation &amp; graphing</p>
+        </div>
+      </div>
+      <div class="ses">
+        <span class="t">11:00 AM - 1:00 PM</span>
+        <div>
+          <div class="ses-h">Session 2 · The Living World</div>
+          <p class="ses-t">Living vs non-living things · Cells &amp; cell organelles · Classifying organisms · Photosynthesis, respiration &amp; transpiration</p>
+        </div>
       </div>
     </div>
     <div class="block">
-      <div class="subj">Mathematics</div>
-      <div class="slots">
-        <div class="row"><span class="t">2:00 — 3:30 PM</span>Session 1</div>
-        <div class="row"><span class="t">3:30 — 4:00 PM</span>Snacks break</div>
-        <div class="row"><span class="t">4:00 — 6:00 PM</span>Session 2</div>
+      <div class="subj">Mathematics <span class="when">· Afternoon</span></div>
+      <div class="ses">
+        <span class="t">2:00 - 3:30 PM</span>
+        <div>
+          <div class="ses-h">Session 1 · The Language of Numbers</div>
+          <p class="ses-t">Prime &amp; composite numbers · Prime factorization · Number systems</p>
+        </div>
+      </div>
+      <div class="ses">
+        <span class="t">4:00 - 6:00 PM</span>
+        <div>
+          <div class="ses-h">Session 2 · Chasing Patterns &amp; Remainder Clocks</div>
+          <p class="ses-t">Divisibility rules · Remainder patterns &amp; modular arithmetic · Arithmetic &amp; geometric sequences</p>
+        </div>
       </div>
     </div>
-    <p class="lunch-note">Lunch is provided for both-subject participants.</p>
   </div>
 
   <div class="day">
     <h3>Day Two <span class="date">· 24 May 2026</span></h3>
     <div class="block">
-      <div class="subj">Mathematics</div>
-      <div class="slots">
-        <div class="row"><span class="t">9:00 — 10:30 AM</span>Session 3</div>
-        <div class="row"><span class="t">10:30 — 11:00 AM</span>Snacks break</div>
-        <div class="row"><span class="t">11:10 AM — 1:00 PM</span>Session 4</div>
+      <div class="subj">Mathematics <span class="when">· Morning</span></div>
+      <div class="ses">
+        <span class="t">9:00 - 10:30 AM</span>
+        <div>
+          <div class="ses-h">Session 3 · Symmetry, Mirrors &amp; Flatland</div>
+          <p class="ses-t">Properties of 2D shapes · Transformations · Angle relationships</p>
+        </div>
+      </div>
+      <div class="ses">
+        <span class="t">11:00 AM - 1:00 PM</span>
+        <div>
+          <div class="ses-h">Session 4 · Architects of the 3D World</div>
+          <p class="ses-t">Properties of solid figures · Nets of cubes &amp; parallelepipeds · Surface area &amp; volume</p>
+        </div>
       </div>
     </div>
     <div class="block">
-      <div class="subj">Science</div>
-      <div class="slots">
-        <div class="row"><span class="t">2:00 — 3:30 PM</span>Session 3</div>
-        <div class="row"><span class="t">3:30 — 4:00 PM</span>Snacks break</div>
-        <div class="row"><span class="t">4:00 — 6:00 PM</span>Session 4</div>
+      <div class="subj">Science <span class="when">· Afternoon</span></div>
+      <div class="ses">
+        <span class="t">2:00 - 3:30 PM</span>
+        <div>
+          <div class="ses-h">Session 3 · Our Earth &amp; Environment</div>
+          <p class="ses-t">Geography of Bangladesh &amp; Bengal Delta formation · Climate change &amp; natural disasters · Ecology, ecosystems, habitats, food webs &amp; food chains</p>
+        </div>
+      </div>
+      <div class="ses">
+        <span class="t">4:00 - 6:00 PM</span>
+        <div>
+          <div class="ses-h">Session 4 · Forces, Energy &amp; the Cosmos</div>
+          <p class="ses-t">Forces &amp; their effects · Energy sources &amp; conversions · Earth's rotation, moon phases &amp; eclipses · Properties of light &amp; sound waves</p>
+        </div>
       </div>
     </div>
-    <p class="lunch-note">Lunch is provided for both-subject participants.</p>
   </div>
 
   <div class="day">
     <h3>Day Three <span class="date">· 25 May 2026</span></h3>
     <div class="block">
-      <div class="subj">Science</div>
-      <div class="slots">
-        <div class="row"><span class="t">9:00 — 10:30 AM</span>Session 5</div>
-        <div class="row"><span class="t">10:30 — 11:00 AM</span>Snacks break</div>
-        <div class="row"><span class="t">11:10 AM — 1:00 PM</span>Session 6</div>
+      <div class="subj">Mathematics <span class="when">· Morning</span></div>
+      <div class="ses">
+        <span class="t">9:00 - 10:30 AM</span>
+        <div>
+          <div class="ses-h">Session 5 · The Art of Counting Without Counting</div>
+          <p class="ses-t">Systematic counting &amp; ordered pairs · Permutations &amp; combinations · Pigeonhole principle · Visual probability</p>
+        </div>
+      </div>
+      <div class="ses">
+        <span class="t">11:00 AM - 1:00 PM</span>
+        <div>
+          <div class="ses-h">Session 6 · The Final Maze: Logic &amp; Recreational Math</div>
+          <p class="ses-t">Logic grids &amp; deductive puzzles · Cryptarithms &amp; magic squares · Working backward</p>
+        </div>
       </div>
     </div>
     <div class="block">
-      <div class="subj">Mathematics</div>
-      <div class="slots">
-        <div class="row"><span class="t">2:00 — 3:30 PM</span>Session 5</div>
-        <div class="row"><span class="t">3:30 — 4:00 PM</span>Snacks break</div>
-        <div class="row"><span class="t">4:00 — 6:00 PM</span>Session 6</div>
+      <div class="subj">Science <span class="when">· Afternoon</span></div>
+      <div class="ses">
+        <span class="t">2:00 - 3:30 PM</span>
+        <div>
+          <div class="ses-h">Session 5 · Matter, Heat &amp; Electromagnetism</div>
+          <p class="ses-t">Atoms &amp; molecules · States &amp; transformation of matter · Thermal energy, temperature &amp; heat transfer · Applications of electricity &amp; models of magnetism</p>
+        </div>
+      </div>
+      <div class="ses">
+        <span class="t">4:00 - 6:00 PM</span>
+        <div>
+          <div class="ses-h">Session 6 · The Human Body &amp; Biotechnology</div>
+          <p class="ses-t">Human organ systems &amp; skeletal structure · Nervous system · Nutrition, common diseases &amp; prevention · Genetics, biotechnology, GMOs &amp; biofuels</p>
+        </div>
       </div>
     </div>
-    <p class="lunch-note">Lunch is provided for both-subject participants.</p>
   </div>
+
+  <p class="lunch-note">Each session block includes a short snacks break. Lunch is provided for both-subject participants.</p>
 
 </div>
 
@@ -262,8 +368,8 @@
 
 <div class="cta-band">
   <div class="text">
-    <h3>Ready to enrol your child?</h3>
-    <p>Seats are limited. Registration is handled via Festive — 23-25 May 2026 at MASLab, Dhanmondi.</p>
+    <h3>Ready to enroll your child?</h3>
+    <p>Seats are limited. Registration is handled via Festive - 23-25 May 2026 at MASLab, Dhanmondi.</p>
   </div>
   <a class="btn btn-gold" href="https://festive.rocks/e/prepbdmso" target="_blank" rel="noopener">Register now →</a>
 </div>

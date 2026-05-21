@@ -26,7 +26,12 @@
     if (!host) return;
 
     const session = getSession();
-    const firstName = session ? escapeHtml(session.fullName.split(' ')[0]) : '';
+    // Header shows the registered student's name; falls back to the
+    // guardian's name (e.g. right after login, before the dashboard
+    // has populated studentName).
+    const firstName = session
+      ? escapeHtml(((session.studentName || session.fullName) || '').split(' ')[0])
+      : '';
 
     const mobileLoginHtml = session ? '' : '<a class="mobile-login" href="/login">Log in</a>';
     const ctaHtml = session
@@ -141,8 +146,25 @@
     `;
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    renderHeader();
-    renderFooter();
-  });
+  // Marketing pages load this inline near the end of <body>, so DOM is
+  // still 'loading' and the listener fires after parse completes. The
+  // dashboard SPA appends this script dynamically AFTER React mounts -
+  // by then DOMContentLoaded has already fired and the listener would
+  // be dead. Branch on readyState so both entry points work.
+  function bootstrap() { renderHeader(); renderFooter(); }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootstrap);
+  } else {
+    bootstrap();
+  }
+
+  // Custom-dropdown enhancer - loaded once here so every marketing page
+  // gets it without a per-page <script> tag. (It self-skips the SPA.)
+  if (!document.querySelector('script[data-bdsel-loader]')) {
+    const s = document.createElement('script');
+    s.src = '/js/select-enhance.js';
+    s.defer = true;
+    s.setAttribute('data-bdsel-loader', '1');
+    document.head.appendChild(s);
+  }
 })();

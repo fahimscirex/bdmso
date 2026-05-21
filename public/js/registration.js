@@ -1,4 +1,6 @@
 import { postJson } from "./api.js";
+import { BD_DISTRICTS, canonicalDistrict } from "./bd-districts.js";
+import { PROGRAM_OPTIONS, programHasOptions, computeOptionsTotal } from "./program-options.js";
 
 const TITLES = {
   1: "Step 1 · Student Info",
@@ -7,15 +9,15 @@ const TITLES = {
 };
 
 const fields = [
-  { id: "f-competition", label: "Competition" },
   { id: "f-name", label: "Student" },
-  { id: "f-medium", label: "Medium" },
+  { id: "f-medium", label: "Curriculum" },
   { id: "f-class", label: "Class" },
   { id: "f-gender", label: "Gender" },
   { id: "f-dob", label: "Date of Birth" },
   { id: "f-school", label: "School" },
   { id: "f-district", label: "District" },
-  { id: "f-venue", label: "Preferred Venue" },
+  { id: "f-subject", label: "Preferred Subject" },
+  { id: "f-venue", label: "Exam Region" },
   { id: "g-name", label: "Guardian" },
   { id: "g-rel", label: "Relationship" },
   { id: "g-phone", label: "Mobile" },
@@ -23,10 +25,101 @@ const fields = [
   { id: "g-addr", label: "Address" }
 ];
 
+// The program a guardian is registering for is now always decided by
+// the ?program= URL parameter (the in-form Competition dropdown was
+// removed). Falls back to the Olympiad so /registration without a
+// program param still produces a valid payload.
+function effectiveCompetition() {
+  return new URLSearchParams(location.search).get("program") || "national-olympiad";
+}
+
 function showVenueField() {
-  const urlProgram = new URLSearchParams(location.search).get("program");
-  const comp = urlProgram || document.getElementById("f-competition")?.value || "";
-  return comp === "national-qualifying-round" || comp === "national-quiz-competition";
+  const comp = effectiveCompetition();
+  return comp === "national-olympiad" || comp === "national-quiz-competition";
+}
+
+// ─── Program options ──────────────────────────────────────────────
+// Reads PROGRAM_OPTIONS (shared with the worker) and renders the
+// option picker into #program-options-panel. Picks are stored in the
+// DOM only; we read them back into the payload at submit time.
+function getSelectedOptions() {
+  const inputs = document.querySelectorAll('#program-options-panel input[name="program-option"]:checked');
+  return Array.from(inputs).map((el) => el.value);
+}
+
+function updateOptionsTotal() {
+  const slug = effectiveCompetition();
+  const total = computeOptionsTotal(slug, getSelectedOptions());
+  const totalEl = document.getElementById("opt-total-amount");
+  if (totalEl) totalEl.textContent = total > 0 ? `৳ ${total.toLocaleString("en-BD")}` : `৳ 0`;
+  // Update checked-card visual state.
+  document.querySelectorAll("#program-options-panel .opt-item").forEach((label) => {
+    const input = label.querySelector('input[name="program-option"]');
+    label.classList.toggle("is-checked", !!(input && input.checked));
+  });
+}
+
+function renderProgramOptions() {
+  const panel = document.getElementById("program-options-panel");
+  if (!panel) return;
+  const slug = effectiveCompetition();
+  if (!programHasOptions(slug)) {
+    panel.hidden = true;
+    panel.innerHTML = "";
+    return;
+  }
+  const cfg = PROGRAM_OPTIONS[slug];
+  const inputType = cfg.kind === "radio" ? "radio" : "checkbox";
+  const items = cfg.items.map((it, i) => `
+    <label class="opt-item" data-id="${it.id}">
+      <input type="${inputType}" name="program-option" value="${it.id}" ${cfg.kind === "radio" && i === 0 ? "" : ""}>
+      <div class="opt-text">
+        <div class="opt-label-row">
+          <span class="opt-label">${it.label}</span>
+          <span class="opt-price">৳ ${it.price.toLocaleString("en-BD")}</span>
+        </div>
+        ${it.sub ? `<div class="opt-sub">${it.sub}</div>` : ""}
+      </div>
+    </label>`).join("");
+
+  panel.innerHTML = `
+    <div class="opt-head">
+      <div class="opt-title">${cfg.label}</div>
+      <div class="opt-total"><span class="l">Total</span><span id="opt-total-amount">৳ 0</span></div>
+    </div>
+    <p class="opt-help">${cfg.help}</p>
+    <div class="opt-list">${items}</div>
+  `;
+  panel.hidden = false;
+  panel.querySelectorAll('input[name="program-option"]').forEach((el) => {
+    el.addEventListener("change", updateOptionsTotal);
+  });
+  updateOptionsTotal();
+}
+
+function showSubjectField() {
+  return effectiveCompetition() === "national-olympiad";
+}
+
+const SUBJECT_LABEL = {
+  math: "Mathematics",
+  science: "Science",
+  both: "Both (Math + Science)"
+};
+
+// Show or hide the conditional fields and keep the actual <select> state
+// in sync (clearing the subject value when the field hides so a stale
+// pick from a previous selection doesn't leak into the submitted payload).
+function syncConditionalFields() {
+  const subjectField = document.getElementById("field-subject");
+  const subjectInput = document.getElementById("f-subject");
+  const venueField   = document.getElementById("field-venue");
+  if (subjectField) {
+    const visible = showSubjectField();
+    subjectField.hidden = !visible;
+    if (!visible && subjectInput) subjectInput.value = "";
+  }
+  if (venueField) venueField.hidden = !showVenueField();
 }
 
 let currentStep = 1;
@@ -41,23 +134,123 @@ function setMessage(text, kind = "neutral") {
   node.dataset.kind = kind;
 }
 
+// Per-field error helpers. `markError` flips a field into the red
+// invalid state with an inline hint; `clearError` removes it. We also
+// auto-clear on first input/change so the red state doesn't linger
+// once the guardian starts fixing the field.
+function markError(id, hint) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const field = el.closest(".field");
+  if (!field) return;
+  field.classList.add("is-error");
+  let hintEl = field.querySelector(".field-error");
+  if (!hintEl) {
+    hintEl = document.createElement("span");
+    hintEl.className = "field-error";
+    field.appendChild(hintEl);
+  }
+  hintEl.textContent = hint;
+  if (!el.dataset.errorBound) {
+    const clear = () => clearError(id);
+    el.addEventListener("input", clear);
+    el.addEventListener("change", clear);
+    el.dataset.errorBound = "1";
+  }
+}
+
+function clearError(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const field = el.closest(".field");
+  if (!field) return;
+  field.classList.remove("is-error");
+  const hintEl = field.querySelector(".field-error");
+  if (hintEl) hintEl.textContent = "";
+}
+
+function clearAllErrors() {
+  document.querySelectorAll(".field.is-error").forEach((f) => {
+    f.classList.remove("is-error");
+    const hintEl = f.querySelector(".field-error");
+    if (hintEl) hintEl.textContent = "";
+  });
+}
+
+// Field-specific labels so the inline hint reads naturally, rather
+// than the generic "This field is required."
+const REQUIRED_HINT = {
+  "f-name":     "Enter the student's full name.",
+  "f-dob":      "Pick the student's date of birth.",
+  "f-medium":   "Select a curriculum.",
+  "f-class":    "Select the student's class.",
+  "f-gender":   "Select a gender.",
+  "f-school":   "Enter the school name.",
+  "f-district": "Select a district.",
+  "f-subject":  "Select a preferred subject.",
+  "f-venue":    "Select an exam region.",
+  "g-name":     "Enter the guardian's full name.",
+  "g-rel":      "Select the guardian's relationship.",
+  "g-phone":    "Enter a 10-digit Bangladesh mobile number (after +880).",
+  "g-email":    "Enter the guardian's email address.",
+  "g-addr":     "Enter the guardian's address.",
+  "account-password":         "Set a password for the account.",
+  "account-password-confirm": "Re-enter the password to confirm.",
+};
+
 function validateStep(step) {
+  clearAllErrors();
+
   const requiredByStep = {
-    1: ["f-competition", "f-name", "f-dob", "f-medium", "f-class", "f-gender", "f-school", "f-district"],
+    1: ["f-name", "f-dob", "f-medium", "f-class", "f-gender", "f-school", "f-district"],
     2: ["g-name", "g-rel", "g-phone", "g-email", "g-addr"],
     3: ["account-password", "account-password-confirm"]
   };
 
-  const requiredFields = requiredByStep[step] || [];
+  const requiredFields = [...(requiredByStep[step] || [])];
+  // Preferred subject is required only when the Olympiad is selected.
+  if (step === 1 && showSubjectField()) requiredFields.push("f-subject");
+  // Exam venue is required for Olympiad and Quiz (the only programs
+  // where it's shown).
+  if (step === 1 && showVenueField()) requiredFields.push("f-venue");
 
-  for (const id of requiredFields) {
-    const element = document.getElementById(id);
-    const value = element.value.trim();
-    if (!value) {
-      element.focus();
-      setMessage("Please complete all required fields before continuing.", "error");
+  // Program options (Mock Test sessions / Prep Course subjects).
+  // Required on step 1 when the program has options configured.
+  if (step === 1 && programHasOptions(effectiveCompetition())) {
+    const picked = getSelectedOptions();
+    if (picked.length === 0) {
+      const cfg = PROGRAM_OPTIONS[effectiveCompetition()];
+      setMessage(`Please pick at least one ${cfg.label.toLowerCase()} option above.`, "error");
+      document.querySelector('#program-options-panel input[name="program-option"]')?.focus();
       return false;
     }
+  }
+
+  // First pass: flag every empty required field at once (so users can
+  // see the full picture instead of fixing them one error at a time),
+  // then focus the first one and stop here.
+  const missing = requiredFields.filter((id) => !document.getElementById(id).value.trim());
+  if (missing.length) {
+    missing.forEach((id) => markError(id, REQUIRED_HINT[id] || "This field is required."));
+    document.getElementById(missing[0]).focus();
+    const count = missing.length === 1 ? "1 required field" : `${missing.length} required fields`;
+    setMessage(`Please fill in ${count} highlighted below before continuing.`, "error");
+    return false;
+  }
+
+  // District must be one of the 64 Bangladesh districts (case-insensitive).
+  // Normalises the entered value to canonical case on success so the
+  // payload always carries a clean, consistent string.
+  if (step === 1) {
+    const districtEl = document.getElementById("f-district");
+    const canon = canonicalDistrict(districtEl.value);
+    if (!canon) {
+      markError("f-district", "Pick one of the 64 Bangladesh districts from the list.");
+      districtEl.focus();
+      setMessage("District must match one of the 64 Bangladesh districts.", "error");
+      return false;
+    }
+    districtEl.value = canon;
   }
 
   if (step === 2) {
@@ -65,12 +258,17 @@ function validateStep(step) {
     const phone = valueOf("g-phone");
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      markError("g-email", "Enter a valid email address (name@example.com).");
       document.getElementById("g-email").focus();
       setMessage("Enter a valid email address for the guardian account.", "error");
       return false;
     }
 
-    if (phone.length < 8) {
+    // Phone input only accepts the 10 digits after +880 (typical BD
+    // mobile is +880 1XXXXXXXXX). The prefix is rendered as a static
+    // chip in the UI but isn't part of the input value.
+    if (!/^\d{10}$/.test(phone)) {
+      markError("g-phone", "Enter exactly 10 digits (the part after +880).");
       document.getElementById("g-phone").focus();
       setMessage("Enter a valid guardian phone number.", "error");
       return false;
@@ -82,12 +280,14 @@ function validateStep(step) {
     const confirm = valueOf("account-password-confirm");
 
     if (password.length < 8) {
+      markError("account-password", "Password must be at least 8 characters long.");
       document.getElementById("account-password").focus();
       setMessage("Password must be at least 8 characters long.", "error");
       return false;
     }
 
     if (password !== confirm) {
+      markError("account-password-confirm", "This must match the password above.");
       document.getElementById("account-password-confirm").focus();
       setMessage("Password confirmation does not match.", "error");
       return false;
@@ -103,22 +303,41 @@ function validateStep(step) {
   return true;
 }
 
+// Pretty labels for the registrationType slugs we might show in the
+// review summary. The slug itself is the fallback when a new program
+// is added without a label here yet.
+const COMPETITION_LABEL = {
+  "national-olympiad":          "BdMSO National Olympiad",
+  "national-quiz-competition":  "BdMSO Quiz Competition",
+};
+
+// f-dob holds an ISO yyyy-mm-dd string composed from the three DOB
+// selects; the review summary shows it as dd/mm/yyyy.
+function formatDob(iso) {
+  if (!iso) return "-";
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
+
 function fillSummary() {
-  const mediumLabels = { bangla: "Bangla (বাংলা)", english: "English" };
-  const compEl = document.getElementById("f-competition");
-  const compLabel = compEl?.options[compEl?.selectedIndex]?.text.split(" - ")[0] || valueOf("f-competition");
+  const curriculumLabels = {
+    national:      "National (Bangla or English version)",
+    international: "International (English Medium)"
+  };
+  const comp = effectiveCompetition();
   const rows = [
-    ["Competition", compLabel || "-"],
+    ["Competition", COMPETITION_LABEL[comp] || comp || "-"],
     ["Student", valueOf("f-name") || "-"],
-    ["Medium", mediumLabels[valueOf("f-medium")] || valueOf("f-medium") || "-"],
+    ["Curriculum", curriculumLabels[valueOf("f-medium")] || valueOf("f-medium") || "-"],
     ["Class", valueOf("f-class") || "-"],
     ["Gender", valueOf("f-gender") || "-"],
-    ["Date of Birth", valueOf("f-dob") || "-"],
+    ["Date of Birth", formatDob(valueOf("f-dob"))],
     ["School", valueOf("f-school") || "-"],
     ["District", valueOf("f-district") || "-"],
-    ...(showVenueField() ? [["Preferred Venue", valueOf("f-venue") || "No preference"]] : []),
+    ...(showSubjectField() ? [["Preferred Subject", SUBJECT_LABEL[valueOf("f-subject")] || valueOf("f-subject") || "-"]] : []),
+    ...(showVenueField() ? [["Exam Region", valueOf("f-venue") || "-"]] : []),
     ["Guardian", `${valueOf("g-name") || "-"} (${valueOf("g-rel") || "-"})`],
-    ["Mobile", valueOf("g-phone") || "-"],
+    ["Mobile", valueOf("g-phone") ? `+880${valueOf("g-phone")}` : "-"],
     ["Email", valueOf("g-email") || "-"]
   ];
 
@@ -157,12 +376,8 @@ function setStep(step) {
 }
 
 function registrationPayload() {
-  const urlProgram = new URLSearchParams(location.search).get("program");
-  const compEl     = document.getElementById("f-competition");
-  const regType    = urlProgram || compEl?.value || "national-qualifying-round";
-
   return {
-    registrationType: regType,
+    registrationType: effectiveCompetition(),
     student: {
       fullName: valueOf("f-name"),
       dateOfBirth: valueOf("f-dob"),
@@ -171,12 +386,16 @@ function registrationPayload() {
       gender: valueOf("f-gender"),
       school: valueOf("f-school"),
       district: valueOf("f-district"),
+      ...(showSubjectField() ? { preferredSubject: valueOf("f-subject") } : {}),
       ...(showVenueField() ? { preferredVenue: valueOf("f-venue") } : {})
     },
     guardian: {
       fullName: valueOf("g-name"),
       relationship: valueOf("g-rel"),
-      phone: valueOf("g-phone"),
+      // Input collects only the 10 digits after the rendered "+880"
+      // prefix - we restore the full international form here so the
+      // worker (and DB) always store the canonical number.
+      phone: `+880${valueOf("g-phone")}`,
       email: valueOf("g-email"),
       address: valueOf("g-addr")
     },
@@ -184,7 +403,10 @@ function registrationPayload() {
       password: valueOf("account-password")
     },
     termsAccepted: document.getElementById("terms").checked,
-    sourcePage: window.location.pathname
+    sourcePage: window.location.pathname,
+    // Programs with selectable options (Mock Test, Prep Course)
+    // carry the picks - server validates + derives price.
+    ...(programHasOptions(effectiveCompetition()) ? { programOptions: getSelectedOptions() } : {})
   };
 }
 
@@ -238,7 +460,110 @@ function bindStepControls() {
   });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+// ─── Date of Birth ────────────────────────────────────────────────
+// A native <input type="date"> renders mm/dd/yyyy on US-locale
+// browsers. To guarantee dd/mm/yyyy we use a Day number input, a Month
+// select and a Year number input (number inputs avoid the very tall
+// native dropdown a 31-option day <select> produces). The three
+// compose an ISO yyyy-mm-dd value into the hidden #f-dob input that
+// the rest of the form (validation, payload, summary) already reads.
+const DOB_MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+function daysInMonth(year, month) {
+  if (!month) return 31;
+  if (month === 2) return year ? new Date(year, 2, 0).getDate() : 29;
+  return [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
+}
+
+function initDob() {
+  const dayEl = document.getElementById("f-dob-day");
+  const monthEl = document.getElementById("f-dob-month");
+  const yearEl = document.getElementById("f-dob-year");
+  const hidden = document.getElementById("f-dob");
+  if (!dayEl || !monthEl || !yearEl || !hidden) return;
+
+  monthEl.innerHTML = '<option value="">Month</option>' +
+    DOB_MONTHS.map((m, i) => `<option value="${i + 1}">${m}</option>`).join("");
+
+  // Generous year bounds - covers any plausible primary-school student.
+  const thisYear = new Date().getFullYear();
+  yearEl.min = String(thisYear - 20);
+  yearEl.max = String(thisYear - 3);
+
+  function syncHidden() {
+    const d = Number(dayEl.value);
+    const m = Number(monthEl.value);
+    const y = Number(yearEl.value);
+    // Cap the day input to the real length of the chosen month.
+    dayEl.max = String(daysInMonth(y, m));
+    const valid = d >= 1 && m >= 1 && m <= 12 && y >= 1900 && d <= daysInMonth(y, m);
+    hidden.value = valid
+      ? `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`
+      : "";
+    // Fire change so the existing per-field error auto-clear hook runs.
+    hidden.dispatchEvent(new Event("change"));
+  }
+
+  dayEl.addEventListener("input", syncHidden);
+  monthEl.addEventListener("change", syncHidden);
+  yearEl.addEventListener("input", syncHidden);
+}
+
+function init() {
   bindStepControls();
   document.getElementById("submit-registration").addEventListener("click", submitRegistration);
-});
+  initDob();
+
+  // The competition is now decided by the URL, not a dropdown - so we
+  // just apply the conditional-field visibility once on load. Preferred
+  // Subject shows for the Olympiad; Preferred Venue shows for both
+  // Olympiad and Quiz.
+  syncConditionalFields();
+  renderProgramOptions();
+
+  // Populate the District <select>. A real select (native picker on
+  // mobile) is reliable everywhere - the datalist typeahead it replaced
+  // showed nothing while typing on mobile and accepted any text.
+  const districtSelect = document.getElementById("f-district");
+  if (districtSelect && districtSelect.options.length <= 1) {
+    districtSelect.insertAdjacentHTML(
+      "beforeend",
+      BD_DISTRICTS.map((d) => `<option value="${d}">${d}</option>`).join(""),
+    );
+  }
+
+  // Phone input: enforce digit-only + 10-char max as the user types and
+  // on paste. The +880 prefix is rendered as a static chip in the form,
+  // not part of the input value - we add it back when building the
+  // submission payload.
+  const phoneEl = document.getElementById("g-phone");
+  if (phoneEl) {
+    const sanitise = (v) => v.replace(/\D+/g, "").slice(0, 10);
+    phoneEl.addEventListener("input", () => {
+      const clean = sanitise(phoneEl.value);
+      if (clean !== phoneEl.value) phoneEl.value = clean;
+    });
+    phoneEl.addEventListener("paste", (e) => {
+      const text = (e.clipboardData || window.clipboardData)?.getData("text") || "";
+      const digits = text.replace(/\D+/g, "");
+      // If the pasted value carries the country code, drop it so the
+      // 10-digit subscriber number is what lands in the field.
+      const trimmed = digits.startsWith("880") ? digits.slice(3) : digits;
+      e.preventDefault();
+      phoneEl.value = trimmed.slice(0, 10);
+      phoneEl.dispatchEvent(new Event("input"));
+    });
+  }
+}
+
+// This file is loaded as type="module" which is deferred, so by the
+// time it executes DOMContentLoaded may have already fired - check
+// readyState to cover both cases.
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}
