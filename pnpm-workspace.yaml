@@ -3,6 +3,6 @@ packages:
   - 'packages/*'
 
 # pnpm 11+ blocks postinstall scripts by default. Esbuild's postinstall
-# downloads the platform binary — required for Vite to work.
+# downloads the platform binary - required for Vite to work.
 allowBuilds:
   esbuild: true

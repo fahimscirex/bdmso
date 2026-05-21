@@ -55,14 +55,24 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Local agent state (user-specific; .codesight/ is project context - keep tracked)
+# AI-assistant / external tooling files - never committed. .codesight/
+# is the only external project context kept tracked (and only while it
+# carries no sensitive data).
 .claude/
+CLAUDE.md
+CLAUDE.original.md
 AGENTS.md
 codex.md
 .cursorrules
+SEO-AUDIT.md
+DASHBOARD-PLAN.md
 
 # Local notes
 notes
+
+# Root-level source PDFs are working docs - never commit them.
+# Published copies belong in public/downloads/.
+/*.pdf
 
 # MemPalace per-project files (issue #185)
 mempalace.yaml
