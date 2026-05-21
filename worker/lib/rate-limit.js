@@ -1,4 +1,4 @@
-// Login rate limiting — bucket failed attempts per email in a sliding window.
+// Login rate limiting - bucket failed attempts per email in a sliding window.
 
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_MAX_FAILS = 5;

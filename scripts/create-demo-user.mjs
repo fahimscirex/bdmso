@@ -5,7 +5,7 @@
 //   Email:    demo@bdmso.test
 //   Password: test1234
 //
-// Idempotent. Safe to re-run any time — the guardian is upserted, and any
+// Idempotent. Safe to re-run any time - the guardian is upserted, and any
 // previous demo registrations are cleared first so you always end up with
 // exactly one fresh "submitted" registration ready to pay.
 
@@ -45,11 +45,11 @@ const sqlLines = [
   `DELETE FROM payments WHERE registration_id IN (SELECT id FROM registrations WHERE guardian_account_id = (SELECT id FROM guardian_accounts WHERE email = ${esc(EMAIL)}));`,
   `DELETE FROM registrations WHERE guardian_account_id = (SELECT id FROM guardian_accounts WHERE email = ${esc(EMAIL)});`,
 
-  // 3. One fresh pending registration. National Qualifying Round = ৳1000,
+  // 3. One fresh pending registration. National Olympiad = ৳1000,
   //    which is small enough to be friendly in sandbox and big enough to
   //    not be silently free-flowed through the amount===0 fast path.
   `INSERT INTO registrations (id, registration_type, student_full_name, student_date_of_birth, student_class_name, student_gender, student_school, student_district, guardian_account_id, guardian_full_name, guardian_relationship, guardian_phone, guardian_email, guardian_address, terms_accepted, status, source_page, created_at)
-   SELECT ${esc(REG_ID)}, 'national-qualifying-round', 'Demo Student', '2016-04-15', 'Class 4', 'Female', 'Demo School', 'Dhaka',
+   SELECT ${esc(REG_ID)}, 'national-olympiad', 'Demo Student', '2016-04-15', 'Class 4', 'Female', 'Demo School', 'Dhaka',
           a.id, ${esc(NAME)}, 'Parent', '+8801712345678', ${esc(EMAIL)}, 'Demo address, Dhaka', 1, 'submitted', 'seed', ${esc(now)}
    FROM guardian_accounts a WHERE a.email = ${esc(EMAIL)};`,
 ];

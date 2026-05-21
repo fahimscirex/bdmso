@@ -1,5 +1,5 @@
 // shurjoPay client. Cloudflare-Workers-native port of the official Node
-// plugin (github.com/shurjopay-plugins/sp-plugin-nodejs) — same payloads,
+// plugin (github.com/shurjopay-plugins/sp-plugin-nodejs) - same payloads,
 // just `fetch` instead of axios and a D1-backed token cache instead of
 // in-memory state so multiple worker invocations don't each grant a fresh
 // token on every request.
@@ -20,11 +20,11 @@
 //        → [ { transaction_status, sp_message, bank_status, bank_trx_id,
 //              amount, received_amount, currency, method,
 //              customer_order_id, date_time, ... } ]
-//        Note: response is an ARRAY (their convention) — first element
+//        Note: response is an ARRAY (their convention) - first element
 //        holds the txn. transaction_status === "Success" means paid.
 //
 // After the user finishes paying on the hosted page, shurjoPay redirects
-// to our return_url with `?order_id=<sp_order_id>` in the query — call it
+// to our return_url with `?order_id=<sp_order_id>` in the query - call it
 // "their order id", which is what verify() takes as input. Misleading name,
 // confirmed against return.js in their usage-examples repo.
 

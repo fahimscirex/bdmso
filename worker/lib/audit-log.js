@@ -1,5 +1,5 @@
 // Append-only audit trail for admin actions. Called explicitly from mutating
-// admin handlers (post.publish, registration.update_status, etc.) — not a
+// admin handlers (post.publish, registration.update_status, etc.) - not a
 // middleware, because the relevant target and payload aren't known until the
 // handler has parsed its request.
 

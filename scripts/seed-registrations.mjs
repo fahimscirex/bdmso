@@ -10,7 +10,7 @@
 // Each run appends new registration rows (uniquely keyed by random id).
 
 import { execSync } from "node:child_process";
-import { writeFileSync, unlinkSync } from "node:fs";
+import { writeFileSync, unlinkSync, readFileSync } from "node:fs";
 import { hashPassword, PBKDF2_ITERATIONS_CURRENT } from "../worker/lib/crypto.js";
 
 const COUNT = Math.max(1, Math.min(Number(process.argv[2]) || 10, 500));
@@ -21,20 +21,18 @@ const SCHOOLS = ["St. Joseph Higher Secondary", "Viqarunnisa Noon School", "Holy
 const DISTRICTS = ["Dhaka", "Chittagong", "Sylhet", "Rajshahi", "Khulna", "Barishal", "Rangpur", "Mymensingh"];
 const CLASSES = ["Class 2", "Class 3", "Class 4", "Class 5", "Class 6"];
 const GENDERS = ["Male", "Female"];
+// Registration types to seed. Prices come from the catalog
+// (programs-detail.json) - the single source of truth.
 const TYPES = [
-  "national-qualifying-round", "national-qualifying-round-both",
-  "national-quiz-competition", "stem-foundation", "bdmso-preparatory",
-  "lab-day", "robotics-foundation",
+  "national-olympiad", "national-quiz-competition",
+  "stem-foundation", "bdmso-preparatory", "lab-day", "mock-test",
 ];
-const PRICES = {
-  "national-qualifying-round":      1000,
-  "national-qualifying-round-both": 1500,
-  "national-quiz-competition":      1000,
-  "stem-foundation":                8000,
-  "bdmso-preparatory":              12000,
-  "lab-day":                        2000,
-  "robotics-foundation":            7000,
-};
+const CATALOG = JSON.parse(
+  readFileSync(new URL("../public/data/programs-detail.json", import.meta.url), "utf8"),
+);
+const PRICES = Object.fromEntries(
+  CATALOG.map((p) => [p.slug, p.feeAmount ?? 0]),
+);
 
 const pick  = (a) => a[Math.floor(Math.random() * a.length)];
 const id    = (p) => `${p}_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`;
@@ -131,7 +129,7 @@ for (let i = 0; i < sponsorshipCount; i++) {
   const enqId = id("enq");
   const email = `${first.toLowerCase()}.${last.toLowerCase()}+sponsor${i}@${org.toLowerCase().replace(/[^a-z]/g, "")}.example`;
   const phone = `+8801${String(700000000 + Math.floor(Math.random() * 99999999)).slice(0, 9)}`;
-  const message = `Hi, we're exploring ways ${org} can partner with BdMSO 2026. Interested in the ${intr} package — please share the deck and timeline.`;
+  const message = `Hi, we're exploring ways ${org} can partner with BdMSO 2026. Interested in the ${intr} package - please share the deck and timeline.`;
 
   sqlLines.push(
     `INSERT INTO sponsorship_enquiries (id, organization, contact_person, email, phone, interest, message, status, source_page, created_at) ` +

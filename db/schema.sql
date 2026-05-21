@@ -1,13 +1,14 @@
--- Full schema. Idempotent (uses CREATE TABLE IF NOT EXISTS), so re-apply anytime.
+-- Full schema for a FRESH database. CREATE TABLE IF NOT EXISTS makes the file
+-- safe to re-run, but re-applying it does NOT add newly-introduced columns to
+-- a table that already exists - SQLite simply skips the existing table.
 --
--- Apply:
+-- Apply (fresh database):
 --   wrangler d1 execute bdmso --local  --file=./db/schema.sql
 --   wrangler d1 execute bdmso --remote --file=./db/schema.sql --config wrangler.prod.toml
 --
--- This file is the canonical source of truth. As long as production has no data
--- you want to preserve, schema changes happen here and the DB gets re-applied.
--- Once production has live data, add a db/migrations/ folder with timestamped
--- apply-scripts for incremental ALTERs.
+-- This file is the canonical source of truth. When you ADD a column here, also
+-- add an ALTER-TABLE script under db/migrations/ and run it against existing
+-- dev / prod databases. See db/migrations/0001_registration_options.sql.
 
 CREATE TABLE IF NOT EXISTS guardian_accounts (
   id TEXT PRIMARY KEY,
@@ -61,18 +62,26 @@ CREATE TABLE IF NOT EXISTS registrations (
   guardian_email TEXT NOT NULL,
   guardian_address TEXT NOT NULL,
   preferred_venue TEXT,
+  preferred_subject TEXT,         -- Olympiad only: 'math' | 'science' | 'both'
+  program_options TEXT,           -- JSON array of option ids selected at registration (Mock Test sessions, Prep Course subjects, etc.)
   terms_accepted INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'submitted',
   source_page TEXT,
+  member_id TEXT UNIQUE,           -- BdMSOYY0C-XXX; assigned on first paid receipt
   created_at TEXT NOT NULL,
   FOREIGN KEY (guardian_account_id) REFERENCES guardian_accounts (id)
 );
 
--- Atomic counter for human-readable member IDs (BDMSO-YYYY-NNNNN).
--- Each registration INSERT into this table returns the next sequence via last_row_id.
-CREATE TABLE IF NOT EXISTS member_id_seq (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  reserved_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+-- Atomic counter for human-readable BdMSO IDs.
+-- Format: BdMSO + 2-digit-year + 0 + 1-digit-class + - + 3-digit-seq
+-- (e.g. BdMSO2604-001 = first issued Class-4 student of 2026).
+-- One row per (year, class_digit); single statement reserves + increments
+-- atomically via INSERT … ON CONFLICT DO UPDATE … RETURNING.
+CREATE TABLE IF NOT EXISTS member_id_class_seq (
+  year INTEGER NOT NULL,
+  class_digit INTEGER NOT NULL,
+  next_seq INTEGER NOT NULL DEFAULT 1,
+  PRIMARY KEY (year, class_digit)
 );
 
 CREATE INDEX IF NOT EXISTS idx_registrations_guardian_email

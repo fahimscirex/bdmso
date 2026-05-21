@@ -2,7 +2,7 @@
 // notifications, verification links) via Brevo (formerly Sendinblue).
 
 import { normalizeString, escapeHtml } from "./validation.js";
-import { reserveMemberId } from "./util.js";
+import { reserveMemberId, parseClassDigit } from "./util.js";
 import { PROGRAM_NAMES } from "./programs.js";
 
 export const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -25,8 +25,11 @@ export function parseEmailFrom(raw) {
   return { name: "BdMSO", email: str };
 }
 
-export async function sendReceiptEmail(env, reg, memberId) {
+export async function sendReceiptEmail(env, reg, memberId, baseUrl) {
   const programName = PROGRAM_NAMES[reg.registration_type] || reg.registration_type;
+  // Absolute logo URL - emails can't use relative paths. Falls back to
+  // the canonical domain if the caller didn't pass a request base.
+  const logoBase = baseUrl || "https://bdmso.org";
   const paidAt = new Date(reg.paid_at || Date.now()).toLocaleDateString("en-GB", {
     day: "numeric", month: "long", year: "numeric"
   });
@@ -38,13 +41,15 @@ export async function sendReceiptEmail(env, reg, memberId) {
   const sender = parseEmailFrom(env.EMAIL_FROM);
   const html = `
     <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#0b1b3f;">
-      <div style="background:#0b1b3f;padding:28px 32px;border-radius:12px 12px 0 0;">
-        <h1 style="margin:0;color:#fcd34d;font-size:22px;letter-spacing:1px;">BdMSO</h1>
-        <p style="margin:6px 0 0;color:rgba(255,255,255,0.7);font-size:13px;">Bangladesh Mathematical Science Olympiad</p>
+      <div style="background:#0b1b3f;padding:24px 32px;border-radius:12px 12px 0 0;text-align:center;">
+        <div style="display:inline-block;background:#ffffff;border-radius:9px;padding:9px 14px;">
+          <img src="${logoBase}/images/logo.webp" alt="BdMSO" width="150" style="display:block;border:0;">
+        </div>
+        <p style="margin:12px 0 0;color:rgba(255,255,255,0.7);font-size:13px;">Bangladesh Mathematics &amp; Science Olympiad</p>
       </div>
       <div style="background:#fffbeb;border:1px solid #fcd34d;padding:20px 32px;display:flex;align-items:center;gap:16px;">
         <div>
-          <div style="font-size:10px;font-weight:700;letter-spacing:0.15em;color:#b45309;text-transform:uppercase;">Member ID</div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:0.15em;color:#b45309;text-transform:uppercase;">BdMSO ID</div>
           <div style="font-size:22px;font-weight:700;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:1.5px;color:#0b1b3f;">${escapeHtml(memberId)}</div>
         </div>
       </div>
@@ -83,6 +88,7 @@ export async function sendReceiptEmail(env, reg, memberId) {
         </table>
       </div>
       <div style="background:#f9fafb;border:1px solid #e5e7eb;border-top:none;padding:16px 32px;border-radius:0 0 12px 12px;">
+        <p style="margin:0 0 8px;color:#6b7280;font-size:12px;line-height:1.55;"><strong style="color:#374151;">Refund policy:</strong> only the amount remaining after applicable tax is refundable, and any refund request must be made within 24 hours of payment.</p>
         <p style="margin:0;color:#9ca3af;font-size:12px;">This is an official payment confirmation from BdMSO. Please retain this for your records.</p>
       </div>
     </div>`;
@@ -102,9 +108,13 @@ export async function sendReceiptEmail(env, reg, memberId) {
         htmlContent: html,
       }),
     });
+    const body = await res.text().catch(() => "");
     if (!res.ok) {
-      const body = await res.text().catch(() => "");
       console.log(`[email-receipt] brevo error ${res.status}: ${body}`);
+    } else {
+      let parsed = {};
+      try { parsed = JSON.parse(body); } catch {}
+      console.log(`[email-receipt] brevo accepted: messageId=${parsed.messageId || "(none)"}`);
     }
   } catch (err) {
     console.log("[email-receipt] brevo fetch failed:", err.message);
@@ -166,12 +176,17 @@ export async function sendSponsorshipNotification(env, lead) {
   }
 }
 
-export async function assignMemberIdAndSendReceipt(env, tranId) {
+export async function assignMemberIdAndSendReceipt(env, tranId, baseUrl) {
+  // The BdMSO ID belongs to the guardian account (one student per
+  // account, format BdMSOYY0C-XXX). Minted once on the account's first
+  // paid receipt, then reused for every program the student joins.
   const row = await env.DB.prepare(`
     SELECT r.id, r.guardian_account_id, r.registration_type, r.student_full_name,
            r.student_class_name, r.student_school, r.student_district, r.guardian_full_name,
-           r.guardian_email, p.amount, p.tran_id, p.updated_at AS paid_at,
-           a.member_id AS existing_member_id
+           r.guardian_email,
+           a.member_id AS account_member_id,
+           a.email     AS account_email,
+           p.amount, p.tran_id, p.updated_at AS paid_at
     FROM registrations r
     JOIN payments p ON p.registration_id = r.id
     JOIN guardian_accounts a ON a.id = r.guardian_account_id
@@ -180,13 +195,16 @@ export async function assignMemberIdAndSendReceipt(env, tranId) {
 
   if (!row) return;
 
-  let memberId = row.existing_member_id;
+  let memberId = row.account_member_id;
   if (!memberId) {
-    memberId = await reserveMemberId(env, new Date().getUTCFullYear());
+    const classDigit = parseClassDigit(row.student_class_name);
+    const year       = new Date().getUTCFullYear();
+    memberId = await reserveMemberId(env, year, classDigit);
     const result = await env.DB.prepare(
       "UPDATE guardian_accounts SET member_id = ? WHERE id = ? AND member_id IS NULL"
     ).bind(memberId, row.guardian_account_id).run();
-    // Race: if another concurrent call won, read back the winner's value
+    // Race: another concurrent payment for this account may have minted
+    // first - read back the winner's value.
     if (!result.meta?.changes) {
       const actual = await env.DB.prepare(
         "SELECT member_id FROM guardian_accounts WHERE id = ?"
@@ -195,15 +213,36 @@ export async function assignMemberIdAndSendReceipt(env, tranId) {
     }
   }
 
-  await sendReceiptEmail(env, { ...row, tran_id: tranId }, memberId);
+  // Receipts go to the account's current (verified) email - the guardian
+  // may have changed it since this registration row was first created.
+  await sendReceiptEmail(
+    env,
+    { ...row, guardian_email: row.account_email || row.guardian_email, tran_id: tranId },
+    memberId,
+    baseUrl
+  );
 }
 
 export async function sendVerificationEmail(env, email, verifyUrl) {
-  // Only log in local dev - production logs should not contain bearer-style secrets.
-  if (!env.BREVO_API_KEY) console.log(`[email-verify] ${email} → ${verifyUrl}`);
-  if (!env.BREVO_API_KEY) return;
+  // In local dev, always print the verify URL so it's pasteable when
+  // the recipient inbox doesn't show the mail (spam, blocked sender,
+  // BD ISP filtering). The success path also logs the Brevo messageId
+  // so we know the API call actually went through.
+  const inDev = !!env.SHURJOPAY_SANDBOX || env.NODE_ENV === "development" || !env.PROD;
+  if (inDev) console.log(`[email-verify] ${email} → ${verifyUrl}`);
+
+  if (!env.BREVO_API_KEY) {
+    console.log("[email-verify] skipped: BREVO_API_KEY not set");
+    return;
+  }
+  if (!env.EMAIL_FROM) {
+    console.log("[email-verify] skipped: EMAIL_FROM not set");
+    return;
+  }
 
   const sender = parseEmailFrom(env.EMAIL_FROM);
+  console.log(`[email-verify] brevo send: from=${sender.email} to=${email}`);
+
   const html = `
     <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 520px; margin: 0 auto;">
       <h2 style="color: #0b1b3f;">Welcome to BdMSO!</h2>
@@ -230,9 +269,15 @@ export async function sendVerificationEmail(env, email, verifyUrl) {
         htmlContent: html,
       }),
     });
+    const body = await res.text().catch(() => "");
     if (!res.ok) {
-      const body = await res.text().catch(() => "");
       console.log(`[email-verify] brevo error ${res.status}: ${body}`);
+    } else {
+      // Brevo returns { messageId: "<...>" } on success - log it so we
+      // can correlate with their dashboard if the recipient doesn't see it.
+      let parsed = {};
+      try { parsed = JSON.parse(body); } catch {}
+      console.log(`[email-verify] brevo accepted: messageId=${parsed.messageId || "(none)"}`);
     }
   } catch (err) {
     console.log("[email-verify] brevo fetch failed:", err.message);

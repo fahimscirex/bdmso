@@ -1,4 +1,4 @@
-// Admin-tier endpoints — mounted under /api/admin/*. Role-gated to admin
+// Admin-tier endpoints - mounted under /api/admin/*. Role-gated to admin
 // only at the namespace level. Future sub-paths can widen access selectively:
 //
 //   admin.use("/posts/*", requireRole("admin", "editor"));
@@ -10,6 +10,7 @@ import { Hono } from "hono";
 import { sessionMiddleware } from "../middleware/session.js";
 import { requireRole } from "../middleware/requireRole.js";
 import { recordAudit } from "../lib/audit-log.js";
+import { PROGRAM_NAMES } from "../lib/programs.js";
 
 const admin = new Hono();
 
@@ -34,9 +35,9 @@ admin.get("/health", (c) => {
 // GET /api/admin/registrations
 //   Returns all registrations with the latest payment row joined.
 //   Query params (all optional):
-//     status   — registration status filter ('submitted'|'paid'|'cancelled')
-//     type     — registration_type slug filter
-//     limit    — max rows (default 200, hard cap 1000)
+//     status   - registration status filter ('submitted'|'paid'|'cancelled')
+//     type     - registration_type slug filter
+//     limit    - max rows (default 200, hard cap 1000)
 //
 // Sort: newest first.
 admin.get("/registrations", async (c) => {
@@ -77,7 +78,7 @@ admin.get("/registrations", async (c) => {
     LIMIT ?
   `).bind(...binds, limit).all();
 
-  // Summary counts — useful for the list header. Single round-trip via a
+  // Summary counts - useful for the list header. Single round-trip via a
   // separate batched query so the main rows don't carry repeated totals.
   const summary = await c.env.DB.prepare(`
     SELECT
@@ -88,9 +89,16 @@ admin.get("/registrations", async (c) => {
     FROM registrations
   `).first();
 
+  // Attach the catalog-derived program label so the admin UI doesn't
+  // keep its own copy of program names.
+  const enriched = (rows.results || []).map((r) => ({
+    ...r,
+    program_label: PROGRAM_NAMES[r.registration_type] || r.registration_type,
+  }));
+
   return c.json({
     ok: true,
-    rows: rows.results,
+    rows: enriched,
     summary: {
       total:     Number(summary?.total)     || 0,
       paid:      Number(summary?.paid)      || 0,
@@ -106,8 +114,13 @@ admin.get("/registrations", async (c) => {
 admin.get("/registrations/:id", async (c) => {
   const id = c.req.param("id");
 
+  // BdMSO ID lives on the guardian account (one per account, reused
+  // across that student's programs), so read member_id from there -
+  // registrations.member_id is never populated.
   const reg = await c.env.DB.prepare(`
-    SELECT r.*, a.email_verified AS guardian_email_verified, a.member_id AS guardian_member_id
+    SELECT r.*,
+           a.email_verified AS guardian_email_verified,
+           a.member_id      AS account_member_id
     FROM registrations r
     JOIN guardian_accounts a ON a.id = r.guardian_account_id
     WHERE r.id = ?
@@ -270,7 +283,7 @@ admin.patch("/sponsorships/:id/status", async (c) => {
 // ─── Posts (blog) ────────────────────────────────────────────────────────────
 //
 // Drafts vs published are distinguished by the `published` flag (0|1).
-// Slug is the primary key — caller supplies it; we don't auto-generate
+// Slug is the primary key - caller supplies it; we don't auto-generate
 // because editors need to lock URLs before publishing.
 //
 // Note: the public site currently reads blog posts from files in
@@ -339,7 +352,7 @@ admin.get("/posts/:slug", async (c) => {
   return c.json({ ok: true, post: row });
 });
 
-// POST /api/admin/posts  — create. Body: { slug, ...POST_FIELDS }
+// POST /api/admin/posts  - create. Body: { slug, ...POST_FIELDS }
 admin.post("/posts", async (c) => {
   const body = await c.req.json();
   const slug = (body.slug || "").trim().toLowerCase();
@@ -382,7 +395,7 @@ admin.post("/posts", async (c) => {
   return c.json({ ok: true, slug });
 });
 
-// PATCH /api/admin/posts/:slug — partial update. Any of POST_FIELDS allowed.
+// PATCH /api/admin/posts/:slug - partial update. Any of POST_FIELDS allowed.
 admin.patch("/posts/:slug", async (c) => {
   const slug = c.req.param("slug");
   const body = await c.req.json();
@@ -867,7 +880,7 @@ admin.delete("/coupons/:code", async (c) => {
   const before = await c.env.DB.prepare("SELECT code, used_count FROM coupons WHERE code = ?").bind(code).first();
   if (!before) return c.json({ error: "Coupon not found." }, 404);
 
-  // Refuse to hard-delete coupons that have been used — referenced by
+  // Refuse to hard-delete coupons that have been used - referenced by
   // payments.coupon_code; deleting would orphan that history. Expire
   // instead by setting expires_at in the past.
   if (Number(before.used_count) > 0) {
@@ -896,7 +909,7 @@ admin.delete("/coupons/:code", async (c) => {
 // renderer can drop into an <img src>; it's served from the same origin
 // at /r2/<key> so it stays under our CSP.
 //
-// Orphan files (uploaded then never referenced) are tolerated for now —
+// Orphan files (uploaded then never referenced) are tolerated for now -
 // cheap on R2, easy to sweep later if it ever matters.
 
 const ALLOWED_IMAGE_TYPES = {
@@ -906,7 +919,7 @@ const ALLOWED_IMAGE_TYPES = {
   "image/gif":  "gif",
   "image/svg+xml": "svg",
 };
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;   // 10 MB — cover-image sized.
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;   // 10 MB - cover-image sized.
 
 admin.post("/uploads", async (c) => {
   if (!c.env.ASSETS_R2) {

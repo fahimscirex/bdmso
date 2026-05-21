@@ -22,9 +22,9 @@ import adminRoutes from "./routes/admin.js";
 // ─── API (Hono) ───────────────────────────────────────────────────────────────
 //
 // Three tiers:
-//   /api/*           public (this file) — anyone can hit, may self-authenticate
-//   /api/me/*        guardian (routes/guardian.js) — any authed role, mounted below
-//   /api/admin/*     admin   (routes/admin.js)    — role-gated, mounted below
+//   /api/*           public (this file) - anyone can hit, may self-authenticate
+//   /api/me/*        guardian (routes/guardian.js) - any authed role, mounted below
+//   /api/admin/*     admin   (routes/admin.js)    - role-gated, mounted below
 //
 // Note: `GET /api/me` (exact match) is the existing public-tier dashboard
 // payload (account + registrations). The guardian sub-app handles deeper
@@ -49,7 +49,7 @@ api.route("/me",    guardianRoutes);   // /api/me/profile, ...
 api.route("/admin", adminRoutes);      // /api/admin/health, ...
 
 // Intentional user-facing errors carry `.status` (from requireAuth, requireField,
-// etc.) — surface as-is. Anything else is internal (D1 errors, bugs) → log + opaque
+// etc.) - surface as-is. Anything else is internal (D1 errors, bugs) → log + opaque
 // 500 so we don't leak e.g. "D1_ERROR: no such table: login_attempts: SQLITE_ERROR".
 api.onError((err, c) => {
   if (err.status) return c.json({ error: err.message }, err.status);
@@ -125,7 +125,13 @@ function withSecurityHeaders(response, url) {
 
 const CACHE_RULES = [
   { test: /\.(?:webp|png|jpe?g|gif|svg|ico|woff2?|ttf|otf|eot)$/i, value: "public, max-age=31536000, immutable" },
-  { test: /\.(?:css|js|mjs)$/i,                                    value: "public, max-age=600, must-revalidate" },
+  // Vite-built SPA bundles carry a content hash in the filename
+  // (dist/<app>/assets/index-<hash>.js), so they're safe to cache forever.
+  { test: /\/assets\/.*\.(?:css|js)$/i,                            value: "public, max-age=31536000, immutable" },
+  // Hand-written /js and /css use stable, unhashed filenames - they must
+  // revalidate on every load, otherwise a deploy serves stale script
+  // against fresh HTML (e.g. new markup with old JS that never runs).
+  { test: /\.(?:css|js|mjs)$/i,                                    value: "public, max-age=0, must-revalidate" },
   { test: /\.json$/i,                                              value: "public, max-age=300, must-revalidate" },
   { test: /\.html$/i,                                              value: "public, max-age=0, must-revalidate" },
 ];
@@ -213,7 +219,7 @@ export default {
       return withSecurityHeaders(response, url);
     }
 
-    // R2-backed user uploads. Public, immutable — keys are random so the
+    // R2-backed user uploads. Public, immutable - keys are random so the
     // URL itself is unguessable enough for this content tier.
     if (url.pathname.startsWith("/r2/")) {
       const r2 = await serveR2(request, env, url);
