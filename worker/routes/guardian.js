@@ -91,7 +91,7 @@ guardian.patch("/profile", async (c) => {
     ).bind(session.account_id).first();
     if (!account) return c.json({ error: "Account not found." }, 404);
     const attemptHash = await hashPassword(
-      body.current_password, account.password_salt, account.password_iterations || 120000,
+      body.current_password, account.password_salt, account.password_iterations || 100000,
     );
     if (attemptHash !== account.password_hash) {
       return c.json({ error: "Current password is incorrect." }, 401);
@@ -249,7 +249,7 @@ guardian.post("/change-password", async (c) => {
   if (!account) return c.json({ error: "Account not found." }, 404);
 
   const currentHash = await hashPassword(
-    current_password, account.password_salt, account.password_iterations || 120000,
+    current_password, account.password_salt, account.password_iterations || 100000,
   );
   if (currentHash !== account.password_hash) {
     return c.json({ error: "Current password is incorrect." }, 401);

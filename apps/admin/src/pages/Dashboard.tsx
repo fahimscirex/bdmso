@@ -11,6 +11,13 @@ type PaySummary = { total: number; paid: number; pending: number; failed: number
 type SpoSummary = { total: number; unread: number; contacted: number; closed: number };
 type UsrSummary = { total: number; admins: number; editors: number; guardians: number; verified: number };
 
+type Analytics = {
+  funnel: { total: number; submitted: number; paid: number; cancelled: number };
+  byVenue: { venue: string; total: number; paid: number }[];
+  byProgram: { type: string; label: string; total: number; paid: number }[];
+  revenue: number;
+};
+
 type AuditRow = {
   id: string;
   account_email: string | null;
@@ -27,6 +34,7 @@ type Bundle = {
   spo: SpoSummary;
   usr: UsrSummary;
   audit: AuditRow[];
+  an: Analytics;
 };
 
 function formatBdt(n: number): string {
@@ -60,9 +68,10 @@ export function Dashboard() {
       api.get<{ summary: SpoSummary }>('/api/admin/sponsorships?limit=1'),
       api.get<{ summary: UsrSummary }>('/api/admin/users?limit=1'),
       api.get<{ rows: AuditRow[] }>('/api/admin/audit?limit=8'),
+      api.get<Analytics>('/api/admin/analytics'),
     ])
-      .then(([r, p, s, u, a]) => setData({
-        reg: r.summary, pay: p.summary, spo: s.summary, usr: u.summary, audit: a.rows,
+      .then(([r, p, s, u, a, an]) => setData({
+        reg: r.summary, pay: p.summary, spo: s.summary, usr: u.summary, audit: a.rows, an,
       }))
       .catch((err: ApiError) => setError(err.message));
   }, []);
@@ -119,9 +128,58 @@ export function Dashboard() {
               </ul>
             )}
           </section>
+
+          <section class="card">
+            <h2>Conversion funnel</h2>
+            <div class="stat-row" style="margin-top:4px;">
+              <div class="stat"><div class="stat-value">{data.an.funnel.total}</div><div class="stat-label">Total</div></div>
+              <div class="stat stat-warn"><div class="stat-value">{data.an.funnel.submitted}</div><div class="stat-label">Awaiting payment</div></div>
+              <div class="stat stat-ok"><div class="stat-value">{data.an.funnel.paid}</div><div class="stat-label">Paid</div></div>
+              <div class="stat stat-ok"><div class="stat-value">{conversionPct(data.an.funnel)}%</div><div class="stat-label">Paid conversion</div></div>
+            </div>
+          </section>
+
+          <div class="detail-grid">
+            <section class="card">
+              <h2>By exam venue</h2>
+              {data.an.byVenue.length === 0
+                ? <p class="muted" style="margin:0;">No registrations yet.</p>
+                : <Breakdown rows={data.an.byVenue.map((v) => ({ label: v.venue, total: v.total, paid: v.paid }))} />}
+            </section>
+            <section class="card">
+              <h2>By program</h2>
+              {data.an.byProgram.length === 0
+                ? <p class="muted" style="margin:0;">No registrations yet.</p>
+                : <Breakdown rows={data.an.byProgram.map((p) => ({ label: p.label, total: p.total, paid: p.paid }))} />}
+            </section>
+          </div>
         </>
       )}
     </>
+  );
+}
+
+function conversionPct(f: { total: number; paid: number; cancelled: number }): number {
+  const base = f.total - f.cancelled;
+  return base > 0 ? Math.round((f.paid / base) * 100) : 0;
+}
+
+function Breakdown({ rows }: { rows: { label: string; total: number; paid: number }[] }) {
+  const max = Math.max(1, ...rows.map((r) => r.total));
+  return (
+    <div>
+      {rows.map((r) => (
+        <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line-2,#ebeff6);">
+          <div class="cell-strong" style="flex:0 0 40%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{r.label}</div>
+          <div style="flex:1;background:var(--line,#dbe1ec);border-radius:999px;height:8px;">
+            <div style={`background:var(--navy-700,#4252ab);height:8px;border-radius:999px;width:${Math.round((r.total / max) * 100)}%;`} />
+          </div>
+          <div style="flex:0 0 auto;white-space:nowrap;font-size:13px;">
+            <strong>{r.total}</strong> <span class="cell-sub">· {r.paid} paid</span>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 

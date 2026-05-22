@@ -66,7 +66,7 @@ export async function handleLogin(request, env) {
     return badRequest("Invalid email or password.", 401);
   }
 
-  const storedIterations = account.password_iterations || 120000;
+  const storedIterations = account.password_iterations || 100000;
   const hash = await hashPassword(password, account.password_salt, storedIterations);
   if (hash !== account.password_hash) {
     await recordLoginAttempt(env, email, false);

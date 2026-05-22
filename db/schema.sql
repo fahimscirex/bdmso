@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS guardian_accounts (
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
   password_salt TEXT NOT NULL,
-  password_iterations INTEGER NOT NULL DEFAULT 600000,
+  password_iterations INTEGER NOT NULL DEFAULT 100000,
   full_name TEXT NOT NULL,
   phone TEXT,
   email_verified INTEGER NOT NULL DEFAULT 0,

@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { api, ApiError } from '../api';
 import { navigate } from '../router';
+import { toCsv, downloadCsv } from '../csv';
 
 type Row = {
   id: string;
@@ -16,6 +17,7 @@ type Row = {
   student_gender: string;
   student_school: string;
   student_district: string;
+  preferred_venue: string | null;
   guardian_full_name: string;
   guardian_email: string;
   guardian_phone: string;
@@ -33,7 +35,7 @@ type Response = {
   ok: true;
   rows: Row[];
   summary: Summary;
-  filter: { status: string | null; type: string | null; limit: number };
+  filter: { status: string | null; type: string | null; q: string | null; limit: number };
 };
 
 function formatDate(iso: string): string {
@@ -50,15 +52,54 @@ export function Registrations() {
   const [data,  setData]  = useState<Response | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [query, setQuery] = useState<string>('');
+  const [exporting, setExporting] = useState(false);
 
-  useEffect(() => {
+  function load() {
     setError(null);
     setData(null);
-    const qs = statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : '';
-    api.get<Response>(`/api/admin/registrations${qs}`)
+    const qs: string[] = [];
+    if (statusFilter) qs.push(`status=${encodeURIComponent(statusFilter)}`);
+    if (query)        qs.push(`q=${encodeURIComponent(query)}`);
+    const url = `/api/admin/registrations${qs.length ? `?${qs.join('&')}` : ''}`;
+    api.get<Response>(url)
       .then(setData)
       .catch((err: ApiError) => setError(err.message));
-  }, [statusFilter]);
+  }
+
+  // Debounce the search box; status changes apply immediately.
+  useEffect(() => {
+    const t = setTimeout(load, query ? 300 : 0);
+    return () => clearTimeout(t);
+  }, [statusFilter, query]);
+
+  // Export the current filtered view (up to the API's 1000-row cap) to CSV.
+  async function exportCsv() {
+    setExporting(true);
+    try {
+      const qs = ['limit=1000'];
+      if (statusFilter) qs.push(`status=${encodeURIComponent(statusFilter)}`);
+      if (query)        qs.push(`q=${encodeURIComponent(query)}`);
+      const res = await api.get<Response>(`/api/admin/registrations?${qs.join('&')}`);
+      const headers = [
+        'Student', 'Class', 'Gender', 'School', 'District', 'Exam venue', 'Program',
+        'Guardian', 'Guardian email', 'Guardian phone', 'Status', 'Payment',
+        'Amount (BDT)', 'Tran ID', 'Submitted',
+      ];
+      const rows = res.rows.map((r) => [
+        r.student_full_name, r.student_class_name, r.student_gender, r.student_school,
+        r.student_district, r.preferred_venue || '', r.program_label,
+        r.guardian_full_name, r.guardian_email, r.guardian_phone,
+        r.status, r.payment_status || '', r.payment_amount ?? '',
+        r.payment_tran_id || '', r.created_at,
+      ]);
+      downloadCsv(`bdmso-registrations-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(headers, rows));
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <>
@@ -89,6 +130,25 @@ export function Registrations() {
             <option value="cancelled">Cancelled</option>
           </select>
         </label>
+        <label style="flex:1;min-width:240px;">
+          <span>Search</span>
+          <input
+            type="search"
+            placeholder="student, guardian, email, phone, school…"
+            value={query}
+            onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
+            style="min-width:100%;"
+          />
+        </label>
+        <button
+          type="button"
+          class="btn-secondary"
+          disabled={exporting || !data}
+          onClick={exportCsv}
+          style="align-self:flex-end;"
+        >
+          {exporting ? 'Exporting…' : 'Export CSV'}
+        </button>
       </div>
 
       {error && <div class="error">{error}</div>}

@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { api, ApiError } from '../api';
 import { navigate, href } from '../router';
+import { toCsv, downloadCsv } from '../csv';
 
 type Row = {
   id: string;
@@ -47,6 +48,7 @@ export function Payments() {
   const [data,  setData]  = useState<Response | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     setError(null);
@@ -56,6 +58,30 @@ export function Payments() {
       .then(setData)
       .catch((err: ApiError) => setError(err.message));
   }, [statusFilter]);
+
+  // Export the current filtered view (up to the API's 1000-row cap) to CSV.
+  async function exportCsv() {
+    setExporting(true);
+    try {
+      const qs = ['limit=1000'];
+      if (statusFilter) qs.push(`status=${encodeURIComponent(statusFilter)}`);
+      const res = await api.get<Response>(`/api/admin/payments?${qs.join('&')}`);
+      const headers = [
+        'Status', 'Amount (BDT)', 'Currency', 'Student', 'Program', 'Guardian',
+        'Guardian email', 'Tran ID', 'Gateway status', 'Coupon', 'Created', 'Updated',
+      ];
+      const rows = res.rows.map((p) => [
+        p.status, p.amount, p.currency, p.student_full_name || '', p.registration_type || '',
+        p.guardian_full_name || '', p.guardian_email || '', p.tran_id,
+        p.gateway_status || '', p.coupon_code || '', p.created_at, p.updated_at,
+      ]);
+      downloadCsv(`bdmso-payments-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(headers, rows));
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <>
@@ -86,6 +112,15 @@ export function Payments() {
             <option value="failed">Failed</option>
           </select>
         </label>
+        <button
+          type="button"
+          class="btn-secondary"
+          disabled={exporting || !data}
+          onClick={exportCsv}
+          style="margin-left:auto;align-self:flex-end;"
+        >
+          {exporting ? 'Exporting…' : 'Export CSV'}
+        </button>
       </div>
 
       {error && <div class="error">{error}</div>}

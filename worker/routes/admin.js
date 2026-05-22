@@ -1,7 +1,5 @@
 // Admin-tier endpoints - mounted under /api/admin/*. Role-gated to admin
-// only at the namespace level. Future sub-paths can widen access selectively:
-//
-//   admin.use("/posts/*", requireRole("admin", "editor"));
+// only at the namespace level.
 //
 // Mutating handlers should call recordAudit(env, session.account_id, "...", {...})
 // after a successful change so the action shows up in admin_audit_log.
@@ -11,6 +9,8 @@ import { sessionMiddleware } from "../middleware/session.js";
 import { requireRole } from "../middleware/requireRole.js";
 import { recordAudit } from "../lib/audit-log.js";
 import { PROGRAM_NAMES } from "../lib/programs.js";
+import { createVerificationToken, sendVerificationEmail, assignMemberIdAndSendReceipt, sendBroadcastEmail } from "../lib/email.js";
+import { getBaseUrl } from "../lib/util.js";
 
 const admin = new Hono();
 
@@ -43,12 +43,20 @@ admin.get("/health", (c) => {
 admin.get("/registrations", async (c) => {
   const status = c.req.query("status");
   const type   = c.req.query("type");
+  const q      = c.req.query("q");
   const limit  = Math.min(Number(c.req.query("limit")) || 200, 1000);
 
   const wheres = [];
   const binds  = [];
   if (status) { wheres.push("r.status = ?");            binds.push(status); }
   if (type)   { wheres.push("r.registration_type = ?"); binds.push(type); }
+  if (q) {
+    // Free-text search across the name/contact fields an organiser would
+    // actually type to find one family.
+    wheres.push("(r.student_full_name LIKE ? OR r.guardian_full_name LIKE ? OR r.guardian_email LIKE ? OR r.guardian_phone LIKE ? OR r.student_school LIKE ?)");
+    const like = `%${q}%`;
+    binds.push(like, like, like, like, like);
+  }
   const whereSql = wheres.length ? `WHERE ${wheres.join(" AND ")}` : "";
 
   const rows = await c.env.DB.prepare(`
@@ -60,6 +68,7 @@ admin.get("/registrations", async (c) => {
       r.student_gender,
       r.student_school,
       r.student_district,
+      r.preferred_venue,
       r.guardian_full_name,
       r.guardian_email,
       r.guardian_phone,
@@ -105,7 +114,7 @@ admin.get("/registrations", async (c) => {
       pending:   Number(summary?.pending)   || 0,
       cancelled: Number(summary?.cancelled) || 0,
     },
-    filter: { status: status || null, type: type || null, limit },
+    filter: { status: status || null, type: type || null, q: q || null, limit },
   });
 });
 
@@ -160,6 +169,59 @@ admin.patch("/registrations/:id/status", async (c) => {
   });
 
   return c.json({ ok: true, id, status });
+});
+
+// POST /api/admin/registrations/:id/resend-verification
+// Re-sends the email-verification link to the registration's guardian
+// account. Friendly no-op if the address is already verified.
+admin.post("/registrations/:id/resend-verification", async (c) => {
+  const id = c.req.param("id");
+  const reg = await c.env.DB.prepare(
+    "SELECT id, guardian_account_id FROM registrations WHERE id = ? LIMIT 1"
+  ).bind(id).first();
+  if (!reg) return c.json({ error: "Registration not found." }, 404);
+
+  const account = await c.env.DB.prepare(
+    "SELECT id, email, email_verified FROM guardian_accounts WHERE id = ? LIMIT 1"
+  ).bind(reg.guardian_account_id).first();
+  if (!account) return c.json({ error: "Guardian account not found." }, 404);
+  if (account.email_verified) return c.json({ ok: true, alreadyVerified: true });
+
+  await c.env.DB.prepare("DELETE FROM email_verification_tokens WHERE account_id = ?")
+    .bind(account.id).run();
+  const token = await createVerificationToken(c.env, account.id);
+  const verifyUrl = `${getBaseUrl(c.req.raw)}/api/verify-email?token=${token}`;
+  await sendVerificationEmail(c.env, account.email, verifyUrl);
+
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "registration.resend_verification", {
+    type: "registration", id, payload: { email: account.email },
+  });
+  return c.json({ ok: true, alreadyVerified: false });
+});
+
+// POST /api/admin/registrations/:id/resend-receipt
+// Re-sends the payment receipt for a paid registration. Reuses
+// assignMemberIdAndSendReceipt, which is idempotent on the member-id mint.
+admin.post("/registrations/:id/resend-receipt", async (c) => {
+  const id = c.req.param("id");
+  const reg = await c.env.DB.prepare(
+    "SELECT id FROM registrations WHERE id = ? LIMIT 1"
+  ).bind(id).first();
+  if (!reg) return c.json({ error: "Registration not found." }, 404);
+
+  const payment = await c.env.DB.prepare(
+    "SELECT tran_id FROM payments WHERE registration_id = ? AND status = 'paid' ORDER BY updated_at DESC LIMIT 1"
+  ).bind(id).first();
+  if (!payment) return c.json({ error: "No paid payment on this registration - nothing to receipt." }, 400);
+
+  await assignMemberIdAndSendReceipt(c.env, payment.tran_id, getBaseUrl(c.req.raw));
+
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "registration.resend_receipt", {
+    type: "registration", id, payload: { tran_id: payment.tran_id },
+  });
+  return c.json({ ok: true });
 });
 
 // ─── Payments ────────────────────────────────────────────────────────────────
@@ -278,361 +340,6 @@ admin.patch("/sponsorships/:id/status", async (c) => {
   });
 
   return c.json({ ok: true, id, status });
-});
-
-// ─── Posts (blog) ────────────────────────────────────────────────────────────
-//
-// Drafts vs published are distinguished by the `published` flag (0|1).
-// Slug is the primary key - caller supplies it; we don't auto-generate
-// because editors need to lock URLs before publishing.
-//
-// Note: the public site currently reads blog posts from files in
-// public/blog/. This D1-backed surface is the new pipeline; the
-// file-based one will continue to work until we migrate the renderer.
-
-const POST_FIELDS = [
-  "title", "excerpt", "category", "author", "image", "body_md",
-  "published", "featured", "published_at",
-];
-
-admin.get("/posts", async (c) => {
-  const status = c.req.query("status");  // 'published' | 'draft' | 'featured'
-  const q      = c.req.query("q");
-  const limit  = Math.min(Number(c.req.query("limit")) || 200, 1000);
-
-  const wheres = [];
-  const binds  = [];
-  if (status === "published") { wheres.push("published = 1"); }
-  if (status === "draft")     { wheres.push("published = 0"); }
-  if (status === "featured")  { wheres.push("featured = 1"); }
-  if (q) {
-    wheres.push("(title LIKE ? OR excerpt LIKE ? OR slug LIKE ?)");
-    const like = `%${q}%`;
-    binds.push(like, like, like);
-  }
-  const whereSql = wheres.length ? `WHERE ${wheres.join(" AND ")}` : "";
-
-  const rows = await c.env.DB.prepare(`
-    SELECT slug, title, excerpt, category, author, image,
-           published, featured, published_at, updated_at
-    FROM posts
-    ${whereSql}
-    ORDER BY COALESCE(published_at, updated_at) DESC
-    LIMIT ?
-  `).bind(...binds, limit).all();
-
-  const summary = await c.env.DB.prepare(`
-    SELECT
-      COUNT(*)                                         AS total,
-      SUM(CASE WHEN published = 1 THEN 1 ELSE 0 END)   AS published,
-      SUM(CASE WHEN published = 0 THEN 1 ELSE 0 END)   AS drafts,
-      SUM(CASE WHEN featured  = 1 THEN 1 ELSE 0 END)   AS featured
-    FROM posts
-  `).first();
-
-  return c.json({
-    ok: true,
-    rows: rows.results,
-    summary: {
-      total:     Number(summary?.total)     || 0,
-      published: Number(summary?.published) || 0,
-      drafts:    Number(summary?.drafts)    || 0,
-      featured:  Number(summary?.featured)  || 0,
-    },
-    filter: { status: status || null, q: q || null, limit },
-  });
-});
-
-admin.get("/posts/:slug", async (c) => {
-  const slug = c.req.param("slug");
-  const row = await c.env.DB.prepare(
-    "SELECT * FROM posts WHERE slug = ? LIMIT 1"
-  ).bind(slug).first();
-  if (!row) return c.json({ error: "Post not found." }, 404);
-  return c.json({ ok: true, post: row });
-});
-
-// POST /api/admin/posts  - create. Body: { slug, ...POST_FIELDS }
-admin.post("/posts", async (c) => {
-  const body = await c.req.json();
-  const slug = (body.slug || "").trim().toLowerCase();
-  if (!/^[a-z0-9][a-z0-9-]{1,80}$/.test(slug)) {
-    return c.json({ error: "Slug must be 2–81 chars: a–z, 0–9, hyphens; can't start with a hyphen." }, 400);
-  }
-  if (!body.title || !body.body_md) {
-    return c.json({ error: "Title and body are required." }, 400);
-  }
-
-  const existing = await c.env.DB.prepare("SELECT slug FROM posts WHERE slug = ?").bind(slug).first();
-  if (existing) return c.json({ error: `A post with slug "${slug}" already exists.` }, 409);
-
-  const session = c.get("session");
-  const now = new Date().toISOString();
-  await c.env.DB.prepare(`
-    INSERT INTO posts (
-      slug, title, excerpt, category, author, image, body_md,
-      published, featured, published_at, updated_at, updated_by
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).bind(
-    slug,
-    body.title,
-    body.excerpt    || null,
-    body.category   || null,
-    body.author     || null,
-    body.image      || null,
-    body.body_md,
-    body.published ? 1 : 0,
-    body.featured  ? 1 : 0,
-    body.published_at || (body.published ? now : null),
-    now,
-    session.account_id,
-  ).run();
-
-  await recordAudit(c.env, session.account_id, "post.create", {
-    type: "post", id: slug, payload: { title: body.title, published: !!body.published },
-  });
-
-  return c.json({ ok: true, slug });
-});
-
-// PATCH /api/admin/posts/:slug - partial update. Any of POST_FIELDS allowed.
-admin.patch("/posts/:slug", async (c) => {
-  const slug = c.req.param("slug");
-  const body = await c.req.json();
-
-  const before = await c.env.DB.prepare("SELECT * FROM posts WHERE slug = ? LIMIT 1").bind(slug).first();
-  if (!before) return c.json({ error: "Post not found." }, 404);
-
-  const sets  = [];
-  const binds = [];
-  for (const f of POST_FIELDS) {
-    if (f in body) {
-      sets.push(`${f} = ?`);
-      // Normalise booleans for integer columns.
-      if (f === "published" || f === "featured") binds.push(body[f] ? 1 : 0);
-      else binds.push(body[f] || null);
-    }
-  }
-  if (!sets.length) return c.json({ error: "Nothing to update." }, 400);
-
-  const session = c.get("session");
-  // Auto-stamp published_at the first time we flip from draft → published.
-  if (body.published && !before.published && !body.published_at) {
-    sets.push("published_at = ?");
-    binds.push(new Date().toISOString());
-  }
-  sets.push("updated_at = ?"); binds.push(new Date().toISOString());
-  sets.push("updated_by = ?"); binds.push(session.account_id);
-
-  await c.env.DB.prepare(`UPDATE posts SET ${sets.join(", ")} WHERE slug = ?`).bind(...binds, slug).run();
-
-  await recordAudit(c.env, session.account_id, "post.update", {
-    type: "post", id: slug,
-    payload: {
-      fields: Object.keys(body).filter((k) => POST_FIELDS.includes(k)),
-      ...(before.published !== (body.published ? 1 : 0) && "published" in body
-        ? { published: { from: !!before.published, to: !!body.published } }
-        : {}),
-    },
-  });
-
-  return c.json({ ok: true, slug });
-});
-
-admin.delete("/posts/:slug", async (c) => {
-  const slug = c.req.param("slug");
-  const before = await c.env.DB.prepare("SELECT slug, title FROM posts WHERE slug = ?").bind(slug).first();
-  if (!before) return c.json({ error: "Post not found." }, 404);
-
-  await c.env.DB.prepare("DELETE FROM posts WHERE slug = ?").bind(slug).run();
-
-  const session = c.get("session");
-  await recordAudit(c.env, session.account_id, "post.delete", {
-    type: "post", id: slug, payload: { title: before.title },
-  });
-
-  return c.json({ ok: true, slug });
-});
-
-// ─── Programs ────────────────────────────────────────────────────────────────
-//
-// Same shape as posts but with extra JSON columns for subjects, routine
-// and pricing. Validate that the JSON columns parse before writing so
-// editors don't ship malformed data to the renderer.
-
-const PROGRAM_FIELDS = [
-  "title", "tagline", "cohort", "image", "start_date", "end_date", "venue",
-  "audience", "subjects_json", "body_md", "routine_json", "pricing_json",
-  "registration_url", "published", "published_at",
-];
-
-function isValidJsonOrNull(s) {
-  if (s == null || s === "") return true;
-  try { JSON.parse(s); return true; } catch { return false; }
-}
-
-admin.get("/programs", async (c) => {
-  const status = c.req.query("status");  // 'published' | 'draft'
-  const q      = c.req.query("q");
-  const limit  = Math.min(Number(c.req.query("limit")) || 200, 1000);
-
-  const wheres = [];
-  const binds  = [];
-  if (status === "published") wheres.push("published = 1");
-  if (status === "draft")     wheres.push("published = 0");
-  if (q) {
-    wheres.push("(title LIKE ? OR tagline LIKE ? OR slug LIKE ?)");
-    const like = `%${q}%`;
-    binds.push(like, like, like);
-  }
-  const whereSql = wheres.length ? `WHERE ${wheres.join(" AND ")}` : "";
-
-  const rows = await c.env.DB.prepare(`
-    SELECT slug, title, tagline, cohort, image, start_date, end_date,
-           venue, audience, published, published_at, updated_at
-    FROM programs
-    ${whereSql}
-    ORDER BY COALESCE(published_at, updated_at) DESC
-    LIMIT ?
-  `).bind(...binds, limit).all();
-
-  const summary = await c.env.DB.prepare(`
-    SELECT
-      COUNT(*)                                         AS total,
-      SUM(CASE WHEN published = 1 THEN 1 ELSE 0 END)   AS published,
-      SUM(CASE WHEN published = 0 THEN 1 ELSE 0 END)   AS drafts
-    FROM programs
-  `).first();
-
-  return c.json({
-    ok: true,
-    rows: rows.results,
-    summary: {
-      total:     Number(summary?.total)     || 0,
-      published: Number(summary?.published) || 0,
-      drafts:    Number(summary?.drafts)    || 0,
-    },
-    filter: { status: status || null, q: q || null, limit },
-  });
-});
-
-admin.get("/programs/:slug", async (c) => {
-  const slug = c.req.param("slug");
-  const row = await c.env.DB.prepare(
-    "SELECT * FROM programs WHERE slug = ? LIMIT 1"
-  ).bind(slug).first();
-  if (!row) return c.json({ error: "Program not found." }, 404);
-  return c.json({ ok: true, program: row });
-});
-
-admin.post("/programs", async (c) => {
-  const body = await c.req.json();
-  const slug = (body.slug || "").trim().toLowerCase();
-  if (!/^[a-z0-9][a-z0-9-]{1,80}$/.test(slug)) {
-    return c.json({ error: "Slug must be 2–81 chars: a–z, 0–9, hyphens; can't start with a hyphen." }, 400);
-  }
-  if (!body.title) return c.json({ error: "Title is required." }, 400);
-
-  for (const f of ["subjects_json", "routine_json", "pricing_json"]) {
-    if (!isValidJsonOrNull(body[f])) {
-      return c.json({ error: `${f} must be valid JSON or empty.` }, 400);
-    }
-  }
-
-  const existing = await c.env.DB.prepare("SELECT slug FROM programs WHERE slug = ?").bind(slug).first();
-  if (existing) return c.json({ error: `A program with slug "${slug}" already exists.` }, 409);
-
-  const session = c.get("session");
-  const now = new Date().toISOString();
-  await c.env.DB.prepare(`
-    INSERT INTO programs (
-      slug, title, tagline, cohort, image, start_date, end_date, venue,
-      audience, subjects_json, body_md, routine_json, pricing_json,
-      registration_url, published, published_at, updated_at, updated_by
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).bind(
-    slug,
-    body.title,
-    body.tagline          || null,
-    body.cohort           || null,
-    body.image            || null,
-    body.start_date       || null,
-    body.end_date         || null,
-    body.venue            || null,
-    body.audience         || null,
-    body.subjects_json    || null,
-    body.body_md          || null,
-    body.routine_json     || null,
-    body.pricing_json     || null,
-    body.registration_url || null,
-    body.published ? 1 : 0,
-    body.published_at || (body.published ? now : null),
-    now,
-    session.account_id,
-  ).run();
-
-  await recordAudit(c.env, session.account_id, "program.create", {
-    type: "program", id: slug, payload: { title: body.title, published: !!body.published },
-  });
-
-  return c.json({ ok: true, slug });
-});
-
-admin.patch("/programs/:slug", async (c) => {
-  const slug = c.req.param("slug");
-  const body = await c.req.json();
-
-  for (const f of ["subjects_json", "routine_json", "pricing_json"]) {
-    if (f in body && !isValidJsonOrNull(body[f])) {
-      return c.json({ error: `${f} must be valid JSON or empty.` }, 400);
-    }
-  }
-
-  const before = await c.env.DB.prepare("SELECT * FROM programs WHERE slug = ? LIMIT 1").bind(slug).first();
-  if (!before) return c.json({ error: "Program not found." }, 404);
-
-  const sets  = [];
-  const binds = [];
-  for (const f of PROGRAM_FIELDS) {
-    if (f in body) {
-      sets.push(`${f} = ?`);
-      if (f === "published") binds.push(body[f] ? 1 : 0);
-      else binds.push(body[f] || null);
-    }
-  }
-  if (!sets.length) return c.json({ error: "Nothing to update." }, 400);
-
-  const session = c.get("session");
-  if (body.published && !before.published && !body.published_at) {
-    sets.push("published_at = ?");
-    binds.push(new Date().toISOString());
-  }
-  sets.push("updated_at = ?"); binds.push(new Date().toISOString());
-  sets.push("updated_by = ?"); binds.push(session.account_id);
-
-  await c.env.DB.prepare(`UPDATE programs SET ${sets.join(", ")} WHERE slug = ?`).bind(...binds, slug).run();
-
-  await recordAudit(c.env, session.account_id, "program.update", {
-    type: "program", id: slug,
-    payload: { fields: Object.keys(body).filter((k) => PROGRAM_FIELDS.includes(k)) },
-  });
-
-  return c.json({ ok: true, slug });
-});
-
-admin.delete("/programs/:slug", async (c) => {
-  const slug = c.req.param("slug");
-  const before = await c.env.DB.prepare("SELECT slug, title FROM programs WHERE slug = ?").bind(slug).first();
-  if (!before) return c.json({ error: "Program not found." }, 404);
-
-  await c.env.DB.prepare("DELETE FROM programs WHERE slug = ?").bind(slug).run();
-
-  const session = c.get("session");
-  await recordAudit(c.env, session.account_id, "program.delete", {
-    type: "program", id: slug, payload: { title: before.title },
-  });
-
-  return c.json({ ok: true, slug });
 });
 
 // ─── Users (accounts) ────────────────────────────────────────────────────────
@@ -1014,6 +721,133 @@ admin.get("/audit", async (c) => {
       limit,
     },
   });
+});
+
+// ─── Analytics ───────────────────────────────────────────────────────────────
+//
+// GET /api/admin/analytics
+// Aggregate breakdowns for the dashboard overview: the submitted->paid
+// funnel, registrations per exam venue, and registrations per program.
+admin.get("/analytics", async (c) => {
+  const funnel = await c.env.DB.prepare(`
+    SELECT
+      COUNT(*)                                                AS total,
+      SUM(CASE WHEN status = 'submitted' THEN 1 ELSE 0 END)   AS submitted,
+      SUM(CASE WHEN status = 'paid'      THEN 1 ELSE 0 END)   AS paid,
+      SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END)   AS cancelled
+    FROM registrations
+  `).first();
+
+  const byVenue = await c.env.DB.prepare(`
+    SELECT COALESCE(NULLIF(TRIM(preferred_venue), ''), 'Not set') AS venue,
+           COUNT(*)                                          AS total,
+           SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END)  AS paid
+    FROM registrations
+    GROUP BY venue
+    ORDER BY total DESC
+  `).all();
+
+  const byProgram = await c.env.DB.prepare(`
+    SELECT registration_type,
+           COUNT(*)                                          AS total,
+           SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END)  AS paid
+    FROM registrations
+    GROUP BY registration_type
+    ORDER BY total DESC
+  `).all();
+
+  const revenue = await c.env.DB.prepare(
+    "SELECT COALESCE(SUM(amount), 0) AS total FROM payments WHERE status = 'paid'"
+  ).first();
+
+  return c.json({
+    ok: true,
+    funnel: {
+      total:     Number(funnel?.total)     || 0,
+      submitted: Number(funnel?.submitted) || 0,
+      paid:      Number(funnel?.paid)      || 0,
+      cancelled: Number(funnel?.cancelled) || 0,
+    },
+    byVenue: (byVenue.results || []).map((r) => ({
+      venue: r.venue, total: Number(r.total), paid: Number(r.paid),
+    })),
+    byProgram: (byProgram.results || []).map((r) => ({
+      type:  r.registration_type,
+      label: PROGRAM_NAMES[r.registration_type] || r.registration_type,
+      total: Number(r.total),
+      paid:  Number(r.paid),
+    })),
+    revenue: Number(revenue?.total) || 0,
+  });
+});
+
+// ─── Broadcast ───────────────────────────────────────────────────────────────
+//
+// Email registered guardians an announcement, filtered by program / exam
+// venue / registration status. Recipients are the DISTINCT current account
+// emails behind matching registrations.
+function broadcastFilters(src) {
+  const wheres = ["a.email IS NOT NULL", "a.email != ''"];
+  const binds  = [];
+  if (src.program) { wheres.push("r.registration_type = ?"); binds.push(src.program); }
+  if (src.venue)   { wheres.push("r.preferred_venue = ?");   binds.push(src.venue); }
+  if (src.status)  { wheres.push("r.status = ?");            binds.push(src.status); }
+  return { whereSql: `WHERE ${wheres.join(" AND ")}`, binds };
+}
+
+// GET /api/admin/broadcast/recipients?program=&venue=&status=
+// How many distinct guardians a broadcast with these filters would reach.
+admin.get("/broadcast/recipients", async (c) => {
+  const { whereSql, binds } = broadcastFilters({
+    program: c.req.query("program"),
+    venue:   c.req.query("venue"),
+    status:  c.req.query("status"),
+  });
+  const row = await c.env.DB.prepare(`
+    SELECT COUNT(DISTINCT a.email) AS n
+    FROM registrations r
+    JOIN guardian_accounts a ON a.id = r.guardian_account_id
+    ${whereSql}
+  `).bind(...binds).first();
+  return c.json({ ok: true, count: Number(row?.n) || 0 });
+});
+
+// POST /api/admin/broadcast  { subject, message, program?, venue?, status? }
+admin.post("/broadcast", async (c) => {
+  const body    = await c.req.json();
+  const subject = (body.subject || "").trim();
+  const message = (body.message || "").trim();
+  if (!subject) return c.json({ error: "Subject is required." }, 400);
+  if (!message) return c.json({ error: "Message is required." }, 400);
+
+  const { whereSql, binds } = broadcastFilters(body);
+  const rows = await c.env.DB.prepare(`
+    SELECT DISTINCT a.email
+    FROM registrations r
+    JOIN guardian_accounts a ON a.id = r.guardian_account_id
+    ${whereSql}
+  `).bind(...binds).all();
+  const recipients = (rows.results || []).map((r) => r.email).filter(Boolean);
+  if (recipients.length === 0) {
+    return c.json({ error: "No guardians match those filters - nothing to send." }, 400);
+  }
+
+  const result = await sendBroadcastEmail(c.env, { subject, message, recipients });
+
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "broadcast.send", {
+    type: "broadcast",
+    id: null,
+    payload: {
+      subject,
+      recipients: recipients.length,
+      sent: result.sent,
+      failed: result.failed,
+      filters: { program: body.program || null, venue: body.venue || null, status: body.status || null },
+    },
+  });
+
+  return c.json({ ok: true, recipients: recipients.length, sent: result.sent, failed: result.failed });
 });
 
 export default admin;

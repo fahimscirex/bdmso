@@ -81,10 +81,39 @@ export function RegistrationDetail({ id }: { id: string }) {
     }
   }
 
+  async function resendVerification() {
+    setBusy(true);
+    try {
+      const res = await api.post<{ ok: true; alreadyVerified?: boolean }>(
+        `/api/admin/registrations/${id}/resend-verification`, {},
+      );
+      alert(res.alreadyVerified
+        ? 'That guardian email is already verified.'
+        : 'Verification email sent.');
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resendReceipt() {
+    setBusy(true);
+    try {
+      await api.post<{ ok: true }>(`/api/admin/registrations/${id}/resend-receipt`, {});
+      alert('Payment receipt re-sent.');
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (error) return <ErrorPanel error={error} />;
   if (!data) return <div class="muted">Loading…</div>;
 
   const r = data.registration;
+  const hasPaidPayment = data.payments.some((p) => p.status === 'paid');
 
   return (
     <>
@@ -177,6 +206,20 @@ export function RegistrationDetail({ id }: { id: string }) {
             </button>
           ))}
         </div>
+        {(!r.guardian_email_verified || hasPaidPayment) && (
+          <div class="action-row" style="margin-top:10px;">
+            {!r.guardian_email_verified && (
+              <button type="button" class="btn-secondary" disabled={busy} onClick={resendVerification}>
+                Resend verification email
+              </button>
+            )}
+            {hasPaidPayment && (
+              <button type="button" class="btn-secondary" disabled={busy} onClick={resendReceipt}>
+                Resend receipt
+              </button>
+            )}
+          </div>
+        )}
         <p class="cell-sub" style="margin-top:14px;">Created {formatDateTime(r.created_at)} via {r.source_page || 'unknown source'}.</p>
       </section>
     </>

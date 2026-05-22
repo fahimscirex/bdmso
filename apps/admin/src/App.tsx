@@ -17,12 +17,9 @@ import { Payments } from './pages/Payments';
 import { Sponsorships } from './pages/Sponsorships';
 import { AuditLog } from './pages/AuditLog';
 import { Users } from './pages/Users';
-import { Posts } from './pages/Posts';
-import { PostEditor } from './pages/PostEditor';
-import { Programs } from './pages/Programs';
-import { ProgramEditor } from './pages/ProgramEditor';
 import { Settings } from './pages/Settings';
 import { Coupons } from './pages/Coupons';
+import { Broadcast } from './pages/Broadcast';
 import { NavShell } from './components/NavShell';
 
 type Identity = { email: string; role: string };
@@ -86,24 +83,13 @@ function renderPage(route: string) {
   const regDetail = route.match(/^\/registrations\/([\w-]+)$/);
   if (regDetail) return <RegistrationDetail id={regDetail[1]} />;
 
-  // /posts/new and /posts/:slug/edit - same editor, slug=null means create.
-  if (route === '/posts/new') return <PostEditor slug={null} />;
-  const postEdit = route.match(/^\/posts\/([a-z0-9][a-z0-9-]*)\/edit$/);
-  if (postEdit) return <PostEditor slug={postEdit[1]} />;
-
-  // /programs/new and /programs/:slug/edit - same pattern as posts.
-  if (route === '/programs/new') return <ProgramEditor slug={null} />;
-  const progEdit = route.match(/^\/programs\/([a-z0-9][a-z0-9-]*)\/edit$/);
-  if (progEdit) return <ProgramEditor slug={progEdit[1]} />;
-
   switch (route) {
     case '/':              return <Dashboard />;
     case '/registrations': return <Registrations />;
     case '/payments':      return <Payments />;
     case '/sponsorships':  return <Sponsorships />;
-    case '/posts':         return <Posts />;
-    case '/programs':      return <Programs />;
     case '/coupons':       return <Coupons />;
+    case '/broadcast':     return <Broadcast />;
     case '/users':         return <Users />;
     case '/audit':         return <AuditLog />;
     case '/settings':      return <Settings />;

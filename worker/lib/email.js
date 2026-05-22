@@ -283,3 +283,59 @@ export async function sendVerificationEmail(env, email, verifyUrl) {
     console.log("[email-verify] brevo fetch failed:", err.message);
   }
 }
+
+// Broadcast: one branded announcement to many guardians. Uses Brevo
+// messageVersions so every recipient gets their own copy (no shared
+// To: header), chunked so a large send still goes out in a few calls.
+export async function sendBroadcastEmail(env, { subject, message, recipients }) {
+  console.log(`[email-broadcast] "${subject}" -> ${recipients.length} recipient(s)`);
+  if (!env.BREVO_API_KEY) {
+    console.log("[email-broadcast] skipped: BREVO_API_KEY not set");
+    return { sent: 0, failed: recipients.length };
+  }
+
+  const sender   = parseEmailFrom(env.EMAIL_FROM);
+  const bodyHtml = escapeHtml(message).replace(/\r?\n/g, "<br>");
+  const html = `
+    <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#0b1b3f;">
+      <div style="background:#0b1b3f;padding:22px 28px;border-radius:12px 12px 0 0;text-align:center;">
+        <img src="https://bdmso.org/images/logo.webp" alt="BdMSO" width="130" style="display:block;margin:0 auto;border:0;">
+      </div>
+      <div style="background:white;border:1px solid #e5e7eb;border-top:none;padding:26px 30px;border-radius:0 0 12px 12px;font-size:14px;line-height:1.65;color:#374151;">
+        ${bodyHtml}
+      </div>
+      <p style="text-align:center;color:#9ca3af;font-size:11px;margin:14px 0 0;">Bangladesh Mathematics &amp; Science Olympiad</p>
+    </div>`;
+
+  let sent = 0, failed = 0;
+  for (let i = 0; i < recipients.length; i += 500) {
+    const chunk = recipients.slice(i, i + 500);
+    try {
+      const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "api-key": env.BREVO_API_KEY,
+          "content-type": "application/json",
+          "accept": "application/json",
+        },
+        body: JSON.stringify({
+          sender,
+          subject,
+          htmlContent: html,
+          messageVersions: chunk.map((email) => ({ to: [{ email }] })),
+        }),
+      });
+      if (res.ok) {
+        sent += chunk.length;
+      } else {
+        failed += chunk.length;
+        const t = await res.text().catch(() => "");
+        console.log(`[email-broadcast] brevo error ${res.status}: ${t}`);
+      }
+    } catch (err) {
+      failed += chunk.length;
+      console.log("[email-broadcast] brevo fetch failed:", err.message);
+    }
+  }
+  return { sent, failed };
+}

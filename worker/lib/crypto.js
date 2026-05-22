@@ -1,6 +1,8 @@
 // Password hashing via PBKDF2 (Workers' WebCrypto SubtleCrypto).
 
-export const PBKDF2_ITERATIONS_CURRENT = 600000;
+// Cloudflare Workers' WebCrypto hard-caps PBKDF2 at 100000 iterations -
+// requesting more throws NotSupportedError at runtime. 100000 is the max.
+export const PBKDF2_ITERATIONS_CURRENT = 100000;
 export const DUMMY_HASH_SALT = "timing-normaliser-not-a-real-account-salt";
 
 export function toHex(buffer) {
