@@ -104,16 +104,23 @@ async function renderPrograms() {
     .sort((a, b) => a.home_order.localeCompare(b.home_order));
 
   const todayISO = new Date().toISOString().slice(0, 10);
-  const isOpen = ({ registrationStarts, registrationEnds }) =>
-    registrationStarts && registrationEnds &&
-    todayISO >= registrationStarts && todayISO <= registrationEnds;
+  const cardState = (p) => {
+    if (p.registration === false) return 'closed';
+    if (p.registrationStarts && todayISO < p.registrationStarts) return 'upcoming';
+    if (p.registrationEnds && todayISO > p.registrationEnds) return 'closed';
+    return 'open';
+  };
 
   set('prog-grid', items.map((p) => {
-    const open = isOpen(p);
+    const state = cardState(p);
+    const open = state === 'open';
+    const upcoming = state === 'upcoming';
     return `<a class="prog-card${open ? ' open' : ''}" href="/programs/${p.slug}">
       <div class="prog-top">
         <span class="num">${p.home_order}</span>
         ${open ? '<span class="open-badge"><span class="open-dot"></span>Open</span>' : ''}
+        ${upcoming ? '<span class="upcoming-badge">Upcoming</span>' : ''}
+      </div>
       </div>
       <h4>${p.title}</h4>
       <p>${p.tagline}</p>

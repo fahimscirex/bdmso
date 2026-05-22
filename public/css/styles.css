@@ -703,6 +703,8 @@ body[data-page="home"] .prog-card:nth-child(8) { animation-delay: 0.54s; }
 .pd-main p { line-height:1.75; color: var(--ink-1); margin: 0 0 1.1em; }
 .pd-main ul { padding-left: 22px; margin: 0 0 1.2em; }
 .pd-main ul li { margin-bottom: 6px; color: var(--ink-1); line-height:1.65; }
+.pd-main ol { padding-left: 22px; margin: 0 0 1.2em; }
+.pd-main ol li { margin-bottom: 6px; color: var(--ink-1); line-height:1.65; }
 
 .pd-side { display:flex; flex-direction:column; gap:18px; position: sticky; top: 20px; }
 .pd-card { background:white; border:1px solid var(--line); border-radius: var(--r-lg); padding:24px; box-shadow: var(--shadow-sm); }

@@ -141,6 +141,9 @@
             <span>© 2026 Bangladesh Mathematics and Science Olympiad. All Rights Reserved.</span>
             <span>Designed with care for young scientists &amp; mathematicians.</span>
           </div>
+          <div style="text-align:center; padding:12px 0 0; font-size:12px; color:var(--ink-3);">
+            Payments powered by <strong>Shurjopay</strong>
+          </div>
         </div>
       </footer>
     `;

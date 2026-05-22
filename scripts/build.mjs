@@ -334,6 +334,10 @@ function buildProgramPages({ target = "dist" } = {}) {
     const descPara  = (p.description || []).map(t => `<p>${escHtml(t)}</p>`).join("\n        ");
     const bullets   = (p.what_youll_do || []).map(t => `<li>${escHtml(t)}</li>`).join("\n          ");
     const nextSteps = (p.next_steps || []).map(t => `<li>${escHtml(t)}</li>`).join("\n          ");
+    const whatYoullGet = (p.what_youll_get || []).map(t => `<li>${escHtml(t)}</li>`).join("\n          ");
+    const howToParticipate = (p.how_to_participate || []).map(t => `<li>${t}</li>`).join("\n          ");
+    const programDay = (p.program_day || []).map(t => `<li>${escHtml(t)}</li>`).join("\n          ");
+    const quizStructure = (p.quiz_structure || []).map(t => `<li>${escHtml(t)}</li>`).join("\n          ");
 
     const isExternal = /^https?:/.test(p.register_url || "");
     const ctaAttrs   = isExternal ? ` target="_blank" rel="noopener"` : "";
@@ -409,6 +413,10 @@ ${seoTags}
       <h2>About this program</h2>
         ${descPara}
       ${bullets ? `<h2>What you'll do</h2>\n      <ul>\n          ${bullets}\n        </ul>` : ""}
+      ${whatYoullGet ? `<h2>${escHtml(p.what_youll_get_label || "What You'll Get")}</h2>\n      <ul>\n          ${whatYoullGet}\n        </ul>` : ""}
+      ${programDay ? `<h2>${escHtml(p.program_day_label || "Program Day Outline")}</h2>\n      <ul>\n          ${programDay}\n        </ul>` : ""}
+      ${quizStructure ? `<h2>${escHtml(p.quiz_structure_label || "Quiz Competition Structure")}</h2>\n      <ul>\n          ${quizStructure}\n        </ul>` : ""}
+      ${howToParticipate ? `<h2>${escHtml(p.how_to_participate_label || "How To Participate")}</h2>\n      <ol>\n          ${howToParticipate}\n        </ol>` : ""}
       ${nextSteps ? `<h2>${escHtml(p.next_steps_label || "Next steps")}</h2>\n      <ul>\n          ${nextSteps}\n        </ul>` : ""}
     </article>
 
