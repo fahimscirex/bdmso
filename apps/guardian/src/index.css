@@ -58,12 +58,25 @@
   color: var(--navy-900);
 }
 .auth-field input:focus { outline: 2px solid var(--navy-700); outline-offset: 1px; border-color: var(--navy-700); }
+.auth-link {
+  background: none; border: none; padding: 0; font: inherit; font-size: 13px;
+  color: var(--navy-700); cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
+}
+.auth-link:hover { color: var(--navy-900); }
+.auth-tabs { display: flex; gap: 6px; margin: 10px 0 16px; }
+.auth-tabs button {
+  flex: 1; padding: 8px 6px; font: inherit; font-size: 13px; font-weight: 600;
+  border: 1px solid var(--line); background: white; border-radius: 8px;
+  cursor: pointer; color: var(--ink-2);
+}
+.auth-tabs button.is-active { background: var(--navy-900); color: white; border-color: var(--navy-900); }
 .brand-row { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
 .brand-mark {
   width: 36px; height: 36px; display: grid; place-items: center;
   background: var(--navy-900); color: white; font-weight: 800;
   border-radius: 9px; font-size: 14px; letter-spacing: 0.04em;
 }
+.brand-logo { height: 40px; width: auto; display: block; }
 .brand-name { font-weight: 700; font-size: 15px; color: var(--navy-900); }
 .brand-sub  { font-size: 11px; color: var(--ink-3); letter-spacing: 0.08em; text-transform: uppercase; }
 
@@ -179,6 +192,13 @@
 a.notif-row:hover { background: var(--bg-alt); }
 .notif-row.is-unread { background: #f5f8ff; }
 .notif-row.is-unread:hover { background: #eef3ff; }
+.notif-row-dismiss {
+  flex-shrink: 0; align-self: flex-start; margin: -2px -4px 0 0;
+  background: none; border: none; cursor: pointer;
+  color: var(--ink-3); font-size: 17px; line-height: 1;
+  padding: 2px 5px; border-radius: 5px;
+}
+.notif-row-dismiss:hover { color: var(--navy-900); background: var(--line-2); }
 .notif-row-dot {
   width: 8px; height: 8px; border-radius: 50%;
   flex-shrink: 0; margin-top: 5px;
@@ -444,6 +464,20 @@ a.notif-row:hover { background: var(--bg-alt); }
   flex-direction: column;
   gap: 14px;
 }
+
+/* Cancelled registrations - collapsed by default behind a toggle. */
+.reg-cancelled-group { display: flex; flex-direction: column; gap: 14px; }
+.reg-cancelled-toggle {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 11px 16px;
+  background: var(--bg-alt, #f1f3f7); border: 1px dashed var(--line);
+  border-radius: 12px; cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: 600; color: var(--ink-3);
+  transition: color 0.15s, border-color 0.15s;
+}
+.reg-cancelled-toggle:hover { color: var(--navy-900); border-color: var(--navy-200, #cbd5e1); }
+.reg-cancelled-chevron { transition: transform 0.18s; flex-shrink: 0; }
+.reg-cancelled-chevron.open { transform: rotate(180deg); }
 /* Each registration is one horizontal row: [accent stripe][main
    content][side rail]. State (paid/pending/cancelled/on-enquiry) is
    signalled by the left accent stripe + status badge; the body stays
@@ -507,6 +541,7 @@ a.notif-row:hover { background: var(--bg-alt); }
   font-size: 12.5px; color: var(--ink-2); font-weight: 500; line-height: 1.4;
   text-transform: capitalize;
 }
+.reg-card-options { font-size: 12.5px; font-weight: 600; color: var(--navy-900); margin-top: 3px; }
 /* Horizontal fact strip - wraps on narrow screens. */
 .reg-card-facts {
   display: flex; flex-wrap: wrap;
@@ -637,7 +672,7 @@ a.notif-row:hover { background: var(--bg-alt); }
 }
 .reg-card-coupon-toggle:hover { color: var(--navy-900); }
 
-.reg-card-coupon { display: flex; gap: 6px; align-items: stretch; }
+.reg-card-coupon { display: flex; gap: 6px; align-items: stretch; width: 100%; }
 .reg-card-coupon input {
   flex: 1; min-width: 0; font: inherit; padding: 8px 10px;
   border: 1px solid rgba(0,0,0,0.12); border-radius: 7px;

@@ -152,12 +152,23 @@ export function NotificationTicker() {
     };
   }, [open]);
 
-  const unread = notices.filter((n) => !readIds.has(n.id)).length;
+  // Only unread notices are shown - dismissing one (or "Mark all read")
+  // removes it from the box. State-derived notices (e.g. "Payment due")
+  // also drop off on their own once the underlying issue is resolved.
+  const visible = notices.filter((n) => !readIds.has(n.id));
+  const unread = visible.length;
 
   function markAllRead() {
     const all = new Set(notices.map((n) => n.id));
     setReadIds(all);
     saveReadIds(all);
+  }
+
+  function dismiss(id: string) {
+    const next = new Set(readIds);
+    next.add(id);
+    setReadIds(next);
+    saveReadIds(next);
   }
 
   return (
@@ -187,11 +198,11 @@ export function NotificationTicker() {
             )}
           </div>
           <div class="notif-panel-list">
-            {notices.length === 0 ? (
+            {visible.length === 0 ? (
               <div class="notif-empty">You're all caught up.</div>
             ) : (
-              notices.map((n) => (
-                <NotifRow key={n.id} n={n} unread={!readIds.has(n.id)} />
+              visible.map((n) => (
+                <NotifRow key={n.id} n={n} onDismiss={() => dismiss(n.id)} />
               ))
             )}
           </div>
@@ -201,7 +212,7 @@ export function NotificationTicker() {
   );
 }
 
-function NotifRow({ n, unread }: { n: Notice; unread: boolean }) {
+function NotifRow({ n, onDismiss }: { n: Notice; onDismiss: () => void }) {
   const inner = (
     <>
       <span class={`notif-row-dot tone-${n.kind}`} aria-hidden="true" />
@@ -212,12 +223,19 @@ function NotifRow({ n, unread }: { n: Notice; unread: boolean }) {
         </div>
         <p class="notif-row-text">{n.text}</p>
       </div>
+      <button
+        type="button"
+        class="notif-row-dismiss"
+        aria-label="Dismiss notification"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDismiss(); }}
+      >
+        ×
+      </button>
     </>
   );
-  const cls = `notif-row${unread ? ' is-unread' : ''}`;
   return n.href
-    ? <a class={cls} href={n.href}>{inner}</a>
-    : <div class={cls}>{inner}</div>;
+    ? <a class="notif-row is-unread" href={n.href}>{inner}</a>
+    : <div class="notif-row is-unread">{inner}</div>;
 }
 
 function getToken(): string {
