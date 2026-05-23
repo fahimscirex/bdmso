@@ -35,6 +35,15 @@ CREATE TABLE IF NOT EXISTS email_verification_tokens (
   FOREIGN KEY (account_id) REFERENCES guardian_accounts (id)
 );
 
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  token TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  used INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (account_id) REFERENCES guardian_accounts (id)
+);
+
 CREATE TABLE IF NOT EXISTS login_attempts (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   email TEXT NOT NULL,
@@ -126,6 +135,7 @@ CREATE TABLE IF NOT EXISTS payments (
   tran_id TEXT UNIQUE,       -- merchant order_id
   val_id TEXT,               -- shurjoPay sp_order_id (set at create-payment time)
   gateway_status TEXT,       -- shurjoPay transaction_status
+  method TEXT,               -- shurjoPay payment method (card brand, bKash, Nagad, ...)
   coupon_code TEXT,          -- coupon applied at checkout (used_count incremented on success)
   status TEXT NOT NULL DEFAULT 'pending',
   created_at TEXT NOT NULL,

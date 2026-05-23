@@ -15,6 +15,7 @@ import {
   handleSponsorship,
   handleCreatePayment, handlePaymentCallback,
   handleVerifyEmail, handleResendVerification,
+  handleForgotPassword, handleForgotEmail, handleResetPassword,
 } from "./routes/public.js";
 import guardianRoutes from "./routes/guardian.js";
 import adminRoutes from "./routes/admin.js";
@@ -44,6 +45,9 @@ api.post("/create-payment",        (c) => handleCreatePayment(c.req.raw, c.env))
 api.all ("/payment-callback",      (c) => handlePaymentCallback(c.req.raw, c.env, new URL(c.req.url)));
 api.get ("/verify-email",          (c) => handleVerifyEmail(c.req.raw, c.env, new URL(c.req.url)));
 api.post("/resend-verification",   (c) => handleResendVerification(c.req.raw, c.env));
+api.post("/forgot-password",       (c) => handleForgotPassword(c.req.raw, c.env));
+api.post("/forgot-email",          (c) => handleForgotEmail(c.req.raw, c.env));
+api.post("/reset-password",        (c) => handleResetPassword(c.req.raw, c.env));
 
 api.route("/me",    guardianRoutes);   // /api/me/profile, ...
 api.route("/admin", adminRoutes);      // /api/admin/health, ...

@@ -17,6 +17,18 @@ export async function createVerificationToken(env, accountId) {
   return token;
 }
 
+export const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;  // 1 hour
+
+export async function createPasswordResetToken(env, accountId) {
+  const token     = crypto.randomUUID() + crypto.randomUUID().replace(/-/g, "");
+  const expiresAt = new Date(Date.now() + PASSWORD_RESET_TTL_MS).toISOString();
+  const createdAt = new Date().toISOString();
+  await env.DB.prepare(
+    "INSERT INTO password_reset_tokens (token, account_id, expires_at, used, created_at) VALUES (?, ?, ?, 0, ?)"
+  ).bind(token, accountId, expiresAt, createdAt).run();
+  return token;
+}
+
 export function parseEmailFrom(raw) {
   // Accepts "Name <email@x.com>" or plain "email@x.com".
   const str = normalizeString(raw) || "BdMSO <no-reply@bdmso.org>";
@@ -88,8 +100,8 @@ export async function sendReceiptEmail(env, reg, memberId, baseUrl) {
         </table>
       </div>
       <div style="background:#f9fafb;border:1px solid #e5e7eb;border-top:none;padding:16px 32px;border-radius:0 0 12px 12px;">
-        <p style="margin:0 0 8px;color:#6b7280;font-size:12px;line-height:1.55;"><strong style="color:#374151;">Refund policy:</strong> only the amount remaining after applicable tax is refundable, and any refund request must be made within 24 hours of payment.</p>
-        <p style="margin:0;color:#9ca3af;font-size:12px;">This is an official payment confirmation from BdMSO. Please retain this for your records.</p>
+        <p style="margin:0 0 8px;color:#6b7280;font-size:12px;line-height:1.55;">This is an electronic receipt for your BdMSO registration. Please retain it for your records; you may be asked to show it on program day. For any questions or corrections, email <strong style="color:#374151;">support@bdmso.org</strong> and quote your BdMSO ID.</p>
+        <p style="margin:0;color:#9ca3af;font-size:12px;"><strong style="color:#374151;">Refund policy:</strong> Any transaction made through the BdMSO website is non-refundable.</p>
       </div>
     </div>`;
 
@@ -122,7 +134,7 @@ export async function sendReceiptEmail(env, reg, memberId, baseUrl) {
 }
 
 export async function sendSponsorshipNotification(env, lead) {
-  const recipient = "info.bdmso@gmail.com";
+  const recipient = "support@bdmso.org";
   console.log(`[email-sponsorship] notifying ${recipient} for lead ${lead.leadId}`);
   if (!env.BREVO_API_KEY) return;
 
@@ -281,6 +293,54 @@ export async function sendVerificationEmail(env, email, verifyUrl) {
     }
   } catch (err) {
     console.log("[email-verify] brevo fetch failed:", err.message);
+  }
+}
+
+export async function sendPasswordResetEmail(env, email, resetUrl) {
+  const inDev = !!env.SHURJOPAY_SANDBOX || env.NODE_ENV === "development" || !env.PROD;
+  if (inDev) console.log(`[email-reset] ${email} → ${resetUrl}`);
+
+  if (!env.BREVO_API_KEY) {
+    console.log("[email-reset] skipped: BREVO_API_KEY not set");
+    return;
+  }
+  if (!env.EMAIL_FROM) {
+    console.log("[email-reset] skipped: EMAIL_FROM not set");
+    return;
+  }
+
+  const sender = parseEmailFrom(env.EMAIL_FROM);
+  const html = `
+    <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 520px; margin: 0 auto;">
+      <h2 style="color: #0b1b3f;">Reset your BdMSO password</h2>
+      <p>We received a request to reset the password for your BdMSO account. Click the button below to choose a new password:</p>
+      <p style="margin: 24px 0;">
+        <a href="${resetUrl}" style="background: #0b1b3f; color: white; padding: 12px 24px; border-radius: 10px; text-decoration: none; display: inline-block; font-weight: 600;">Reset my password</a>
+      </p>
+      <p style="color: #666; font-size: 13px;">Or copy this link into your browser:<br><span style="word-break: break-all;">${resetUrl}</span></p>
+      <p style="color: #999; font-size: 12px; margin-top: 32px;">This link expires in 1 hour. If you didn't request a password reset, you can safely ignore this email - your password will not change.</p>
+    </div>`;
+
+  try {
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": env.BREVO_API_KEY,
+        "content-type": "application/json",
+        "accept": "application/json",
+      },
+      body: JSON.stringify({
+        sender,
+        to: [{ email }],
+        subject: "Reset your BdMSO password",
+        htmlContent: html,
+      }),
+    });
+    const body = await res.text().catch(() => "");
+    if (!res.ok) console.log(`[email-reset] brevo error ${res.status}: ${body}`);
+    else console.log("[email-reset] brevo accepted");
+  } catch (err) {
+    console.log("[email-reset] brevo fetch failed:", err.message);
   }
 }
 

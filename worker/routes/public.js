@@ -7,9 +7,9 @@ import { normalizeString, requireField, isEmail, isPhoneLike } from "../lib/vali
 import { hashPassword, PBKDF2_ITERATIONS_CURRENT, DUMMY_HASH_SALT } from "../lib/crypto.js";
 import { createSession, extractToken, requireAuth } from "../lib/sessions.js";
 import { checkLoginRateLimit, recordLoginAttempt } from "../lib/rate-limit.js";
-import { createVerificationToken, sendVerificationEmail, sendSponsorshipNotification, assignMemberIdAndSendReceipt } from "../lib/email.js";
+import { createVerificationToken, sendVerificationEmail, sendSponsorshipNotification, assignMemberIdAndSendReceipt, createPasswordResetToken, sendPasswordResetEmail } from "../lib/email.js";
 import { PROGRAM_PRICES, PROGRAM_NAMES } from "../lib/programs.js";
-import { programHasOptions, validateAndPriceOptions, prepFreeMockSlots } from "../lib/program-options.js";
+import { programHasOptions, validateAndPriceOptions, getProgramOptions } from "../lib/program-options.js";
 import CATALOG from "../../public/data/programs-detail.json";
 
 // Catalog lookup by slug - for the registration on/off + hidden flags.
@@ -119,6 +119,7 @@ export async function handleMe(request, env) {
              p.status     AS payment_status,
              p.amount     AS payment_amount,
              p.tran_id,
+             p.method     AS payment_method,
              p.updated_at AS payment_date
       FROM registrations r
       LEFT JOIN payments p ON p.id = (
@@ -132,10 +133,22 @@ export async function handleMe(request, env) {
   // Enrich each registration with the program's display label + fee,
   // derived from the catalog (programs-detail.json). This way the
   // dashboard/SPAs never hard-code program names or prices.
+  // option_labels resolves the chosen option ids (e.g. mock-test sessions,
+  // prep-course subject) to human labels so cards/receipts can show which.
+  const optionLabelsFor = (r) => {
+    const cfg = getProgramOptions(r.registration_type);
+    if (!cfg) return [];
+    let ids = [];
+    try { ids = JSON.parse(r.program_options || "[]"); } catch { return []; }
+    return (Array.isArray(ids) ? ids : [])
+      .map((id) => cfg.items.find((it) => it.id === id)?.label)
+      .filter(Boolean);
+  };
   const registrations = (rows.results || []).map((r) => ({
     ...r,
     program_label: PROGRAM_NAMES[r.registration_type] || r.registration_type,
     program_price: effectiveProgramPrice(r),
+    option_labels: optionLabelsFor(r),
   }));
 
   return jsonResponse({
@@ -326,6 +339,96 @@ export async function handleResendVerification(request, env) {
   return jsonResponse({ ok: true });
 }
 
+// ─── Password reset ───────────────────────────────────────────────────────────
+
+// Mask an email for the "forgot email" hint: keep the first 2 and the
+// last character of the local part, plus the full domain. So
+// "sadianova1999@gmail.com" → "sa•••••••••9@gmail.com".
+function maskEmail(email) {
+  const [local, domain] = String(email).split("@");
+  if (!domain || !local) return "•••";
+  const head = local.slice(0, 2);
+  const tail = local.length > 3 ? local.slice(-1) : "";
+  const dots = "•".repeat(Math.max(3, local.length - head.length - tail.length));
+  return `${head}${dots}${tail}@${domain}`;
+}
+
+// POST /api/forgot-password { email } - emails a reset link if the email
+// belongs to an account. Always returns ok so the response cannot be used
+// to probe which emails are registered.
+export async function handleForgotPassword(request, env) {
+  const payload = await parseJson(request);
+  const email = (normalizeString(payload.email) || "").toLowerCase();
+  if (!email) return badRequest("Email is required.");
+
+  const account = await env.DB.prepare(
+    "SELECT id, email FROM guardian_accounts WHERE email = ? LIMIT 1"
+  ).bind(email).first();
+
+  if (account) {
+    await env.DB.prepare("DELETE FROM password_reset_tokens WHERE account_id = ?")
+      .bind(account.id).run();
+    const token    = await createPasswordResetToken(env, account.id);
+    const resetUrl = `${getBaseUrl(request)}/reset-password?token=${token}`;
+    await sendPasswordResetEmail(env, account.email, resetUrl);
+  }
+  return jsonResponse({ ok: true });
+}
+
+// POST /api/forgot-email { phone } - returns a masked email for the account
+// whose registrations carry that Bangladesh mobile number.
+export async function handleForgotEmail(request, env) {
+  const payload = await parseJson(request);
+  const digits  = (normalizeString(payload.phone) || "").replace(/\D+/g, "");
+  // Match on the 10-digit subscriber number (drop any 880 country code).
+  const subscriber = digits.length > 10 ? digits.slice(-10) : digits;
+  if (subscriber.length < 10) return badRequest("Enter a valid phone number.");
+
+  const row = await env.DB.prepare(`
+    SELECT a.email AS email FROM guardian_accounts a
+    JOIN registrations r ON r.guardian_account_id = a.id
+    WHERE r.guardian_phone LIKE ?
+    LIMIT 1
+  `).bind(`%${subscriber}`).first();
+
+  if (!row) return jsonResponse({ ok: true, found: false });
+  return jsonResponse({ ok: true, found: true, maskedEmail: maskEmail(row.email) });
+}
+
+// POST /api/reset-password { token, password } - consumes a reset token
+// and sets a new password, then drops the account's sessions.
+export async function handleResetPassword(request, env) {
+  const payload  = await parseJson(request);
+  const token    = normalizeString(payload.token);
+  const password = requireField(payload.password, "Password");
+  if (!token) return badRequest("This reset link is invalid.");
+  if (password.length < 8) return badRequest("Password must be at least 8 characters.");
+
+  const row = await env.DB.prepare(
+    "SELECT token, account_id, expires_at, used FROM password_reset_tokens WHERE token = ? LIMIT 1"
+  ).bind(token).first();
+
+  if (!row || row.used) {
+    return badRequest("This reset link is invalid or has already been used.", 400);
+  }
+  if (row.expires_at <= new Date().toISOString()) {
+    await env.DB.prepare("DELETE FROM password_reset_tokens WHERE token = ?").bind(token).run();
+    return badRequest("This reset link has expired. Please request a new one.", 400);
+  }
+
+  const salt = crypto.randomUUID();
+  const hash = await hashPassword(password, salt, PBKDF2_ITERATIONS_CURRENT);
+  await env.DB.batch([
+    env.DB.prepare(
+      "UPDATE guardian_accounts SET password_hash = ?, password_salt = ?, password_iterations = ? WHERE id = ?"
+    ).bind(hash, salt, PBKDF2_ITERATIONS_CURRENT, row.account_id),
+    env.DB.prepare("UPDATE password_reset_tokens SET used = 1 WHERE token = ?").bind(token),
+    // Drop existing sessions so a stale/leaked session can't outlive the reset.
+    env.DB.prepare("DELETE FROM sessions WHERE account_id = ?").bind(row.account_id),
+  ]);
+  return jsonResponse({ ok: true });
+}
+
 export async function handleSponsorship(request, env) {
   const payload      = await parseJson(request);
   const organization = requireField(payload.organization,  "Organization");
@@ -394,7 +497,7 @@ export async function handleCreatePayment(request, env) {
   } else {
     baseAmount = PROGRAM_PRICES[reg.registration_type];
     if (baseAmount == null) {
-      return badRequest("This program is by enquiry. Please email hello@bdmso.org to confirm the fee.");
+      return badRequest("This program is by enquiry. Please email support@bdmso.org to confirm the fee.");
     }
   }
   let finalAmount   = baseAmount;
@@ -439,9 +542,6 @@ export async function handleCreatePayment(request, env) {
     await env.DB.batch(freeOps);
     try { await assignMemberIdAndSendReceipt(env, tranId, getBaseUrl(request)); }
     catch (err) { console.log("[create-payment/free] receipt error:", err.message); }
-    try { await grantPrepFreeMockTests(env, registrationId); } catch (err) {
-      console.log("[create-payment/free] prep bonus error:", err.message);
-    }
     return jsonResponse({ ok: true, free: true });
   }
 
@@ -484,19 +584,57 @@ export async function handleCreatePayment(request, env) {
   return jsonResponse({ ok: true, checkoutURL: spRes.checkout_url });
 }
 
-export async function handlePaymentCallback(request, env, url) {
-  const base       = getBaseUrl(request);
-  // shurjoPay appends ?order_id=<sp_order_id> on the return redirect.
-  // Misleading name - it's their order id, not the merchant's. Confirmed
-  // against the official usage example (return.js).
-  const spOrderId = url.searchParams.get("order_id");
-  if (!spOrderId) return redirectTo(`${base}/dashboard?payment=failed`);
+// Extracts shurjoPay's order id from a callback. The browser return puts
+// it in the query string (?order_id=); the server-to-server IPN puts it
+// in the POST body (JSON or form-encoded). Both carry shurjoPay's own
+// order id - misleading name, confirmed against their usage example.
+async function extractSpOrderId(request, url) {
+  const fromQuery = url.searchParams.get("order_id");
+  if (fromQuery) return fromQuery;
+  if (request.method === "GET" || request.method === "HEAD") return null;
+  let raw = "";
+  try { raw = await request.text(); } catch { return null; }
+  if (!raw) return null;
+  try {
+    const j = JSON.parse(raw);
+    return j.order_id || j.sp_order_id || j.spOrderId || null;
+  } catch { /* not JSON - fall through */ }
+  try {
+    const p = new URLSearchParams(raw);
+    return p.get("order_id") || p.get("sp_order_id") || null;
+  } catch { /* not form-encoded */ }
+  return null;
+}
 
-  // Reject callbacks for unknown or already-processed payments.
-  const pendingPayment = await env.DB.prepare(
-    "SELECT id, tran_id, coupon_code, registration_id FROM payments WHERE val_id = ? AND status = 'pending' LIMIT 1"
+// Handles BOTH the browser return and shurjoPay's server-to-server IPN at
+// the same URL (the merchant account's notification address is set to
+// /api/payment-callback). The browser gets a redirect to the dashboard;
+// the IPN gets a plain 200. The "mark paid" step is claimed atomically, so
+// whichever of the two arrives first does the work and the other is a
+// clean no-op - this is what closes the "paid but the browser never came
+// back" gap. Either way the payment is re-verified against shurjoPay's
+// verification API, so a forged IPN body cannot mark anything paid.
+export async function handlePaymentCallback(request, env, url) {
+  const base   = getBaseUrl(request);
+  // GET / an HTML navigation = the browser being redirected back (wants a
+  // redirect). Anything else = the IPN server call (wants a plain 200).
+  const isBrowser = request.method === "GET"
+    || request.headers.get("sec-fetch-mode") === "navigate"
+    || (request.headers.get("accept") || "").includes("text/html");
+  const done = (outcome) => isBrowser
+    ? redirectTo(`${base}/dashboard?payment=${outcome}`)
+    : jsonResponse({ ok: true, outcome });
+
+  const spOrderId = await extractSpOrderId(request, url);
+  if (!spOrderId) return done("failed");
+
+  const payment = await env.DB.prepare(
+    "SELECT tran_id, coupon_code, registration_id, status FROM payments WHERE val_id = ? LIMIT 1"
   ).bind(spOrderId).first();
-  if (!pendingPayment) return redirectTo(`${base}/dashboard?payment=failed`);
+  if (!payment) return done("failed");
+
+  // Already settled by the other channel (browser vs IPN race) - no-op.
+  if (payment.status === "paid") return done("success");
 
   try {
     const config    = getShurjopayConfig(env);
@@ -509,44 +647,41 @@ export async function handlePaymentCallback(request, env, url) {
     // (Cancel / Failed / Initiated / Pending) is treated as not-yet-paid.
     if (status !== "Success") {
       await env.DB.prepare(
-        "UPDATE payments SET status = 'failed', gateway_status = ?, updated_at = ? WHERE val_id = ?"
+        "UPDATE payments SET status = 'failed', gateway_status = ?, updated_at = ? WHERE val_id = ? AND status != 'paid'"
       ).bind(status, now, spOrderId).run();
-      return redirectTo(`${base}/dashboard?payment=${status.toLowerCase() === "cancel" ? "cancelled" : "failed"}`);
+      return done(status.toLowerCase() === "cancel" ? "cancelled" : "failed");
     }
 
-    const batchOps = [
-      env.DB.prepare(
-        "UPDATE payments SET status = 'paid', gateway_status = 'Success', updated_at = ? WHERE val_id = ?"
-      ).bind(now, spOrderId),
-      env.DB.prepare(`
-        UPDATE registrations SET status = 'paid'
-        WHERE id = (SELECT registration_id FROM payments WHERE val_id = ? LIMIT 1)
-      `).bind(spOrderId),
+    // Atomically claim the payment: only one caller flips a non-paid row
+    // to paid. meta.changes tells us whether THIS call won the race, so
+    // the side effects (member id, receipt, coupon count) run exactly once.
+    const claim = await env.DB.prepare(
+      "UPDATE payments SET status = 'paid', gateway_status = 'Success', method = ?, updated_at = ? WHERE val_id = ? AND status != 'paid'"
+    ).bind(result.method || null, now, spOrderId).run();
+
+    if (!claim?.meta || claim.meta.changes === 0) {
+      return done("success");  // the other channel claimed it first
+    }
+
+    const ops = [
+      env.DB.prepare("UPDATE registrations SET status = 'paid' WHERE id = ?")
+        .bind(payment.registration_id),
     ];
-    if (pendingPayment.coupon_code) {
-      batchOps.push(
+    if (payment.coupon_code) {
+      ops.push(
         env.DB.prepare("UPDATE coupons SET used_count = used_count + 1 WHERE code = ?")
-          .bind(pendingPayment.coupon_code)
+          .bind(payment.coupon_code)
       );
     }
-    await env.DB.batch(batchOps);
+    await env.DB.batch(ops);
 
-    try { await assignMemberIdAndSendReceipt(env, pendingPayment.tran_id, getBaseUrl(request)); } catch (err) {
-      console.log("[payment-callback] receipt error:", err.message);
-    }
+    try { await assignMemberIdAndSendReceipt(env, payment.tran_id, getBaseUrl(request)); }
+    catch (err) { console.log("[payment-callback] receipt error:", err.message); }
 
-    // BdMSO Preparatory bonus: 2 free Mock Tests in the chosen
-    // subject(s). After a Prep payment lands, auto-create a
-    // mock-test row for the same student (already-paid, amount=0)
-    // unless one already exists.
-    try { await grantPrepFreeMockTests(env, pendingPayment.registration_id); } catch (err) {
-      console.log("[payment-callback] prep bonus error:", err.message);
-    }
-
-    return redirectTo(`${base}/dashboard?payment=success`);
+    return done("success");
   } catch (err) {
     console.log("[payment-callback] shurjoPay error:", err.message);
-    return redirectTo(`${base}/dashboard?payment=failed`);
+    return done("failed");
   }
 }
 
@@ -656,76 +791,6 @@ export async function handleValidateCoupon(request, env, url) {
   });
 }
 
-// BdMSO Preparatory bonus: when a Prep payment is confirmed, create a
-// dedicated paid (amount=0) Mock Test row for the same student tied to the
-// 2 sessions in their chosen subject(s). The bonus always lives in its own
-// row - it is never merged into a guardian's own mock-test registration.
-// Idempotent: a re-run finds the bonus row it created earlier and merges
-// any missing option ids into it rather than creating a duplicate.
-async function grantPrepFreeMockTests(env, registrationId) {
-  const prep = await env.DB.prepare(
-    "SELECT * FROM registrations WHERE id = ? LIMIT 1"
-  ).bind(registrationId).first();
-  if (!prep || prep.registration_type !== "bdmso-preparatory") return;
-
-  let subjects = [];
-  try { subjects = JSON.parse(prep.program_options || "[]"); } catch {}
-  const slotIds = prepFreeMockSlots(subjects);
-  if (!slotIds.length) return;
-
-  // Idempotency only: look for a mock-test row THIS grant created earlier
-  // (source_page = 'prep-bonus'). We deliberately never merge into a
-  // guardian's own mock-test registration - if that row were still unpaid
-  // and held paid sessions, flipping it to 'paid' here would hand them
-  // those paid sessions for free. The bonus stays in its own dedicated row.
-  // Scoped by account, not student name: one account = one student, and
-  // the name is editable, so account + source_page is the stable key.
-  const bonusRow = await env.DB.prepare(`
-    SELECT id, program_options FROM registrations
-    WHERE guardian_account_id = ?
-      AND registration_type   = 'mock-test'
-      AND source_page         = 'prep-bonus'
-      AND status != 'cancelled'
-    LIMIT 1
-  `).bind(prep.guardian_account_id).first();
-
-  if (bonusRow) {
-    // Re-run: merge any missing bonus slots into the existing bonus row.
-    let current = [];
-    try { current = JSON.parse(bonusRow.program_options || "[]"); } catch {}
-    const merged = Array.from(new Set([...current, ...slotIds]));
-    await env.DB.prepare(
-      "UPDATE registrations SET program_options = ?, status = 'paid' WHERE id = ?"
-    ).bind(JSON.stringify(merged), bonusRow.id).run();
-    return;
-  }
-
-  const now = new Date().toISOString();
-  const mockId = createId("app");
-  const paymentId = createId("pay");
-  const tranId = `prep-bonus-${registrationId}`;
-
-  await env.DB.batch([
-    env.DB.prepare(`
-      INSERT INTO registrations (
-        id, registration_type, student_full_name, student_date_of_birth, student_class_name,
-        student_gender, student_medium, student_school, student_district,
-        guardian_account_id, guardian_full_name, guardian_relationship, guardian_phone,
-        guardian_email, guardian_address, program_options, terms_accepted,
-        status, source_page, created_at
-      ) VALUES (?, 'mock-test', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'paid', 'prep-bonus', ?)
-    `).bind(
-      mockId,
-      prep.student_full_name, prep.student_date_of_birth, prep.student_class_name,
-      prep.student_gender, prep.student_medium, prep.student_school, prep.student_district,
-      prep.guardian_account_id, prep.guardian_full_name, prep.guardian_relationship,
-      prep.guardian_phone, prep.guardian_email, prep.guardian_address,
-      JSON.stringify(slotIds),
-      now
-    ),
-    env.DB.prepare(`
-      INSERT INTO payments (id, registration_id, tran_id, val_id, amount, status, gateway_status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 0, 'paid', 'PrepBonus', ?, ?)
-    `).bind(paymentId, mockId, tranId, tranId, now, now),
-  ]);
-}
+// (Removed) grantPrepFreeMockTests - the Prep Course no longer auto-creates
+// separate free Mock Test registrations. Mock tests are now bundled into the
+// Prep Course package itself (see each subject option in programs-detail.json).

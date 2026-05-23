@@ -207,7 +207,7 @@ guardian.post("/registrations/:id/cancel", async (c) => {
   if (reg.status === "cancelled") return c.json({ ok: true, id });
   if (reg.status === "paid") {
     return c.json({
-      error: "This registration is already paid. Email hello@bdmso.org for a refund.",
+      error: "This registration is already paid. Email support@bdmso.org if you need help.",
     }, 409);
   }
 

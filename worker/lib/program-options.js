@@ -52,13 +52,3 @@ export function validateAndPriceOptions(slug, rawOptions) {
 
   return { ok: false, error: "Unsupported option kind." };
 }
-
-// Free Mock Test slots bundled with a Prep Course subject pick. Read
-// from the chosen option item's `freeMock` list in the catalog.
-export function prepFreeMockSlots(prepOptionIds) {
-  const cfg = OPTIONS_BY_SLUG["bdmso-preparatory"];
-  if (!cfg) return [];
-  const ids = Array.isArray(prepOptionIds) ? prepOptionIds : [];
-  const chosen = cfg.items.find((it) => ids.includes(it.id));
-  return chosen?.freeMock || [];
-}
