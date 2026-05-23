@@ -107,6 +107,7 @@
                 <li><a href="/resources">Syllabus</a></li>
                 <li><a href="/resources">Regulations</a></li>
                 <li><a href="/resources#faq">FAQ</a></li>
+                <li><a href="/terms">Terms &amp; Conditions</a></li>
                 <li><a href="/media">Media</a></li>
               </ul>
             </div>
@@ -128,7 +129,7 @@
               </div>
               <div class="contact-line">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
-                <a href="mailto:info.bdmso@gmail.com">info.bdmso@gmail.com</a>
+                <a href="mailto:support@bdmso.org">support@bdmso.org</a>
               </div>
               <div class="socials" aria-label="Social links">
                 <a href="https://facebook.com/imsobd" aria-label="Facebook"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 21v-7.5h2.5l.4-3h-2.9V8.6c0-.9.3-1.5 1.6-1.5h1.4V4.3c-.7-.1-1.6-.2-2.6-.2-2.6 0-4.4 1.6-4.4 4.4v2H7v3h2.5V21h4z"/></svg></a>

@@ -4,47 +4,25 @@ export const PROGRAM_OPTIONS = {
   "bdmso-preparatory": {
     "kind": "radio",
     "label": "Subjects",
-    "help": "Choose your subjects. Each option includes 2 free Mock Test sessions.",
+    "help": "Choose your subjects. Mock Tests at MASLab are included with each option.",
     "items": [
       {
         "id": "math",
-        "label": "Math only",
-        "sub": "12 classes - 2 free Math Mock Tests included",
-        "price": 3500,
-        "freeMock": [
-          "mt1-math",
-          "mt2-math"
-        ]
+        "label": "Mathematics",
+        "sub": "Includes 12 online classes and 2 Math Mock Tests at MASLab",
+        "price": 3500
       },
       {
         "id": "science",
-        "label": "Science only",
-        "sub": "12 classes - 2 free Science Mock Tests included",
-        "price": 3500,
-        "freeMock": [
-          "mt1-sci",
-          "mt2-sci"
-        ]
+        "label": "Science",
+        "sub": "Includes 12 online classes and 2 Science Mock Tests at MASLab",
+        "price": 3500
       },
       {
-        "id": "both-mock1",
-        "label": "Math + Science Bundle (free Mock Test 1)",
-        "sub": "12 classes each - Mock Test 1 (Math + Science) free",
-        "price": 6000,
-        "freeMock": [
-          "mt1-math",
-          "mt1-sci"
-        ]
-      },
-      {
-        "id": "both-mock2",
-        "label": "Math + Science Bundle (free Mock Test 2)",
-        "sub": "12 classes each - Mock Test 2 (Math + Science) free",
-        "price": 6000,
-        "freeMock": [
-          "mt2-math",
-          "mt2-sci"
-        ]
+        "id": "both",
+        "label": "Both Mathematics and Science",
+        "sub": "Includes 24 online classes, 1 Science and 1 Math Mock Test at MASLab",
+        "price": 6000
       }
     ]
   },

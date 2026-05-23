@@ -294,7 +294,7 @@ function validateStep(step) {
     }
 
     if (!document.getElementById("terms").checked) {
-      setMessage("You must confirm the rules and regulations before submitting.", "error");
+      setMessage("You must agree to the Rules & Regulations and Terms & Conditions before submitting.", "error");
       return false;
     }
   }
@@ -557,6 +557,17 @@ function init() {
       phoneEl.dispatchEvent(new Event("input"));
     });
   }
+
+  // Name inputs: allow letters, spaces, hyphens, apostrophes and dots
+  // only - digits and other characters are stripped as the user types.
+  ["f-name", "g-name"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("input", () => {
+      const clean = el.value.replace(/[^\p{L}\s'.-]/gu, "");
+      if (clean !== el.value) el.value = clean;
+    });
+  });
 }
 
 // This file is loaded as type="module" which is deferred, so by the

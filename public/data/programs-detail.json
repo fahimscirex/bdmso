@@ -61,8 +61,8 @@
     "slug": "bdmso-preparatory",
     "feeAmount": 3500,
     "title": "BdMSO Preparatory Course",
-    "tagline": "Intensive 12-class Olympiad prep with 2 free mock tests · 31 May – 20 June 2026.",
-    "metaDescription": "An intensive 12-class BdMSO Olympiad preparation course for Class 3 to 5, with advanced problem-solving and 2 free mock tests. Live online, 31 May to 20 June 2026.",
+    "tagline": "Intensive 12-class Olympiad prep with 2 mock tests included · 31 May – 20 June 2026.",
+    "metaDescription": "An intensive 12-class BdMSO Olympiad preparation course for Class 3 to 5, with advanced problem-solving and 2 mock tests included. Live online, 31 May to 20 June 2026.",
     "home_order": "03",
     "registrationStarts": "2026-04-15",
     "registrationEnds": "2026-05-31",
@@ -72,14 +72,14 @@
     "audience": "Class 3 to 5",
     "duration": "12 classes · Online · 2 hours per class",
     "format": "Live online classes",
-    "outcome": "Olympiad readiness + 2 free mock tests included",
+    "outcome": "Olympiad readiness + 2 mock tests included",
     "price": "৳ 3,500",
     "schedule": "31 May - 20 June 2026",
     "register_url": "/registration?program=bdmso-preparatory",
     "register_label": "Enroll now",
     "description": [
       "Take your Olympiad journey to the next level with the BdMSO Preparatory Course. This intensive 12-class program is meticulously crafted for students in Class 3 to 5 who are aiming to compete at the national level.",
-      "The structured training focuses heavily on advanced problem-solving, critical thinking, and Olympiad-style question patterns. Enrolling in this course also gives exclusive access to 2 free mock tests (6 June and 20 June 2026) to evaluate readiness."
+      "The structured training focuses heavily on advanced problem-solving, critical thinking, and Olympiad-style question patterns. The course also includes 2 mock tests (6 June and 20 June 2026) to evaluate readiness."
     ],
     "what_youll_do": [
       "Class 1: Scientific thinking, measurements, experimental design",
@@ -95,41 +95,31 @@
       "Class 11: Microbiology and genetics, biotechnology and modern science",
       "Class 12: Review & final assessments",
       "Math outline: announced soon",
-      "Free Mock Test 1: 6 June 2026 · Free Mock Test 2: 20 June 2026"
+      "Mock Test 1: 6 June 2026 · Mock Test 2: 20 June 2026"
     ],
     "registration": true,
     "options": {
       "kind": "radio",
       "label": "Subjects",
-      "help": "Choose your subjects. Each option includes 2 free Mock Test sessions.",
+      "help": "Choose your subjects. Mock Tests at MASLab are included with each option.",
       "items": [
         {
           "id": "math",
-          "label": "Math only",
-          "sub": "12 classes - 2 free Math Mock Tests included",
-          "price": 3500,
-          "freeMock": ["mt1-math", "mt2-math"]
+          "label": "Mathematics",
+          "sub": "Includes 12 online classes and 2 Math Mock Tests at MASLab",
+          "price": 3500
         },
         {
           "id": "science",
-          "label": "Science only",
-          "sub": "12 classes - 2 free Science Mock Tests included",
-          "price": 3500,
-          "freeMock": ["mt1-sci", "mt2-sci"]
+          "label": "Science",
+          "sub": "Includes 12 online classes and 2 Science Mock Tests at MASLab",
+          "price": 3500
         },
         {
-          "id": "both-mock1",
-          "label": "Math + Science Bundle (free Mock Test 1)",
-          "sub": "12 classes each - Mock Test 1 (Math + Science) free",
-          "price": 6000,
-          "freeMock": ["mt1-math", "mt1-sci"]
-        },
-        {
-          "id": "both-mock2",
-          "label": "Math + Science Bundle (free Mock Test 2)",
-          "sub": "12 classes each - Mock Test 2 (Math + Science) free",
-          "price": 6000,
-          "freeMock": ["mt2-math", "mt2-sci"]
+          "id": "both",
+          "label": "Both Mathematics and Science",
+          "sub": "Includes 24 online classes, 1 Science and 1 Math Mock Test at MASLab",
+          "price": 6000
         }
       ]
     },
@@ -366,7 +356,7 @@
     "image": "/images/national-round-winners.webp",
     "level": "Open · Class 6 or below",
     "audience": "Class 6 or below",
-    "duration": "60 minutes per subject",
+    "duration": "2 hours total (60 min per subject)",
     "format": "MCQ, Short and Broad Question",
     "outcome": "Winners advance to National Residential Camp and TST",
     "price": "৳ 1,000",

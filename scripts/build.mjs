@@ -615,8 +615,7 @@ function buildProgramsIndex() {
   const CTA_ARROW = "<svg viewBox='0 0 20 20' fill='currentColor'><path fill-rule='evenodd' d='M7.3 5.3a1 1 0 011.4 0l4 4a1 1 0 010 1.4l-4 4a1 1 0 11-1.4-1.4L10.6 10 7.3 6.7a1 1 0 010-1.4z'/></svg>";
   const BADGE = { beginner: ["b-beginner", "Beginner"], advanced: ["b-advanced", "Advanced"], residential: ["b-residential", "Residential"] };
 
-  const cards = programs.map((p, i) => {
-    const no = String(i + 1).padStart(2, "0");
+  const cards = programs.map((p) => {
     const [badgeClass, badgeLabel] = BADGE[p.category] || ["b-open", "Open"];
     const dated = !!(p.registrationStarts && p.registrationEnds);
     const facts = [
@@ -639,7 +638,6 @@ function buildProgramsIndex() {
     return `<a class="p-card" href="/programs/${escAttr(p.slug)}" ${attrs}>
       <div class="p-card-topbar">
         <div class="p-card-topbar-l">
-          <span class="p-card-no">${no}</span>
           <span class="p-card-badge ${badgeClass}">${badgeLabel}</span>
         </div>
       </div>
@@ -694,6 +692,7 @@ function writeRobotsAndSitemap(posts, { target = "dist" } = {}) {
     { slug: "blog",         priority: "0.75", changefreq: "weekly" },
     { slug: "media",        priority: "0.6",  changefreq: "monthly" },
     { slug: "sponsorship",  priority: "0.6",  changefreq: "monthly" },
+    { slug: "terms",        priority: "0.3",  changefreq: "yearly" },
   ];
 
   // Program detail pages - derived from the catalog so the sitemap stays in

@@ -20,6 +20,7 @@
 <meta name="twitter:title" content="Register for BdMSO 2026 - Math &amp; Science Olympiad">
 <meta name="twitter:description" content="Register for the BdMSO 2026 National Olympiad - the official qualifying pathway for primary-school students aiming to represent Bangladesh at IMSO.">
 <meta name="twitter:image" content="https://bdmso.org/images/group-winner.webp">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Event","name":"BdMSO 2026 National Round","startDate":"2026-06-15","eventStatus":"https://schema.org/EventScheduled","eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode","location":{"@type":"Place","name":"Multiple regional venues, Bangladesh","address":{"@type":"PostalAddress","addressCountry":"BD"}},"image":"https://bdmso.org/images/group-winner.webp","description":"Register for the BdMSO 2026 National Round - the official qualifying olympiad for primary-school students competing for the Bangladesh team at IMSO 2026.","organizer":{"@type":"Organization","name":"BdMSO","url":"https://bdmso.org"},"offers":{"@type":"Offer","price":"1000","priceCurrency":"BDT","url":"https://bdmso.org/registration","availability":"https://schema.org/InStock"}}</script>
 <!-- SEO:END -->
 <meta name="theme-color" content="#0b1b3f">
 <link rel="icon" href="/favicon.ico" sizes="any">
@@ -425,10 +426,6 @@
           <h4>Please review your information</h4>
           <div class="summary" id="summary-grid"></div>
         </div>
-        <div class="terms">
-          <input type="checkbox" id="terms" style="margin-top:4px;" />
-          <label for="terms">I confirm the information provided is accurate and agree to the BdMSO <a href="/resources" style="color:var(--navy-700); text-decoration:underline;">Rules &amp; Regulations</a>.</label>
-        </div>
         <div class="account-note">
           <h4 style="margin-bottom:10px;">Create the guardian account</h4>
           <p style="font-size:14px; color:var(--ink-3); margin:0 0 16px;">The guardian email will be used as the account login for future BdMSO portal access.</p>
@@ -436,6 +433,10 @@
             <div class="field"><label>Password</label><input id="account-password" type="password" autocomplete="new-password" placeholder="At least 8 characters" /></div>
             <div class="field"><label>Confirm Password</label><input id="account-password-confirm" type="password" autocomplete="new-password" placeholder="Re-enter password" /></div>
           </div>
+        </div>
+        <div class="terms" style="margin-top:18px;">
+          <input type="checkbox" id="terms" style="margin-top:4px;" />
+          <label for="terms">I confirm the information provided is accurate and agree to the BdMSO <a href="/resources" style="color:var(--navy-700); text-decoration:underline;">Rules &amp; Regulations</a> and <a href="/terms" style="color:var(--navy-700); text-decoration:underline;">Terms &amp; Conditions</a>.</label>
         </div>
       </div>
       <div class="form-foot"><button class="btn btn-ghost" type="button" data-prev-step="2">← Back</button><button class="btn btn-gold" type="button" id="submit-registration">Submit &amp; Create Account →</button></div>
@@ -829,7 +830,8 @@ async function initQuickEnroll() {
         head.querySelector('p').textContent  = 'Each student may register for either the Olympiad or the Quiz - not both. Visit your dashboard for the existing registration.';
       }
       document.querySelector('.qe-body').innerHTML = `
-        <p style="color:var(--ink-2); margin:0;">You can manage your existing competition registration from your dashboard.</p>`;
+        <p style="color:var(--ink-2); margin:0 0 10px;">Each student can take part in <strong>either the National Olympiad or the Quiz Competition - not both</strong>. This student is already registered for the other competition, so this one is not available for enrollment.</p>
+        <p style="color:var(--ink-2); margin:0;">Manage the existing registration from your dashboard. If you need to switch competitions, please contact <a href="mailto:support@bdmso.org" style="color:var(--navy-700);text-decoration:underline;">support@bdmso.org</a>.</p>`;
       const foot = document.querySelector('.qe-foot');
       if (foot) foot.innerHTML = `<div></div><div style="display:flex;gap:10px;flex-wrap:wrap;"><a class="btn btn-ghost" href="/programs">Browse other programs</a><a class="btn btn-gold" href="/dashboard">Go to dashboard →</a></div>`;
       return;
