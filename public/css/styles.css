@@ -562,37 +562,21 @@ section[hidden] { display: none !important; }
 }
 
 /* ---------- Motion ---------- */
+/* Translate distances are intentionally short. Long travels (16-24px) feel
+   syrupy at the durations needed to stay under the 300ms UI budget. */
 @keyframes fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes soft-pop {
-  from {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
-@keyframes slide-down {
-  from {
-    opacity: 0;
-    transform: translateY(-12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @keyframes float-gentle {
@@ -602,8 +586,11 @@ section[hidden] { display: none !important; }
 
 html { scroll-behavior: smooth; }
 
-.site-header { animation: slide-down 0.45s ease both; }
-.section-head { animation: fade-up 0.7s ease both; }
+/* Header on every page navigation: opacity-only fade. The previous
+   slide-down (450ms, translates 12px) ran on every page nav and felt
+   sluggish because the user sees it dozens of times per session. */
+.site-header { animation: fade-in 180ms var(--ease-out) both; }
+.section-head { animation: fade-up 320ms var(--ease-out) both; }
 
 .nav-menu a,
 .btn,
@@ -650,6 +637,9 @@ html { scroll-behavior: smooth; }
   transform: scale(0.98);
 }
 
+/* Homepage reveal animation. 380ms is comfortably under the 300ms UI
+   ceiling for content the user sees on first scroll, and the stronger
+   --ease-out curve gives the entry a defined arrival. */
 body[data-page="home"] .hero-copy,
 body[data-page="home"] .hero-visual,
 body[data-page="home"] .trust-item,
@@ -657,13 +647,13 @@ body[data-page="home"] .prog-card,
 body[data-page="home"] .fame-card,
 body[data-page="home"] .level-card,
 body[data-page="home"] .test-card {
-  animation: fade-up 0.75s ease both;
+  animation: fade-up 380ms var(--ease-out) both;
 }
 
-body[data-page="home"] .hero-copy { animation-delay: 0.08s; }
+body[data-page="home"] .hero-copy { animation-delay: 60ms; }
 body[data-page="home"] .hero-visual {
-  animation: soft-pop 0.8s ease both;
-  animation-delay: 0.16s;
+  animation: soft-pop 420ms var(--ease-out) both;
+  animation-delay: 120ms;
 }
 body[data-page="home"] .hero-badge {
   animation: float-gentle 4.5s ease-in-out infinite;
@@ -671,28 +661,31 @@ body[data-page="home"] .hero-badge {
 body[data-page="home"] .hero-badge.bot {
   animation-delay: 0.8s;
 }
+/* Staggered list reveal. 50ms per item keeps the cascade tight enough
+   to feel like a single coordinated movement rather than items
+   queuing up one at a time. Capped at 8 items (~400ms total). */
 body[data-page="home"] .trust-item:nth-child(1),
 body[data-page="home"] .prog-card:nth-child(1),
 body[data-page="home"] .fame-card:nth-child(1),
 body[data-page="home"] .level-card:nth-child(1),
-body[data-page="home"] .test-card:nth-child(1) { animation-delay: 0.05s; }
+body[data-page="home"] .test-card:nth-child(1) { animation-delay: 40ms; }
 body[data-page="home"] .trust-item:nth-child(2),
 body[data-page="home"] .prog-card:nth-child(2),
 body[data-page="home"] .fame-card:nth-child(2),
 body[data-page="home"] .level-card:nth-child(2),
-body[data-page="home"] .test-card:nth-child(2) { animation-delay: 0.12s; }
+body[data-page="home"] .test-card:nth-child(2) { animation-delay: 90ms; }
 body[data-page="home"] .trust-item:nth-child(3),
 body[data-page="home"] .prog-card:nth-child(3),
 body[data-page="home"] .fame-card:nth-child(3),
 body[data-page="home"] .level-card:nth-child(3),
-body[data-page="home"] .test-card:nth-child(3) { animation-delay: 0.19s; }
+body[data-page="home"] .test-card:nth-child(3) { animation-delay: 140ms; }
 body[data-page="home"] .trust-item:nth-child(4),
-body[data-page="home"] .prog-card:nth-child(4) { animation-delay: 0.26s; }
+body[data-page="home"] .prog-card:nth-child(4) { animation-delay: 190ms; }
 body[data-page="home"] .trust-item:nth-child(5),
-body[data-page="home"] .prog-card:nth-child(5) { animation-delay: 0.33s; }
-body[data-page="home"] .prog-card:nth-child(6) { animation-delay: 0.40s; }
-body[data-page="home"] .prog-card:nth-child(7) { animation-delay: 0.47s; }
-body[data-page="home"] .prog-card:nth-child(8) { animation-delay: 0.54s; }
+body[data-page="home"] .prog-card:nth-child(5) { animation-delay: 240ms; }
+body[data-page="home"] .prog-card:nth-child(6) { animation-delay: 290ms; }
+body[data-page="home"] .prog-card:nth-child(7) { animation-delay: 340ms; }
+body[data-page="home"] .prog-card:nth-child(8) { animation-delay: 390ms; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
