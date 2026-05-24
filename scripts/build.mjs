@@ -617,7 +617,7 @@ function buildProgramsIndex() {
 
   const cards = programs.map((p) => {
     const [badgeClass, badgeLabel] = BADGE[p.category] || ["b-open", "Open"];
-    const dated = !!(p.registrationStarts && p.registrationEnds);
+    const dated = !!(p.registrationStarts || p.registrationEnds);
     const facts = [
       [ICON.person, p.audience],
       [ICON.clock,  p.duration],
@@ -628,7 +628,8 @@ function buildProgramsIndex() {
       `data-slug="${escAttr(p.slug)}"`,
       `data-tags="${escAttr(p.category || "")}"`,
       `data-schedule="${dated ? "dated" : "year-round"}"`,
-      dated ? `data-starts="${escAttr(p.registrationStarts)}" data-ends="${escAttr(p.registrationEnds)}"` : "",
+      p.registrationStarts ? `data-starts="${escAttr(p.registrationStarts)}"` : "",
+      p.registrationEnds ? `data-ends="${escAttr(p.registrationEnds)}"` : "",
       p.bespokePage ? 'data-no-modal="1"' : "",
       p.registration === false ? 'data-registration="false"' : "",
     ].filter(Boolean).join(" ");

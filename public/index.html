@@ -953,28 +953,59 @@
 
 <div id="site-header"></div>
 
+<!-- Top announcement banner (Zoom-style) - sits below the fixed nav, above
+     the hero. The "Upcoming Events" pill opens the existing modal. -->
+<div class="top-banner" id="top-banner">
+  <div class="top-banner-inner">
+    <span class="top-banner-text top-banner-text-desktop">BdMSO 2026 - Registration is open for the National Olympiad and Quiz Competition.</span>
+    <span class="top-banner-text top-banner-text-mobile">Registration open for BdMSO 2026.</span>
+    <button type="button" class="top-banner-cta" id="upcoming-events-btn" aria-haspopup="dialog" aria-controls="upcoming-events-modal">
+      Upcoming Events <span aria-hidden="true">→</span>
+    </button>
+  </div>
+  <button type="button" class="top-banner-close" id="top-banner-close" aria-label="Dismiss banner"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+</div>
+
 <main>
-<!-- SECTION 1: HERO -->
-<section class="hero">
-  <div class="container">
-    <div class="hero-grid">
-      <div class="hero-copy">
-        <span class="eyebrow">IMSO 2026 · Indonesia</span>
-        <h1>Bangladesh Mathematics and <span class="accent">Science Olympiad</span></h1>
-        <p class="hero-sub">A platform dedicated to identifying and nurturing early age STEM talent across Bangladesh.</p>
-        <div class="hero-cta">
-          <a class="btn btn-gold btn-lg" href="/registration">Register Now</a>
-          <a class="btn btn-ghost btn-lg" href="/programs">Explore Programs</a>
-          <button class="btn btn-ghost btn-lg upcoming-events-btn" type="button" id="upcoming-events-btn" aria-haspopup="dialog" aria-controls="upcoming-events-modal">Upcoming Events</button>
-        </div>
-      </div>
-      <div class="hero-visual">
-        <img src="/images/group-winner.webp" alt="BdMSO students participating in an olympiad session" width="1600" height="1200" fetchpriority="high" decoding="async">
-        <div class="hero-badge top">
-          <div class="num">12/12</div>
-          <div class="lbl">Medals<br>IMSO Malaysia 2025</div>
-        </div>
-      </div>
+<!-- SECTION 1: HERO + featured cards (Zoom-style: dark, centered, with a
+     sliding cards row beneath the hero text). -->
+<section class="hero hero-zoom">
+  <div class="container hero-zoom-text">
+    <span class="eyebrow">IMSO 2026 · Indonesia</span>
+    <h1>Bangladesh Mathematics and <span class="accent">Science Olympiad</span></h1>
+    <p class="hero-sub">A platform dedicated to identifying and nurturing early age STEM talent across Bangladesh.</p>
+    <div class="hero-cta">
+      <a class="btn btn-gold btn-lg" href="/registration">Register Now</a>
+      <a class="btn btn-ghost btn-lg" href="/programs">Explore Programs</a>
+    </div>
+  </div>
+
+  <div class="zh-cards">
+    <div class="zh-cards-track" id="zh-cards-track">
+      <a class="zh-card" href="/programs/national-olympiad">
+        <div class="zh-card-head"><span class="zh-card-dot"></span><span class="zh-card-label">National Olympiad</span></div>
+        <div class="zh-card-media"><img src="/images/national-round-winners.webp" alt="National Olympiad" loading="lazy" /></div>
+      </a>
+      <a class="zh-card" href="/programs/stem-foundation">
+        <div class="zh-card-head"><span class="zh-card-dot"></span><span class="zh-card-label">STEM Foundation</span></div>
+        <div class="zh-card-media"><img src="/images/stem.webp" alt="STEM Foundation" loading="lazy" /></div>
+      </a>
+      <a class="zh-card" href="/programs/bdmso-preparatory">
+        <div class="zh-card-head"><span class="zh-card-dot"></span><span class="zh-card-label">Preparatory Course</span></div>
+        <div class="zh-card-media"><img src="/images/prep.webp" alt="Preparatory Course" loading="lazy" /></div>
+      </a>
+      <a class="zh-card" href="/programs/lab-day">
+        <div class="zh-card-head"><span class="zh-card-dot"></span><span class="zh-card-label">Lab Day</span></div>
+        <div class="zh-card-media"><img src="/images/lab.webp" alt="Lab Day" loading="lazy" /></div>
+      </a>
+      <a class="zh-card" href="/programs/mock-test">
+        <div class="zh-card-head"><span class="zh-card-dot"></span><span class="zh-card-label">Mock Test</span></div>
+        <div class="zh-card-media"><img src="/images/exam.webp" alt="Mock Test" loading="lazy" /></div>
+      </a>
+      <a class="zh-card" href="/programs/stem-masterclass">
+        <div class="zh-card-head"><span class="zh-card-dot"></span><span class="zh-card-label">STEM Masterclass</span></div>
+        <div class="zh-card-media"><img src="/images/class.webp" alt="STEM Masterclass" loading="lazy" /></div>
+      </a>
     </div>
   </div>
 </section>
@@ -1302,22 +1333,158 @@
 <div id="upcoming-events-modal" class="ue-modal" role="dialog" aria-modal="true" aria-labelledby="ue-modal-title" hidden>
   <div class="ue-backdrop" data-ue-close></div>
   <div class="ue-dialog" role="document">
-    <button class="ue-close" type="button" aria-label="Close" data-ue-close>×</button>
+    <button class="ue-close" type="button" aria-label="Close" data-ue-close><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     <h3 id="ue-modal-title" class="ue-title">Upcoming Events</h3>
     <img src="/images/upcoming-events.webp" alt="BdMSO 2026 upcoming events calendar" width="940" height="788" loading="lazy">
   </div>
 </div>
 
 <style>
-.upcoming-events-btn { display: none; }
-@media (min-width: 901px) { .upcoming-events-btn { display: inline-flex; } }
+/* ── Top announcement banner (normal flow, below fixed nav, scrolls away) ──
+   The fixed .site-header is actually 87px tall (58px logo + 14px*2 nav
+   padding + 1px border), but body padding-top in styles.css clears only
+   70px. Pages elsewhere hide that 17px overlap behind their own hero
+   padding. The banner has no such buffer, so the translucent white header
+   was painting over its top edge and looking like a fade. Push body
+   padding-top to the real header height while the banner is visible. */
+body[data-page="home"].has-top-banner { padding-top: 87px; }
+@media (max-width: 1000px) {
+  body[data-page="home"].has-top-banner { padding-top: 79px; }
+}
+.top-banner {
+  position: relative;
+  z-index: 1;
+  background: #0b1b3f; color: white;
+  display: flex; align-items: center; justify-content: center;
+  padding: 8px 52px 8px 20px;
+}
+.top-banner-inner {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  justify-content: center; max-width: 1100px;
+}
+.top-banner-text {
+  font-size: 13.5px; font-weight: 500; color: rgba(255,255,255,0.95); line-height: 1.35;
+}
+.top-banner-text-mobile { display: none; }
+.top-banner-cta {
+  font: inherit; font-weight: 700; font-size: 12.5px; color: var(--navy-900); cursor: pointer;
+  background: linear-gradient(90deg, #d4a017 0%, #f59e0b 50%, #fbbf24 100%);
+  border: none; border-radius: 999px; padding: 6px 14px;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 2px 12px rgba(245, 158, 11, 0.40);
+}
+.top-banner-cta:hover {
+  transform: translateY(-1px); box-shadow: 0 6px 20px rgba(245, 158, 11, 0.55);
+}
+.top-banner-close {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  background: transparent; border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 6px; color: rgba(255,255,255,0.7); cursor: pointer;
+  width: 24px; height: 24px; display: grid; place-items: center;
+  line-height: 1;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.top-banner-close:hover {
+  color: white; border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.06);
+}
+@media (max-width: 700px) {
+  .top-banner { padding: 6px 40px 6px 14px; }
+  .top-banner-inner {
+    flex-wrap: nowrap; gap: 10px; width: 100%;
+    justify-content: space-between;
+  }
+  .top-banner-text-desktop { display: none; }
+  .top-banner-text-mobile {
+    display: inline; font-size: 12px; line-height: 1.3;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    flex: 1 1 auto; min-width: 0;
+  }
+  .top-banner-cta {
+    padding: 5px 11px; font-size: 11.5px; flex: 0 0 auto;
+  }
+}
+
+/* ── Zoom-style hero layout: keeps the light background, centers the
+     headline + CTAs, and adds a sliding cards row beneath. ───────────── */
+.hero.hero-zoom { padding-top: 64px; padding-bottom: 0; overflow: hidden; }
+.hero.hero-zoom .eyebrow { margin-bottom: 20px; }
+@media (max-width: 700px) {
+  .hero.hero-zoom { padding-top: 36px; }
+  .hero.hero-zoom .eyebrow { margin-bottom: 22px; }
+  .hero-zoom-text { padding-bottom: 32px; }
+}
+.hero-zoom-text { text-align: center; padding-bottom: 48px; }
+.hero.hero-zoom h1 { margin: 0 auto 22px; max-width: 920px; text-wrap: balance; }
+.hero.hero-zoom .hero-sub { max-width: 640px; margin: 0 auto 32px; }
+.hero.hero-zoom .hero-cta { justify-content: center; }
+
+/* Cards row: continuous infinite marquee under the hero. The track is
+   duplicated by JS (so the second half slides into place as the first
+   half slides out), then translated -50% on a linear loop. Per-card
+   margin-right (instead of flex gap) keeps the seam math exact. */
+.zh-cards { position: relative; padding: 0 0 72px; overflow: hidden; }
+.zh-cards::before, .zh-cards::after {
+  content: ""; position: absolute; top: 0; bottom: 72px; width: 64px; z-index: 2; pointer-events: none;
+}
+.zh-cards::before { left: 0; background: linear-gradient(to right, var(--bg, #fff), rgba(255,255,255,0)); }
+.zh-cards::after { right: 0; background: linear-gradient(to left, var(--bg, #fff), rgba(255,255,255,0)); }
+.zh-cards-track {
+  display: flex; width: max-content;
+  padding: 8px 0 24px;
+  animation: zh-marquee 45s linear infinite;
+}
+.zh-card {
+  flex: 0 0 auto; width: 280px;
+  margin-right: 18px;
+  display: flex; flex-direction: column;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 18px; overflow: hidden;
+  text-decoration: none; color: var(--navy-900);
+  box-shadow: 0 2px 8px rgba(11, 27, 63, 0.04);
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+.zh-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--navy-200, #cbd5e1);
+  box-shadow: 0 10px 24px rgba(11, 27, 63, 0.10);
+}
+@keyframes zh-marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zh-cards-track { animation: none; }
+}
+.zh-card-head { padding: 16px 18px 12px; display: flex; align-items: center; gap: 10px; }
+.zh-card-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: #facc15;
+  box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.18);
+  flex-shrink: 0;
+}
+.zh-card-label { font-size: 15px; font-weight: 700; color: var(--navy-900); }
+.zh-card-media {
+  margin: 0 12px 14px; aspect-ratio: 4/5;
+  border-radius: 12px; overflow: hidden;
+}
+.zh-card-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+@media (max-width: 700px) {
+  .zh-cards { padding: 0 0 56px; }
+  .zh-cards::before, .zh-cards::after { width: 36px; bottom: 56px; }
+  .zh-card { width: 230px; margin-right: 14px; }
+  .zh-cards-track { animation-duration: 30s; }
+}
+
 .ue-modal[hidden] { display: none; }
 .ue-modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 24px; }
 .ue-backdrop { position: absolute; inset: 0; background: rgba(11, 27, 63, 0.72); backdrop-filter: blur(2px); cursor: pointer; }
 .ue-dialog { position: relative; background: white; border-radius: 16px; padding: 18px 22px; max-width: min(92vw, 980px); max-height: 92vh; box-shadow: 0 24px 64px rgba(0,0,0,0.35); display: flex; flex-direction: column; }
 .ue-title { font-family: var(--font-display); color: var(--navy-900); margin: 0 0 10px; font-size: 1.25rem; flex: 0 0 auto; }
 .ue-dialog img { display: block; width: auto; max-width: 100%; max-height: 100%; height: auto; border-radius: 10px; margin: 0 auto; object-fit: contain; flex: 1 1 auto; min-height: 0; }
-.ue-close { position: absolute; top: 8px; right: 12px; background: transparent; border: none; font-size: 28px; line-height: 1; color: var(--ink-3); cursor: pointer; padding: 4px 10px; border-radius: 8px; z-index: 1; }
+.ue-close { position: absolute; top: 8px; right: 12px; width: 34px; height: 34px; display: grid; place-items: center; background: transparent; border: none; color: var(--ink-3); cursor: pointer; border-radius: 8px; z-index: 1; }
+.ue-close svg { display: block; }
 .ue-close:hover { background: var(--bg); color: var(--navy-900); }
 </style>
 </main>
@@ -1329,12 +1496,50 @@
 (function() {
   const btn = document.getElementById('upcoming-events-btn');
   const modal = document.getElementById('upcoming-events-modal');
-  if (!btn || !modal) return;
-  const open = () => { modal.hidden = false; document.body.style.overflow = 'hidden'; };
-  const close = () => { modal.hidden = true; document.body.style.overflow = ''; };
-  btn.addEventListener('click', open);
-  modal.querySelectorAll('[data-ue-close]').forEach(el => el.addEventListener('click', close));
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.hidden) close(); });
+  if (btn && modal) {
+    const open = () => { modal.hidden = false; document.body.style.overflow = 'hidden'; };
+    const close = () => { modal.hidden = true; document.body.style.overflow = ''; };
+    btn.addEventListener('click', open);
+    modal.querySelectorAll('[data-ue-close]').forEach(el => el.addEventListener('click', close));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.hidden) close(); });
+  }
+
+  // Top announcement banner - dismissible, remembered for the session.
+  const banner = document.getElementById('top-banner');
+  const bannerClose = document.getElementById('top-banner-close');
+  if (banner && bannerClose) {
+    document.body.classList.add('has-top-banner');
+    const header = document.querySelector('.site-header');
+    // Push banner to sit right below the fixed header.
+    if (header) {
+      const pad = () => { banner.style.marginTop = header.offsetHeight + 'px'; };
+      pad();
+      window.addEventListener('resize', pad);
+    }
+    const dismiss = () => {
+      banner.hidden = true;
+      banner.style.marginTop = '0';
+      document.body.classList.remove('has-top-banner');
+      try { sessionStorage.setItem('top_banner_dismissed', '1'); } catch {}
+    };
+    if (sessionStorage.getItem('top_banner_dismissed') === '1') dismiss();
+    bannerClose.addEventListener('click', dismiss);
+  }
+
+  // Featured cards: clone the children once so the track holds two
+  // identical sets back-to-back. The CSS animation translates -50%
+  // and loops — because the second set sits exactly where the first
+  // was, the seam is invisible and motion is continuous.
+  const track = document.getElementById('zh-cards-track');
+  if (track) {
+    const originals = Array.from(track.children);
+    originals.forEach(node => {
+      const clone = node.cloneNode(true);
+      clone.setAttribute('aria-hidden', 'true');
+      clone.setAttribute('tabindex', '-1');
+      track.appendChild(clone);
+    });
+  }
 })();
 </script>
 

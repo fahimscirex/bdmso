@@ -61,8 +61,8 @@
     <aside class="pd-side">
       <div class="pd-card">
         <div class="pd-price">৳ On enquiry</div>
-        <p class="pd-schedule">Coming soon</p>
-        <div class="pd-cta" style="text-align:center;padding:14px;border-radius:12px;background:var(--bg-alt,#f1f3f7);color:var(--ink-3);font-weight:700;font-size:14px;">Registration closed</div>
+        <p class="pd-schedule">Starts 1 August 2026</p>
+        <a class="btn btn-primary btn-lg pd-cta" id="pd-cta" href="/registration?program=stem-masterclass" data-reg-starts="2026-08-01">Enroll now →</a>
         <div class="pd-facts">
           <div class="pd-fact"><div class="k">Who it's for</div><div class="v">Class 4-6, 7-8</div></div>
           <div class="pd-fact"><div class="k">Duration</div><div class="v">2hrs/class, total 6 classes</div></div>
@@ -71,7 +71,10 @@
         </div>
       </div>
 
-      
+      <div class="pd-card pd-warning">
+        <div class="t">⚠ Registration isn't complete until payment is confirmed</div>
+        <div class="b">Submitting the registration form alone does not enroll your child. You'll need to complete payment from your dashboard to receive a BdMSO ID and access program resources.</div>
+      </div>
     </aside>
   </div>
 </section>
@@ -79,6 +82,6 @@
 </main>
 <div id="site-footer"></div>
 <script src="/js/site.js"></script>
-
+<script>(function(){var c=document.getElementById('pd-cta');if(!c)return;var t=new Date().toISOString().slice(0,10);var s=c.dataset.regStarts,e=c.dataset.regEnds,m='';if(s&&t<s){m='Registration opens '+new Date(s).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}else if(e&&t>e){m='Registration closed';}if(m){var b=document.createElement('div');b.className='pd-cta';b.style.cssText='text-align:center;padding:14px;border-radius:12px;background:var(--bg-alt,#f1f3f7);color:var(--ink-3);font-weight:700;font-size:14px;';b.textContent=m;c.replaceWith(b);}})();</script>
 </body>
 </html>

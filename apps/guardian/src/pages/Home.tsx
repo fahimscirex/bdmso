@@ -366,19 +366,19 @@ export function Home() {
       {notice === 'success' && (
         <div class="alert alert-ok">
           <strong>Payment confirmed.</strong> Your registration is paid - your BdMSO ID and a receipt should be in your inbox within a minute.
-          <button type="button" class="alert-close" onClick={() => setNotice(null)} aria-label="Dismiss">×</button>
+          <button type="button" class="alert-close" onClick={() => setNotice(null)} aria-label="Dismiss"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         </div>
       )}
       {notice === 'cancelled' && (
         <div class="alert">
           <strong>Payment cancelled.</strong> No charge was made. You can try again from the registration below.
-          <button type="button" class="alert-close" onClick={() => setNotice(null)} aria-label="Dismiss">×</button>
+          <button type="button" class="alert-close" onClick={() => setNotice(null)} aria-label="Dismiss"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         </div>
       )}
       {notice === 'failed' && (
         <div class="alert alert-bad">
           <strong>Payment didn't go through.</strong> If money was deducted, contact <a href="mailto:support@bdmso.org">support@bdmso.org</a> with your transaction reference - otherwise just try again.
-          <button type="button" class="alert-close" onClick={() => setNotice(null)} aria-label="Dismiss">×</button>
+          <button type="button" class="alert-close" onClick={() => setNotice(null)} aria-label="Dismiss"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         </div>
       )}
 

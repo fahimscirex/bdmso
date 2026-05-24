@@ -352,10 +352,13 @@ a.notif-row:hover { background: var(--bg-alt); }
 .alert-ok  { background: var(--green-bg); border-color: #bbe5cb; color: var(--green); }
 .alert-bad { background: var(--red-bg);   border-color: #fecaca; color: var(--red);   }
 .alert-close {
-  position: absolute; top: 8px; right: 10px;
+  position: absolute; top: 6px; right: 6px;
+  width: 26px; height: 26px;
+  display: grid; place-items: center;
   background: transparent; border: none; color: inherit; opacity: 0.6;
-  font-size: 18px; line-height: 1; padding: 4px 6px; cursor: pointer; border-radius: 4px;
+  cursor: pointer; border-radius: 4px;
 }
+.alert-close svg { display: block; }
 .alert-close:hover { opacity: 1; background: rgba(0,0,0,0.04); }
 
 /* KPI tiles: clean cards with a small icon and a coloured leading
@@ -887,11 +890,13 @@ body.bdmso-pay-banner { padding-top: calc(70px + var(--pay-banner-h, 48px)); }
 .pay-banner-close {
   flex-shrink: 0;
   width: 26px; height: 26px;
+  display: grid; place-items: center;
   background: transparent; border: none; cursor: pointer;
-  color: rgba(11, 27, 63, 0.55); font-size: 18px; line-height: 1;
+  color: rgba(11, 27, 63, 0.55);
   border-radius: 6px;
   transition: background 0.15s, color 0.15s;
 }
+.pay-banner-close svg { display: block; }
 .pay-banner-close:hover { background: rgba(11, 27, 63, 0.14); color: var(--navy-900); }
 
 @media (max-width: 560px) {

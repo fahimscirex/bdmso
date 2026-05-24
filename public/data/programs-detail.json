@@ -1,12 +1,117 @@
 [
 
   {
+    "slug": "national-olympiad",
+    "home_order": "01",
+    "feeAmount": 1000,
+    "title": "BdMSO National Olympiad",
+    "tagline": "Your child's path to representing Bangladesh at IMSO.",
+    "metaDescription": "The official BdMSO National Olympiad - a 60-minute Math and Science exam for students Class 6 and below, and the pathway to represent Bangladesh at IMSO.",
+    "eyebrow": "National · Olympiad",
+    "image": "/images/national-round-winners.webp",
+    "level": "Open · Class 6 or below",
+    "audience": "Class 6 or below",
+    "duration": "60 minutes per subject",
+    "format": "MCQ, Short and Broad Question",
+    "outcome": "Winners advance to National Residential Camp and TST",
+    "price": "৳ 1,000",
+    "schedule": "Registration closes 15 June 2026",
+    "registrationStarts": "2026-01-01",
+    "registrationEnds": "2026-06-15",
+    "register_url": "/registration?program=national-olympiad",
+    "register_label": "Register now",
+    "description": [
+      "BdMSO National Olympiad will be held in multiple regional venues, simultaneously on the same date. The assessment is a two-hour written exam combining both Mathematics and Science sections, featuring a mix of Multiple-Choice Questions (MCQ), Short, and Broad Questions. See Mark Distribution Here.",
+      "This competition day typically commences with the National Anthem, followed by the exam, a lunch break, a cultural program, and a prize giving ceremony.",
+      "Invitation letters for the National Residential Camp are handed over to the guardians of medalists immediately following the ceremony on the same day."
+    ],
+    "what_youll_get_label": "What You'll Get",
+    "what_youll_get": [
+      "All Participants Receive a Certificate of Participation, A BdMSO Tshirt, ID Card, Badges, Snacks and Lunch.",
+      "Winners will receive Certificate of Achievement and Winners Medal",
+      "Winners Category: Mathematics Winner, Science Winner and All-Round Winners",
+      "The highest scorer of the National Olympiad on each subject combining will receive a Champions trophy. This will be awarded on the residential camp.",
+      "All winners will be invited to the national residential camp",
+      "Camp graduates will take part in the Team Selection Test (TST)",
+      "Top scorers from TST will be the part of Bangladesh's Delegations for 23rd IMSO, in Indonesia this October."
+    ],
+    "how_to_participate_label": "How To Participate",
+    "how_to_participate": [
+      "<a href=\"/registration?program=national-olympiad\">Click Register</a>",
+      "Fill up the forms",
+      "Verify email",
+      "Make Payment",
+      "Remember your bdmso ID",
+      "Login later to download the admit card",
+      "Login any time to enroll other courses, mock tests or to check your results"
+    ],
+    "program_day_label": "Program Day Outline",
+    "program_day": [
+      "Registration",
+      "Opening Ceremony",
+      "Exam (Olympiad)",
+      "Lunch Break",
+      "Cultural Program",
+      "Prize Giving Ceremony"
+    ],
+    "registration": true
+  },
+
+  {
+    "slug": "national-quiz-competition",
+    "home_order": "02",
+    "feeAmount": 1000,
+    "title": "BdMSO Quiz Competition",
+    "tagline": "National Quiz competition on Math and Science for the youngest learners. Open to both bangla and english medium students.",
+    "metaDescription": "The BdMSO Quiz Competition - a friendly general-knowledge STEM round for pre-primary to Class 3, open to both Bangla and English mediums.",
+    "eyebrow": "National · Quiz",
+    "image": "/images/exam.webp",
+    "level": "Open · Class 3 or below",
+    "audience": "Class 3 or below",
+    "duration": "60 minutes",
+    "format": "On-site quiz competition",
+    "outcome": "Medal and Certificate of Achievement for the winners",
+    "price": "৳ 1,000",
+    "schedule": "Registration closes 15 June 2026",
+    "registrationStarts": "2026-01-01",
+    "registrationEnds": "2026-06-15",
+    "register_url": "/registration?program=national-quiz-competition",
+    "register_label": "Register now",
+    "description": [
+      "A National Quiz Competition on Mathematics and Science held on the same day as the National Olympiad for the youngest learners (Class three or below). It is designed to make their first competitive STEM experience welcoming, fun and curiosity driven.",
+      "Quiz Competition does not lead to the camp or International Participation. It is the first step towards a competitive journey for our country's youngest Mathematics and Science enthusiasts."
+    ],
+    "what_youll_get_label": "What You'll Get",
+    "what_youll_get": [
+      "Certificate of Participation, BdMSO Tshirt, ID Card, Badges, Snacks and Lunch",
+      "Winners receive Medal and Certificate of Achievement",
+      "Highest scorer of the Quiz receives a Champion trophy"
+    ],
+    "program_day_label": "Program Day Outline",
+    "program_day": [
+      "Registration",
+      "Opening Ceremony",
+      "Exam (Quiz)",
+      "Lunch Break",
+      "Cultural Program",
+      "Prize Giving Ceremony"
+    ],
+    "quiz_structure_label": "Quiz Competition Structure",
+    "quiz_structure": [
+      "Duration: 60 minutes",
+      "Format: Mix of MCQ and Short Question",
+      "Topics: Basic Elementary Mathematics and Science"
+    ],
+    "registration": true
+  },
+
+  {
     "slug": "maryam-mirzakhani-school",
+    "home_order": "03",
     "feeAmount": 2400,
     "title": "Maryam Mirzakhani School of Mathematics and Science",
     "tagline": "3-day foundational program in Mathematics and Science for primary students.",
     "metaDescription": "A 3-day foundational program in Mathematics and Science for primary students up to Class 5, building core problem-solving skills the playful, visual way.",
-    "home_order": "01",
     "registrationStarts": "2026-04-01",
     "registrationEnds": "2026-05-22",
     "bespokePage": true,
@@ -19,24 +124,25 @@
 
   {
     "slug": "stem-foundation",
+    "home_order": "04",
     "feeAmount": 3000,
     "title": "STEM Foundation Program",
     "tagline": "The ultimate head start in Science, Technology, Engineering and Math - for Class 2 to 8.",
-    "metaDescription": "The BdMSO STEM Foundation Program - a 24-class journey through Science, Technology, Engineering and Math for Class 2 to 8, taught in age-appropriate batches.",
-    "home_order": "02",
+    "metaDescription": "The BdMSO STEM Foundation Program - a 2-month journey through Science, Technology, Engineering and Math for Class 2 to 8, taught in age-appropriate batches.",
     "eyebrow": "Year-round · Foundation",
     "image": "/images/stem.webp",
     "level": "Beginner",
     "audience": "Class 2–3, 4–6, 7–8",
-    "duration": "10 Classes/Month",
+    "duration": "10 Online Classes/Month",
     "format": "One Offline Lab Class",
     "outcome": "Strong foundational knowledge and analytical thinking",
     "price": "৳ 3,000 / month",
-    "schedule": "Year-round · rolling enrollment",
+    "schedule": "2 Month long program · Starts 3rd July 2026",
+    "registrationStarts": "2026-07-03",
     "register_url": "/registration?program=stem-foundation",
     "register_label": "Enroll now",
     "description": [
-      "Give your child the ultimate head start with the BdMSO STEM Foundation Program. Designed for students from Class 2 to 8, this comprehensive 24-class journey introduces young minds to the wonders of Science, Technology, Engineering and Mathematics.",
+      "Give your child the ultimate head start with the BdMSO STEM Foundation Program. Designed for students from Class 2 to 8, this comprehensive 2-month journey introduces young minds to the wonders of Science, Technology, Engineering and Mathematics.",
       "Rather than rote memorization, the program nurtures natural curiosity through interactive sessions, everyday examples, and foundational problem-solving. Students are divided into age-appropriate batches (Class 2–3, 4–6, 7–8) so each cohort moves at the right pace."
     ],
     "what_youll_do": [
@@ -53,17 +159,17 @@
       "Class 19: Online review session",
       "Class 20: MASLab Experience (offline lab visit)"
     ],
-    "registration": false,
+    "registration": true,
     "category": "beginner"
   },
 
   {
     "slug": "bdmso-preparatory",
+    "home_order": "05",
     "feeAmount": 3500,
     "title": "BdMSO Preparatory Course",
     "tagline": "Intensive 12-class Olympiad prep with 2 mock tests included · 31 May – 20 June 2026.",
     "metaDescription": "An intensive 12-class BdMSO Olympiad preparation course for Class 3 to 5, with advanced problem-solving and 2 mock tests included. Live online, 31 May to 20 June 2026.",
-    "home_order": "03",
     "registrationStarts": "2026-04-15",
     "registrationEnds": "2026-05-31",
     "eyebrow": "Year-round · Preparation",
@@ -101,24 +207,24 @@
     "options": {
       "kind": "radio",
       "label": "Subjects",
-      "help": "Choose your subjects. Mock Tests at MASLab are included with each option.",
+      "help": "Choose your subjects. Free Mock Test sessions at MASLab are included with each option.",
       "items": [
         {
           "id": "math",
           "label": "Mathematics",
-          "sub": "Includes 12 online classes and 2 Math Mock Tests at MASLab",
+          "sub": "Includes 12 online classes and 2 Math mock tests at MASLab",
           "price": 3500
         },
         {
           "id": "science",
           "label": "Science",
-          "sub": "Includes 12 online classes and 2 Science Mock Tests at MASLab",
+          "sub": "Includes 12 online classes and 2 Science mock tests at MASLab",
           "price": 3500
         },
         {
           "id": "both",
           "label": "Both Mathematics and Science",
-          "sub": "Includes 24 online classes, 1 Science and 1 Math Mock Test at MASLab",
+          "sub": "Includes 24 online classes, 1 Science and 1 Math mock test at MASLab",
           "price": 6000
         }
       ]
@@ -128,11 +234,11 @@
 
   {
     "slug": "lab-day",
+    "home_order": "06",
     "feeAmount": 1500,
     "title": "Lab Day Workshop",
     "tagline": "An intensive, 6-hour laboratory experience that pulls Physics, Biology, and Chemistry concepts out of textbooks and into reality.",
     "metaDescription": "A hands-on 6-hour Lab Day Workshop for Class 5 or below at MASLab, with real Physics, Biology and Chemistry experiments. Lunch, snacks and certificate included.",
-    "home_order": "04",
     "registrationStarts": "2026-06-15",
     "registrationEnds": "2026-07-31",
     "eyebrow": "Single-day · Lab",
@@ -163,11 +269,11 @@
 
   {
     "slug": "stem-masterclass",
+    "home_order": "07",
     "feeAmount": null,
     "title": "STEM Masterclass Series",
     "tagline": "Masterclasses of specialized topics on physics, chemistry, biology or Math. One masterclass consists of 6 classes.",
     "metaDescription": "A 6-class STEM Masterclass for Class 4-6 and 7-8 students, led by mentors and past Olympiad champions, bridging Olympiad prep to TST-level fluency.",
-    "home_order": "05",
     "eyebrow": "Year-round · Masterclass",
     "image": "/images/class.webp",
     "level": "Advanced",
@@ -176,7 +282,8 @@
     "format": "Specialized Classes for Advanced Students",
     "outcome": "TST-level fluency and advanced analytical skills",
     "price": "৳ On enquiry",
-    "schedule": "Coming soon",
+    "schedule": "Starts 1 August 2026",
+    "registrationStarts": "2026-08-01",
     "register_url": "/registration?program=stem-masterclass",
     "register_label": "Enroll now",
     "description": [
@@ -186,17 +293,17 @@
     "what_youll_do": [
       "Detailed course outline coming soon"
     ],
-    "registration": false,
+    "registration": true,
     "category": "advanced"
   },
 
   {
     "slug": "kids-ai-ml",
+    "home_order": "08",
     "feeAmount": null,
     "title": "Kids AI and Machine Learning",
     "tagline": "An introductory, hands-on program where young learners bridge basic coding logic with real-world machine learning concepts.",
     "metaDescription": "A hands-on Kids AI and Machine Learning program for Class 5 or below, where young learners explore electronics, sensors and coding to build their first robot.",
-    "home_order": "06",
     "eyebrow": "Year-round · Kids AI &amp; ML",
     "image": "/images/robotics.webp",
     "level": "Beginner",
@@ -205,7 +312,8 @@
     "format": "Interactive build-and-code sessions",
     "outcome": "Hands on learning before building your 1st robot",
     "price": "৳ On enquiry",
-    "schedule": "Year-round · new cohorts every quarter",
+    "schedule": "Starts 15 June 2026",
+    "registrationStarts": "2026-06-15",
     "register_url": "/registration?program=kids-ai-ml",
     "register_label": "Enroll now",
     "description": [
@@ -215,17 +323,17 @@
     "what_youll_do": [
       "Detailed course outline coming soon"
     ],
-    "registration": false,
+    "registration": true,
     "category": "beginner"
   },
 
   {
     "slug": "mock-test",
+    "home_order": "09",
     "feeAmount": 500,
     "title": "BdMSO Mock Test",
     "tagline": "Mock exam held on June 6th and June 20th to benchmark your skills and understand your standing. Available for Science, Math, or both subjects.",
     "metaDescription": "BdMSO Mock Tests on 6 and 20 June 2026 - on-site simulated exams in Math and Science that mirror the real Olympiad and benchmark your child's readiness.",
-    "home_order": "07",
     "registrationStarts": "2026-04-15",
     "registrationEnds": "2026-06-20",
     "eyebrow": "Year-round · Testing",
@@ -287,11 +395,11 @@
 
   {
     "slug": "summer-camp",
+    "home_order": "10",
     "feeAmount": null,
     "title": "SPSB Nature Camp",
     "tagline": "An activity-packed, 3-day residential camp coming up this December that turns the great outdoors into a living classroom.",
     "metaDescription": "The SPSB Nature Camp - a 4-day residential program of outdoor learning, ecology treks, stargazing and conservation projects for curious young explorers.",
-    "home_order": "08",
     "eyebrow": "Residential · Nature",
     "image": "/images/nature_camp.webp",
     "level": "Open · Residential",
@@ -300,7 +408,8 @@
     "format": "Outdoor residential camp",
     "outcome": "Real-world ecology skills and friends for life",
     "price": "৳ On enquiry",
-    "schedule": "Coming soon",
+    "schedule": "Starts December 2026",
+    "registrationStarts": "2026-12-01",
     "register_url": "/registration?program=summer-camp",
     "register_label": "Book a seat",
     "description": [
@@ -312,17 +421,17 @@
       "Day 3 - Astronomy & Survival: wilderness survival basics, campfires and guided stargazing sessions",
       "Day 4 - Conservation Action: team projects on local environmental issues, awards and departure"
     ],
-    "registration": false,
+    "registration": true,
     "category": "residential"
   },
 
   {
     "slug": "winter-camp",
+    "home_order": "11",
     "feeAmount": null,
     "title": "International Summer/Winter Camp",
     "tagline": "Residential Camp outside Bangladesh with global experts.",
     "metaDescription": "A 5-day international residential camp outside Bangladesh connecting young learners with global STEM experts and BdMSO alumni for mentorship and cross-cultural projects.",
-    "home_order": "09",
     "eyebrow": "Residential · International",
     "image": "/images/winter_camp.webp",
     "level": "Open · Residential · Limited seats",
@@ -343,111 +452,6 @@
     ],
     "registration": false,
     "category": "residential"
-  },
-
-  {
-    "slug": "national-olympiad",
-    "home_order": "10",
-    "feeAmount": 1000,
-    "title": "BdMSO National Olympiad",
-    "tagline": "Your child's path to representing Bangladesh at IMSO.",
-    "metaDescription": "The official BdMSO National Olympiad - a 60-minute Math and Science exam for students Class 6 and below, and the pathway to represent Bangladesh at IMSO.",
-    "eyebrow": "National · Olympiad",
-    "image": "/images/national-round-winners.webp",
-    "level": "Open · Class 6 or below",
-    "audience": "Class 6 or below",
-    "duration": "2 hours total (60 min per subject)",
-    "format": "MCQ, Short and Broad Question",
-    "outcome": "Winners advance to National Residential Camp and TST",
-    "price": "৳ 1,000",
-    "schedule": "Registration closes 15 June 2026",
-    "registrationStarts": "2026-01-01",
-    "registrationEnds": "2026-06-15",
-    "register_url": "/registration?program=national-olympiad",
-    "register_label": "Register now",
-    "description": [
-      "BdMSO National Olympiad will be held in multiple regional venues, simultaneously on the same date. The assessment is a two-hour written exam combining both Mathematics and Science sections, featuring a mix of Multiple-Choice Questions (MCQ), Short, and Broad Questions. See Mark Distribution Here.",
-      "This competition day typically commences with the National Anthem, followed by the exam, a lunch break, a cultural program, and a prize giving ceremony.",
-      "Invitation letters for the National Residential Camp are handed over to the guardians of medalists immediately following the ceremony on the same day."
-    ],
-    "what_youll_get_label": "What You'll Get",
-    "what_youll_get": [
-      "All Participants Receive a Certificate of Participation, A BdMSO Tshirt, ID Card, Badges, Snacks and Lunch.",
-      "Winners will receive Certificate of Achievement and Winners Medal",
-      "Winners Category: Mathematics Winner, Science Winner and All-Round Winners",
-      "The highest scorer of the National Olympiad on each subject combining will receive a Champions trophy. This will be awarded on the residential camp.",
-      "All winners will be invited to the national residential camp",
-      "Camp graduates will take part in the Team Selection Test (TST)",
-      "Top scorers from TST will be the part of Bangladesh's Delegations for 23rd IMSO, in Indonesia this October."
-    ],
-    "how_to_participate_label": "How To Participate",
-    "how_to_participate": [
-      "<a href=\"/registration?program=national-olympiad\">Click Register</a>",
-      "Fill up the forms",
-      "Verify email",
-      "Make Payment",
-      "Remember your bdmso ID",
-      "Login later to download the admit card",
-      "Login any time to enroll other courses, mock tests or to check your results"
-    ],
-    "program_day_label": "Program Day Outline",
-    "program_day": [
-      "Registration",
-      "Opening Ceremony",
-      "Exam (Olympiad)",
-      "Lunch Break",
-      "Cultural Program",
-      "Prize Giving Ceremony"
-    ],
-    "registration": true
-  },
-
-  {
-    "slug": "national-quiz-competition",
-    "home_order": "11",
-    "feeAmount": 1000,
-    "title": "BdMSO Quiz Competition",
-    "tagline": "National Quiz competition on Math and Science for the youngest learners. Open to both bangla and english medium students.",
-    "metaDescription": "The BdMSO Quiz Competition - a friendly general-knowledge STEM round for pre-primary to Class 3, open to both Bangla and English mediums.",
-    "eyebrow": "National · Quiz",
-    "image": "/images/exam.webp",
-    "level": "Open · Class 3 or below",
-    "audience": "Class 3 or below",
-    "duration": "60 minutes",
-    "format": "On-site quiz competition",
-    "outcome": "Medal and Certificate of Achievement for the winners",
-    "price": "৳ 1,000",
-    "schedule": "Registration closes 15 June 2026",
-    "registrationStarts": "2026-01-01",
-    "registrationEnds": "2026-06-15",
-    "register_url": "/registration?program=national-quiz-competition",
-    "register_label": "Register now",
-    "description": [
-      "A National Quiz Competition on Mathematics and Science held on the same day as the National Olympiad for the youngest learners (Class three or below). It is designed to make their first competitive STEM experience welcoming, fun and curiosity driven.",
-      "Quiz Competition does not lead to the camp or International Participation. It is the first step towards a competitive journey for our country's youngest Mathematics and Science enthusiasts."
-    ],
-    "what_youll_get_label": "What You'll Get",
-    "what_youll_get": [
-      "Certificate of Participation, BdMSO Tshirt, ID Card, Badges, Snacks and Lunch",
-      "Winners receive Medal and Certificate of Achievement",
-      "Highest scorer of the Quiz receives a Champion trophy"
-    ],
-    "program_day_label": "Program Day Outline",
-    "program_day": [
-      "Registration",
-      "Opening Ceremony",
-      "Exam (Quiz)",
-      "Lunch Break",
-      "Cultural Program",
-      "Prize Giving Ceremony"
-    ],
-    "quiz_structure_label": "Quiz Competition Structure",
-    "quiz_structure": [
-      "Duration: 60 minutes",
-      "Format: Mix of MCQ and Short Question",
-      "Topics: Basic Elementary Mathematics and Science"
-    ],
-    "registration": true
   },
 
   {

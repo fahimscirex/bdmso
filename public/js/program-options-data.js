@@ -4,24 +4,24 @@ export const PROGRAM_OPTIONS = {
   "bdmso-preparatory": {
     "kind": "radio",
     "label": "Subjects",
-    "help": "Choose your subjects. Mock Tests at MASLab are included with each option.",
+    "help": "Choose your subjects. Free Mock Test sessions at MASLab are included with each option.",
     "items": [
       {
         "id": "math",
         "label": "Mathematics",
-        "sub": "Includes 12 online classes and 2 Math Mock Tests at MASLab",
+        "sub": "Includes 12 online classes and 2 Math mock tests at MASLab",
         "price": 3500
       },
       {
         "id": "science",
         "label": "Science",
-        "sub": "Includes 12 online classes and 2 Science Mock Tests at MASLab",
+        "sub": "Includes 12 online classes and 2 Science mock tests at MASLab",
         "price": 3500
       },
       {
         "id": "both",
         "label": "Both Mathematics and Science",
-        "sub": "Includes 24 online classes, 1 Science and 1 Math Mock Test at MASLab",
+        "sub": "Includes 24 online classes, 1 Science and 1 Math mock test at MASLab",
         "price": 6000
       }
     ]

@@ -375,7 +375,7 @@ body.modal-open { overflow: hidden; }
         <span class="now" id="p-modal-title-text">Loading…</span>
       </div>
       <a class="p-modal-fullpage" id="p-modal-fullpage" href="/programs" target="_blank" rel="noopener">Open full page ↗</a>
-      <button class="p-modal-close" type="button" aria-label="Close">×</button>
+      <button class="p-modal-close" type="button" aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </header>
     <div class="p-modal-body">
       <div class="p-modal-loading" id="p-modal-loading">Loading…</div>
@@ -424,7 +424,7 @@ body.modal-open { overflow: hidden; }
     source.innerHTML = list.map((p, i) => {
     const no = String(i + 1).padStart(2, '0');
     const [badgeClass, badgeLabel] = BADGE[p.category] || ['b-open', 'Open'];
-    const dated = !!(p.registrationStarts && p.registrationEnds);
+    const dated = !!(p.registrationStarts || p.registrationEnds);
     const facts = [
       [ICONS.person, p.audience],
       [ICONS.clock,  p.duration],
@@ -435,7 +435,8 @@ body.modal-open { overflow: hidden; }
       `data-slug="${escAttr(p.slug)}"`,
       `data-tags="${escAttr(p.category || '')}"`,
       `data-schedule="${dated ? 'dated' : 'year-round'}"`,
-      dated ? `data-starts="${escAttr(p.registrationStarts)}" data-ends="${escAttr(p.registrationEnds)}"` : '',
+      p.registrationStarts ? `data-starts="${escAttr(p.registrationStarts)}"` : '',
+      p.registrationEnds ? `data-ends="${escAttr(p.registrationEnds)}"` : '',
       p.bespokePage ? 'data-no-modal="1"' : '',
       p.registration === false ? 'data-registration="false"' : '',
     ].filter(Boolean).join(' ');
