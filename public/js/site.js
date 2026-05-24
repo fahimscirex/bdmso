@@ -46,14 +46,20 @@
               <img class="brand-logo" src="/images/logo.webp" alt="BdMSO 2026 logo" width="120" height="84" />
             </a>
             ${mobileLoginHtml}
-            <button class="menu-toggle" aria-label="Open menu" aria-expanded="false">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+            <button class="menu-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="nav-menu">
+              <span class="menu-bars" aria-hidden="true">
+                <span class="bar bar-top"></span>
+                <span class="bar bar-mid"></span>
+                <span class="bar bar-bot"></span>
+              </span>
             </button>
-            <div class="nav-menu" id="nav-menu">
-              ${NAV_LINKS.map(l => `<a href="${l.href}" ${l.key === CURRENT ? 'class="active"' : ''}>${l.label}</a>`).join('')}
-            </div>
-            <div class="nav-cta" id="nav-cta">
-              ${ctaHtml}
+            <div class="nav-drawer" id="nav-drawer">
+              <div class="nav-menu" id="nav-menu">
+                ${NAV_LINKS.map(l => `<a href="${l.href}" ${l.key === CURRENT ? 'class="active"' : ''}>${l.label}</a>`).join('')}
+              </div>
+              <div class="nav-cta" id="nav-cta">
+                ${ctaHtml}
+              </div>
             </div>
           </nav>
         </div>
@@ -73,12 +79,28 @@
     }
 
     const tog = host.querySelector('.menu-toggle');
-    const menu = host.querySelector('#nav-menu');
-    const cta = host.querySelector('#nav-cta');
-    tog.addEventListener('click', () => {
-      const open = menu.classList.toggle('open');
-      cta.classList.toggle('open', open);
+    const drawer = host.querySelector('#nav-drawer');
+    const setMenu = (open) => {
+      drawer.classList.toggle('open', open);
+      tog.classList.toggle('is-open', open);
       tog.setAttribute('aria-expanded', String(open));
+      tog.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    };
+    tog.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setMenu(!drawer.classList.contains('open'));
+    });
+    // Escape key dismisses the menu.
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && drawer.classList.contains('open')) setMenu(false);
+    });
+    // Click outside the header closes the menu. Clicks on menu links
+    // also close it - mobile users expect "tap link -> navigate -> menu away".
+    document.addEventListener('click', (e) => {
+      if (!drawer.classList.contains('open')) return;
+      const inHeader = e.target.closest && e.target.closest('.site-header');
+      const isLink = e.target.closest && e.target.closest('.nav-menu a, .nav-cta a, .nav-cta .nav-logout');
+      if (!inHeader || isLink) setMenu(false);
     });
   }
 

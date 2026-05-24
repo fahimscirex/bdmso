@@ -124,7 +124,18 @@
   --dur-press:     100ms;
   --dur-ui:        180ms;
   --dur-modal:     220ms;
+
+  /* The fixed .site-header is ~87px tall (58px logo + 14*2 nav padding +
+     1px border). Every sticky sidebar and every anchor jump uses this
+     value so the top of a sticky element and the top of a freshly
+     scrolled-to panel sit at exactly the same Y. */
+  --sticky-top: 96px;
 }
+
+/* Enables `height: 0 -> auto` transitions on Chrome 129+ / Safari 18.4+.
+   Older browsers ignore the property and the height change snaps
+   instead of animating - acceptable degradation. */
+:root { interpolate-size: allow-keywords; }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -156,8 +167,9 @@ button { font: inherit; cursor: pointer; border: none; background: none; }
 
 /* Anchor jumps (#syllabus, #awards, etc.) need clearance for the fixed
    .site-header - otherwise the target heading hides under it. Applies
-   to native hash-nav and JS scrollIntoView calls. */
-html { scroll-padding-top: 96px; }
+   to native hash-nav and JS scrollIntoView calls. Shares --sticky-top
+   so anchor-jumped panels land at exactly the sticky sidebar's Y. */
+html { scroll-padding-top: var(--sticky-top); }
 
 select { color-scheme: light; }
 
@@ -286,6 +298,10 @@ select { color-scheme: light; }
 
 .mobile-login { display: none; }
 
+/* Hamburger toggle: three bars rendered as <span> elements that
+   morph into an X when .is-open. SVG strokes would work too, but
+   element transforms compose more predictably and the bars share
+   one transition for the whole morph. */
 .menu-toggle {
   display: none;
   width: 42px; height: 42px;
@@ -293,43 +309,192 @@ select { color-scheme: light; }
   border: 1px solid var(--line);
   color: var(--navy-800);
   align-items: center; justify-content: center;
+  background: transparent;
+  transition:
+    background-color var(--dur-ui) ease,
+    border-color var(--dur-ui) ease,
+    transform var(--dur-press) var(--ease-out);
+}
+.menu-toggle:active { transform: scale(0.94); }
+.menu-toggle.is-open {
+  background: var(--navy-900);
+  border-color: var(--navy-900);
+  color: white;
+}
+.menu-bars {
+  position: relative; display: block;
+  width: 18px; height: 14px;
+}
+.menu-bars .bar {
+  position: absolute; left: 0; right: 0;
+  height: 2px; border-radius: 2px;
+  background: currentColor;
+  transform-origin: center;
+  /* Match the bar transitions across all three so the morph reads as
+     one synchronized motion, not three independent ones. */
+  transition:
+    transform var(--dur-ui) var(--ease-out),
+    top var(--dur-ui) var(--ease-out),
+    opacity var(--dur-ui) var(--ease-out);
+}
+.menu-bars .bar-top { top: 0; }
+.menu-bars .bar-mid { top: 50%; transform: translateY(-50%); }
+.menu-bars .bar-bot { top: 100%; transform: translateY(-100%); }
+.menu-toggle.is-open .menu-bars .bar-top {
+  top: 50%; transform: translateY(-50%) rotate(45deg);
+}
+.menu-toggle.is-open .menu-bars .bar-mid {
+  opacity: 0; transform: translateY(-50%) scaleX(0.4);
+}
+.menu-toggle.is-open .menu-bars .bar-bot {
+  top: 50%; transform: translateY(-50%) rotate(-45deg);
 }
 
+/* `.nav-drawer` wraps the menu + CTA. On desktop it is `display: contents`
+   so its children (.nav-menu, .nav-cta) participate directly in the flex
+   row of .nav. On mobile it becomes a fixed right-side sheet panel
+   with a backdrop scrim, fully detached from the header layout. */
+.nav-drawer { display: contents; }
+
 @media (max-width: 1000px) {
-  .nav-menu, .nav-cta { display: none; }
-  .nav-menu.open, .nav-cta.open { display: flex; }
+  .nav { position: relative; flex-wrap: nowrap; gap: 0; }
   .menu-toggle { display: inline-flex; margin-left: auto; }
+  .brand-logo { height: 50px; max-width: min(52vw, 210px); }
   .mobile-login {
     display: inline-flex; align-items: center;
     margin-left: auto; margin-right: 4px;
     font-size: 14px; font-weight: 600; color: var(--navy-800);
     padding: 9px 14px; white-space: nowrap;
+    border-radius: 8px;
+    transition:
+      background-color var(--dur-ui) ease,
+      transform var(--dur-press) var(--ease-out);
   }
+  .mobile-login:active { transform: scale(0.97); }
   .mobile-login + .menu-toggle { margin-left: 0; }
-  .nav {
-    flex-wrap: wrap;
-    gap: 16px;
+
+  /* Light backdrop scrim. Just enough dimming to mark the page as
+     inactive without obscuring it - the drawer is small and content
+     remains the context. Click anywhere on the scrim to dismiss. */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background: rgba(15, 23, 42, 0.18);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-ui) var(--ease-out);
+    z-index: 98;
   }
-  .brand-logo {
-    height: 50px;
-    max-width: min(52vw, 210px);
+  body:has(.nav-drawer.open)::before {
+    opacity: 1;
+    pointer-events: auto;
   }
-  .nav-menu.open {
-    flex-direction: column;
-    width: 100%;
+
+  /* Compact floating popover anchored to the top-right under the
+     hamburger button. Auto-height with max-height fallback + internal
+     scroll. Scales from `top right` so the popover visibly grows out
+     of the hamburger button. */
+  .nav-drawer {
+    display: block;
+    position: fixed;
+    top: 76px;
+    /* Matches `.container { padding: 0 24px }` so the drawer's right
+       edge tracks the hamburger button's right edge exactly. */
+    right: 24px;
+    width: min(220px, calc(100vw - 48px));
+    max-height: calc(100dvh - 96px);
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 20px 44px -10px rgba(15, 23, 42, 0.24);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    transform-origin: top right;
+    transform: scale(0.96);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform var(--dur-ui) var(--ease-out),
+      opacity var(--dur-ui) var(--ease-out);
+    z-index: 99;
+  }
+  .nav-drawer.open {
+    transform: scale(1);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .nav-menu, .nav-cta {
+    display: flex; flex-direction: column;
+    /* Override desktop `align-items: center` which becomes horizontal
+       centering once the flex direction flips to column. */
     align-items: stretch;
+  }
+  .nav-menu {
+    padding: 8px;
     gap: 2px;
-    padding-top: 8px;
+  }
+  .nav-menu a {
+    display: flex; align-items: center; justify-content: flex-start;
+    padding: 10px 14px 10px 18px; min-height: 40px;
+    font-size: 14.5px; font-weight: 500;
+    color: var(--ink-1);
+    border-radius: 8px;
+    text-align: left;
+    /* Items lift in slightly; stagger delays per-nth-child below. */
+    opacity: 0; transform: translateY(-4px);
+    transition:
+      opacity var(--dur-ui) var(--ease-out),
+      transform var(--dur-ui) var(--ease-out),
+      background-color var(--dur-ui) ease,
+      color var(--dur-ui) ease;
+  }
+  .nav-menu a.active {
+    color: var(--navy-900);
+    background: var(--navy-50);
+    font-weight: 600;
+  }
+  .nav-drawer.open .nav-menu a { opacity: 1; transform: translateY(0); }
+  .nav-drawer.open .nav-menu a:nth-child(1) { transition-delay: 40ms; }
+  .nav-drawer.open .nav-menu a:nth-child(2) { transition-delay: 70ms; }
+  .nav-drawer.open .nav-menu a:nth-child(3) { transition-delay: 100ms; }
+  .nav-drawer.open .nav-menu a:nth-child(4) { transition-delay: 130ms; }
+  .nav-drawer.open .nav-menu a:nth-child(5) { transition-delay: 160ms; }
+  .nav-drawer.open .nav-menu a:nth-child(6) { transition-delay: 190ms; }
+  .nav-drawer.open .nav-menu a:nth-child(7) { transition-delay: 220ms; }
+  /* No delay on close - release should be snappy. */
+  .nav-drawer:not(.open) .nav-menu a { transition-delay: 0ms !important; }
+
+  .nav-cta {
+    padding: 8px 10px 10px;
+    gap: 6px;
     border-top: 1px solid var(--line-2);
   }
-  .nav-menu.open a { padding: 12px 14px; font-size: 15px; }
-  .nav-cta.open {
+  /* The "Tanjim" greeting is redundant inside a menu that already
+     shows the user's Dashboard / Log out actions. Hide on mobile. */
+  .nav-cta .nav-user { display: none; }
+  .nav-cta .btn,
+  .nav-cta .login {
     width: 100%;
-    flex-direction: column;
-    gap: 8px;
-    padding-bottom: 8px;
+    text-align: center;
+    justify-content: center;
+    padding: 9px 12px;
+    font-size: 13.5px;
   }
-  .nav-cta.open .btn, .nav-cta.open .login { width: 100%; text-align: center; justify-content: center; }
+  .nav-cta > * {
+    opacity: 0; transform: translateY(-4px);
+    transition:
+      opacity var(--dur-ui) var(--ease-out),
+      transform var(--dur-ui) var(--ease-out);
+  }
+  .nav-drawer.open .nav-cta > * { opacity: 1; transform: translateY(0); }
+  .nav-drawer.open .nav-cta > *:nth-child(1) { transition-delay: 250ms; }
+  .nav-drawer.open .nav-cta > *:nth-child(2) { transition-delay: 280ms; }
+  .nav-drawer.open .nav-cta > *:nth-child(3) { transition-delay: 310ms; }
+  .nav-drawer:not(.open) .nav-cta > * { transition-delay: 0ms !important; }
+
+  /* Lock page scroll while the drawer is open. */
+  body:has(.nav-drawer.open) { overflow: hidden; }
 }
 
 /* ---------- Buttons ---------- */
@@ -747,7 +912,7 @@ body[data-page="home"] .prog-card:nth-child(8) { animation-delay: 390ms; }
 .pd-main ol { padding-left: 22px; margin: 0 0 1.2em; }
 .pd-main ol li { margin-bottom: 6px; color: var(--ink-1); line-height:1.65; }
 
-.pd-side { display:flex; flex-direction:column; gap:18px; position: sticky; top: 20px; }
+.pd-side { display:flex; flex-direction:column; gap:18px; position: sticky; top: var(--sticky-top); }
 .pd-card { background:white; border:1px solid var(--line); border-radius: var(--r-lg); padding:24px; box-shadow: var(--shadow-sm); }
 .pd-price { font-family: var(--font-display); font-size:1.6rem; font-weight:700; color: var(--navy-900); margin-bottom: 6px; }
 .pd-schedule { font-size:13px; font-weight:600; color: var(--navy-800); background: var(--navy-50, #eef2f9); border-radius: 9px; padding: 9px 12px; margin: 0 0 18px; line-height: 1.5; }
