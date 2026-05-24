@@ -185,13 +185,21 @@
 /* The shell itself is the scroll container, capped at 90vh so the
    sticky header has a fixed top to stick to instead of fighting the
    viewport scroll. */
+/* Modal shell. Transition + @starting-style instead of keyframe so a
+   user reopening the modal quickly doesn't see a restart-from-zero.
+   transform-origin stays default (center) - modals are not anchored to
+   a trigger. */
 .p-modal-shell {
   background: white; width: 100%; max-width: 880px; max-height: 90vh;
   border-radius: var(--r-xl); box-shadow: 0 30px 60px -15px rgba(0,0,0,0.4);
   display: flex; flex-direction: column; overflow: hidden;
-  animation: pmodalin 0.18s ease-out;
+  transition:
+    opacity var(--dur-modal) var(--ease-out),
+    transform var(--dur-modal) var(--ease-out);
 }
-@keyframes pmodalin { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+@starting-style {
+  .p-modal-shell { opacity: 0; transform: translateY(8px) scale(0.98); }
+}
 
 .p-modal-head {
   flex: 0 0 auto;

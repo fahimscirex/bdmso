@@ -162,6 +162,20 @@
     bootstrap();
   }
 
+  // Toggle a `data-page-hidden` attribute on <html> while the tab is
+  // backgrounded. CSS uses it to pause infinite ambient animations
+  // (e.g. the registration-open ping) - they're decorative and burn
+  // GPU cycles no one is looking at.
+  const syncVisibility = () => {
+    if (document.visibilityState === 'hidden') {
+      document.documentElement.setAttribute('data-page-hidden', '');
+    } else {
+      document.documentElement.removeAttribute('data-page-hidden');
+    }
+  };
+  document.addEventListener('visibilitychange', syncVisibility);
+  syncVisibility();
+
   // Custom-dropdown enhancer - loaded once here so every marketing page
   // gets it without a per-page <script> tag. (It self-skips the SPA.)
   if (!document.querySelector('script[data-bdsel-loader]')) {

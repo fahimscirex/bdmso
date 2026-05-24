@@ -165,7 +165,10 @@
   line-height: 1;
 }
 
-/* Dropdown popover */
+/* Dropdown popover. Scales from the bell trigger (top right) rather than
+   appearing at center, which is the canonical origin-aware popover
+   pattern. Uses a transition + @starting-style so rapid open/close
+   retargets smoothly instead of restarting (keyframes restart from 0). */
 .notif-panel {
   position: absolute; top: calc(100% + 10px); right: 0;
   width: 340px; max-width: calc(100vw - 32px);
@@ -175,11 +178,13 @@
   box-shadow: 0 24px 48px -20px rgba(15, 31, 74, 0.35);
   z-index: 50;
   overflow: hidden;
-  animation: notif-pop 160ms ease-out both;
+  transform-origin: top right;
+  transition:
+    opacity var(--dur-ui) var(--ease-out),
+    transform var(--dur-ui) var(--ease-out);
 }
-@keyframes notif-pop {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0); }
+@starting-style {
+  .notif-panel { opacity: 0; transform: scale(0.96); }
 }
 .notif-panel-head {
   display: flex; align-items: center; justify-content: space-between;
@@ -1026,7 +1031,11 @@ body.bdmso-pay-banner { padding-top: calc(70px + var(--pay-banner-h, 48px)); }
   border-radius: 14px; padding: 18px 20px;
   display: flex; flex-direction: column; justify-content: space-between;
   backface-visibility: hidden;
-  transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  /* iOS-style drawer curve - gives the rotation a heavier, more
+     physical feel than Material's 0.4,0,0.2,1. 480ms is the deliberate-
+     gesture sweet spot: long enough to read as a flip, short enough to
+     stay snappy if the user toggles back. */
+  transition: transform 480ms var(--ease-spring);
 }
 .id-card-front {
   background: #0f1d40;

@@ -195,11 +195,22 @@ select { color-scheme: light; }
   box-shadow: 0 0 0 4px var(--focus-ring, rgba(66, 82, 171, 0.15));
 }
 .field.is-error .bdsel-trigger { border-color: #dc2626; }
+/* Custom-select panel. Scales in from `top` (just below the trigger)
+   rather than appearing flat, which matches the Radix / Base UI default
+   pattern and grounds the panel visually under the trigger before the
+   eye finishes moving. */
 .bdsel-panel {
   position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 60;
   background: #fff; border: 1px solid var(--line); border-radius: 10px;
   box-shadow: 0 14px 34px -10px rgba(15, 23, 42, 0.3);
   padding: 5px;
+  transform-origin: top;
+  transition:
+    opacity var(--dur-ui) var(--ease-out),
+    transform var(--dur-ui) var(--ease-out);
+}
+@starting-style {
+  .bdsel-panel { opacity: 0; transform: scale(0.97); }
 }
 .bdsel-search {
   width: 100%; box-sizing: border-box; margin-bottom: 5px;
@@ -697,6 +708,16 @@ body[data-page="home"] .prog-card:nth-child(8) { animation-delay: 390ms; }
     transition-duration: 0.01ms !important;
     transition-delay: 0ms !important;
   }
+}
+
+/* Pause every infinite/ambient animation while the tab is hidden.
+   site.js toggles [data-page-hidden] on <html> via visibilitychange.
+   The hero badge float, registration-open pings, and the cards
+   marquee all stop until the user returns. */
+:root[data-page-hidden] *,
+:root[data-page-hidden] *::before,
+:root[data-page-hidden] *::after {
+  animation-play-state: paused !important;
 }
 
 /* ─── Program detail pages (shared with /programs modal) ─────────────────── */
