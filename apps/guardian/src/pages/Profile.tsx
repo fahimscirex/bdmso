@@ -92,16 +92,28 @@ export function Profile() {
 
 // Resend the email-verification link. The verification mail can go
 // missing (spam, blocked sender), so an unverified account gets a
-// one-click resend wired to POST /api/resend-verification.
+// one-click resend wired to POST /api/resend-verification. A 30s
+// cooldown after a successful send prevents double-taps from spamming
+// Brevo and stops the user from being puzzled by "I got two emails -
+// is the second one the only one that works?" (it isn't anymore; see
+// handleResendVerification, but the cooldown still avoids the spam).
 function ResendVerify() {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [msg, setMsg] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const id = setInterval(() => setCooldown((s) => s - 1), 1000);
+    return () => clearInterval(id);
+  }, [cooldown]);
 
   async function resend() {
     setStatus('sending');
     try {
       const res = await api.post<{ ok: true; alreadyVerified?: boolean }>('/api/resend-verification', {});
       setStatus('sent');
+      setCooldown(30);
       setMsg(res.alreadyVerified
         ? 'Your email is already verified - refresh the page.'
         : 'Verification email sent. Check your inbox and spam folder.');
@@ -113,12 +125,12 @@ function ResendVerify() {
 
   return (
     <div class="resend-verify">
-      {status === 'sent'
-        ? <span class="resend-msg ok">{msg}</span>
+      {status === 'sent' && cooldown > 0
+        ? <span class="resend-msg ok">{msg} <span class="muted">(resend in {cooldown}s)</span></span>
         : (
           <>
-            <button type="button" class="resend-link" onClick={resend} disabled={status === 'sending'}>
-              {status === 'sending' ? 'Sending…' : 'Resend verification email'}
+            <button type="button" class="resend-link" onClick={resend} disabled={status === 'sending' || cooldown > 0}>
+              {status === 'sending' ? 'Sending…' : status === 'sent' ? 'Resend again' : 'Resend verification email'}
             </button>
             {status === 'error' && <span class="resend-msg bad">{msg}</span>}
           </>

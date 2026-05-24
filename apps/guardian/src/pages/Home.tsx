@@ -531,12 +531,21 @@ export function Home() {
 function VerifyEmailNotice({ email }: { email: string }) {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [msg, setMsg] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const id = setInterval(() => setCooldown((s) => s - 1), 1000);
+    return () => clearInterval(id);
+  }, [cooldown]);
 
   async function resend() {
+    if (cooldown > 0) return;
     setStatus('sending');
     try {
       const res = await api.post<{ ok: true; alreadyVerified?: boolean }>('/api/resend-verification', {});
       setStatus('sent');
+      setCooldown(30);
       setMsg(res.alreadyVerified
         ? 'Your email is already verified - refresh the page.'
         : `Verification email sent to ${email}. Check your inbox and spam folder.`);
@@ -546,10 +555,10 @@ function VerifyEmailNotice({ email }: { email: string }) {
     }
   }
 
-  if (status === 'sent') {
+  if (status === 'sent' && cooldown > 0) {
     return (
       <div class="dash-hero-verify is-sent">
-        <span class="dot" /> {msg}
+        <span class="dot" /> {msg} <span class="muted">(resend in {cooldown}s)</span>
       </div>
     );
   }
@@ -557,14 +566,14 @@ function VerifyEmailNotice({ email }: { email: string }) {
   return (
     <div class="dash-hero-verify">
       <span class="dot" />
-      <span>Verify your email to receive receipts &amp; admit cards.</span>
+      <span>{status === 'sent' ? 'Didn\'t get it? You can resend now.' : 'Verify your email to receive receipts & admit cards.'}</span>
       <button
         type="button"
         class="dash-hero-verify-btn"
         onClick={resend}
-        disabled={status === 'sending'}
+        disabled={status === 'sending' || cooldown > 0}
       >
-        {status === 'sending' ? 'Sending…' : 'Resend email'}
+        {status === 'sending' ? 'Sending…' : status === 'sent' ? 'Resend again' : 'Resend email'}
       </button>
       {status === 'error' && <span class="dash-hero-verify-err">{msg}</span>}
     </div>

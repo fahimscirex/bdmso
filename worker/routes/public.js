@@ -331,7 +331,13 @@ export async function handleResendVerification(request, env) {
   ).bind(account.account_id).first();
   if (row?.email_verified) return jsonResponse({ ok: true, alreadyVerified: true });
 
-  await env.DB.prepare("DELETE FROM email_verification_tokens WHERE account_id = ?").bind(account.account_id).run();
+  // Intentionally do NOT delete prior tokens here. Both emails go to the
+  // same address, so both links are equivalent - invalidating the older
+  // one just breaks the first email if the user happened to hit Resend
+  // twice. handleVerifyEmail wipes every remaining token for the account
+  // once any one of them is consumed, so cleanup happens at use time.
+  // (Email CHANGE in /api/me/profile still deletes - old tokens were
+  // sent to a different address and must die.)
   const verifyToken = await createVerificationToken(env, account.account_id);
   const verifyUrl   = `${getBaseUrl(request)}/api/verify-email?token=${verifyToken}`;
   await sendVerificationEmail(env, account.email, verifyUrl);
@@ -375,21 +381,37 @@ export async function handleForgotPassword(request, env) {
   return jsonResponse({ ok: true });
 }
 
-// POST /api/forgot-email { phone } - returns a masked email for the account
-// whose registrations carry that Bangladesh mobile number.
+// POST /api/forgot-email { phone? | memberId? } - returns a masked email
+// for the account identified by one of: a phone number on any of the
+// account's registrations, or the BdMSO ID issued to that account.
+// Pass exactly one of `phone` or `memberId`.
 export async function handleForgotEmail(request, env) {
   const payload = await parseJson(request);
-  const digits  = (normalizeString(payload.phone) || "").replace(/\D+/g, "");
-  // Match on the 10-digit subscriber number (drop any 880 country code).
-  const subscriber = digits.length > 10 ? digits.slice(-10) : digits;
-  if (subscriber.length < 10) return badRequest("Enter a valid phone number.");
+  const phoneRaw    = normalizeString(payload.phone);
+  const memberIdRaw = normalizeString(payload.memberId);
 
-  const row = await env.DB.prepare(`
-    SELECT a.email AS email FROM guardian_accounts a
-    JOIN registrations r ON r.guardian_account_id = a.id
-    WHERE r.guardian_phone LIKE ?
-    LIMIT 1
-  `).bind(`%${subscriber}`).first();
+  let row;
+  if (memberIdRaw) {
+    // Member IDs look like "BdMSO2604-001"; case-insensitive match,
+    // tolerate stray spaces. Stored as-issued in guardian_accounts.member_id.
+    const id = memberIdRaw.replace(/\s+/g, "").toUpperCase();
+    row = await env.DB.prepare(
+      "SELECT email FROM guardian_accounts WHERE UPPER(member_id) = ? LIMIT 1"
+    ).bind(id).first();
+  } else if (phoneRaw) {
+    // Match on the 10-digit subscriber number (drop any 880 country code).
+    const digits = phoneRaw.replace(/\D+/g, "");
+    const subscriber = digits.length > 10 ? digits.slice(-10) : digits;
+    if (subscriber.length < 10) return badRequest("Enter a valid phone number.");
+    row = await env.DB.prepare(`
+      SELECT a.email AS email FROM guardian_accounts a
+      JOIN registrations r ON r.guardian_account_id = a.id
+      WHERE r.guardian_phone LIKE ?
+      LIMIT 1
+    `).bind(`%${subscriber}`).first();
+  } else {
+    return badRequest("Enter a phone number or BdMSO ID.");
+  }
 
   if (!row) return jsonResponse({ ok: true, found: false });
   return jsonResponse({ ok: true, found: true, maskedEmail: maskEmail(row.email) });
