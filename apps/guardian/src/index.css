@@ -28,6 +28,14 @@
   --red-bg:   #fdecea;
   --muted:    #6e7a91;
   --muted-bg: #eef1f6;
+
+  /* Motion tokens (mirrored from marketing styles.css for cohesion). */
+  --ease-out:    cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-press:   100ms;
+  --dur-ui:      180ms;
+  --dur-modal:   220ms;
 }
 
 /* ─── Auth shell (login + transient error screen) ───────────────────────────
@@ -134,10 +142,17 @@
   border-radius: 11px;
   display: inline-flex; align-items: center; justify-content: center;
   cursor: pointer; position: relative;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition:
+    background-color var(--dur-ui) ease,
+    border-color var(--dur-ui) ease,
+    color var(--dur-ui) ease,
+    transform var(--dur-press) var(--ease-out);
 }
-.notif-bell-btn:hover,
+@media (hover: hover) and (pointer: fine) {
+  .notif-bell-btn:hover { background: white; border-color: var(--navy-200, #c8d2e8); color: var(--navy-900); }
+}
 .notif-bell-btn.is-open { background: white; border-color: var(--navy-200, #c8d2e8); color: var(--navy-900); }
+.notif-bell-btn:active { transform: scale(0.94); }
 .notif-bell-btn svg { width: 17px; height: 17px; }
 .notif-bell-badge {
   position: absolute; top: -5px; right: -5px;
@@ -357,9 +372,16 @@ a.notif-row:hover { background: var(--bg-alt); }
   display: grid; place-items: center;
   background: transparent; border: none; color: inherit; opacity: 0.6;
   cursor: pointer; border-radius: 4px;
+  transition:
+    opacity var(--dur-ui) ease,
+    background-color var(--dur-ui) ease,
+    transform var(--dur-press) var(--ease-out);
 }
 .alert-close svg { display: block; }
-.alert-close:hover { opacity: 1; background: rgba(0,0,0,0.04); }
+@media (hover: hover) and (pointer: fine) {
+  .alert-close:hover { opacity: 1; background: rgba(0,0,0,0.04); }
+}
+.alert-close:active { transform: scale(0.9); }
 
 /* KPI tiles: clean cards with a small icon and a coloured leading
    strip per tone. The leading strip + soft glow on hover give the
@@ -894,10 +916,16 @@ body.bdmso-pay-banner { padding-top: calc(70px + var(--pay-banner-h, 48px)); }
   background: transparent; border: none; cursor: pointer;
   color: rgba(11, 27, 63, 0.55);
   border-radius: 6px;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background-color var(--dur-ui) ease,
+    color var(--dur-ui) ease,
+    transform var(--dur-press) var(--ease-out);
 }
 .pay-banner-close svg { display: block; }
-.pay-banner-close:hover { background: rgba(11, 27, 63, 0.14); color: var(--navy-900); }
+@media (hover: hover) and (pointer: fine) {
+  .pay-banner-close:hover { background: rgba(11, 27, 63, 0.14); color: var(--navy-900); }
+}
+.pay-banner-close:active { transform: scale(0.9); }
 
 @media (max-width: 560px) {
   /* On mobile the bar already stacks onto its own row, so let the text

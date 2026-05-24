@@ -113,6 +113,17 @@
   --shadow-lg: 0 24px 48px -12px rgba(10, 22, 40, 0.16);
 
   --container: 1240px;
+
+  /* Motion tokens. Built-in `ease`/`ease-out` are too weak — these curves
+     give UI motion the punch that makes it feel intentional. Apply via
+     transition or animation timing-function. Durations follow Emil's
+     scale: press <= 120ms, UI 150-220ms, modal 200-260ms. */
+  --ease-out:      cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out:   cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-spring:   cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-press:     100ms;
+  --dur-ui:        180ms;
+  --dur-modal:     220ms;
 }
 
 * { box-sizing: border-box; }
@@ -130,7 +141,11 @@ body {
 }
 img { max-width: 100%; display: block; }
 a { color: inherit; text-decoration: none; }
-button { font-family: inherit; cursor: pointer; border: none; background: none; }
+/* Normalize button typography. Without `font: inherit` a <button> falls
+   back to UA defaults (Chrome: 13.333px, Helvetica-ish, line-height: normal),
+   so a button + a styled the same .btn class render at different sizes -
+   the button shrinks. */
+button { font: inherit; cursor: pointer; border: none; background: none; }
 
 .container {
   width: 100%;
@@ -162,8 +177,12 @@ select { color-scheme: light; }
   padding: 11px 14px; font: inherit; font-size: 15px;
   border: 1px solid var(--line); border-radius: 10px;
   background: #fff; color: var(--ink, #16254d);
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color var(--dur-ui) ease,
+    box-shadow var(--dur-ui) ease,
+    transform var(--dur-press) var(--ease-out);
 }
+.bdsel-trigger:active { transform: scale(0.99); }
 .bdsel-trigger::after {
   content: ""; width: 8px; height: 8px; flex-shrink: 0; margin-top: -3px;
   border-right: 2px solid var(--ink-3, #94a3b8);
@@ -312,13 +331,19 @@ select { color-scheme: light; }
   font-size: 14.5px;
   padding: 11px 20px;
   border-radius: 10px;
-  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s, color 0.2s;
+  transition:
+    transform var(--dur-press) var(--ease-out),
+    box-shadow var(--dur-ui) var(--ease-out),
+    background-color var(--dur-ui) ease,
+    color var(--dur-ui) ease;
   white-space: nowrap;
   cursor: pointer;
   border: 1px solid transparent;
 }
-.btn:hover { transform: translateY(-1px); }
-.btn:active { transform: translateY(0); }
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover { transform: translateY(-1px); }
+}
+.btn:active { transform: scale(0.97); }
 
 .btn-primary {
   background: var(--navy-800);
@@ -521,9 +546,12 @@ section[hidden] { display: none !important; }
   border-radius: 10px;
   background: var(--navy-surface-dk);
   display: grid; place-items: center;
-  transition: background 0.2s, transform 0.15s;
+  transition: background-color var(--dur-ui) ease, color var(--dur-ui) ease, transform var(--dur-press) var(--ease-out);
 }
-.socials a:hover { background: var(--gold-500); color: var(--navy-900); transform: translateY(-2px); }
+@media (hover: hover) and (pointer: fine) {
+  .socials a:hover { background: var(--gold-500); color: var(--navy-900); transform: translateY(-2px); }
+}
+.socials a:active { transform: scale(0.94); }
 
 .copyright {
   border-top: 1px solid oklch(0.28 0.06 252);
@@ -586,14 +614,14 @@ html { scroll-behavior: smooth; }
 .level-card,
 .site-footer a {
   transition:
-    transform 0.18s ease,
-    box-shadow 0.22s ease,
-    background 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease;
+    transform var(--dur-ui) var(--ease-out),
+    box-shadow var(--dur-ui) var(--ease-out),
+    background-color var(--dur-ui) ease,
+    color var(--dur-ui) ease,
+    border-color var(--dur-ui) ease;
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .nav-menu a:hover,
   .btn:hover,
   .socials a:hover,
@@ -611,16 +639,15 @@ html { scroll-behavior: smooth; }
   }
 }
 
-@media (hover: none) {
-  .nav-menu a:active,
-  .btn:active,
-  .socials a:active,
-  .prog-card:active,
-  .fame-card:active,
-  .test-card:active,
-  .level-card:active {
-    transform: scale(0.98);
-  }
+/* Press feedback applies on every pointer (mouse + touch). Cards get
+   scale(0.98); buttons get the tighter scale(0.97) set on `.btn` itself. */
+.nav-menu a:active,
+.socials a:active,
+.prog-card:active,
+.fame-card:active,
+.test-card:active,
+.level-card:active {
+  transform: scale(0.98);
 }
 
 body[data-page="home"] .hero-copy,

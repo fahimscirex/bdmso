@@ -214,8 +214,21 @@
   width: 30px; height: 30px; border-radius: 50%; background: var(--bg-alt);
   display: flex; align-items: center; justify-content: center;
   border: none; cursor: pointer; color: var(--ink-2); font-size: 18px; line-height: 1;
+  transition:
+    background-color var(--dur-ui) ease,
+    color var(--dur-ui) ease,
+    transform var(--dur-press) var(--ease-out);
 }
-.p-modal-close:hover { background: var(--line); color: var(--navy-900); }
+@media (hover: hover) and (pointer: fine) {
+  .p-modal-close:hover { background: var(--line); color: var(--navy-900); }
+}
+.p-modal-close:active { transform: scale(0.9); }
+.p-modal-fullpage {
+  transition:
+    background-color var(--dur-ui) ease,
+    transform var(--dur-press) var(--ease-out);
+}
+.p-modal-fullpage:active { transform: scale(0.97); }
 
 /* The body is the scrollable region inside the shell. Header stays
    pinned at top because it's flex:0 outside this scroll context. */
