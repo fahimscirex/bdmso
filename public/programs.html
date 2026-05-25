@@ -437,7 +437,14 @@ body.modal-open { overflow: hidden; }
     // NOTE: keep this card markup in sync with buildProgramsIndex().
     source.innerHTML = list.map((p, i) => {
     const no = String(i + 1).padStart(2, '0');
-    const [badgeClass, badgeLabel] = BADGE[p.category] || ['b-open', 'Open'];
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const inWindow = p.registration !== false
+      && (p.registrationStarts || p.registrationEnds)
+      && (!p.registrationStarts || todayISO >= p.registrationStarts)
+      && (!p.registrationEnds   || todayISO <= p.registrationEnds);
+    const [badgeClass, badgeLabel] = inWindow
+      ? ['b-open', 'Open']
+      : (BADGE[p.category] || ['b-open', 'Open']);
     const dated = !!(p.registrationStarts || p.registrationEnds);
     const facts = [
       [ICONS.person, p.audience],

@@ -616,7 +616,20 @@ function buildProgramsIndex() {
   const BADGE = { beginner: ["b-beginner", "Beginner"], advanced: ["b-advanced", "Advanced"], residential: ["b-residential", "Residential"] };
 
   const cards = programs.map((p) => {
-    const [badgeClass, badgeLabel] = BADGE[p.category] || ["b-open", "Open"];
+    // Badge: "Open" only when the program has an explicit registration
+    // window and today falls inside it. Year-round programs (no dates)
+    // and closed ones show their category badge (Beginner/Advanced/...).
+    let badgeClass, badgeLabel;
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const inWindow = p.registration !== false
+      && (p.registrationStarts || p.registrationEnds)
+      && (!p.registrationStarts || todayISO >= p.registrationStarts)
+      && (!p.registrationEnds   || todayISO <= p.registrationEnds);
+    if (inWindow) {
+      badgeClass = "b-open"; badgeLabel = "Open";
+    } else {
+      [badgeClass, badgeLabel] = BADGE[p.category] || ["b-open", "Open"];
+    }
     const dated = !!(p.registrationStarts || p.registrationEnds);
     const facts = [
       [ICON.person, p.audience],
