@@ -341,9 +341,23 @@ function fillSummary() {
     ["Email", valueOf("g-email") || "-"]
   ];
 
-  document.getElementById("summary-grid").innerHTML = rows
-    .map(([key, val]) => `<div><div class="k">${key}</div><div class="v">${val}</div></div>`)
-    .join("");
+  // Build the summary with createElement + textContent instead of an
+  // innerHTML template. Values are guardian-typed form fields (school,
+  // name, etc.); a value like `<img src=x onerror=...>` typed into
+  // any field would otherwise execute as soon as the user clicked
+  // Review. textContent is XSS-immune by design.
+  const grid = document.getElementById("summary-grid");
+  grid.replaceChildren(...rows.map(([key, val]) => {
+    const cell = document.createElement("div");
+    const k = document.createElement("div");
+    k.className = "k";
+    k.textContent = key;
+    const v = document.createElement("div");
+    v.className = "v";
+    v.textContent = val;
+    cell.append(k, v);
+    return cell;
+  }));
 }
 
 function setStep(step) {
