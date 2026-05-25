@@ -1,6 +1,31 @@
 // GENERATED from public/data/programs-detail.json by scripts/build.mjs.
 // Do not edit by hand - change each program's "options" in the JSON.
 export const PROGRAM_OPTIONS = {
+  "national-olympiad": {
+    "kind": "radio",
+    "label": "Subjects",
+    "help": "Choose your subjects. Exam fee is per subject; Both includes both papers.",
+    "items": [
+      {
+        "id": "math",
+        "label": "Mathematics",
+        "sub": "60-minute Math paper — MCQ, Short and Broad Questions · 50 marks",
+        "price": 1000
+      },
+      {
+        "id": "science",
+        "label": "Science",
+        "sub": "60-minute Science paper — MCQ, Short and Broad Questions · 50 marks",
+        "price": 1000
+      },
+      {
+        "id": "both",
+        "label": "Both Mathematics and Science",
+        "sub": "Full 2-hour exam covering both papers · 50 + 50 = 100 marks",
+        "price": 1500
+      }
+    ]
+  },
   "bdmso-preparatory": {
     "kind": "radio",
     "label": "Subjects",

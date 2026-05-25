@@ -18,6 +18,32 @@
     "schedule": "Registration closes 15 June 2026",
     "registrationStarts": "2026-01-01",
     "registrationEnds": "2026-06-15",
+    "optionsEditableUntil": "2026-06-07",
+    "options": {
+      "kind": "radio",
+      "label": "Subjects",
+      "help": "Choose your subjects. Exam fee is per subject; Both includes both papers.",
+      "items": [
+        {
+          "id": "math",
+          "label": "Mathematics",
+          "sub": "60-minute Math paper — MCQ, Short and Broad Questions · 50 marks",
+          "price": 1000
+        },
+        {
+          "id": "science",
+          "label": "Science",
+          "sub": "60-minute Science paper — MCQ, Short and Broad Questions · 50 marks",
+          "price": 1000
+        },
+        {
+          "id": "both",
+          "label": "Both Mathematics and Science",
+          "sub": "Full 2-hour exam covering both papers · 50 + 50 = 100 marks",
+          "price": 1500
+        }
+      ]
+    },
     "register_url": "/registration?program=national-olympiad",
     "register_label": "Register now",
     "description": [
@@ -107,7 +133,7 @@
 
   {
     "slug": "maryam-mirzakhani-school",
-    "home_order": "03",
+    "home_order": "05",
     "feeAmount": 2400,
     "title": "Maryam Mirzakhani School of Mathematics and Science",
     "tagline": "3-day foundational program in Mathematics and Science for primary students.",
@@ -124,7 +150,7 @@
 
   {
     "slug": "stem-foundation",
-    "home_order": "04",
+    "home_order": "09",
     "feeAmount": 3000,
     "title": "STEM Foundation Program",
     "tagline": "The ultimate head start in Science, Technology, Engineering and Math - for Class 2 to 8.",
@@ -166,7 +192,7 @@
 
   {
     "slug": "bdmso-preparatory",
-    "home_order": "05",
+    "home_order": "03",
     "feeAmount": 3500,
     "title": "BdMSO Preparatory Course",
     "tagline": "Intensive 12-class Olympiad prep with 2 mock tests included · 31 May – 20 June 2026.",
@@ -177,7 +203,7 @@
     "eyebrow": "Year-round · Preparation",
     "image": "/images/prep.webp",
     "level": "Advanced",
-    "audience": "Class 3 to 5",
+    "audience": "Class 6 or Below",
     "duration": "12 classes · Online · 2 hours per class",
     "format": "Live online classes",
     "outcome": "Olympiad readiness + 2 mock tests included",
@@ -242,9 +268,9 @@
     "title": "Lab Day Workshop",
     "tagline": "An intensive, 6-hour laboratory experience that pulls Physics, Biology, and Chemistry concepts out of textbooks and into reality.",
     "metaDescription": "A hands-on 6-hour Lab Day Workshop for Class 5 or below at MASLab, with real Physics, Biology and Chemistry experiments. Lunch, snacks and certificate included.",
-    "startsOn": "2026-07-31",
-    "registrationStarts": "2026-06-15",
-    "registrationEnds": "2026-07-31",
+    "startsOn": "2026-06-05",
+    "registrationStarts": "2026-05-20",
+    "registrationEnds": "2026-06-04",
     "eyebrow": "Single-day · Lab",
     "image": "/images/lab.webp",
     "level": "Beginner",
@@ -253,12 +279,12 @@
     "format": "Single-day on-site workshop at MASLab",
     "outcome": "Real lab experience and practical knowledge",
     "price": "৳ 1,500",
-    "schedule": "31 July 2026 · MASLab · Lunch, snacks and certificate included",
+    "schedule": "05 June 2026 · MASLab · Only 12 Seats",
     "register_url": "/registration?program=lab-day",
     "register_label": "Book a lab day",
     "description": [
       "Step out of the textbook and into the laboratory! The Lab Day Workshop is a thrilling hands-on session where students get to act like real scientists. Covering essential experiments in Physics, Biology and Chemistry, this workshop emphasizes safety, precise measurements and the joy of witnessing science happen right before your eyes.",
-      "Date: 31 July 2026 · 10 AM to 6 PM at MASLab. Lunch, snacks and a certificate are included in the fee."
+      "Date: 05 June 2026 · 10 AM to 6 PM at MASLab. Lunch, snacks and a certificate are included in the fee."
     ],
     "what_youll_do": [
       "Hour 1 - Lab Safety & Basics: equipment, safety protocols and precision measurement",
@@ -334,14 +360,14 @@
 
   {
     "slug": "mock-test",
-    "home_order": "09",
+    "home_order": "04",
     "feeAmount": 500,
     "title": "BdMSO Mock Test",
     "tagline": "Mock exam held on June 6th and June 20th to benchmark your skills and understand your standing. Available for Science, Math, or both subjects.",
     "metaDescription": "BdMSO Mock Tests on 6 and 20 June 2026 - on-site simulated exams in Math and Science that mirror the real Olympiad and benchmark your child's readiness.",
-    "startsOn": "2026-06-06",
-    "registrationStarts": "2026-04-15",
-    "registrationEnds": "2026-06-20",
+    "startsOn": "2026-06-12",
+    "registrationStarts": "2026-05-15",
+    "registrationEnds": "2026-06-18",
     "eyebrow": "Year-round · Testing",
     "image": "/images/exam.webp",
     "level": "All aspirants",
@@ -350,7 +376,7 @@
     "format": "On-site mock exam · MASLab, Dhaka",
     "outcome": "Exam confidence and competitive leaderboard placement",
     "price": "৳ 500",
-    "schedule": "Next: Saturday 6 June 2026 · Mock 2: 20 June 2026",
+    "schedule": "Mock 1: 12 June 2026 · Mock 2: 19 June 2026",
     "register_url": "/registration?program=mock-test",
     "register_label": "Sign up for a mock",
     "description": [
@@ -358,8 +384,10 @@
       "Hosted at MASLab in Dhaka, these monthly tests help students master their time management and identify weak points before the main event. Detailed leaderboards and results are published after each test."
     ],
     "what_youll_do": [
-      "BdMSO Mock Test 1 - Saturday, 6 June 2026 · 3:00–4:00 PM (Math) · 5:00–6:00 PM (Science)",
-      "BdMSO Mock Test 2 - Saturday, 20 June 2026 · 3:00–4:00 PM (Math) · 5:00–6:00 PM (Science)",
+      "BdMSO Mock Test 1 - Friday, 12 June 2026 · 3:00–4:00 PM (Math)", 
+      "BdMSO Mock Test 1 - Friday, 12 June 2026 · 5:00–6:00 PM (Science)",
+      "BdMSO Mock Test 2 - Friday, 19 June 2026 · 3:00–4:00 PM (Math)",
+      "BdMSO Mock Test 2 - Friday, 19 June 2026 · 5:00–6:00 PM (Science)",
       "Venue: MASLab, Dhaka",
       "Detailed leaderboards and personal score breakdowns published after each test"
     ],
