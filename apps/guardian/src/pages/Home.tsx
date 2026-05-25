@@ -900,22 +900,25 @@ function RegistrationCard({ reg, account, onChanged }: { reg: Registration; acco
             {reg.status}
           </span>
         </div>
-        {reg.option_labels && reg.option_labels.length > 0 && (
+        {canChangeOptions && (
+          <div class="reg-card-options-row">
+            <div class="reg-card-options">{reg.option_labels?.length ? reg.option_labels.join(' · ') : 'No selection yet'}</div>
+            <button
+              type="button"
+              class="reg-card-change-btn"
+              onClick={() => setShowChange(true)}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z" />
+              </svg>
+              Change
+            </button>
+          </div>
+        )}
+        {!canChangeOptions && reg.option_labels && reg.option_labels.length > 0 && (
           <div class="reg-card-options-row">
             <div class="reg-card-options">{reg.option_labels.join(' · ')}</div>
-            {canChangeOptions && (
-              <button
-                type="button"
-                class="reg-card-change-btn"
-                onClick={() => setShowChange(true)}
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M12 20h9" />
-                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z" />
-                </svg>
-                Change
-              </button>
-            )}
           </div>
         )}
         <div class="reg-card-student">
