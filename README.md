@@ -13,6 +13,7 @@ The Bangladesh Mathematics & Science Olympiad website: a static marketing site, 
 | Payments | ShurjoPay v2 |
 | Email | Brevo (transactional API) |
 | Dashboards | Preact SPAs (`apps/guardian`, `apps/admin`) |
+| Security | Rate limiting, PBKDF2 password hashing, CSP/HSTS headers, parameterized queries |
 
 ---
 
@@ -107,10 +108,12 @@ No HTML or code changes are needed.
 | `home_order` | A string like `"01"`. Programs with this field appear on the home page grid, sorted by its value. Omit to keep a program off the home page. |
 | `category` | `beginner`, `advanced`, or `residential` - drives the `/programs` grid filter. |
 | `registrationStarts`, `registrationEnds` | ISO dates (`2026-04-01`). Drive the "Open" badge and the "soon" state on the grids. |
+| `startsOn` | ISO date when the program begins. Shown in the guardian dashboard "Key dates" rail. |
+| `optionsEditableUntil` | ISO date deadline for guardian-initiated option changes (subject swaps, mock test session edits). Defaults to `registrationEnds` if omitted; always-editable when neither is set. |
 | `audience`, `duration`, `outcome`, `eyebrow` | Facts shown in the detail page sidebar. |
 | `bespokePage` | `true` means a hand-authored page at `public/programs/<slug>.html` is used as-is; the page generator skips it. Used for custom layouts (e.g. Maryam Mirzakhani School). |
 | `description`, `what_youll_do`, `next_steps` | Body content (arrays of strings) for generated detail pages. |
-| `options` | Per-cohort choices that carry their own prices - e.g. Mock Test sessions (checkboxes), Prep Course subjects (radio). |
+| `options` | Per-cohort choices that carry their own prices - e.g. Mock Test sessions (checkboxes), Prep Course subjects (radio). Guardians can edit their selection from the dashboard until `optionsEditableUntil` (downgrades are free, upgrades create a top-up payment). |
 
 Common edits:
 
@@ -168,9 +171,12 @@ npm install -g wrangler pnpm
 # Workspace deps (root + apps/):
 pnpm install
 
+# Copy the wrangler template and fill in your D1 + R2 IDs:
+cp wrangler.example.toml wrangler.toml
+
 # Local secrets:
 cp .env.example .env                   # SITE_URL for build output
-cp .dev.vars.example .dev.vars         # SHURJOPAY_*, BREVO_API_KEY, EMAIL_FROM (gitignored - never commit)
+cp .dev.vars.example .dev.vars         # SHURJOPAY_*, BREVO_API_KEY, EMAIL_FROM (gitignored — never commit)
 
 # Initialise local D1 with the canonical schema (idempotent; safe to re-run):
 wrangler d1 execute bdmso --local --file=./db/schema.sql
@@ -191,7 +197,7 @@ The site has three independent dev surfaces. You'll usually only run one at a ti
 
 `dev:guardian` and `dev:admin` each spawn **two** processes: `wrangler dev` (API on :8787) and a Vite dev server (HMR on :5173 or :5174). The Vite server proxies `/api/*` to wrangler so cookies and auth flow naturally during development.
 
-`preview` builds the marketing site + both SPAs into `dist/` then serves the result via `wrangler dev --config wrangler.prod.toml`. Use this when you want to verify production routing, asset paths, or anything else that differs between dev and prod.
+`preview` builds the marketing site + both SPAs into `dist/` then serves the result via `wrangler dev --config wrangler.prod.toml` (local-only, not in the repo). Use this when you want to verify production routing, asset paths, or anything else that differs between dev and prod.
 
 > **Note:** `dev:worker` serves `public/` directly, but `preview` serves the built `dist/` copy. After editing files in `public/`, run `npm run build` (or `build:all`) before previewing, or your changes won't appear.
 
@@ -247,7 +253,7 @@ Set `SITE_URL` in `.env` (copy from `.env.example`) so the sitemap gets the corr
 npm run cf:deploy
 ```
 
-This runs `build:all` then `wrangler deploy --config wrangler.prod.toml`.
+This runs `build:all` then `wrangler deploy --config wrangler.prod.toml` (local-only, not in the repo).
 
 ---
 
@@ -259,7 +265,7 @@ This runs `build:all` then `wrangler deploy --config wrangler.prod.toml`.
 npm exec -- wrangler d1 create bdmso
 ```
 
-2. Copy the returned `database_id` UUID into `wrangler.toml` and `wrangler.prod.toml` (replacing both `database_id` and `preview_database_id`).
+2. Copy the returned `database_id` UUID into your local `wrangler.toml` (replacing both `database_id` and `preview_database_id`). See `wrangler.example.toml` for a template.
 
 3. Apply the schema to the remote DB (idempotent - safe to re-run):
 
@@ -283,7 +289,7 @@ npm exec -- wrangler secret put BREVO_API_KEY      --config wrangler.prod.toml
 npm exec -- wrangler secret put EMAIL_FROM         --config wrangler.prod.toml
 ```
 
-`SHURJOPAY_SANDBOX` is a plain var in `wrangler.prod.toml` - set it to `"false"` to hit the production ShurjoPay endpoint.
+`SHURJOPAY_SANDBOX` and `ENVIRONMENT` are plain vars in your local `wrangler.prod.toml` — set `SHURJOPAY_SANDBOX` to `"false"` and `ENVIRONMENT` to `"production"` to hit the live ShurjoPay endpoint and suppress dev-only logging. `wrangler.toml` and `wrangler.prod.toml` are gitignored (local-only); `wrangler.example.toml` is the checked-in template.
 
 6. Deploy:
 
@@ -291,7 +297,7 @@ npm exec -- wrangler secret put EMAIL_FROM         --config wrangler.prod.toml
 npm run cf:deploy
 ```
 
-The Worker (named `bdmso` in `wrangler.prod.toml`) is created on the first deploy and serves at `bdmso.<your-subdomain>.workers.dev`. Subsequent deploys just push updates.
+The Worker is created on the first deploy and serves at `bdmso.<your-subdomain>.workers.dev`. Subsequent deploys just push updates.
 
 ---
 
@@ -302,17 +308,56 @@ The Worker (named `bdmso` in `wrangler.prod.toml`) is created on the first deplo
 | `guardian_accounts` | Parent/guardian login credentials and role (`guardian` / `admin`) |
 | `sessions` | Bearer-token login sessions |
 | `email_verification_tokens` | Email verification token store |
-| `login_attempts` | Rate-limiting and lockout tracking |
+| `password_reset_tokens` | Password reset tokens (single-use, 1-hour TTL) |
+| `login_attempts` | Login rate-limiting and lockout tracking (5 fails / 15 min per email) |
+| `action_attempts` | Generic rate-limit log for payment, registration, sponsorship, password reset, and admin endpoints |
 | `registrations` | Student registration submissions (one row per program enrollment) |
-| `payments` | ShurjoPay payment attempts and outcomes |
+| `payments` | ShurjoPay payment attempts and outcomes (supports `initial` and `option-upgrade` purpose types) |
 | `shurjopay_token_cache` | Cached ShurjoPay auth tokens |
 | `coupons` | Discount codes (percent or fixed value, usage limits) |
 | `member_id_class_seq` | Per-year/class counter for minting `BdMSO…` student IDs |
 | `sponsorship_enquiries` | Sponsorship contact form leads |
-| `admin_audit_log` | Audit trail of admin dashboard actions |
+| `admin_audit_log` | Audit trail of admin dashboard actions (and admin login/logout) |
+| `registration_option_changes` | History of guardian-initiated option edits (subject swaps, mock test session changes) |
 | `programs`, `posts` | Content tables managed via the admin dashboard |
 
-Passwords are PBKDF2-hashed; sessions use Bearer tokens. A `BdMSO…` ID is minted on a student's first paid registration and reused across all of that guardian's enrollments.
+Passwords are PBKDF2-SHA256 hashed at 100,000 iterations (Cloudflare Workers max) with per-account random salts; stale hashes are opportunistically upgraded on login. Sessions use cryptographically-random Bearer tokens stored server-side in D1. A `BdMSO…` ID is minted on a student's first paid registration and reused across all of that guardian's enrollments.
+
+### Rate Limiting
+
+| Endpoint | Limit | Window | Scope |
+|---|---|---|---|
+| `/api/login` | 5 failures | 15 min | Per email |
+| `/api/create-payment` | 5 requests | 15 min | Per account |
+| `/api/submit-registration` | 5 requests | 24 hours | Per IP |
+| `/api/submit-sponsorship` | 3 requests | 1 hour | Per IP |
+| `/api/forgot-password` | 10 requests | 15 min | Per IP |
+| `/api/reset-password` | 10 requests | 15 min | Per IP |
+| `/api/admin/*` | 200 requests | 15 min | Per IP
+
+### Option Changes (Guardian Dashboard)
+
+Paid registrations for programs with configurable options (Mock Test sessions, Prep Course subjects) can be edited by guardians from their dashboard via the **Change Selection** modal. The flow:
+
+- **Same-price swaps** and **downgrades** (no refund) are applied immediately via `PATCH /api/me/registrations/:id/options`. A downgrade requires acknowledging the no-refund policy.
+- **Upgrades** (selecting a more expensive option) create a new ShurjoPay top-up payment via `POST /api/me/registrations/:id/options/upgrade`. The original registration stays `paid`; only the option selection changes on payment confirmation.
+- A partial unique index on `payments` prevents two concurrent upgrade payments for the same registration.
+- Each option change is recorded in `registration_option_changes` for auditability.
+- An updated receipt reflecting the new selection and cumulative total paid is emailed to the guardian on successful payment.
+
+Programs can set `optionsEditableUntil` (ISO date) in `programs-detail.json` to close the edit window after a deadline (e.g. after mock test dates pass). Falls back to `registrationEnds`; defaults to always-editable when neither is set.
+
+### Security
+
+- Payment callbacks are server-side verified with ShurjoPay before marking paid; amounts are cross-checked against the stored payment record
+- Login uses a dummy-hash timing defence to prevent user enumeration
+- Forgot-password and forgot-email always return `ok: true` to prevent email/account enumeration
+- Email addresses are redacted in Worker logs via `maskEmailForLog`
+- All DB queries use parameterized bindings — no string concatenation of user input in SQL
+- Admin endpoints are uniformly gated behind `requireRole("admin")`; self-demotion and last-admin removal are blocked
+- Emails and phones can only be changed after confirming the current password
+- CSP, HSTS, X-Frame-Options, and X-Content-Type-Options headers are applied to all responses
+- `wrangler.toml` and `wrangler.prod.toml` are gitignored — use `wrangler.example.toml` as a reference
 
 ---
 
@@ -337,6 +382,7 @@ public/
   *.html                  - one file per page
 apps/
   guardian/               - guardian dashboard SPA (Preact) → builds to dist/dashboard/
+    components/ChangeSelectionModal.tsx  - option-change modal for paid registrations
   admin/                  - admin dashboard SPA (Preact) → builds to dist/admin/
 worker/
   index.js                - Cloudflare Worker entry (Hono app + asset fallback)
@@ -345,6 +391,7 @@ worker/
   middleware/             - auth, role-gating, session middleware
 db/
   schema.sql              - D1 table definitions (idempotent)
+wrangler.example.toml     - reference wrangler config (check in); copy to wrangler.toml for local use
 scripts/
   build.mjs               - generates posts/programs pages, copies public/ → dist/, writes sitemap + robots; supports --watch
   dev.mjs                 - dev orchestrator for `npm run dev:worker`
