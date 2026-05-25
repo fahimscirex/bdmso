@@ -239,7 +239,7 @@
             <label for="fe-memberid">BdMSO ID</label>
             <div class="field-prefixed">
               <span class="prefix" aria-hidden="true">BdMSO</span>
-              <input type="text" id="fe-memberid" name="memberId" placeholder="2604-001" inputmode="text" autocapitalize="characters" />
+              <input type="text" id="fe-memberid" name="memberId" placeholder="2604-001" inputmode="numeric" maxlength="8" />
             </div>
           </div>
           <div id="fe-error" class="error-msg" hidden></div>
@@ -368,7 +368,21 @@ const fePhone    = document.getElementById('fe-phone');
 const feMemId    = document.getElementById('fe-memberid');
 // Mutually exclusive inputs: typing in one clears the other.
 fePhone.addEventListener('input', () => { if (fePhone.value) feMemId.value = ''; });
-feMemId.addEventListener('input', () => { if (feMemId.value) fePhone.value = ''; });
+
+// BdMSO ID suffix is always `YY0C-XXX` (4 digits + hyphen + 3 digits).
+// Strip everything that isn't a digit, then insert the hyphen after
+// the 4th digit, and cap at 7 digits total. Caret stays at the end -
+// guardians type left-to-right and this input is short enough that a
+// mid-string caret isn't worth the complexity. Pasting "2604001" or
+// "2604-001" both end up as "2604-001".
+function formatMemberSuffix(raw) {
+  const digits = (raw || '').replace(/\D+/g, '').slice(0, 7);
+  return digits.length <= 4 ? digits : `${digits.slice(0, 4)}-${digits.slice(4)}`;
+}
+feMemId.addEventListener('input', () => {
+  feMemId.value = formatMemberSuffix(feMemId.value);
+  if (feMemId.value) fePhone.value = '';
+});
 feForm.addEventListener('submit', async e => {
   e.preventDefault();
   const btn = feForm.querySelector('button[type=submit]');
