@@ -88,3 +88,4 @@ entities.json
 *.tsbuildinfo
 tsconfig.tsbuildinfo
 wrangler.prod.toml
+wrangler.toml

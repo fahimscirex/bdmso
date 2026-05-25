@@ -1,0 +1,29 @@
+name = "bdmso"
+main = "worker/index.js"
+compatibility_date = "2026-04-21"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "404-page"
+html_handling = "none"
+run_worker_first = true
+
+[vars]
+SHURJOPAY_SANDBOX = "true"
+ENVIRONMENT = "development"
+
+# Set `database_id` to your D1 database ID:
+#   wrangler d1 list
+[[d1_databases]]
+binding = "DB"
+database_name = "bdmso"
+database_id = ""
+preview_database_id = ""
+
+# Set `bucket_name` to your R2 bucket:
+#   wrangler r2 bucket create bdmso-assets
+[[r2_buckets]]
+binding = "ASSETS_R2"
+bucket_name = ""
+preview_bucket_name = ""
