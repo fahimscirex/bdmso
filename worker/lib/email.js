@@ -4,6 +4,34 @@
 import { normalizeString, escapeHtml } from "./validation.js";
 import { reserveMemberId, parseClassDigit } from "./util.js";
 import { PROGRAM_NAMES } from "./programs.js";
+import { getOptionLabels, programHasOptions } from "./program-options.js";
+
+// Cloudflare Workers retains console output. Emails and URL tokens are
+// PII; redact before logging. logEmail keeps the domain (useful for
+// debugging deliverability) but drops the local-part beyond two chars.
+// logToken keeps the first 8 chars so we can correlate with DB rows
+// without exposing a working credential.
+export function maskEmailForLog(email) {
+  if (!email || typeof email !== "string") return "(none)";
+  const at = email.indexOf("@");
+  if (at <= 0) return "***";
+  const user = email.slice(0, at);
+  const domain = email.slice(at);
+  const head = user.slice(0, 2);
+  return `${head}***${domain}`;
+}
+export function maskTokenForLog(token) {
+  if (!token || typeof token !== "string") return "(none)";
+  return token.length <= 8 ? "***" : `${token.slice(0, 8)}…`;
+}
+
+// Tightened dev-mode gate. The previous heuristic ("sandbox truthy OR
+// missing PROD") could leak verification/reset tokens into production
+// logs if SHURJOPAY_SANDBOX got toggled on by accident. ENVIRONMENT is
+// an explicit binding set in .dev.vars / wrangler.prod.toml.
+function isDev(env) {
+  return env.ENVIRONMENT === "development";
+}
 
 export const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -37,7 +65,19 @@ export function parseEmailFrom(raw) {
   return { name: "BdMSO", email: str };
 }
 
-export async function sendReceiptEmail(env, reg, memberId, baseUrl) {
+// `extras` accepts:
+//   kind             'initial' (default) or 'updated' (issued after a
+//                    guardian option change - banner + subject reflect that)
+//   optionLabels     array of human-readable option names (e.g.
+//                    ["Mathematics"], ["Mock Test 1 - Math", "Mock Test 2 - Math"]).
+//                    Omitted for programs without options.
+//   cumulativeAmount on 'updated' receipts, the total the guardian has paid
+//                    across all payments for this registration. Initial
+//                    receipts ignore it and use reg.amount as today.
+export async function sendReceiptEmail(env, reg, memberId, baseUrl, extras = {}) {
+  const { kind = "initial", optionLabels = [], cumulativeAmount = null } = extras;
+  const isUpdated = kind === "updated";
+
   const programName = PROGRAM_NAMES[reg.registration_type] || reg.registration_type;
   // Absolute logo URL - emails can't use relative paths. Falls back to
   // the canonical domain if the caller didn't pass a request base.
@@ -45,12 +85,23 @@ export async function sendReceiptEmail(env, reg, memberId, baseUrl) {
   const paidAt = new Date(reg.paid_at || Date.now()).toLocaleDateString("en-GB", {
     day: "numeric", month: "long", year: "numeric"
   });
-  const amountFormatted = `৳ ${Number(reg.amount).toLocaleString("en-BD")}`;
+  const totalAmount = isUpdated && cumulativeAmount != null ? cumulativeAmount : reg.amount;
+  const amountFormatted = `৳ ${Number(totalAmount).toLocaleString("en-BD")}`;
+  const amountLabel = isUpdated ? "Total Paid" : "Amount Paid";
 
-  console.log(`[email-receipt] ${reg.guardian_email} → member ${memberId}`);
+  console.log(`[email-receipt] ${maskEmailForLog(reg.guardian_email)} → member ${memberId} (${kind})`);
   if (!env.BREVO_API_KEY) return;
 
   const sender = parseEmailFrom(env.EMAIL_FROM);
+  const updatedBanner = isUpdated ? `
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-bottom:none;padding:14px 32px;color:#1e3a8a;font-size:13px;line-height:1.55;">
+        <strong>Updated receipt.</strong> You changed your selection for this registration; this receipt supersedes the one issued previously.
+      </div>` : "";
+  const selectionRow = optionLabels.length ? `
+          <tr style="border-bottom:1px solid #f3f4f6;">
+            <td style="padding:10px 0;color:#6b7280;vertical-align:top;">Selection</td>
+            <td style="padding:10px 0;font-weight:600;text-align:right;">${optionLabels.map(escapeHtml).join("<br>")}</td>
+          </tr>` : "";
   const html = `
     <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#0b1b3f;">
       <div style="background:#0b1b3f;padding:24px 32px;border-radius:12px 12px 0 0;text-align:center;">
@@ -58,7 +109,7 @@ export async function sendReceiptEmail(env, reg, memberId, baseUrl) {
           <img src="${logoBase}/images/logo.webp" alt="BdMSO" width="150" style="display:block;border:0;">
         </div>
         <p style="margin:12px 0 0;color:rgba(255,255,255,0.7);font-size:13px;">Bangladesh Mathematics &amp; Science Olympiad</p>
-      </div>
+      </div>${updatedBanner}
       <div style="background:#fffbeb;border:1px solid #fcd34d;padding:20px 32px;display:flex;align-items:center;gap:16px;">
         <div>
           <div style="font-size:10px;font-weight:700;letter-spacing:0.15em;color:#b45309;text-transform:uppercase;">BdMSO ID</div>
@@ -66,7 +117,7 @@ export async function sendReceiptEmail(env, reg, memberId, baseUrl) {
         </div>
       </div>
       <div style="background:white;border:1px solid #e5e7eb;border-top:none;padding:28px 32px;">
-        <h2 style="margin:0 0 4px;font-size:18px;">Payment Receipt</h2>
+        <h2 style="margin:0 0 4px;font-size:18px;">${isUpdated ? "Updated Receipt" : "Payment Receipt"}</h2>
         <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">${escapeHtml(programName)}</p>
         <table style="width:100%;border-collapse:collapse;font-size:14px;">
           <tr style="border-bottom:1px solid #f3f4f6;">
@@ -84,17 +135,17 @@ export async function sendReceiptEmail(env, reg, memberId, baseUrl) {
           <tr style="border-bottom:1px solid #f3f4f6;">
             <td style="padding:10px 0;color:#6b7280;">Guardian</td>
             <td style="padding:10px 0;font-weight:600;text-align:right;">${escapeHtml(reg.guardian_full_name)}</td>
-          </tr>
+          </tr>${selectionRow}
           <tr style="border-bottom:1px solid #f3f4f6;">
             <td style="padding:10px 0;color:#6b7280;">Transaction ID</td>
             <td style="padding:10px 0;font-weight:600;text-align:right;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;">${escapeHtml(reg.tran_id)}</td>
           </tr>
           <tr style="border-bottom:1px solid #f3f4f6;">
-            <td style="padding:10px 0;color:#6b7280;">Payment Date</td>
+            <td style="padding:10px 0;color:#6b7280;">${isUpdated ? "Updated On" : "Payment Date"}</td>
             <td style="padding:10px 0;font-weight:600;text-align:right;">${paidAt}</td>
           </tr>
           <tr>
-            <td style="padding:14px 0;font-size:16px;font-weight:700;">Amount Paid</td>
+            <td style="padding:14px 0;font-size:16px;font-weight:700;">${amountLabel}</td>
             <td style="padding:14px 0;font-size:18px;font-weight:700;text-align:right;color:#15803d;">${amountFormatted}</td>
           </tr>
         </table>
@@ -104,6 +155,10 @@ export async function sendReceiptEmail(env, reg, memberId, baseUrl) {
         <p style="margin:0;color:#9ca3af;font-size:12px;"><strong style="color:#374151;">Refund policy:</strong> Any transaction made through the BdMSO website is non-refundable.</p>
       </div>
     </div>`;
+
+  const subject = isUpdated
+    ? `Updated Receipt - ${programName} (${memberId})`
+    : `Payment Confirmed - ${programName} (${memberId})`;
 
   try {
     const res = await fetch("https://api.brevo.com/v3/smtp/email", {
@@ -116,7 +171,7 @@ export async function sendReceiptEmail(env, reg, memberId, baseUrl) {
       body: JSON.stringify({
         sender,
         to: [{ email: reg.guardian_email, name: reg.guardian_full_name }],
-        subject: `Payment Confirmed - ${programName} (${memberId})`,
+        subject,
         htmlContent: html,
       }),
     });
@@ -195,7 +250,7 @@ export async function assignMemberIdAndSendReceipt(env, tranId, baseUrl) {
   const row = await env.DB.prepare(`
     SELECT r.id, r.guardian_account_id, r.registration_type, r.student_full_name,
            r.student_class_name, r.student_school, r.student_district, r.guardian_full_name,
-           r.guardian_email,
+           r.guardian_email, r.program_options,
            a.member_id AS account_member_id,
            a.email     AS account_email,
            p.amount, p.tran_id, p.updated_at AS paid_at
@@ -227,21 +282,89 @@ export async function assignMemberIdAndSendReceipt(env, tranId, baseUrl) {
 
   // Receipts go to the account's current (verified) email - the guardian
   // may have changed it since this registration row was first created.
+  const optionLabels = programHasOptions(row.registration_type)
+    ? getOptionLabels(row.registration_type, safeParseIds(row.program_options))
+    : [];
   await sendReceiptEmail(
     env,
     { ...row, guardian_email: row.account_email || row.guardian_email, tran_id: tranId },
     memberId,
-    baseUrl
+    baseUrl,
+    { kind: "initial", optionLabels }
+  );
+}
+
+function safeParseIds(json) {
+  if (!json) return [];
+  try {
+    const v = JSON.parse(json);
+    return Array.isArray(v) ? v : [];
+  } catch { return []; }
+}
+
+// Re-issue a receipt after a guardian option change. Reads the current
+// state of the registration + every paid payment for cumulative totals,
+// then sends an 'updated' receipt that supersedes the previous one.
+// Caller has already committed the program_options change; this is
+// purely the notification side.
+export async function sendUpdatedReceiptForRegistration(env, registrationId, baseUrl) {
+  const row = await env.DB.prepare(`
+    SELECT r.id, r.guardian_account_id, r.registration_type, r.student_full_name,
+           r.student_class_name, r.student_school, r.student_district, r.guardian_full_name,
+           r.guardian_email, r.program_options,
+           a.member_id AS account_member_id,
+           a.email     AS account_email
+    FROM registrations r
+    JOIN guardian_accounts a ON a.id = r.guardian_account_id
+    WHERE r.id = ? LIMIT 1
+  `).bind(registrationId).first();
+  if (!row) return;
+
+  // Cumulative total + the most recent paid payment supply the txn id /
+  // "updated on" stamp. A registration with no paid payments yet is
+  // skipped - there is nothing to supersede.
+  const paid = await env.DB.prepare(`
+    SELECT tran_id, amount, updated_at
+    FROM payments
+    WHERE registration_id = ? AND status = 'paid'
+    ORDER BY updated_at DESC
+  `).bind(registrationId).all();
+  const rows = paid?.results || [];
+  if (!rows.length) return;
+  const cumulativeAmount = rows.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  const latest = rows[0];
+
+  const optionLabels = programHasOptions(row.registration_type)
+    ? getOptionLabels(row.registration_type, safeParseIds(row.program_options))
+    : [];
+
+  await sendReceiptEmail(
+    env,
+    {
+      ...row,
+      guardian_email: row.account_email || row.guardian_email,
+      tran_id: latest.tran_id,
+      amount: latest.amount,
+      paid_at: new Date().toISOString(),
+    },
+    row.account_member_id,
+    baseUrl,
+    { kind: "updated", optionLabels, cumulativeAmount }
   );
 }
 
 export async function sendVerificationEmail(env, email, verifyUrl) {
-  // In local dev, always print the verify URL so it's pasteable when
-  // the recipient inbox doesn't show the mail (spam, blocked sender,
-  // BD ISP filtering). The success path also logs the Brevo messageId
-  // so we know the API call actually went through.
-  const inDev = !!env.SHURJOPAY_SANDBOX || env.NODE_ENV === "development" || !env.PROD;
-  if (inDev) console.log(`[email-verify] ${email} → ${verifyUrl}`);
+  // Dev: print the full verify URL so it's pasteable when the recipient
+  // inbox doesn't show the mail (spam, blocked sender, BD ISP
+  // filtering). Production: redact both - the email is enough to
+  // correlate with the DB token row by first 8 chars; the full URL
+  // never goes to the log buffer.
+  if (isDev(env)) {
+    console.log(`[email-verify] ${email} → ${verifyUrl}`);
+  } else {
+    const tokenPart = (verifyUrl.match(/token=([^&]+)/) || [])[1] || "";
+    console.log(`[email-verify] ${maskEmailForLog(email)} → token=${maskTokenForLog(tokenPart)}`);
+  }
 
   if (!env.BREVO_API_KEY) {
     console.log("[email-verify] skipped: BREVO_API_KEY not set");
@@ -253,7 +376,7 @@ export async function sendVerificationEmail(env, email, verifyUrl) {
   }
 
   const sender = parseEmailFrom(env.EMAIL_FROM);
-  console.log(`[email-verify] brevo send: from=${sender.email} to=${email}`);
+  console.log(`[email-verify] brevo send: from=${sender.email} to=${maskEmailForLog(email)}`);
 
   const html = `
     <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 520px; margin: 0 auto;">
@@ -297,8 +420,12 @@ export async function sendVerificationEmail(env, email, verifyUrl) {
 }
 
 export async function sendPasswordResetEmail(env, email, resetUrl) {
-  const inDev = !!env.SHURJOPAY_SANDBOX || env.NODE_ENV === "development" || !env.PROD;
-  if (inDev) console.log(`[email-reset] ${email} → ${resetUrl}`);
+  if (isDev(env)) {
+    console.log(`[email-reset] ${email} → ${resetUrl}`);
+  } else {
+    const tokenPart = (resetUrl.match(/token=([^&]+)/) || [])[1] || "";
+    console.log(`[email-reset] ${maskEmailForLog(email)} → token=${maskTokenForLog(tokenPart)}`);
+  }
 
   if (!env.BREVO_API_KEY) {
     console.log("[email-reset] skipped: BREVO_API_KEY not set");

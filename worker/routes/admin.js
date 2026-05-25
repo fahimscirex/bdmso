@@ -11,11 +11,24 @@ import { recordAudit } from "../lib/audit-log.js";
 import { PROGRAM_NAMES } from "../lib/programs.js";
 import { createVerificationToken, sendVerificationEmail, assignMemberIdAndSendReceipt, sendBroadcastEmail } from "../lib/email.js";
 import { getBaseUrl } from "../lib/util.js";
+import { checkActionRateLimit, recordActionAttempt, clientIpFor } from "../lib/rate-limit.js";
 
 const admin = new Hono();
 
 admin.use("*", sessionMiddleware);
 admin.use("*", requireRole("admin"));
+// Per-IP cap across the entire admin namespace. Admins make a lot of
+// requests (dashboard list views, broadcast composer polls), but 200
+// per 15 minutes is well above any human workflow and stops a
+// credential-stuffed admin token from being used to scrape data fast.
+admin.use("*", async (c, next) => {
+  const ip = clientIpFor(c.req.raw);
+  if (!(await checkActionRateLimit(c.env, "admin-ip", ip, 200, 15 * 60 * 1000))) {
+    return c.json({ error: "Too many admin requests. Slow down." }, 429);
+  }
+  await recordActionAttempt(c.env, "admin-ip", ip);
+  return next();
+});
 
 // Smoke-test endpoint. Useful for the admin SPA to verify the bearer token
 // is still valid + the user is still an admin (e.g. after a long idle).

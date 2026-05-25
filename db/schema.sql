@@ -54,6 +54,21 @@ CREATE TABLE IF NOT EXISTS login_attempts (
 CREATE INDEX IF NOT EXISTS idx_login_attempts_email_time
 ON login_attempts (email, attempted_at);
 
+-- Generic rate-limit log. bucket is a category ('payment-create',
+-- 'registration', 'sponsorship', 'reset-password', 'admin-ip',
+-- 'forgot-password'); key is whatever identifies the actor for that
+-- bucket (account_id, IP address, email). One row per attempt;
+-- countActionAttempts() sums within a sliding window.
+CREATE TABLE IF NOT EXISTS action_attempts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  bucket TEXT NOT NULL,
+  key TEXT NOT NULL,
+  attempted_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_action_attempts_bucket_key_time
+ON action_attempts (bucket, key, attempted_at);
+
 CREATE TABLE IF NOT EXISTS registrations (
   id TEXT PRIMARY KEY,
   registration_type TEXT NOT NULL,
@@ -138,6 +153,8 @@ CREATE TABLE IF NOT EXISTS payments (
   method TEXT,               -- shurjoPay payment method (card brand, bKash, Nagad, ...)
   coupon_code TEXT,          -- coupon applied at checkout (used_count incremented on success)
   status TEXT NOT NULL DEFAULT 'pending',
+  purpose TEXT NOT NULL DEFAULT 'initial',  -- 'initial' (first registration payment) | 'option-upgrade' (top-up for switching to a more expensive option)
+  proposed_options TEXT,                    -- JSON array of option ids this payment is buying; null on 'initial' rows. On 'option-upgrade' success, copied into registrations.program_options.
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   FOREIGN KEY (registration_id) REFERENCES registrations (id)
@@ -151,6 +168,16 @@ ON payments (tran_id);
 
 CREATE INDEX IF NOT EXISTS idx_payments_val_id
 ON payments (val_id);
+
+-- At most one in-flight option-upgrade payment per registration. The
+-- /options/upgrade route also checks this in code, but two parallel
+-- requests can both pass the SELECT before either INSERT; the unique
+-- partial index closes that race. Scoped to purpose='option-upgrade' so
+-- the existing Pay Now retry flow (which can hold multiple pending
+-- 'initial' rows over time) is unaffected.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_one_pending_upgrade
+ON payments (registration_id)
+WHERE status = 'pending' AND purpose = 'option-upgrade';
 
 -- shurjoPay /api/get_token returns a bearer token valid for ~1 hour plus
 -- the store_id we need on every /api/secret-pay call. Cached in this
@@ -197,6 +224,32 @@ ON admin_audit_log (account_id, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_audit_target
 ON admin_audit_log (target_type, target_id);
+
+-- Guardian-initiated option changes on existing registrations (e.g. Prep
+-- Course math -> both, or adding a Mock Test session). Distinct from
+-- admin_audit_log because the actor is always the registration's owner.
+-- One row per accepted change; the linked payment_id is set only on the
+-- option-upgrade path (where the change committed via a top-up payment).
+CREATE TABLE IF NOT EXISTS registration_option_changes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  registration_id TEXT NOT NULL,
+  from_options TEXT NOT NULL,       -- JSON array of previous option ids
+  to_options TEXT NOT NULL,         -- JSON array of new option ids
+  from_price REAL NOT NULL,
+  to_price REAL NOT NULL,
+  delta REAL NOT NULL,              -- to_price - from_price (negative for downgrade)
+  action TEXT NOT NULL,             -- 'same' | 'upgrade' | 'downgrade'
+  payment_id TEXT,                  -- non-null only when action='upgrade' (links the top-up payment that committed this change)
+  actor_account_id TEXT NOT NULL,
+  acknowledged_no_refund INTEGER NOT NULL DEFAULT 0,  -- 1 when guardian confirmed they won't be refunded on a downgrade
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (registration_id) REFERENCES registrations (id),
+  FOREIGN KEY (payment_id) REFERENCES payments (id),
+  FOREIGN KEY (actor_account_id) REFERENCES guardian_accounts (id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_option_changes_registration
+ON registration_option_changes (registration_id, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS programs (
   slug TEXT PRIMARY KEY,

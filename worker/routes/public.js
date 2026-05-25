@@ -6,10 +6,11 @@ import { jsonResponse, badRequest, redirectTo, createId, couponAppliesToType, pa
 import { normalizeString, requireField, isEmail, isPhoneLike } from "../lib/validation.js";
 import { hashPassword, PBKDF2_ITERATIONS_CURRENT, DUMMY_HASH_SALT } from "../lib/crypto.js";
 import { createSession, extractToken, requireAuth } from "../lib/sessions.js";
-import { checkLoginRateLimit, recordLoginAttempt } from "../lib/rate-limit.js";
-import { createVerificationToken, sendVerificationEmail, sendSponsorshipNotification, assignMemberIdAndSendReceipt, createPasswordResetToken, sendPasswordResetEmail } from "../lib/email.js";
+import { checkLoginRateLimit, recordLoginAttempt, checkActionRateLimit, recordActionAttempt, clientIpFor } from "../lib/rate-limit.js";
+import { createVerificationToken, sendVerificationEmail, sendSponsorshipNotification, assignMemberIdAndSendReceipt, createPasswordResetToken, sendPasswordResetEmail, sendUpdatedReceiptForRegistration } from "../lib/email.js";
+import { recordAudit } from "../lib/audit-log.js";
 import { PROGRAM_PRICES, PROGRAM_NAMES } from "../lib/programs.js";
-import { programHasOptions, validateAndPriceOptions, getProgramOptions } from "../lib/program-options.js";
+import { programHasOptions, validateAndPriceOptions, getProgramOptions, withinEditWindow, computeOptionDiff } from "../lib/program-options.js";
 import CATALOG from "../../public/data/programs-detail.json";
 
 // Catalog lookup by slug - for the registration on/off + hidden flags.
@@ -84,6 +85,17 @@ export async function handleLogin(request, env) {
 
   await recordLoginAttempt(env, email, true);
   const token = await createSession(env, account.id);
+  // Audit admin authentication. Guardian logins are high-volume and
+  // not interesting from an incident-review angle; admin logins are
+  // the right place to spot credential compromise.
+  if (account.role === "admin") {
+    const ip = clientIpFor(request);
+    try {
+      await recordAudit(env, account.id, "auth.login", {
+        type: "user", id: account.id, payload: { ip },
+      });
+    } catch (err) { console.log("[auth.login] audit failed:", err.message); }
+  }
   return jsonResponse({
     ok: true, token,
     accountId: account.id,
@@ -96,7 +108,22 @@ export async function handleLogin(request, env) {
 
 export async function handleLogout(request, env) {
   const token = extractToken(request);
-  if (token) await env.DB.prepare("DELETE FROM sessions WHERE id = ?").bind(token).run();
+  if (token) {
+    // Audit admin logout BEFORE the session row goes away so the actor
+    // is still resolvable. Guardian logouts skipped for the same
+    // volume/value reasoning as login.
+    const session = await env.DB.prepare(
+      "SELECT s.account_id, a.role FROM sessions s JOIN guardian_accounts a ON a.id = s.account_id WHERE s.id = ? LIMIT 1"
+    ).bind(token).first();
+    if (session?.role === "admin") {
+      try {
+        await recordAudit(env, session.account_id, "auth.logout", {
+          type: "user", id: session.account_id, payload: { ip: clientIpFor(request) },
+        });
+      } catch (err) { console.log("[auth.logout] audit failed:", err.message); }
+    }
+    await env.DB.prepare("DELETE FROM sessions WHERE id = ?").bind(token).run();
+  }
   return jsonResponse({ ok: true });
 }
 
@@ -120,10 +147,25 @@ export async function handleMe(request, env) {
              p.amount     AS payment_amount,
              p.tran_id,
              p.method     AS payment_method,
-             p.updated_at AS payment_date
+             p.updated_at AS payment_date,
+             -- Cumulative across every paid payment (initial + any
+             -- option-upgrade top-ups). Used by the printable receipt
+             -- to show "total paid", since payment_amount above is the
+             -- initial-only value.
+             (
+               SELECT COALESCE(SUM(amount), 0)
+               FROM payments
+               WHERE registration_id = r.id AND status = 'paid'
+             ) AS total_paid
       FROM registrations r
+      -- payment_status / amount / tran_id reflect the registration's
+      -- primary payment, NOT any top-up. Scope to purpose='initial' so
+      -- an in-flight option-upgrade can't flip the dashboard to
+      -- pending/failed and re-trigger the Pay Now flow on a paid row.
       LEFT JOIN payments p ON p.id = (
-        SELECT id FROM payments WHERE registration_id = r.id ORDER BY created_at DESC LIMIT 1
+        SELECT id FROM payments
+        WHERE registration_id = r.id AND purpose = 'initial'
+        ORDER BY created_at DESC LIMIT 1
       )
       WHERE r.guardian_account_id = ?
       ORDER BY r.created_at DESC
@@ -144,12 +186,28 @@ export async function handleMe(request, env) {
       .map((id) => cfg.items.find((it) => it.id === id)?.label)
       .filter(Boolean);
   };
-  const registrations = (rows.results || []).map((r) => ({
-    ...r,
-    program_label: PROGRAM_NAMES[r.registration_type] || r.registration_type,
-    program_price: effectiveProgramPrice(r),
-    option_labels: optionLabelsFor(r),
-  }));
+  const registrations = (rows.results || []).map((r) => {
+    const optionsConfig = getProgramOptions(r.registration_type);
+    const program       = CATALOG_BY_SLUG[r.registration_type] || {};
+    return {
+      ...r,
+      program_label: PROGRAM_NAMES[r.registration_type] || r.registration_type,
+      program_price: effectiveProgramPrice(r),
+      option_labels: optionLabelsFor(r),
+      // The SPA renders the change-selection modal entirely from these
+      // fields, so it never needs to fetch the catalog. options_config is
+      // null for programs without options; options_editable reflects the
+      // per-program optionsEditableUntil deadline (falls back to
+      // registrationEnds).
+      options_config: optionsConfig,
+      options_editable: !!optionsConfig && withinEditWindow(r.registration_type),
+      // Date fields the dashboard's "Key dates" card derives from. ISO
+      // strings; absent fields stay null on the row.
+      registration_ends:       program.registrationEnds || null,
+      options_editable_until:  program.optionsEditableUntil || null,
+      starts_on:               program.startsOn || null,
+    };
+  });
 
   return jsonResponse({
     ok: true,
@@ -165,6 +223,16 @@ export async function handleMe(request, env) {
 }
 
 export async function handleRegistration(request, env) {
+  // Per-IP cap. Legitimate guardians register once per child; this gives
+  // generous headroom for a family registering 4-5 kids from the same
+  // address while blocking automated signup floods.
+  const REG_LIMIT = 5, REG_WINDOW = 24 * 60 * 60 * 1000;
+  const ip = clientIpFor(request);
+  if (!(await checkActionRateLimit(env, "registration", ip, REG_LIMIT, REG_WINDOW))) {
+    return badRequest("Too many registrations from this network. Please try again tomorrow or contact support.", 429);
+  }
+  await recordActionAttempt(env, "registration", ip);
+
   const payload  = await parseJson(request);
   const student  = payload.student  || {};
   const guardian = payload.guardian || {};
@@ -363,6 +431,13 @@ function maskEmail(email) {
 // belongs to an account. Always returns ok so the response cannot be used
 // to probe which emails are registered.
 export async function handleForgotPassword(request, env) {
+  const FP_LIMIT = 10, FP_WINDOW = 15 * 60 * 1000;
+  const ip = clientIpFor(request);
+  if (!(await checkActionRateLimit(env, "forgot-password", ip, FP_LIMIT, FP_WINDOW))) {
+    return badRequest("Too many requests. Please try again in a few minutes.", 429);
+  }
+  await recordActionAttempt(env, "forgot-password", ip);
+
   const payload = await parseJson(request);
   const email = (normalizeString(payload.email) || "").toLowerCase();
   if (!email) return badRequest("Email is required.");
@@ -420,6 +495,13 @@ export async function handleForgotEmail(request, env) {
 // POST /api/reset-password { token, password } - consumes a reset token
 // and sets a new password, then drops the account's sessions.
 export async function handleResetPassword(request, env) {
+  const RP_LIMIT = 10, RP_WINDOW = 15 * 60 * 1000;
+  const ip = clientIpFor(request);
+  if (!(await checkActionRateLimit(env, "reset-password", ip, RP_LIMIT, RP_WINDOW))) {
+    return badRequest("Too many requests. Please try again in a few minutes.", 429);
+  }
+  await recordActionAttempt(env, "reset-password", ip);
+
   const payload  = await parseJson(request);
   const token    = normalizeString(payload.token);
   const password = requireField(payload.password, "Password");
@@ -452,6 +534,13 @@ export async function handleResetPassword(request, env) {
 }
 
 export async function handleSponsorship(request, env) {
+  const SPON_LIMIT = 3, SPON_WINDOW = 60 * 60 * 1000;
+  const ip = clientIpFor(request);
+  if (!(await checkActionRateLimit(env, "sponsorship", ip, SPON_LIMIT, SPON_WINDOW))) {
+    return badRequest("Too many enquiries from this network. Please try again later.", 429);
+  }
+  await recordActionAttempt(env, "sponsorship", ip);
+
   const payload      = await parseJson(request);
   const organization = requireField(payload.organization,  "Organization");
   const contactPerson= requireField(payload.contactPerson, "Contact person");
@@ -479,6 +568,16 @@ export async function handleCreatePayment(request, env) {
   let account;
   try { account = await requireAuth(request, env); }
   catch (e) { return badRequest(e.message, e.status || 401); }
+
+  // Per-account throttle. Prevents an authenticated attacker from
+  // flooding shurjoPay - 5 creates per 15 min is more than any
+  // legitimate retry pattern needs (form-resubmits go through
+  // val_id reuse, not new payment rows).
+  const PAY_LIMIT = 5, PAY_WINDOW = 15 * 60 * 1000;
+  if (!(await checkActionRateLimit(env, "payment-create", account.account_id, PAY_LIMIT, PAY_WINDOW))) {
+    return badRequest("Too many payment attempts. Please wait a few minutes and try again.", 429);
+  }
+  await recordActionAttempt(env, "payment-create", account.account_id);
 
   const verified = await env.DB.prepare(
     "SELECT email_verified FROM guardian_accounts WHERE id = ? LIMIT 1"
@@ -651,7 +750,7 @@ export async function handlePaymentCallback(request, env, url) {
   if (!spOrderId) return done("failed");
 
   const payment = await env.DB.prepare(
-    "SELECT tran_id, coupon_code, registration_id, status FROM payments WHERE val_id = ? LIMIT 1"
+    "SELECT id, tran_id, coupon_code, registration_id, status, purpose, proposed_options, amount FROM payments WHERE val_id = ? LIMIT 1"
   ).bind(spOrderId).first();
   if (!payment) return done("failed");
 
@@ -674,6 +773,21 @@ export async function handlePaymentCallback(request, env, url) {
       return done(status.toLowerCase() === "cancel" ? "cancelled" : "failed");
     }
 
+    // Amount sanity check. We trust shurjoPay's verify response, but the
+    // gateway's returned amount must be >= what we billed. Anything less
+    // means a tampered callback / settlement mismatch - we'd be granting
+    // a paid status against an underpayment. Flip to 'failed' so it's
+    // visible in admin and doesn't auto-mark paid.
+    const verifiedAmount = Number(result.amount ?? result.txn_amount ?? NaN);
+    const billedAmount   = Number(payment.amount);
+    if (!Number.isFinite(verifiedAmount) || verifiedAmount + 0.01 < billedAmount) {
+      console.log(`[payment-callback] amount mismatch val_id=${spOrderId} billed=${billedAmount} verified=${verifiedAmount}`);
+      await env.DB.prepare(
+        "UPDATE payments SET status = 'failed', gateway_status = ?, updated_at = ? WHERE val_id = ? AND status != 'paid'"
+      ).bind(`AmountMismatch:${verifiedAmount}`, now, spOrderId).run();
+      return done("failed");
+    }
+
     // Atomically claim the payment: only one caller flips a non-paid row
     // to paid. meta.changes tells us whether THIS call won the race, so
     // the side effects (member id, receipt, coupon count) run exactly once.
@@ -683,6 +797,64 @@ export async function handlePaymentCallback(request, env, url) {
 
     if (!claim?.meta || claim.meta.changes === 0) {
       return done("success");  // the other channel claimed it first
+    }
+
+    // Option-upgrade top-ups: don't flip registration status (already
+    // paid) and don't mint a member id - the change is purely the option
+    // swap. Once committed we audit the change and re-issue the receipt
+    // showing the new selection + cumulative total.
+    if (payment.purpose === "option-upgrade") {
+      const proposed = payment.proposed_options || "[]";
+      const currentRow = await env.DB.prepare(
+        "SELECT program_options FROM registrations WHERE id = ? LIMIT 1"
+      ).bind(payment.registration_id).first();
+      const fromIds = (() => {
+        try { return JSON.parse(currentRow?.program_options || "[]"); } catch { return []; }
+      })();
+      const toIds = (() => {
+        try { return JSON.parse(proposed); } catch { return []; }
+      })();
+
+      // Price the change against the catalog at commit time. If the
+      // catalog moved while the guardian was on the gateway page we still
+      // log the price the guardian actually paid (payment.amount).
+      let regType = null;
+      try {
+        const r = await env.DB.prepare(
+          "SELECT registration_type FROM registrations WHERE id = ? LIMIT 1"
+        ).bind(payment.registration_id).first();
+        regType = r?.registration_type || null;
+      } catch {}
+      const diff = regType ? computeOptionDiff(regType, fromIds, toIds) : null;
+
+      const ops = [
+        env.DB.prepare("UPDATE registrations SET program_options = ? WHERE id = ?")
+          .bind(proposed, payment.registration_id),
+        env.DB.prepare(`
+          INSERT INTO registration_option_changes
+            (registration_id, from_options, to_options, from_price, to_price, delta,
+             action, payment_id, actor_account_id, acknowledged_no_refund, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, 'upgrade', ?, (
+            SELECT guardian_account_id FROM registrations WHERE id = ? LIMIT 1
+          ), 0, ?)
+        `).bind(
+          payment.registration_id,
+          JSON.stringify(fromIds),
+          proposed,
+          diff?.fromPrice ?? 0,
+          diff?.toPrice ?? 0,
+          diff?.delta ?? 0,
+          payment.id,
+          payment.registration_id,
+          now,
+        ),
+      ];
+      await env.DB.batch(ops);
+
+      try { await sendUpdatedReceiptForRegistration(env, payment.registration_id, getBaseUrl(request)); }
+      catch (err) { console.log("[payment-callback/option-upgrade] receipt error:", err.message); }
+
+      return done("success");
     }
 
     const ops = [
