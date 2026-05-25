@@ -1122,7 +1122,7 @@
         </div>
         <div class="note">
           <h4>Important Note for Parents</h4>
-          <p>BdMSO national round registration opens in April–May, and eligibility is strictly governed by the cutoff date of <strong>October 1, 2026</strong>.</p>
+          <p>BdMSO national round registration opens in May, and eligibility is strictly governed by the cutoff date of <strong>October 1, 2026</strong>.</p>
           <ul>
             <li><strong>National Curriculum:</strong> If your child is in Grade 6 during the registration period, they will still be in Grade 6 by October 1 and are eligible.</li>
             <li><strong>British Curriculum (or similar):</strong> Students promoted to Grade 7 in July/August 2026 are <strong>not eligible</strong>, even if they were in Grade 6 during registration.</li>
@@ -1427,11 +1427,19 @@ body[data-page="home"].has-top-banner { padding-top: 87px; }
 .hero.hero-zoom .hero-sub { max-width: 640px; margin: 0 auto 32px; }
 .hero.hero-zoom .hero-cta { justify-content: center; }
 
-/* Cards row: continuous infinite marquee under the hero. The track is
-   duplicated by JS (so the second half slides into place as the first
-   half slides out), then translated -50% on a linear loop. Per-card
-   margin-right (instead of flex gap) keeps the seam math exact. */
-.zh-cards { position: relative; padding: 0 0 72px; overflow: hidden; }
+/* Cards row: interactive draggable marquee under the hero. The track is
+   duplicated by JS so the second half fills the gap as the first scrolls
+   off-screen. Auto-scroll runs via requestAnimationFrame; dragging
+   pauses it and applies spring-like momentum on release. */
+.zh-cards {
+  position: relative; padding: 0 0 72px; overflow: hidden;
+  touch-action: pan-y;  /* let vertical scroll through, capture horizontal */
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.zh-cards.dragging { cursor: grabbing; }
+.zh-cards.dragging .zh-card { transition: none; }  /* no lift on drag — it fights the swipe */
 .zh-cards::before, .zh-cards::after {
   content: ""; position: absolute; top: 0; bottom: 72px; width: 64px; z-index: 2; pointer-events: none;
 }
@@ -1440,7 +1448,7 @@ body[data-page="home"].has-top-banner { padding-top: 87px; }
 .zh-cards-track {
   display: flex; width: max-content;
   padding: 8px 0 24px;
-  animation: zh-marquee 30s linear infinite;
+  will-change: transform;
 }
 .zh-card {
   flex: 0 0 auto; width: 380px;
@@ -1451,19 +1459,22 @@ body[data-page="home"].has-top-banner { padding-top: 87px; }
   border-radius: 18px; overflow: hidden;
   text-decoration: none; color: var(--navy-900);
   box-shadow: 0 2px 8px rgba(11, 27, 63, 0.04);
-  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1),
+              border-color 200ms ease,
+              box-shadow 200ms ease;
 }
-.zh-card:hover {
-  transform: translateY(-3px);
-  border-color: var(--navy-200, #cbd5e1);
-  box-shadow: 0 10px 24px rgba(11, 27, 63, 0.10);
+@media (hover: hover) and (pointer: fine) {
+  .zh-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--navy-200, #cbd5e1);
+    box-shadow: 0 10px 24px rgba(11, 27, 63, 0.10);
+  }
 }
-@keyframes zh-marquee {
-  from { transform: translate3d(0, 0, 0); }
-  to   { transform: translate3d(-50%, 0, 0); }
+.zh-card:active {
+  transform: scale(0.97);
 }
 @media (prefers-reduced-motion: reduce) {
-  .zh-cards-track { animation: none; }
+  .zh-cards-track { will-change: auto; }
 }
 .zh-card-head { padding: 16px 18px 12px; display: flex; align-items: center; gap: 10px; }
 .zh-card-dot {
@@ -1482,7 +1493,6 @@ body[data-page="home"].has-top-banner { padding-top: 87px; }
   .zh-cards { padding: 0 0 56px; }
   .zh-cards::before, .zh-cards::after { width: 36px; bottom: 56px; }
   .zh-card { width: 310px; margin-right: 14px; }
-  .zh-cards-track { animation-duration: 22s; }
 }
 
 .ue-modal[hidden] { display: none; }
@@ -1562,19 +1572,131 @@ body[data-page="home"].has-top-banner { padding-top: 87px; }
     bannerClose.addEventListener('click', dismiss);
   }
 
-  // Featured cards: clone the children once so the track holds two
-  // identical sets back-to-back. The CSS animation translates -50%
-  // and loops — because the second set sits exactly where the first
-  // was, the seam is invisible and motion is continuous.
-  const track = document.getElementById('zh-cards-track');
-  if (track) {
-    const originals = Array.from(track.children);
-    originals.forEach(node => {
-      const clone = node.cloneNode(true);
-      clone.setAttribute('aria-hidden', 'true');
-      clone.setAttribute('tabindex', '-1');
-      track.appendChild(clone);
+  // ── Interactive marquee row ────────────────────────────────────────
+  // Auto-scrolls via rAF loop; hovers pause; drag with spring-
+  // momentum release so a quick flick coasts farther than a slow
+  // drag.  The track is duplicated and wraps seamlessly.
+  // ── Emil-style constraints ────────────────────────────────────────
+  // • spring decay, not linear deceleration (feels organic)
+  // • momentum velocity clamped (avoid rocket-launch flicks)
+  // • multi-touch guard, pointer capture outside bounds
+  // • scale(0.97) on active (cards feel responsive to press)
+  // • no animation for prefers-reduced-motion
+  const cardsWrap = document.querySelector('.zh-cards');
+  const trackEl   = document.getElementById('zh-cards-track');
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (trackEl && cardsWrap) {
+    // Duplicate track for seamless wrap.
+    Array.from(trackEl.children).forEach(n => {
+      const c = n.cloneNode(true);
+      c.setAttribute('aria-hidden', 'true');
+      c.setAttribute('tabindex', '-1');
+      trackEl.appendChild(c);
     });
+
+    let offset     = 0;
+    let velocity   = 0;
+    let autoSpeed  = prefersReducedMotion ? 0 : ('ontouchstart' in window ? 0.055 : 0.045);
+    let rafId      = null;
+    let lastTime   = 0;
+
+    // Drag state.
+    let dragging       = false;
+    let dragStartX     = 0;
+    let dragStartOff   = 0;
+    let dragLastX      = 0;
+    let dragLastTime   = 0;
+
+    const halfW = () => trackEl.scrollWidth / 2;
+
+    const apply = () => {
+      // Wrap offset into [0, halfW) – no visual jump because the two
+      // halves are pixel-identical.
+      const hw = halfW();
+      while (offset >= hw) offset -= hw;
+      while (offset < 0)    offset += hw;
+      trackEl.style.transform = `translate3d(${-offset}px, 0, 0)`;
+    };
+
+    const clientX = (e) => e.touches ? e.touches[0].clientX : e.clientX;
+
+    const onMove = (e) => {
+      if (!dragging) return;
+      e.preventDefault();
+      const cx = clientX(e);
+      dragLastX    = cx;
+      dragLastTime = performance.now();
+      offset = dragStartOff + (dragStartX - cx);
+      apply();
+    };
+
+    const onUp = (e) => {
+      if (!dragging) return;
+      dragging = false;
+      cardsWrap.classList.remove('dragging');
+
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup',   onUp);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend',  onUp);
+
+      // Spring-momentum release — velocity from the last ~50 ms of drag
+      // movement gives the coast distance. Clamp so a violent flick
+      // doesn't launch past the entire row.
+      const dt  = Math.max(performance.now() - dragLastTime, 1);
+      const dx  = dragStartX - dragLastX;
+      velocity  = dx / dt * 0.5;
+      velocity  = Math.max(-0.8, Math.min(0.8, velocity));
+      lastTime  = performance.now();
+    };
+
+    const onDown = (e) => {
+      if (dragging || (e.touches && e.touches.length > 1)) return;
+      e.preventDefault();
+      dragging      = true;
+      dragStartX    = clientX(e);
+      dragStartOff  = offset;
+      dragLastX     = dragStartX;
+      dragLastTime  = performance.now();
+      velocity      = 0;
+      cardsWrap.classList.add('dragging');
+
+      if (e.type === 'mousedown') {
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup',   onUp);
+      } else {
+        document.addEventListener('touchmove', onMove, { passive: false });
+        document.addEventListener('touchend',  onUp);
+      }
+    };
+
+    cardsWrap.addEventListener('mousedown',  onDown);
+    cardsWrap.addEventListener('touchstart', onDown, { passive: false });
+
+    // rAF loop — auto-scrolls and applies momentum decay.
+    const tick = (ts) => {
+      if (!lastTime) lastTime = ts;
+      const dt = Math.min(ts - lastTime, 50);
+      lastTime = ts;
+
+      if (!dragging) {
+        if (Math.abs(velocity) > 0.005) {
+          // Exponential decay: stiffness ≈ 80, damping ≈ 12 in
+          // continuous time. Feels like a gentle spring settle.
+          velocity *= Math.exp(-5.5 * dt * 0.001);
+          offset   += velocity * dt;
+        } else {
+          velocity = 0;
+          offset   += autoSpeed * dt;
+        }
+        apply();
+      }
+
+      rafId = requestAnimationFrame(tick);
+    };
+
+    rafId = requestAnimationFrame(tick);
   }
 })();
 </script>
