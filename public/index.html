@@ -1434,12 +1434,8 @@ body[data-page="home"].has-top-banner { padding-top: 87px; }
 .zh-cards {
   position: relative; padding: 0 0 72px; overflow: hidden;
   touch-action: pan-y;  /* let vertical scroll through, capture horizontal */
-  cursor: grab;
-  user-select: none;
-  -webkit-user-select: none;
 }
-.zh-cards.dragging { cursor: grabbing; }
-.zh-cards.dragging .zh-card { transition: none; }  /* no lift on drag — it fights the swipe */
+.zh-cards.dragging .zh-card { cursor: grabbing; transition: none; }  /* no lift on drag — it fights the swipe */
 .zh-cards::before, .zh-cards::after {
   content: ""; position: absolute; top: 0; bottom: 72px; width: 64px; z-index: 2; pointer-events: none;
 }
@@ -1459,6 +1455,9 @@ body[data-page="home"].has-top-banner { padding-top: 87px; }
   border-radius: 18px; overflow: hidden;
   text-decoration: none; color: var(--navy-900);
   box-shadow: 0 2px 8px rgba(11, 27, 63, 0.04);
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
   transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1),
               border-color 200ms ease,
               box-shadow 200ms ease;
@@ -1600,13 +1599,18 @@ body[data-page="home"].has-top-banner { padding-top: 87px; }
     let autoSpeed  = prefersReducedMotion ? 0 : ('ontouchstart' in window ? 0.055 : 0.045);
     let rafId      = null;
     let lastTime   = 0;
+    let hovered    = false;       // true while mouse is over the row
+    let holdUntil  = 0;           // pause auto-scroll until this timestamp
+    let justDragged = false;       // set on release, cleared when hold fires
 
     // Drag state.
     let dragging       = false;
+    let dragStarted    = false;
     let dragStartX     = 0;
     let dragStartOff   = 0;
     let dragLastX      = 0;
     let dragLastTime   = 0;
+    const DRAG_THRESH = 5;        // px — below this it's a tap, let click through
 
     const halfW = () => trackEl.scrollWidth / 2;
 
@@ -1622,9 +1626,13 @@ body[data-page="home"].has-top-banner { padding-top: 87px; }
     const clientX = (e) => e.touches ? e.touches[0].clientX : e.clientX;
 
     const onMove = (e) => {
-      if (!dragging) return;
-      e.preventDefault();
+      if (!dragStarted) return;
       const cx = clientX(e);
+      // Only commit to dragging after the pointer moves past the
+      // threshold. Below 5 px it's a tap — let the click through.
+      if (!dragging && Math.abs(cx - dragStartX) < DRAG_THRESH) return;
+      e.preventDefault();
+      if (!dragging) { dragging = true; cardsWrap.classList.add('dragging'); }
       dragLastX    = cx;
       dragLastTime = performance.now();
       offset = dragStartOff + (dragStartX - cx);
@@ -1632,14 +1640,19 @@ body[data-page="home"].has-top-banner { padding-top: 87px; }
     };
 
     const onUp = (e) => {
-      if (!dragging) return;
+      if (!dragStarted) return;
+      dragStarted = false;
+      const wasDragging = dragging;
       dragging = false;
-      cardsWrap.classList.remove('dragging');
+      if (wasDragging) cardsWrap.classList.remove('dragging');
 
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup',   onUp);
       document.removeEventListener('touchmove', onMove);
       document.removeEventListener('touchend',  onUp);
+      document.removeEventListener('touchcancel', onUp);
+
+      if (!wasDragging) return; // tap, no momentum
 
       // Spring-momentum release — velocity from the last ~50 ms of drag
       // movement gives the coast distance. Clamp so a violent flick
@@ -1649,18 +1662,21 @@ body[data-page="home"].has-top-banner { padding-top: 87px; }
       velocity  = dx / dt * 0.5;
       velocity  = Math.max(-0.8, Math.min(0.8, velocity));
       lastTime  = performance.now();
+      justDragged = true;
     };
 
     const onDown = (e) => {
-      if (dragging || (e.touches && e.touches.length > 1)) return;
-      e.preventDefault();
-      dragging      = true;
+      if (dragStarted || (e.touches && e.touches.length > 1)) return;
+      // Only cards are interactive — empty space between cards passes
+      // through for vertical scrolling on mobile.
+      if (!e.target.closest('.zh-card')) return;
+      dragStarted   = true;
       dragStartX    = clientX(e);
       dragStartOff  = offset;
       dragLastX     = dragStartX;
       dragLastTime  = performance.now();
       velocity      = 0;
-      cardsWrap.classList.add('dragging');
+      holdUntil     = 0;
 
       if (e.type === 'mousedown') {
         document.addEventListener('mousemove', onMove);
@@ -1673,6 +1689,8 @@ body[data-page="home"].has-top-banner { padding-top: 87px; }
 
     cardsWrap.addEventListener('mousedown',  onDown);
     cardsWrap.addEventListener('touchstart', onDown, { passive: false });
+    cardsWrap.addEventListener('mouseenter', () => { hovered = true;  holdUntil = 0; });
+    cardsWrap.addEventListener('mouseleave', () => { hovered = false; holdUntil = performance.now() + 1200; });
 
     // rAF loop — auto-scrolls and applies momentum decay.
     const tick = (ts) => {
@@ -1681,12 +1699,20 @@ body[data-page="home"].has-top-banner { padding-top: 87px; }
       lastTime = ts;
 
       if (!dragging) {
-        if (Math.abs(velocity) > 0.005) {
-          // Exponential decay: stiffness ≈ 80, damping ≈ 12 in
-          // continuous time. Feels like a gentle spring settle.
+        if (hovered) {
+          lastTime = ts;
+        } else if (Math.abs(velocity) > 0.005) {
           velocity *= Math.exp(-5.5 * dt * 0.001);
           offset   += velocity * dt;
+        } else if (justDragged || holdUntil) {
+          // Hold: start the pause when velocity first settles after
+          // a drag release, or continue an existing hold.
+          if (justDragged && !holdUntil) holdUntil = ts + 800;
+          justDragged = false;
+          velocity = 0;
+          if (ts < holdUntil) { lastTime = ts; } else { holdUntil = 0; offset += autoSpeed * dt; }
         } else {
+          holdUntil = 0;
           velocity = 0;
           offset   += autoSpeed * dt;
         }
@@ -1697,6 +1723,40 @@ body[data-page="home"].has-top-banner { padding-top: 87px; }
     };
 
     rafId = requestAnimationFrame(tick);
+
+    // bfcache restore (browser Back button) freezes the marquee: the
+    // rAF loop is killed on navigation and never resumes, and stale
+    // state from before nav (hovered=true if the cursor was over a
+    // card when clicked, lingering document drag listeners) can stay
+    // attached. Reset everything and kick the loop back on pageshow
+    // with event.persisted - which only fires on bfcache restore.
+    window.addEventListener('pageshow', (e) => {
+      if (!e.persisted) return;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup',   onUp);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend',  onUp);
+      document.removeEventListener('touchcancel', onUp);
+      cardsWrap.classList.remove('dragging');
+      hovered = false; holdUntil = 0; velocity = 0;
+      dragStarted = false; dragging = false; justDragged = false;
+      lastTime = 0;
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(tick);
+    });
+
+    // Tab visibility: stop the rAF loop entirely when the tab is
+    // hidden so we don't spin the GPU on a row nobody is looking at,
+    // and restart cleanly when it comes back (lastTime reset prevents
+    // a giant first-frame dt that would otherwise jump the marquee).
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      } else if (!rafId) {
+        lastTime = 0;
+        rafId = requestAnimationFrame(tick);
+      }
+    });
   }
 })();
 </script>
