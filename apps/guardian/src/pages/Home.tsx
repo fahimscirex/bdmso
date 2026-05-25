@@ -6,6 +6,8 @@
 import { useEffect, useState } from 'preact/hooks';
 import { api, ApiError } from '../api';
 import { syncSessionName, syncHeaderName } from '../auth';
+import ChangeSelectionModal from '../components/ChangeSelectionModal';
+import type { OptionsConfig } from '../components/ChangeSelectionModal';
 
 type Registration = {
   id: string;
@@ -15,6 +17,17 @@ type Registration = {
   // never hard-codes program names or prices.
   program_label: string;
   option_labels?: string[];
+  // Raw stored option ids (JSON-stringified array). options_config /
+  // options_editable are inlined by /api/me so the change-selection
+  // modal can render without a second fetch.
+  program_options: string | null;
+  options_config: OptionsConfig | null;
+  options_editable: boolean;
+  // Date metadata used by the "Key dates" rail. ISO yyyy-mm-dd strings
+  // or null; populated from the catalog by /api/me.
+  registration_ends: string | null;
+  options_editable_until: string | null;
+  starts_on: string | null;
   program_price: number | null;
   student_full_name: string;
   student_class_name: string;
@@ -26,7 +39,8 @@ type Registration = {
   created_at: string;
   payment_id: string | null;
   payment_status: 'pending' | 'paid' | 'failed' | null;
-  payment_amount: number | null;
+  payment_amount: number | null;     // initial payment amount (excludes top-ups)
+  total_paid: number;                 // cumulative across initial + every option-upgrade
   tran_id: string | null;
   payment_date: string | null;
   payment_method: string | null;
@@ -218,7 +232,7 @@ function printReceipt(reg: Registration, account: { fullName: string; email: str
     </div>
 
     <div class="r-hero">
-      <div class="r-hero-amt">${escape(formatBdt(reg.payment_amount))} <span>paid</span></div>
+      <div class="r-hero-amt">${escape(formatBdt(reg.total_paid ?? reg.payment_amount))} <span>paid</span></div>
       <div class="r-hero-sub">Paid on ${escape(formatDate(reg.payment_date))} &middot; ${escape(programLabel)}</div>
     </div>
 
@@ -241,11 +255,11 @@ function printReceipt(reg: Registration, account: { fullName: string; email: str
           ${reg.option_labels && reg.option_labels.length ? `<div style="margin-top:4px;font-size:12px;font-weight:600;color:var(--navy);">${escape(reg.option_labels.join(' · '))}</div>` : ''}
           <div class="r-item-sub">${escape([reg.student_full_name, reg.student_class_name, reg.student_school, reg.student_district].filter(Boolean).join(' · '))}</div>
         </div>
-        <div class="r-item-amt">${escape(formatBdt(reg.payment_amount))}</div>
+        <div class="r-item-amt">${escape(formatBdt(reg.total_paid ?? reg.payment_amount))}</div>
       </div>
       <div class="r-total">
         <span>Total paid</span>
-        <span>${escape(formatBdt(reg.payment_amount))}</span>
+        <span>${escape(formatBdt(reg.total_paid ?? reg.payment_amount))}</span>
       </div>
     </div>
 
@@ -516,7 +530,7 @@ export function Home() {
             pendingCount={pending}
             hasMemberId={!!studentMemberId}
           />
-          <ImportantDates />
+          <ImportantDates regs={regs} />
         </aside>
       </div>
 
@@ -591,6 +605,9 @@ function DashboardChecklist({ emailVerified, paidCount, pendingCount, hasMemberI
     { done: paidCount > 0, label: 'First payment cleared', sub: pendingCount > 0 ? `${pendingCount} registration${pendingCount === 1 ? '' : 's'} awaiting payment` : 'All registrations are paid' },
     { done: hasMemberId, label: 'BdMSO ID issued', sub: hasMemberId ? 'Use it across every program' : 'Issued on your first paid receipt' },
   ];
+  // Once every item is done the card is just a row of green ticks. Hide
+  // it so the right rail leaves room for cards that still matter.
+  if (items.every((it) => it.done)) return null;
   return (
     <section class="side-card">
       <h3 class="side-card-title">Your checklist</h3>
@@ -609,25 +626,64 @@ function DashboardChecklist({ emailVerified, paidCount, pendingCount, hasMemberI
   );
 }
 
-// "Important dates" - pulled from the marketing site's Road-to-IMSO
-// steps.json so the dashboard and the public timeline never disagree.
-function ImportantDates() {
-  const [steps, setSteps] = useState<{ name: string; date: string }[] | null>(null);
-  useEffect(() => {
-    fetch('/data/steps.json')
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setSteps)
-      .catch(() => setSteps([]));
-  }, []);
-  if (!steps || steps.length === 0) return null;
+// "Key dates" - derived from the guardian's own registrations so the
+// list reflects what's actually on their plate, not the generic IMSO
+// timeline. Each registration can contribute up to three items:
+//   - Program starts on (catalog: startsOn)
+//   - Register/pay by (catalog: registrationEnds, only when unpaid)
+//   - Change selection by (catalog: optionsEditableUntil, only when the
+//     program has editable options and the window is still open)
+// Repeatable programs (Mock Test) hit the same catalog dates on every
+// row they own, so we dedupe by message + date and a guardian with two
+// Mock Test bookings sees one "Mock Test starts" line, not two.
+// Past dates are filtered out. Hidden entirely when nothing's upcoming.
+type DateItem = { iso: string; headline: string };
+
+function buildKeyDates(regs: Registration[], todayISO: string): DateItem[] {
+  const seen = new Set<string>();
+  const items: DateItem[] = [];
+  const push = (iso: string, headline: string) => {
+    const key = `${iso}|${headline}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    items.push({ iso, headline });
+  };
+  for (const r of regs) {
+    if (r.status === 'cancelled') continue;
+    if (r.starts_on && r.starts_on >= todayISO) {
+      push(r.starts_on, `${r.program_label} starts`);
+    }
+    if (r.payment_status !== 'paid' && r.registration_ends && r.registration_ends >= todayISO) {
+      push(r.registration_ends, `Pay for ${r.program_label} by this date`);
+    }
+    if (r.options_editable && r.options_editable_until && r.options_editable_until >= todayISO) {
+      push(r.options_editable_until, `Last day to change ${r.program_label} selection`);
+    }
+  }
+  items.sort((a, b) => a.iso.localeCompare(b.iso));
+  return items.slice(0, 6);
+}
+
+// "6 Jun 2026". Same locale as elsewhere in the dashboard - day comes
+// first per BD/UK convention, full year so the line stands on its own.
+function formatKeyDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  });
+}
+
+function ImportantDates({ regs }: { regs: Registration[] }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const items = buildKeyDates(regs, today);
+  if (items.length === 0) return null;
   return (
     <section class="side-card">
       <h3 class="side-card-title">Key dates</h3>
       <ul class="datelist">
-        {steps.slice(0, 5).map((s, i) => (
-          <li key={i} class="datelist-item">
-            <span class="datelist-date">{s.date}</span>
-            <span class="datelist-name">{s.name}</span>
+        {items.map((it, i) => (
+          <li key={`${it.iso}-${i}`} class="datelist-item">
+            <span class="datelist-date">{formatKeyDate(it.iso)}</span>
+            <span class="datelist-name">{it.headline}</span>
           </li>
         ))}
       </ul>
@@ -743,6 +799,22 @@ function RegistrationCard({ reg, account, onChanged }: { reg: Registration; acco
   const [validating, setValidating]     = useState(false);
   const [paying, setPaying]             = useState(false);
   const [payError, setPayError]         = useState<string | null>(null);
+  const [showChange, setShowChange]     = useState(false);
+
+  // Change-selection is offered only for programs with options whose
+  // edit window is still open AND a non-cancelled registration. On a
+  // pending payment we hide it - the guardian must finish or cancel
+  // their checkout first (server enforces this too).
+  const canChangeOptions =
+    !!reg.options_config && reg.options_editable
+    && reg.status !== 'cancelled' && reg.payment_status !== 'pending';
+  const currentOptionIds: string[] = (() => {
+    if (!reg.program_options) return [];
+    try {
+      const v = JSON.parse(reg.program_options);
+      return Array.isArray(v) ? v : [];
+    } catch { return []; }
+  })();
 
   async function applyCoupon() {
     const code = couponInput.trim().toUpperCase();
@@ -829,7 +901,22 @@ function RegistrationCard({ reg, account, onChanged }: { reg: Registration; acco
           </span>
         </div>
         {reg.option_labels && reg.option_labels.length > 0 && (
-          <div class="reg-card-options">{reg.option_labels.join(' · ')}</div>
+          <div class="reg-card-options-row">
+            <div class="reg-card-options">{reg.option_labels.join(' · ')}</div>
+            {canChangeOptions && (
+              <button
+                type="button"
+                class="reg-card-change-btn"
+                onClick={() => setShowChange(true)}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z" />
+                </svg>
+                Change
+              </button>
+            )}
+          </div>
         )}
         <div class="reg-card-student">
           {reg.student_full_name} · {reg.student_class_name}
@@ -853,7 +940,7 @@ function RegistrationCard({ reg, account, onChanged }: { reg: Registration; acco
         {reg.payment_status === 'paid' ? (
           <>
             <span class="reg-card-side-label">Paid</span>
-            <div class="reg-card-side-amount">{formatBdt(reg.payment_amount)}</div>
+            <div class="reg-card-side-amount">{formatBdt(reg.total_paid ?? reg.payment_amount)}</div>
             {reg.payment_date && (
               <div class="reg-card-side-sub">on {formatDate(reg.payment_date)}</div>
             )}
@@ -934,6 +1021,18 @@ function RegistrationCard({ reg, account, onChanged }: { reg: Registration; acco
           </>
         )}
       </div>
+
+      {showChange && reg.options_config && (
+        <ChangeSelectionModal
+          registrationId={reg.id}
+          programLabel={reg.program_label}
+          paid={reg.status === 'paid'}
+          config={reg.options_config}
+          currentIds={currentOptionIds}
+          onClose={() => setShowChange(false)}
+          onChanged={onChanged}
+        />
+      )}
 
       {/* Right: the single primary action, alone. Cancelled rows have
           no action - the middle column already explains how to re-enroll. */}

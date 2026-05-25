@@ -33,6 +33,7 @@ type Registration = {
   student_school: string;
   student_district: string;
   preferred_venue: string | null;
+  preferred_subject: string | null;
   status: 'submitted' | 'paid' | 'cancelled';
   member_id: string | null;
   payment_status: 'pending' | 'paid' | 'failed' | null;
@@ -342,6 +343,9 @@ function StudentRow({ regs, memberId, onSaved }: { regs: Registration[]; memberI
             <dt>School</dt><dd>{active.student_school}</dd>
             <dt>District</dt><dd>{active.student_district}</dd>
             {active.preferred_venue && <><dt>Exam region</dt><dd style="text-transform:capitalize;">{active.preferred_venue}</dd></>}
+            {sorted.some((r) => r.preferred_subject) && (
+              <><dt>Preferred subject</dt><dd style="text-transform:capitalize;" title="Used as the tiebreaker if your child qualifies in both subjects.">{sorted.find((r) => r.preferred_subject)?.preferred_subject || <span class="muted">-</span>}</dd></>
+            )}
           </dl>
 
           {activePrograms.length > 0 && (
@@ -380,6 +384,7 @@ type EditForm = {
   student_school:        string;
   student_district:      string;
   preferred_venue:       string;
+  preferred_subject:     string;
 };
 
 const DOB_MONTHS = [
@@ -457,6 +462,11 @@ function StudentEditForm({ regs, onCancel, onSaved }: {
   // atomic request (PATCH /api/me/registrations) so the rows can't
   // disagree and split the student into two cards.
   const reg = regs[0];
+  // preferred_subject is only stored on NQR rows but the bulk-edit
+  // endpoint writes to every registration (non-NQR rows hold a null
+  // anyway, so it's a no-op there). Seed from whichever row has it set.
+  const nqrReg = regs.find((r) => r.preferred_subject);
+  const hasNqr = regs.some((r) => r.registration_type === 'national-olympiad');
   const [form, setForm] = useState<EditForm>({
     student_full_name:     reg.student_full_name,
     student_date_of_birth: reg.student_date_of_birth,
@@ -466,6 +476,7 @@ function StudentEditForm({ regs, onCancel, onSaved }: {
     student_school:        reg.student_school,
     student_district:      reg.student_district,
     preferred_venue:       reg.preferred_venue || '',
+    preferred_subject:     nqrReg?.preferred_subject || '',
   });
   const [busy,  setBusy]  = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -563,6 +574,25 @@ function StudentEditForm({ regs, onCancel, onSaved }: {
             onChange={(v) => patch('preferred_venue', v)}
           />
         </Field>
+        {hasNqr && (
+          <Field
+            label="Preferred subject"
+            full
+            hint="If your child qualifies in both subjects, we'll prioritise this one for the top placement."
+          >
+            <Dropdown
+              ariaLabel="Preferred subject"
+              placeholder="- select -"
+              value={form.preferred_subject}
+              options={[
+                { value: 'math',    label: 'Math' },
+                { value: 'science', label: 'Science' },
+                { value: 'both',    label: 'Both' },
+              ]}
+              onChange={(v) => patch('preferred_subject', v)}
+            />
+          </Field>
+        )}
       </div>
       {error && <div class="error" style="margin-top:10px;">{error}</div>}
       <div class="action-row" style="margin-top:14px;">

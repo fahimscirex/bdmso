@@ -1152,6 +1152,116 @@ body.bdmso-pay-banner { padding-top: calc(70px + var(--pay-banner-h, 48px)); }
 .checklist-label { font-size: 13px; font-weight: 700; color: var(--navy-900); }
 .checklist-sub { font-size: 11.5px; color: var(--ink-3); line-height: 1.45; }
 
+/* ── Change-selection modal ──────────────────────────────────────────
+   Visual language matches the dashboard - rounded card, navy text,
+   amber accent on the "you pay" delta row when it's an upgrade. The
+   selectable options list mirrors the radio/checkbox pattern used on
+   the public registration page so guardians don't relearn anything. */
+.cs-modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.cs-backdrop { position: absolute; inset: 0; background: rgba(11, 27, 63, 0.55); backdrop-filter: blur(4px); cursor: pointer; }
+.cs-dialog {
+  position: relative; background: white; border-radius: 16px;
+  width: 100%; max-width: 480px; max-height: calc(100vh - 48px);
+  display: flex; flex-direction: column;
+  box-shadow: 0 24px 64px rgba(11, 27, 63, 0.32);
+  overflow: hidden;
+}
+.cs-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; padding: 20px 22px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.cs-eyebrow { margin: 0 0 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.cs-title { margin: 0; font-size: 1.1rem; color: var(--navy-900); }
+.cs-close {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--bg, #f4f6fb); color: var(--ink-2);
+  border: none; cursor: pointer; font-size: 18px; line-height: 1;
+  display: grid; place-items: center;
+}
+.cs-close:hover { background: var(--line); color: var(--navy-900); }
+.cs-body { padding: 16px 22px; overflow-y: auto; }
+.cs-help { margin: 0 0 14px; color: var(--ink-2); font-size: 13px; line-height: 1.5; }
+.cs-options { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.cs-option {
+  border: 1px solid var(--line); border-radius: 10px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.cs-option:hover { border-color: var(--navy-200, #cbd5e1); }
+.cs-option.on { border-color: var(--navy-700); background: rgba(30, 58, 138, 0.04); }
+.cs-option > label {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 14px; cursor: pointer;
+}
+.cs-option > label > input { margin-top: 3px; flex-shrink: 0; accent-color: var(--navy-700); }
+.cs-option-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cs-option-top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.cs-option-label { font-size: 14px; font-weight: 600; color: var(--navy-900); }
+.cs-option-price { font-size: 13px; font-weight: 700; color: var(--navy-900); white-space: nowrap; }
+.cs-option-sub { font-size: 12px; color: var(--ink-3); line-height: 1.45; }
+.cs-summary {
+  border-top: 1px solid var(--line); padding-top: 12px; margin-top: 4px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.cs-summary-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-2); }
+.cs-summary-delta { font-weight: 700; font-size: 14px; padding-top: 6px; border-top: 1px dashed var(--line); margin-top: 4px; }
+.cs-summary-delta.upgrade { color: #b45309; }
+.cs-summary-delta.downgrade { color: var(--ink-3); }
+.cs-summary-delta.same { color: var(--ink-3); }
+.cs-ack {
+  display: flex; gap: 10px; align-items: flex-start;
+  margin-top: 14px; padding: 10px 12px;
+  background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px;
+  font-size: 12.5px; color: #92400e;
+}
+.cs-ack input { margin-top: 2px; }
+.cs-error { margin: 12px 0 0; color: #b91c1c; font-size: 13px; }
+.cs-foot {
+  display: flex; gap: 10px; justify-content: flex-end;
+  padding: 14px 22px 18px; border-top: 1px solid var(--line);
+  background: #fafbfd;
+}
+.cs-cancel {
+  background: transparent; border: 1px solid var(--line);
+  color: var(--ink-2); border-radius: 8px;
+  padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.cs-cancel:hover { background: white; color: var(--navy-900); }
+.cs-submit {
+  background: var(--navy-700); color: white; border: none; border-radius: 8px;
+  padding: 9px 18px; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.cs-submit:hover { background: var(--navy-800); }
+.cs-submit:disabled { background: #94a3b8; cursor: not-allowed; }
+.cs-submit-upgrade { background: #d97706; }
+.cs-submit-upgrade:hover { background: #b45309; }
+
+/* Entry point on the registration card. A small pill button beside the
+   options line - more discoverable than an inline link, but still
+   secondary in weight so it doesn't compete with Pay Now / Receipt. */
+.reg-card-options-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+}
+.reg-card-change-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: white; color: var(--navy-700);
+  border: 1px solid var(--line-2, #cbd5e1);
+  border-radius: 999px;
+  padding: 4px 11px 4px 9px;
+  font-size: 12px; font-weight: 600; line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+  flex-shrink: 0;
+}
+.reg-card-change-btn:hover {
+  background: var(--navy-50, #eff2f9);
+  border-color: var(--navy-700);
+  color: var(--navy-900);
+}
+.reg-card-change-btn:active { transform: scale(0.97); }
+.reg-card-change-btn svg { display: block; }
+
 .datelist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 .datelist-item {
   display: flex; flex-direction: column; gap: 2px;
