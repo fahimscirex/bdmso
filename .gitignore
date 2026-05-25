@@ -87,3 +87,4 @@ entities.json
 # TypeScript incremental build artifacts
 *.tsbuildinfo
 tsconfig.tsbuildinfo
+wrangler.prod.toml
