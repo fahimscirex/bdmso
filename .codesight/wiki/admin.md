@@ -2,59 +2,49 @@
 
 > **Navigation aid.** Route list and file locations extracted via AST. Read the source files listed below before implementing or modifying this subsystem.
 
-The Admin subsystem handles **25 routes** and touches: auth, db.
+The Admin subsystem handles **20 routes** and touches: auth, db, email.
 
 ## Routes
 
-- `GET` `/admin/health` [auth, db, upload]
+- `GET` `/admin/health` [auth, db, email, upload]
   `worker/routes/admin.js`
-- `GET` `/admin/registrations` [auth, db, upload]
+- `GET` `/admin/registrations` [auth, db, email, upload]
   `worker/routes/admin.js`
-- `GET` `/admin/registrations/:id` params(id) [auth, db, upload]
+- `GET` `/admin/registrations/:id` params(id) [auth, db, email, upload]
   `worker/routes/admin.js`
-- `PATCH` `/admin/registrations/:id/status` params(id) [auth, db, upload]
+- `PATCH` `/admin/registrations/:id/status` params(id) [auth, db, email, upload]
   `worker/routes/admin.js`
-- `GET` `/admin/payments` [auth, db, upload]
+- `POST` `/admin/registrations/:id/resend-verification` params(id) [auth, db, email, upload]
   `worker/routes/admin.js`
-- `GET` `/admin/sponsorships` [auth, db, upload]
+- `POST` `/admin/registrations/:id/resend-receipt` params(id) [auth, db, email, upload]
   `worker/routes/admin.js`
-- `PATCH` `/admin/sponsorships/:id/status` params(id) [auth, db, upload]
+- `GET` `/admin/payments` [auth, db, email, upload]
   `worker/routes/admin.js`
-- `GET` `/admin/posts` [auth, db, upload]
+- `GET` `/admin/sponsorships` [auth, db, email, upload]
   `worker/routes/admin.js`
-- `GET` `/admin/posts/:slug` params(slug) [auth, db, upload]
+- `PATCH` `/admin/sponsorships/:id/status` params(id) [auth, db, email, upload]
   `worker/routes/admin.js`
-- `POST` `/admin/posts` [auth, db, upload]
+- `GET` `/admin/users` [auth, db, email, upload]
   `worker/routes/admin.js`
-- `PATCH` `/admin/posts/:slug` params(slug) [auth, db, upload]
+- `PATCH` `/admin/users/:id/role` params(id) [auth, db, email, upload]
   `worker/routes/admin.js`
-- `DELETE` `/admin/posts/:slug` params(slug) [auth, db, upload]
+- `GET` `/admin/coupons` [auth, db, email, upload]
   `worker/routes/admin.js`
-- `GET` `/admin/programs` [auth, db, upload]
+- `POST` `/admin/coupons` [auth, db, email, upload]
   `worker/routes/admin.js`
-- `GET` `/admin/programs/:slug` params(slug) [auth, db, upload]
+- `PATCH` `/admin/coupons/:code` params(code) [auth, db, email, upload]
   `worker/routes/admin.js`
-- `POST` `/admin/programs` [auth, db, upload]
+- `DELETE` `/admin/coupons/:code` params(code) [auth, db, email, upload]
   `worker/routes/admin.js`
-- `PATCH` `/admin/programs/:slug` params(slug) [auth, db, upload]
+- `POST` `/admin/uploads` [auth, db, email, upload]
   `worker/routes/admin.js`
-- `DELETE` `/admin/programs/:slug` params(slug) [auth, db, upload]
+- `GET` `/admin/audit` [auth, db, email, upload]
   `worker/routes/admin.js`
-- `GET` `/admin/users` [auth, db, upload]
+- `GET` `/admin/analytics` [auth, db, email, upload]
   `worker/routes/admin.js`
-- `PATCH` `/admin/users/:id/role` params(id) [auth, db, upload]
+- `GET` `/admin/broadcast/recipients` [auth, db, email, upload]
   `worker/routes/admin.js`
-- `GET` `/admin/coupons` [auth, db, upload]
-  `worker/routes/admin.js`
-- `POST` `/admin/coupons` [auth, db, upload]
-  `worker/routes/admin.js`
-- `PATCH` `/admin/coupons/:code` params(code) [auth, db, upload]
-  `worker/routes/admin.js`
-- `DELETE` `/admin/coupons/:code` params(code) [auth, db, upload]
-  `worker/routes/admin.js`
-- `POST` `/admin/uploads` [auth, db, upload]
-  `worker/routes/admin.js`
-- `GET` `/admin/audit` [auth, db, upload]
+- `POST` `/admin/broadcast` [auth, db, email, upload]
   `worker/routes/admin.js`
 
 ## Related Models

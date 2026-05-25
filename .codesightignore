@@ -1,0 +1,31 @@
+# codesight scans this repo to populate .codesight/*. The patterns
+# below are explicit secret-file exclusions on top of codesight's
+# defaults (which already skip dotfiles other than .env/.env.example/
+# .env.local). Belt-and-braces in case those defaults change or a
+# secret file ever gets renamed without the leading dot.
+
+# Cloudflare Workers dev-vars (wrangler convention)
+.dev.vars
+.dev.vars.*
+dev.vars
+dev.vars.*
+
+# Real env files. Templates / examples are safe to scan because they
+# only carry placeholder values; CodeSight uses them to derive names.
+.env
+.env.local
+.env.production
+.env.staging
+.env.*.local
+
+# Cloudflare wrangler local state - DB files, KV, etc.
+.wrangler/
+
+# Auth artefacts that may carry tokens
+.npmrc
+.netrc
+*.pem
+*.key
+*.crt
+*-token*
+*-secret*

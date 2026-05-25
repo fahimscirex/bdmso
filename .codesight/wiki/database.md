@@ -2,7 +2,7 @@
 
 > **Navigation aid.** Schema shapes and field types extracted via AST. Read the actual schema source files before writing migrations or query logic.
 
-**unknown** — 13 models
+**unknown** — 14 models
 
 ### member_id_class_seq
 
@@ -32,6 +32,15 @@ pk: `token` (text) · fk: account_id
 - `token`: text _(pk)_
 - `account_id`: text _(required, fk)_
 - `expires_at`: text _(required)_
+
+### password_reset_tokens
+
+pk: `token` (text) · fk: account_id
+
+- `token`: text _(pk)_
+- `account_id`: text _(required, fk)_
+- `expires_at`: text _(required)_
+- `used`: integer _(required)_
 
 ### login_attempts
 

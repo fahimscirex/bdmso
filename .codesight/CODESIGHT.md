@@ -3,9 +3,9 @@
 > **Stack:** hono | none | react | typescript
 > **Monorepo:** @bdmso/admin, @bdmso/guardian, dash
 
-> 42 routes | 13 models | 26 components | 24 lib files | 3 env vars | 22 middleware
-> **Token savings:** this file is ~4,300 tokens. Without it, AI exploration would cost ~56,800 tokens. **Saves ~52,500 tokens per conversation.**
-> **Last scanned:** 2026-05-20 19:18 — re-run after significant changes
+> 41 routes | 14 models | 23 components | 25 lib files | 3 env vars | 22 middleware
+> **Token savings:** this file is ~4,500 tokens. Without it, AI exploration would cost ~56,000 tokens. **Saves ~51,500 tokens per conversation.**
+> **Last scanned:** 2026-05-25 07:03 — re-run after significant changes
 
 ---
 
@@ -13,8 +13,6 @@
 
 ## CRUD Resources
 
-- **`/admin/posts`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Post
-- **`/admin/programs`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Program
 - **`/admin/coupons`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Coupon
 
 ## Other Routes
@@ -30,19 +28,28 @@
 - `ALL` `/payment-callback` params() [auth, db, cache, email, upload]
 - `GET` `/verify-email` params() [auth, db, cache, email, upload]
 - `POST` `/resend-verification` params() [auth, db, cache, email, upload]
-- `GET` `/admin/health` params() [auth, db, upload]
-- `GET` `/admin/registrations` params() [auth, db, upload]
-- `GET` `/admin/registrations/:id` params(id) [auth, db, upload]
-- `PATCH` `/admin/registrations/:id/status` params(id) [auth, db, upload]
-- `GET` `/admin/payments` params() [auth, db, upload]
-- `GET` `/admin/sponsorships` params() [auth, db, upload]
-- `PATCH` `/admin/sponsorships/:id/status` params(id) [auth, db, upload]
-- `GET` `/admin/users` params() [auth, db, upload]
-- `PATCH` `/admin/users/:id/role` params(id) [auth, db, upload]
-- `POST` `/admin/uploads` params() [auth, db, upload]
-- `GET` `/admin/audit` params() [auth, db, upload]
+- `POST` `/forgot-password` params() [auth, db, cache, email, upload]
+- `POST` `/forgot-email` params() [auth, db, cache, email, upload]
+- `POST` `/reset-password` params() [auth, db, cache, email, upload]
+- `GET` `/admin/health` params() [auth, db, email, upload]
+- `GET` `/admin/registrations` params() [auth, db, email, upload]
+- `GET` `/admin/registrations/:id` params(id) [auth, db, email, upload]
+- `PATCH` `/admin/registrations/:id/status` params(id) [auth, db, email, upload]
+- `POST` `/admin/registrations/:id/resend-verification` params(id) [auth, db, email, upload]
+- `POST` `/admin/registrations/:id/resend-receipt` params(id) [auth, db, email, upload]
+- `GET` `/admin/payments` params() [auth, db, email, upload]
+- `GET` `/admin/sponsorships` params() [auth, db, email, upload]
+- `PATCH` `/admin/sponsorships/:id/status` params(id) [auth, db, email, upload]
+- `GET` `/admin/users` params() [auth, db, email, upload]
+- `PATCH` `/admin/users/:id/role` params(id) [auth, db, email, upload]
+- `POST` `/admin/uploads` params() [auth, db, email, upload]
+- `GET` `/admin/audit` params() [auth, db, email, upload]
+- `GET` `/admin/analytics` params() [auth, db, email, upload]
+- `GET` `/admin/broadcast/recipients` params() [auth, db, email, upload]
+- `POST` `/admin/broadcast` params() [auth, db, email, upload]
 - `GET` `/me/profile` params() [auth, payment]
 - `PATCH` `/me/profile` params() [auth, payment]
+- `PATCH` `/me/registrations` params() [auth, payment]
 - `PATCH` `/me/registrations/:id` params(id) [auth, payment]
 - `POST` `/me/registrations/:id/cancel` params(id) [auth, payment]
 - `POST` `/me/change-password` params() [auth, payment]
@@ -73,6 +80,12 @@
 - token: text (pk)
 - account_id: text (required, fk)
 - expires_at: text (required)
+
+### password_reset_tokens
+- token: text (pk)
+- account_id: text (required, fk)
+- expires_at: text (required)
+- used: integer (required)
 
 ### login_attempts
 - id: integer (pk)
@@ -177,14 +190,11 @@
 - **ImageField** — props: label, hint, prefix, value, onChange — `apps/admin/src/components/ImageField.tsx`
 - **NavShell** — props: currentRoute, userEmail, onSignOut — `apps/admin/src/components/NavShell.tsx`
 - **AuditLog** — `apps/admin/src/pages/AuditLog.tsx`
+- **Broadcast** — `apps/admin/src/pages/Broadcast.tsx`
 - **Coupons** — `apps/admin/src/pages/Coupons.tsx`
 - **Dashboard** — `apps/admin/src/pages/Dashboard.tsx`
 - **Login** — props: onSignedIn — `apps/admin/src/pages/Login.tsx`
 - **Payments** — `apps/admin/src/pages/Payments.tsx`
-- **PostEditor** — props: slug — `apps/admin/src/pages/PostEditor.tsx`
-- **Posts** — `apps/admin/src/pages/Posts.tsx`
-- **ProgramEditor** — props: slug — `apps/admin/src/pages/ProgramEditor.tsx`
-- **Programs** — `apps/admin/src/pages/Programs.tsx`
 - **RegistrationDetail** — props: id — `apps/admin/src/pages/RegistrationDetail.tsx`
 - **Registrations** — `apps/admin/src/pages/Registrations.tsx`
 - **Settings** — `apps/admin/src/pages/Settings.tsx`
@@ -209,6 +219,7 @@
   - function getToken: () => string | null
   - function setToken: (token) => void
   - function clearToken: () => void
+- `apps/admin/src/csv.ts` — function toCsv: (headers, rows) => string, function downloadCsv: (filename, csv) => void
 - `apps/admin/src/router.ts`
   - function useRoute: () => string
   - function navigate: (to) => void
@@ -243,17 +254,16 @@
 - `worker/lib/districts.js` — function canonicalDistrict: (value) => void, const BD_DISTRICTS
 - `worker/lib/email.js`
   - function createVerificationToken: (env, accountId) => void
+  - function createPasswordResetToken: (env, accountId) => void
   - function parseEmailFrom: (raw) => void
   - function sendReceiptEmail: (env, reg, memberId, baseUrl) => void
   - function sendSponsorshipNotification: (env, lead) => void
   - function assignMemberIdAndSendReceipt: (env, tranId, baseUrl) => void
-  - function sendVerificationEmail: (env, email, verifyUrl) => void
-  - _...1 more_
+  - _...5 more_
 - `worker/lib/program-options.js`
   - function programHasOptions: (slug) => void
   - function getProgramOptions: (slug) => void
   - function validateAndPriceOptions: (slug, rawOptions) => void
-  - function prepFreeMockSlots: (prepOptionIds) => void
 - `worker/lib/rate-limit.js` — function checkLoginRateLimit: (env, email) => void, function recordLoginAttempt: (env, email, success) => void
 - `worker/lib/sessions.js`
   - function createSession: (env, accountId) => void
@@ -346,39 +356,39 @@
 
 ## Most Imported Files (change these carefully)
 
-- `apps/admin/src/api.ts` — imported by **14** files
-- `apps/admin/src/router.ts` — imported by **11** files
+- `apps/admin/src/api.ts` — imported by **11** files
+- `apps/admin/src/router.ts` — imported by **7** files
 - `apps/guardian/src/auth.ts` — imported by **5** files
 - `worker/lib/crypto.js` — imported by **5** files
+- `worker/lib/util.js` — imported by **5** files
 - `apps/admin/src/auth.ts` — imported by **4** files
 - `apps/guardian/src/api.ts` — imported by **4** files
-- `worker/lib/util.js` — imported by **4** files
 - `apps/guardian/src/router.ts` — imported by **3** files
 - `worker/lib/programs.js` — imported by **3** files
-- `apps/admin/src/components/ImageField.tsx` — imported by **2** files
+- `worker/lib/email.js` — imported by **3** files
+- `apps/admin/src/csv.ts` — imported by **2** files
 - `apps/guardian/src/components/NotificationTicker.tsx` — imported by **2** files
 - `public/js/api.js` — imported by **2** files
 - `worker/lib/validation.js` — imported by **2** files
 - `worker/lib/sessions.js` — imported by **2** files
 - `worker/middleware/session.js` — imported by **2** files
 - `worker/lib/audit-log.js` — imported by **2** files
-- `worker/lib/email.js` — imported by **2** files
 - `worker/lib/districts.js` — imported by **2** files
 - `apps/admin/src/pages/Login.tsx` — imported by **1** files
 - `apps/admin/src/pages/Dashboard.tsx` — imported by **1** files
 
 ## Import Map (who imports what)
 
-- `apps/admin/src/api.ts` ← `apps/admin/src/App.tsx`, `apps/admin/src/pages/AuditLog.tsx`, `apps/admin/src/pages/Coupons.tsx`, `apps/admin/src/pages/Dashboard.tsx`, `apps/admin/src/pages/Payments.tsx` +9 more
-- `apps/admin/src/router.ts` ← `apps/admin/src/App.tsx`, `apps/admin/src/components/NavShell.tsx`, `apps/admin/src/pages/AuditLog.tsx`, `apps/admin/src/pages/Dashboard.tsx`, `apps/admin/src/pages/Payments.tsx` +6 more
+- `apps/admin/src/api.ts` ← `apps/admin/src/App.tsx`, `apps/admin/src/pages/AuditLog.tsx`, `apps/admin/src/pages/Broadcast.tsx`, `apps/admin/src/pages/Coupons.tsx`, `apps/admin/src/pages/Dashboard.tsx` +6 more
+- `apps/admin/src/router.ts` ← `apps/admin/src/App.tsx`, `apps/admin/src/components/NavShell.tsx`, `apps/admin/src/pages/AuditLog.tsx`, `apps/admin/src/pages/Dashboard.tsx`, `apps/admin/src/pages/Payments.tsx` +2 more
 - `apps/guardian/src/auth.ts` ← `apps/guardian/src/App.tsx`, `apps/guardian/src/api.ts`, `apps/guardian/src/pages/Home.tsx`, `apps/guardian/src/pages/Login.tsx`, `apps/guardian/src/pages/Profile.tsx`
 - `worker/lib/crypto.js` ← `scripts/create-admin.mjs`, `scripts/create-demo-user.mjs`, `scripts/seed-registrations.mjs`, `worker/routes/guardian.js`, `worker/routes/public.js`
+- `worker/lib/util.js` ← `worker/lib/audit-log.js`, `worker/lib/email.js`, `worker/routes/admin.js`, `worker/routes/guardian.js`, `worker/routes/public.js`
 - `apps/admin/src/auth.ts` ← `apps/admin/src/App.tsx`, `apps/admin/src/api.ts`, `apps/admin/src/components/ImageField.tsx`, `apps/admin/src/pages/Login.tsx`
 - `apps/guardian/src/api.ts` ← `apps/guardian/src/App.tsx`, `apps/guardian/src/pages/Home.tsx`, `apps/guardian/src/pages/Login.tsx`, `apps/guardian/src/pages/Profile.tsx`
-- `worker/lib/util.js` ← `worker/lib/audit-log.js`, `worker/lib/email.js`, `worker/routes/guardian.js`, `worker/routes/public.js`
 - `apps/guardian/src/router.ts` ← `apps/guardian/src/App.tsx`, `apps/guardian/src/components/PaymentBanner.tsx`, `apps/guardian/src/components/Shell.tsx`
 - `worker/lib/programs.js` ← `worker/lib/email.js`, `worker/routes/admin.js`, `worker/routes/public.js`
-- `apps/admin/src/components/ImageField.tsx` ← `apps/admin/src/pages/PostEditor.tsx`, `apps/admin/src/pages/ProgramEditor.tsx`
+- `worker/lib/email.js` ← `worker/routes/admin.js`, `worker/routes/guardian.js`, `worker/routes/public.js`
 
 ---
 

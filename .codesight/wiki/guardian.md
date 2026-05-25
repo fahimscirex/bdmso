@@ -2,13 +2,15 @@
 
 > **Navigation aid.** Route list and file locations extracted via AST. Read the source files listed below before implementing or modifying this subsystem.
 
-The Guardian subsystem handles **6 routes** and touches: auth, payment.
+The Guardian subsystem handles **7 routes** and touches: auth, payment.
 
 ## Routes
 
 - `GET` `/me/profile` [auth, payment]
   `worker/routes/guardian.js`
 - `PATCH` `/me/profile` [auth, payment]
+  `worker/routes/guardian.js`
+- `PATCH` `/me/registrations` [auth, payment]
   `worker/routes/guardian.js`
 - `PATCH` `/me/registrations/:id` params(id) [auth, payment]
   `worker/routes/guardian.js`

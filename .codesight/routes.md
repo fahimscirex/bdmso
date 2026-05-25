@@ -2,8 +2,6 @@
 
 ## CRUD Resources
 
-- **`/admin/posts`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Post
-- **`/admin/programs`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Program
 - **`/admin/coupons`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Coupon
 
 ## Other Routes
@@ -19,19 +17,28 @@
 - `ALL` `/payment-callback` params() [auth, db, cache, email, upload]
 - `GET` `/verify-email` params() [auth, db, cache, email, upload]
 - `POST` `/resend-verification` params() [auth, db, cache, email, upload]
-- `GET` `/admin/health` params() [auth, db, upload]
-- `GET` `/admin/registrations` params() [auth, db, upload]
-- `GET` `/admin/registrations/:id` params(id) [auth, db, upload]
-- `PATCH` `/admin/registrations/:id/status` params(id) [auth, db, upload]
-- `GET` `/admin/payments` params() [auth, db, upload]
-- `GET` `/admin/sponsorships` params() [auth, db, upload]
-- `PATCH` `/admin/sponsorships/:id/status` params(id) [auth, db, upload]
-- `GET` `/admin/users` params() [auth, db, upload]
-- `PATCH` `/admin/users/:id/role` params(id) [auth, db, upload]
-- `POST` `/admin/uploads` params() [auth, db, upload]
-- `GET` `/admin/audit` params() [auth, db, upload]
+- `POST` `/forgot-password` params() [auth, db, cache, email, upload]
+- `POST` `/forgot-email` params() [auth, db, cache, email, upload]
+- `POST` `/reset-password` params() [auth, db, cache, email, upload]
+- `GET` `/admin/health` params() [auth, db, email, upload]
+- `GET` `/admin/registrations` params() [auth, db, email, upload]
+- `GET` `/admin/registrations/:id` params(id) [auth, db, email, upload]
+- `PATCH` `/admin/registrations/:id/status` params(id) [auth, db, email, upload]
+- `POST` `/admin/registrations/:id/resend-verification` params(id) [auth, db, email, upload]
+- `POST` `/admin/registrations/:id/resend-receipt` params(id) [auth, db, email, upload]
+- `GET` `/admin/payments` params() [auth, db, email, upload]
+- `GET` `/admin/sponsorships` params() [auth, db, email, upload]
+- `PATCH` `/admin/sponsorships/:id/status` params(id) [auth, db, email, upload]
+- `GET` `/admin/users` params() [auth, db, email, upload]
+- `PATCH` `/admin/users/:id/role` params(id) [auth, db, email, upload]
+- `POST` `/admin/uploads` params() [auth, db, email, upload]
+- `GET` `/admin/audit` params() [auth, db, email, upload]
+- `GET` `/admin/analytics` params() [auth, db, email, upload]
+- `GET` `/admin/broadcast/recipients` params() [auth, db, email, upload]
+- `POST` `/admin/broadcast` params() [auth, db, email, upload]
 - `GET` `/me/profile` params() [auth, payment]
 - `PATCH` `/me/profile` params() [auth, payment]
+- `PATCH` `/me/registrations` params() [auth, payment]
 - `PATCH` `/me/registrations/:id` params(id) [auth, payment]
 - `POST` `/me/registrations/:id/cancel` params(id) [auth, payment]
 - `POST` `/me/change-password` params() [auth, payment]

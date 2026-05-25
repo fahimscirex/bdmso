@@ -2,17 +2,17 @@
 
 > **Navigation aid.** Library inventory extracted via AST. Read the source files listed here before modifying exported functions.
 
-**24 library files** across 4 modules
+**25 library files** across 4 modules
 
 ## Worker (13 files)
 
+- `worker/lib/email.js` — createVerificationToken, createPasswordResetToken, parseEmailFrom, sendReceiptEmail, sendSponsorshipNotification, assignMemberIdAndSendReceipt, …
 - `worker/lib/util.js` — jsonResponse, badRequest, redirectTo, createId, parseClassDigit, reserveMemberId, …
-- `worker/lib/email.js` — createVerificationToken, parseEmailFrom, sendReceiptEmail, sendSponsorshipNotification, assignMemberIdAndSendReceipt, sendVerificationEmail, …
 - `worker/lib/sessions.js` — createSession, verifySession, extractToken, requireAuth, SESSION_TTL_MS
 - `worker/lib/validation.js` — normalizeString, requireField, isEmail, isPhoneLike, escapeHtml
 - `worker/lib/crypto.js` — toHex, hashPassword, PBKDF2_ITERATIONS_CURRENT, DUMMY_HASH_SALT
-- `worker/lib/program-options.js` — programHasOptions, getProgramOptions, validateAndPriceOptions, prepFreeMockSlots
 - `worker/lib/shurjopay.js` — getShurjopayConfig, shurjopayGetToken, shurjopayCreatePayment, shurjopayVerify
+- `worker/lib/program-options.js` — programHasOptions, getProgramOptions, validateAndPriceOptions
 - `worker/lib/districts.js` — canonicalDistrict, BD_DISTRICTS
 - `worker/lib/rate-limit.js` — checkLoginRateLimit, recordLoginAttempt
 - `worker/lib/audit-log.js` — recordAudit
@@ -28,11 +28,12 @@
 - `public/js/program-catalog.js` — loadCatalog, programMaps
 - `public/js/program-options.js` — programHasOptions, computeOptionsTotal
 
-## Admin (3 files)
+## Admin (4 files)
 
 - `apps/admin/src/auth.ts` — getToken, setToken, clearToken
 - `apps/admin/src/router.ts` — useRoute, navigate, href
 - `apps/admin/src/api.ts` — ApiError, api
+- `apps/admin/src/csv.ts` — toCsv, downloadCsv
 
 ## Guardian (3 files)
 

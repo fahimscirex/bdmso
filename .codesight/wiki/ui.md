@@ -2,7 +2,7 @@
 
 > **Navigation aid.** Component inventory and prop signatures extracted via AST. Read the source files before adding props or modifying component logic.
 
-**26 components** (react)
+**23 components** (react)
 
 ## Components
 
@@ -10,14 +10,11 @@
 - **ImageField** — props: label, hint, prefix, value, onChange — `apps/admin/src/components/ImageField.tsx`
 - **NavShell** — props: currentRoute, userEmail, onSignOut — `apps/admin/src/components/NavShell.tsx`
 - **AuditLog** — `apps/admin/src/pages/AuditLog.tsx`
+- **Broadcast** — `apps/admin/src/pages/Broadcast.tsx`
 - **Coupons** — `apps/admin/src/pages/Coupons.tsx`
 - **Dashboard** — `apps/admin/src/pages/Dashboard.tsx`
 - **Login** — props: onSignedIn — `apps/admin/src/pages/Login.tsx`
 - **Payments** — `apps/admin/src/pages/Payments.tsx`
-- **PostEditor** — props: slug — `apps/admin/src/pages/PostEditor.tsx`
-- **Posts** — `apps/admin/src/pages/Posts.tsx`
-- **ProgramEditor** — props: slug — `apps/admin/src/pages/ProgramEditor.tsx`
-- **Programs** — `apps/admin/src/pages/Programs.tsx`
 - **RegistrationDetail** — props: id — `apps/admin/src/pages/RegistrationDetail.tsx`
 - **Registrations** — `apps/admin/src/pages/Registrations.tsx`
 - **Settings** — `apps/admin/src/pages/Settings.tsx`

@@ -22,6 +22,12 @@
 - account_id: text (required, fk)
 - expires_at: text (required)
 
+### password_reset_tokens
+- token: text (pk)
+- account_id: text (required, fk)
+- expires_at: text (required)
+- used: integer (required)
+
 ### login_attempts
 - id: integer (pk)
 - email: text (required)

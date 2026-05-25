@@ -5,6 +5,7 @@
   - function getToken: () => string | null
   - function setToken: (token) => void
   - function clearToken: () => void
+- `apps/admin/src/csv.ts` — function toCsv: (headers, rows) => string, function downloadCsv: (filename, csv) => void
 - `apps/admin/src/router.ts`
   - function useRoute: () => string
   - function navigate: (to) => void
@@ -39,17 +40,16 @@
 - `worker/lib/districts.js` — function canonicalDistrict: (value) => void, const BD_DISTRICTS
 - `worker/lib/email.js`
   - function createVerificationToken: (env, accountId) => void
+  - function createPasswordResetToken: (env, accountId) => void
   - function parseEmailFrom: (raw) => void
   - function sendReceiptEmail: (env, reg, memberId, baseUrl) => void
   - function sendSponsorshipNotification: (env, lead) => void
   - function assignMemberIdAndSendReceipt: (env, tranId, baseUrl) => void
-  - function sendVerificationEmail: (env, email, verifyUrl) => void
-  - _...1 more_
+  - _...5 more_
 - `worker/lib/program-options.js`
   - function programHasOptions: (slug) => void
   - function getProgramOptions: (slug) => void
   - function validateAndPriceOptions: (slug, rawOptions) => void
-  - function prepFreeMockSlots: (prepOptionIds) => void
 - `worker/lib/rate-limit.js` — function checkLoginRateLimit: (env, email) => void, function recordLoginAttempt: (env, email, success) => void
 - `worker/lib/sessions.js`
   - function createSession: (env, accountId) => void
