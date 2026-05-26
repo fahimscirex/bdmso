@@ -89,3 +89,9 @@ entities.json
 tsconfig.tsbuildinfo
 wrangler.prod.toml
 wrangler.toml
+
+# DB seeds with real coupon codes / internal data. The .example.sql
+# files at the same path show the structure with placeholder codes
+# so contributors know how to seed without leaking values.
+db/seed-prod.sql
+db/seed-dev.sql

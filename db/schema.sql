@@ -202,9 +202,12 @@ CREATE TABLE IF NOT EXISTS coupons (
   created_at TEXT NOT NULL
 );
 
--- Dev seed: 100% off coupon for local testing. Remove before applying to production.
-INSERT OR IGNORE INTO coupons (code, discount_type, discount_value, max_uses, applies_to, created_at)
-VALUES ('TESTBDMSO', 'percent', 100, 50, NULL, CURRENT_TIMESTAMP);
+-- NOTE: coupon seed data lives in separate files, not here:
+--   db/seed-dev.sql  - LOCAL ONLY (TESTBDMSO etc.)
+--   db/seed-prod.sql - applied to both local and prod
+-- This file (schema.sql) defines the structure only, so re-applying it
+-- against any environment can't accidentally drop a free-money coupon
+-- into the wrong place.
 
 -- ─── Dashboard tables (added 2026-05-17) ──────────────────────────────────────
 
