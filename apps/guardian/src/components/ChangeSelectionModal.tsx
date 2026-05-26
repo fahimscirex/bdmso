@@ -36,6 +36,12 @@ type Props = {
   paid: boolean;
   config: OptionsConfig;
   currentIds: string[];
+  // Option ids already held by OTHER registrations on the same account
+  // for the same program (e.g., a guardian who booked Mock Test 1 - Math
+  // on one registration shouldn't be able to pick that same slot on a
+  // separate Mock Test booking - it would duplicate the session).
+  // Items in this set are still rendered, but disabled with a hint.
+  unavailableIds?: string[];
   onClose: () => void;
   onChanged: () => void;
 };
@@ -45,12 +51,16 @@ function formatBdt(n: number): string {
 }
 
 export default function ChangeSelectionModal({
-  registrationId, programLabel, paid, config, currentIds, onClose, onChanged,
+  registrationId, programLabel, paid, config, currentIds, unavailableIds = [], onClose, onChanged,
 }: Props) {
   const [selected, setSelected]   = useState<string[]>(currentIds);
   const [ack, setAck]             = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]         = useState<string | null>(null);
+  // Items held by OTHER registrations on the same account. Excludes
+  // ids the current row already owns so the guardian can keep their
+  // existing pick even if it's "taken" (by themselves).
+  const unavailable = new Set(unavailableIds.filter((id) => !currentIds.includes(id)));
 
   // Prices come from the inline config so the preview number updates
   // instantly. The server still re-validates on submit, so this is just
@@ -62,8 +72,15 @@ export default function ChangeSelectionModal({
     delta === 0 ? 'same' : delta > 0 ? 'upgrade' : 'downgrade';
   const empty = selected.length === 0
     || (config.kind === 'radio' && selected.length !== 1);
+  // "Same total price" (action === 'same') and "same exact selection"
+  // are different. Swapping Math for Science keeps the total at 500
+  // but the ids differ. We compare ids here so the Save button
+  // disables only when there's literally nothing to commit.
+  const unchanged = selected.length === currentIds.length
+    && selected.every((id) => currentIds.includes(id));
 
   function toggle(id: string) {
+    if (unavailable.has(id)) return;
     if (config.kind === 'radio') {
       setSelected([id]);
       return;
@@ -116,6 +133,7 @@ export default function ChangeSelectionModal({
 
   const ctaLabel =
     submitting ? 'Saving…' :
+    unchanged                      ? 'No changes' :
     paid && action === 'upgrade'   ? `Pay ${formatBdt(delta)} more & continue` :
     paid && action === 'downgrade' ? `Save (no refund of ${formatBdt(-delta)})` :
                                      'Save';
@@ -138,19 +156,20 @@ export default function ChangeSelectionModal({
           <ul class="cs-options">
             {config.items.map((it) => {
               const checked = selected.includes(it.id);
+              const taken   = unavailable.has(it.id);
               return (
-                <li key={it.id} class={`cs-option ${checked ? 'on' : ''}`}>
+                <li key={it.id} class={`cs-option ${checked ? 'on' : ''} ${taken ? 'taken' : ''}`}>
                   <label>
                     <input
                       type={config.kind === 'radio' ? 'radio' : 'checkbox'}
                       name={config.kind === 'radio' ? `cs-${registrationId}` : undefined}
                       checked={checked}
                       onChange={() => toggle(it.id)}
-                      disabled={submitting}
+                      disabled={submitting || taken}
                     />
                     <span class="cs-option-body">
                       <span class="cs-option-top">
-                        <span class="cs-option-label">{it.label}</span>
+                        <span class="cs-option-label">{it.label}{taken ? ' · Already enrolled' : ''}</span>
                         <span class="cs-option-price">{formatBdt(it.price)}</span>
                       </span>
                       {it.sub && <span class="cs-option-sub">{it.sub}</span>}
@@ -197,7 +216,7 @@ export default function ChangeSelectionModal({
             type="button"
             class={`cs-submit cs-submit-${action}`}
             onClick={submit}
-            disabled={submitting || empty || (paid && action === 'downgrade' && !ack)}
+            disabled={submitting || empty || unchanged || (paid && action === 'downgrade' && !ack)}
           >
             {ctaLabel}
           </button>

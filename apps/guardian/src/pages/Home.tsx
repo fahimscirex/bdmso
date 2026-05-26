@@ -8,6 +8,7 @@ import { api, ApiError } from '../api';
 import { syncSessionName, syncHeaderName } from '../auth';
 import ChangeSelectionModal from '../components/ChangeSelectionModal';
 import type { OptionsConfig } from '../components/ChangeSelectionModal';
+import DashboardSkeleton from '../components/DashboardSkeleton';
 
 type Registration = {
   id: string;
@@ -134,9 +135,6 @@ function printReceipt(reg: Registration, account: { fullName: string; email: str
   .r-logo { height: 42px; width: auto; display: block; }
   .r-doc { margin-top: 16px; font-size: 12px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
   .r-rno { margin-top: 4px; font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--navy); letter-spacing: 0.02em; }
-  .r-qr { background: white; border: 1px solid var(--line); border-radius: 10px; padding: 6px; line-height: 0; flex-shrink: 0; }
-  .r-qr img { display: block; width: 78px; height: 78px; }
-
   /* Hero amount */
   .r-hero { margin: 22px 0 24px; }
   .r-hero-amt { font-size: 38px; font-weight: 700; letter-spacing: -0.025em; line-height: 1; color: var(--navy); }
@@ -226,9 +224,6 @@ function printReceipt(reg: Registration, account: { fullName: string; email: str
         <div class="r-rno">${escape(receiptNo)}</div>
         <div style="margin-top:4px;font-size:11px;color:var(--muted);">Issued ${escape(issuedLabel)}</div>
       </div>
-      <div class="r-qr">
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data=${encodeURIComponent('https://bdmso.org/checkin?id=' + (account.memberId || reg.id))}" width="78" height="78" alt="Check-in QR code" />
-      </div>
     </div>
 
     <div class="r-hero">
@@ -264,7 +259,7 @@ function printReceipt(reg: Registration, account: { fullName: string; email: str
     </div>
 
     <div class="r-note">
-      <p>This is an electronic receipt for your BdMSO registration. Please retain it for your records - you may be asked to show it on program day. For any questions or corrections, email <strong>support@bdmso.org</strong> and quote your BdMSO ID.</p>
+      <p>This is an electronic receipt for your BdMSO enrollment. Please retain it for your records - you may be asked to show it on program day. For any questions or corrections, email <strong>support@bdmso.org</strong> and quote your BdMSO ID.</p>
       <p><strong>Refund policy:</strong> Any transaction made through the BdMSO website is non-refundable.</p>
     </div>
 
@@ -334,14 +329,42 @@ export function Home() {
     history.replaceState(null, '', url.toString());
   }, [notice]);
 
-  if (error) return <div class="error">{error}</div>;
-  if (!data) return <p class="muted">Loading…</p>;
+  // Post-enrollment focus: registration.html / add-enrollment redirect
+  // here with ?focus=<registration_id> so the freshly-created card can
+  // be scrolled into view + highlighted briefly. Runs only when data
+  // has landed (the card needs to exist in the DOM) and one-shots
+  // itself by stripping the param so a refresh doesn't re-trigger.
+  useEffect(() => {
+    if (!data) return;
+    const params = new URLSearchParams(location.search);
+    const focusId = params.get('focus');
+    if (!focusId) return;
+    // Two animation frames so the registration list has actually
+    // mounted before we look up the node.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-reg-id="${CSS.escape(focusId)}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('reg-card-focus');
+        setTimeout(() => el.classList.remove('reg-card-focus'), 2400);
+      }
+    }));
+    const url = new URL(location.href);
+    url.searchParams.delete('focus');
+    url.searchParams.delete('enrolled');
+    history.replaceState(null, '', url.toString());
+  }, [data]);
 
-  // Sort: paid → submitted → cancelled, then most recent first. Paid
-  // cards are the "trophy" cards (receipt + member ID), so they sit
-  // at the top of the grid where the parent's eye lands first.
+  if (error) return <div class="error">{error}</div>;
+  if (!data) return <DashboardSkeleton />;
+
+  // Sort: submitted (payment due) → paid → cancelled, then most recent
+  // first. The unpaid cards carry the next action (Pay Now), so they
+  // land at the top of the grid where the parent's eye goes first -
+  // right after enrolling, the freshly-created card is one tap away
+  // from checkout instead of buried below paid history.
   const statusOrder = (s: Registration['status']) =>
-    s === 'paid' ? 0 : s === 'submitted' ? 1 : 2;
+    s === 'submitted' ? 0 : s === 'paid' ? 1 : 2;
   const regs = [...data.registrations].sort((a, b) => {
     const d = statusOrder(a.status) - statusOrder(b.status);
     if (d !== 0) return d;
@@ -379,13 +402,13 @@ export function Home() {
     <>
       {notice === 'success' && (
         <div class="alert alert-ok">
-          <strong>Payment confirmed.</strong> Your registration is paid - your BdMSO ID and a receipt should be in your inbox within a minute.
+          <strong>Payment confirmed.</strong> Your enrollment is paid - your BdMSO ID and a receipt should be in your inbox within a minute.
           <button type="button" class="alert-close" onClick={() => setNotice(null)} aria-label="Dismiss"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         </div>
       )}
       {notice === 'cancelled' && (
         <div class="alert">
-          <strong>Payment cancelled.</strong> No charge was made. You can try again from the registration below.
+          <strong>Payment cancelled.</strong> No charge was made. You can try again from the enrollment below.
           <button type="button" class="alert-close" onClick={() => setNotice(null)} aria-label="Dismiss"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         </div>
       )}
@@ -399,10 +422,10 @@ export function Home() {
       {/* ── Hero: greeting + virtual student ID card ──────────────── */}
       <section class="dash-hero">
         <div class="dash-hero-text">
-          <span class="dash-hero-pill">BdMSO Guardian Portal · 2026</span>
+          <span class="dash-hero-pill">BdMSO Portal · 2026</span>
           <h1>Welcome back, {firstName}.</h1>
           <p>
-            Everything tied to your account in one place - track registrations,
+            Everything tied to your account in one place - track enrollments,
             clear pending payments, download receipts and explore new programs.
           </p>
           {!data.account.emailVerified && (
@@ -419,7 +442,7 @@ export function Home() {
           >
             <div class="id-card-face id-card-front">
               <div class="id-card-name-block">
-                <span class="id-card-label">Registered Candidate</span>
+                <span class="id-card-label">Registered Student</span>
                 <span class="id-card-name">{idStudent.student_full_name}</span>
               </div>
               <div class="id-card-foot">
@@ -451,21 +474,21 @@ export function Home() {
 
       {/* ── Stat filters ──────────────────────────────────────────── */}
       <div class="stat-row">
-        <Stat label="All registrations" value={String(regs.length)} icon="reg"
+        <Stat label="All Enrollments" value={String(regs.length)} icon="reg"
               active={statFilter === 'all'} onClick={() => setStatFilter('all')} />
-        <Stat label="Paid" value={String(paid)} tone="ok" icon="paid"
-              active={statFilter === 'paid'} onClick={() => setStatFilter('paid')} />
-        <Stat label="Payment pending" value={String(pending)} tone={pending > 0 ? 'warn' : 'muted'} icon="pending"
+        <Stat label="Payment Pending" value={String(pending)} tone={pending > 0 ? 'warn' : 'muted'} icon="pending"
               active={statFilter === 'pending'} onClick={() => setStatFilter('pending')} />
-        <Stat label="Cancelled" value={String(cancelled)} tone="muted" icon="cancelled"
+        <Stat label="Completed Enrollments" value={String(paid)} tone="ok" icon="paid"
+              active={statFilter === 'paid'} onClick={() => setStatFilter('paid')} />
+        <Stat label="Cancelled Enrollments" value={String(cancelled)} tone="muted" icon="cancelled"
               active={statFilter === 'cancelled'} onClick={() => setStatFilter('cancelled')} />
       </div>
 
       {/* ── Registrations (left) + sidebar (right) ────────────────── */}
       <div class="dash-grid">
         <div class="dash-grid-main">
-          <div class="dash-section-head" id="your-registrations">
-            <h2 class="section-h2">Your registrations</h2>
+          <div class="dash-section-head" id="your-enrollments">
+            <h2 class="section-h2">Your Enrollments</h2>
             {statFilter !== 'all' && (
               <button type="button" class="dash-clear-filter" onClick={() => setStatFilter('all')}>
                 Clear filter
@@ -482,15 +505,15 @@ export function Home() {
             </div>
           ) : shownRegs.length === 0 ? (
             <div class="empty">
-              <p>No {statFilter} registrations.</p>
+              <p>No {statFilter} enrollments.</p>
               <button type="button" class="dash-clear-filter" onClick={() => setStatFilter('all')}>
-                Show all registrations
+                Show all enrollments
               </button>
             </div>
           ) : (
             <div class="reg-list">
               {(statFilter === 'cancelled' ? shownRegs : activeShown).map((r) => (
-                <RegistrationCard key={r.id} reg={r} account={data.account} onChanged={reload} />
+                <RegistrationCard key={r.id} reg={r} allRegs={regs} account={data.account} onChanged={reload} />
               ))}
 
               {statFilter !== 'cancelled' && cancelledShown.length > 0 && (
@@ -503,7 +526,7 @@ export function Home() {
                   >
                     <span>
                       {showCancelled ? 'Hide' : 'Show'} {cancelledShown.length} cancelled
-                      {cancelledShown.length === 1 ? ' registration' : ' registrations'}
+                      {cancelledShown.length === 1 ? ' enrollment' : ' enrollments'}
                     </span>
                     <svg
                       class={`reg-cancelled-chevron${showCancelled ? ' open' : ''}`}
@@ -515,7 +538,7 @@ export function Home() {
                     </svg>
                   </button>
                   {showCancelled && cancelledShown.map((r) => (
-                    <RegistrationCard key={r.id} reg={r} account={data.account} onChanged={reload} />
+                    <RegistrationCard key={r.id} reg={r} allRegs={regs} account={data.account} onChanged={reload} />
                   ))}
                 </div>
               )}
@@ -602,7 +625,7 @@ function DashboardChecklist({ emailVerified, paidCount, pendingCount, hasMemberI
   const items = [
     { done: true, label: 'Account created', sub: 'Guardian portal access is active' },
     { done: emailVerified, label: 'Email verified', sub: emailVerified ? 'Receipts will reach your inbox' : 'Check your inbox for the link' },
-    { done: paidCount > 0, label: 'First payment cleared', sub: pendingCount > 0 ? `${pendingCount} registration${pendingCount === 1 ? '' : 's'} awaiting payment` : 'All registrations are paid' },
+    { done: paidCount > 0, label: 'First payment cleared', sub: pendingCount > 0 ? `${pendingCount} enrollment${pendingCount === 1 ? '' : 's'} awaiting payment` : 'All enrollments are paid' },
     { done: hasMemberId, label: 'BdMSO ID issued', sub: hasMemberId ? 'Use it across every program' : 'Issued on your first paid receipt' },
   ];
   // Once every item is done the card is just a row of green ticks. Hide
@@ -637,27 +660,30 @@ function DashboardChecklist({ emailVerified, paidCount, pendingCount, hasMemberI
 // row they own, so we dedupe by message + date and a guardian with two
 // Mock Test bookings sees one "Mock Test starts" line, not two.
 // Past dates are filtered out. Hidden entirely when nothing's upcoming.
-type DateItem = { iso: string; headline: string };
+// Each item is split into before/program/after segments so the program
+// name renders in its own styled span (.datelist-prog) - it's the part
+// guardians scan for, and the surrounding scaffolding shouldn't compete.
+type DateItem = { iso: string; before: string; program: string; after: string };
 
 function buildKeyDates(regs: Registration[], todayISO: string): DateItem[] {
   const seen = new Set<string>();
   const items: DateItem[] = [];
-  const push = (iso: string, headline: string) => {
-    const key = `${iso}|${headline}`;
+  const push = (iso: string, before: string, program: string, after: string) => {
+    const key = `${iso}|${before}|${program}|${after}`;
     if (seen.has(key)) return;
     seen.add(key);
-    items.push({ iso, headline });
+    items.push({ iso, before, program, after });
   };
   for (const r of regs) {
     if (r.status === 'cancelled') continue;
     if (r.starts_on && r.starts_on >= todayISO) {
-      push(r.starts_on, `${r.program_label} starts`);
+      push(r.starts_on, '', r.program_label, ' starts');
     }
     if (r.payment_status !== 'paid' && r.registration_ends && r.registration_ends >= todayISO) {
-      push(r.registration_ends, `Pay for ${r.program_label} by this date`);
+      push(r.registration_ends, 'Pay for ', r.program_label, ' by this date');
     }
     if (r.options_editable && r.options_editable_until && r.options_editable_until >= todayISO) {
-      push(r.options_editable_until, `Last day to change ${r.program_label} selection`);
+      push(r.options_editable_until, 'Last day to edit info for ', r.program_label, '');
     }
   }
   items.sort((a, b) => a.iso.localeCompare(b.iso));
@@ -683,7 +709,9 @@ function ImportantDates({ regs }: { regs: Registration[] }) {
         {items.map((it, i) => (
           <li key={`${it.iso}-${i}`} class="datelist-item">
             <span class="datelist-date">{formatKeyDate(it.iso)}</span>
-            <span class="datelist-name">{it.headline}</span>
+            <span class="datelist-name">
+              {it.before}<span class="datelist-prog">{it.program}</span>{it.after}
+            </span>
           </li>
         ))}
       </ul>
@@ -752,7 +780,7 @@ function ExploreOtherPrograms({ registered }: { registered: Set<string> }) {
       </div>
       {openPrograms.length === 0 && (
         <p class="muted" style="margin: -8px 0 24px;">
-          Nothing's open for registration right now. Browse the full catalog for what's coming next.
+          Nothing's open for enrollment right now. Browse the full catalog for what's coming next.
         </p>
       )}
     </>
@@ -781,7 +809,7 @@ type CouponInfo = { code: string; description: string; discountedAmount: number;
 
 type AccountInfo = Response['account'];
 
-function RegistrationCard({ reg, account, onChanged }: { reg: Registration; account: AccountInfo; onChanged: () => void }) {
+function RegistrationCard({ reg, allRegs, account, onChanged }: { reg: Registration; allRegs: Registration[]; account: AccountInfo; onChanged: () => void }) {
   const basePrice  = reg.payment_amount ?? reg.program_price;
   // "On enquiry" programs (Masterclass, Kids AI, camps, Exchange) have
   // no fixed price - skip the Pay Now flow and surface a contact-us
@@ -814,6 +842,25 @@ function RegistrationCard({ reg, account, onChanged }: { reg: Registration; acco
       const v = JSON.parse(reg.program_options);
       return Array.isArray(v) ? v : [];
     } catch { return []; }
+  })();
+  // Option ids held by OTHER non-cancelled registrations on this
+  // account for the same program. Used by the modal to disable items
+  // the guardian already booked elsewhere, preventing duplicate
+  // bookings (e.g., picking "Mock Test 1 - Math" on two separate
+  // Mock Test rows).
+  const siblingOptionIds: string[] = (() => {
+    const ids: string[] = [];
+    for (const r of allRegs) {
+      if (r.id === reg.id) continue;
+      if (r.status === 'cancelled') continue;
+      if (r.registration_type !== reg.registration_type) continue;
+      if (!r.program_options) continue;
+      try {
+        const v = JSON.parse(r.program_options);
+        if (Array.isArray(v)) for (const x of v) if (typeof x === 'string') ids.push(x);
+      } catch {}
+    }
+    return ids;
   })();
 
   async function applyCoupon() {
@@ -889,7 +936,7 @@ function RegistrationCard({ reg, account, onChanged }: { reg: Registration; acco
     : 'pending';
 
   return (
-    <article class="reg-card">
+    <article class="reg-card" data-reg-id={reg.id}>
       {/* Left: program title, student, fact strip */}
       <div class="reg-card-main">
         <div class="reg-card-head">
@@ -964,7 +1011,7 @@ function RegistrationCard({ reg, account, onChanged }: { reg: Registration; acco
                 disabled={cancelling}
                 onClick={cancelRegistration}
               >
-                {cancelling ? 'Cancelling…' : 'Cancel registration'}
+                {cancelling ? 'Cancelling…' : 'Cancel enrollment'}
               </button>
             )}
             {cancelError && <span class="reg-card-coupon-msg bad">{cancelError}</span>}
@@ -1017,7 +1064,7 @@ function RegistrationCard({ reg, account, onChanged }: { reg: Registration; acco
                 disabled={cancelling || paying}
                 onClick={cancelRegistration}
               >
-                {cancelling ? 'Cancelling…' : 'Cancel registration'}
+                {cancelling ? 'Cancelling…' : 'Cancel enrollment'}
               </button>
             )}
             {cancelError && <span class="reg-card-coupon-msg bad">{cancelError}</span>}
@@ -1032,6 +1079,7 @@ function RegistrationCard({ reg, account, onChanged }: { reg: Registration; acco
           paid={reg.status === 'paid'}
           config={reg.options_config}
           currentIds={currentOptionIds}
+          unavailableIds={siblingOptionIds}
           onClose={() => setShowChange(false)}
           onChanged={onChanged}
         />

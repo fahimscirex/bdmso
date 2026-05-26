@@ -9,6 +9,7 @@ import { api, ApiError } from '../api';
 import { BD_DISTRICTS } from '../districts';
 import { syncSessionName, syncHeaderName } from '../auth';
 import { Dropdown } from '../components/Dropdown';
+import ProfileSkeleton, { StudentsCardSkeleton } from '../components/ProfileSkeleton';
 
 type ProfileRow = {
   accountId: string;
@@ -69,11 +70,11 @@ export function Profile() {
     <>
       <div class="page-header">
         <h1>Profile</h1>
-        <p class="sub">Your account, your child's details, and your password.</p>
+        <p class="sub">Your Account, Student details and passwords.</p>
       </div>
 
       {error && <div class="error">{error}</div>}
-      {!profile && !error && <p class="muted">Loading…</p>}
+      {!profile && !error && <ProfileSkeleton />}
 
       {profile && (
         <div class="profile-grid">
@@ -281,10 +282,10 @@ function StudentsCard() {
     <section class="card">
       <h2>Student Details</h2>
       {error && <div class="error">{error}</div>}
-      {!regs && !error && <p class="muted">Loading…</p>}
+      {!regs && !error && <StudentsCardSkeleton />}
 
       {regs && regs.length === 0 && (
-        <p class="muted" style="margin:0;">No registrations yet - once you register a child, their details appear here.</p>
+        <p class="muted" style="margin:0;">No enrollments yet - once you enroll a child, their details appear here.</p>
       )}
 
       {/* One account belongs to one student - every registration is

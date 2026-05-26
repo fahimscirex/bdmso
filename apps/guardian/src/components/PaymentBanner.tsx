@@ -73,7 +73,7 @@ export function PaymentBanner() {
     navigate('/');
     // Let the route render, then scroll to the registrations section.
     setTimeout(() => {
-      document.getElementById('your-registrations')
+      document.getElementById('your-enrollments')
         ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 120);
   }

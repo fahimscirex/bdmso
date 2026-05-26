@@ -526,6 +526,20 @@ a.notif-row:hover { background: var(--bg-alt); }
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 14px 26px -22px rgba(15, 23, 42, 0.22);
   border-color: var(--navy-200, #cbd5e1);
 }
+/* Brief highlight when the dashboard is told to focus a specific card
+   (e.g., right after enrollment via ?focus=<reg-id>). The animation
+   pulses the navy ring + lift twice, then settles. Removed after
+   ~2.4s by the focus useEffect so it doesn't trail on a refresh. */
+.reg-card.reg-card-focus {
+  animation: reg-card-focus-pulse 1.2s ease-in-out 2;
+}
+@keyframes reg-card-focus-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(30, 58, 138, 0); border-color: var(--line); }
+  50%      { box-shadow: 0 0 0 6px rgba(30, 58, 138, 0.18), 0 18px 32px -20px rgba(30, 58, 138, 0.4); border-color: var(--navy-700); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reg-card.reg-card-focus { animation: none; border-color: var(--navy-700); }
+}
 /* Left accent stripe per status. */
 .reg-card::before {
   content: ""; position: absolute; top: 0; bottom: 0; left: 0;
@@ -1189,6 +1203,13 @@ body.bdmso-pay-banner { padding-top: calc(70px + var(--pay-banner-h, 48px)); }
 }
 .cs-option:hover { border-color: var(--navy-200, #cbd5e1); }
 .cs-option.on { border-color: var(--navy-700); background: rgba(30, 58, 138, 0.04); }
+/* Items the guardian already holds via another registration. Visible
+   but non-interactive - prevents picking the same Mock Test session
+   on two separate bookings. The "Already enrolled" suffix appears
+   inside .cs-option-label. */
+.cs-option.taken { opacity: 0.55; }
+.cs-option.taken:hover { border-color: var(--line); }
+.cs-option.taken > label { cursor: not-allowed; }
 .cs-option > label {
   display: flex; align-items: flex-start; gap: 10px;
   padding: 12px 14px; cursor: pointer;
@@ -1271,7 +1292,160 @@ body.bdmso-pay-banner { padding-top: calc(70px + var(--pay-banner-h, 48px)); }
   font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--navy-700);
 }
-.datelist-name { font-size: 12.5px; font-weight: 600; color: var(--navy-900); line-height: 1.4; }
+.datelist-name { font-size: 12.5px; font-weight: 500; color: var(--navy-900); line-height: 1.4; }
+/* Program name inside a Key Dates entry. Picks up the same accent as
+   the date label above so the eye groups the two without reading the
+   surrounding glue words ("Pay for", "by this date", etc.). */
+.datelist-prog { color: var(--navy-700); font-weight: 800; }
+
+/* ── Dashboard skeleton ──────────────────────────────────────────────
+   Shown while /api/me is loading. Mirrors the real layout (hero +
+   stats + 2 reg cards + sidebar) so content lands roughly in place
+   when data arrives. The shimmer is a single background animation
+   shared by every .sk-bar; opacity dance is enough to read as
+   "loading" without distracting the eye. */
+.sk-root { animation: sk-fade-in 200ms ease-out both; }
+@keyframes sk-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+.sk-bar {
+  display: block;
+  border-radius: 6px;
+  background: linear-gradient(90deg,
+    rgba(11, 27, 63, 0.06) 0%,
+    rgba(11, 27, 63, 0.11) 50%,
+    rgba(11, 27, 63, 0.06) 100%);
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.4s ease-in-out infinite;
+  height: 12px;
+}
+@keyframes sk-shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk-bar { animation: none; background: rgba(11, 27, 63, 0.08); }
+  .sk-root { animation: none; }
+}
+
+/* Bar size variants. Heights chosen to match the rendered content
+   one-to-one so the layout doesn't snap a few pixels when data lands. */
+.sk-bar-pill    { width: 200px; height: 22px; border-radius: 999px; }
+.sk-bar-h1      { width: 70%;   height: 32px; margin: 14px 0 12px; }
+.sk-bar-h2      { width: 240px; height: 22px; margin: 4px 0 14px; }
+.sk-bar-h3      { width: 130px; height: 16px; margin: 0 0 16px; }
+.sk-bar-line    { width: 100%;  height: 12px; margin: 8px 0; }
+.sk-bar-eyebrow { width: 90px;  height: 9px;  }
+.sk-bar-name    { width: 160px; height: 18px; margin-top: 8px; }
+.sk-bar-mono    { width: 130px; height: 18px; margin-top: 6px; }
+.sk-bar-num     { width: 50px;  height: 28px; margin-bottom: 8px; }
+.sk-bar-label   { width: 96px;  height: 10px; }
+.sk-bar-title   { width: 65%;   height: 18px; margin-bottom: 10px; }
+.sk-bar-meta    { width: 80%;   height: 11px; margin: 6px 0; }
+.sk-bar-amount  { width: 80px;  height: 24px; margin-top: 6px; }
+.sk-bar-btn     { width: 130px; height: 38px; border-radius: 10px; }
+.sk-bar-dot     { width: 18px;  height: 18px; border-radius: 50%; flex-shrink: 0; }
+.sk-w-2x3 { width: 66%; }
+.sk-w-3x4 { width: 75%; }
+.sk-w-1x2 { width: 50%; }
+.sk-mt    { margin-top: 14px; }
+.sk-center { margin-left: auto; margin-right: auto; }
+
+/* Layout shells. Mirror the same dimensions as the real components
+   so the silhouette is identical. */
+.sk-hero {
+  display: grid; grid-template-columns: 1fr 280px; gap: 28px;
+  background: linear-gradient(135deg, #0b1b3f 0%, #142554 60%, #1b3070 100%);
+  color: white; border-radius: 18px;
+  padding: 36px 32px; margin-bottom: 28px;
+}
+.sk-hero .sk-bar {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.18) 50%, rgba(255,255,255,0.08) 100%);
+  background-size: 200% 100%;
+}
+.sk-hero-text { display: flex; flex-direction: column; }
+.sk-id-card {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px; padding: 20px;
+  display: flex; flex-direction: column;
+}
+
+.sk-stat-row {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+  margin-bottom: 28px;
+}
+.sk-stat {
+  background: white; border: 1px solid var(--line); border-radius: 14px;
+  padding: 18px;
+}
+
+.sk-grid {
+  display: grid; grid-template-columns: 1fr 280px; gap: 28px;
+  align-items: start;
+}
+.sk-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.sk-reg {
+  background: white; border: 1px solid var(--line); border-radius: 14px;
+  display: flex; align-items: stretch;
+}
+.sk-reg-main { flex: 1 1 auto; padding: 20px 22px; min-width: 0; }
+.sk-reg-side {
+  width: 180px; border-left: 1px solid var(--line-2);
+  padding: 20px 18px; display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.sk-reg-action {
+  width: 170px; border-left: 1px solid var(--line-2);
+  padding: 20px; display: flex; align-items: center; justify-content: center;
+}
+
+.sk-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.sk-side-card {
+  background: white; border: 1px solid var(--line); border-radius: 14px;
+  padding: 20px;
+}
+.sk-side-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px;
+}
+.sk-side-row:last-child { margin-bottom: 0; }
+
+@media (max-width: 960px) {
+  .sk-hero { grid-template-columns: 1fr; }
+  .sk-id-card { display: none; }
+  .sk-grid { grid-template-columns: 1fr; }
+  .sk-stat-row { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 560px) {
+  .sk-reg { flex-direction: column; }
+  .sk-reg-side, .sk-reg-action {
+    width: auto; border-left: none; border-top: 1px solid var(--line-2);
+  }
+  .sk-stat-row { grid-template-columns: 1fr; }
+}
+
+/* Profile skeleton: same 2-col, 4-card grid as the real Profile page. */
+.sk-profile-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 28px;
+  align-items: start;
+}
+.sk-profile-card {
+  background: white; border: 1px solid var(--line); border-radius: 14px;
+  padding: 22px 24px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.sk-profile-card-head {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.sk-profile-card-body {
+  display: flex; flex-direction: column; gap: 12px;
+}
+.sk-profile-row { display: flex; align-items: center; gap: 14px; }
+.sk-profile-row-tall { padding: 6px 0; }
+.sk-bar-btn-sm { width: 60px; height: 32px; border-radius: 8px; }
+
+@media (max-width: 760px) {
+  .sk-profile-grid { grid-template-columns: 1fr; gap: 18px; }
+}
 
 @media (max-width: 960px) {
   /* Sidebar drops below the registrations; checklist + dates sit
