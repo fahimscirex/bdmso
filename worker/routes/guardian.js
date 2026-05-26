@@ -12,6 +12,7 @@ import { createVerificationToken, sendVerificationEmail, sendUpdatedReceiptForRe
 import { canonicalDistrict } from "../lib/districts.js";
 import {
   programHasOptions,
+  getProgramOptions,
   computeOptionDiff,
   withinEditWindow,
 } from "../lib/program-options.js";
@@ -256,6 +257,33 @@ guardian.post("/registrations/:id/cancel", async (c) => {
 // from the inline options_config that /api/me serves, so there is no
 // preview endpoint - either PATCH /options or POST /options/upgrade is
 // called directly when the guardian confirms.
+
+// Option ids already held by sibling registrations of the same program
+// on this account (excluding cancelled rows and the row being edited).
+// Used to refuse a change that would re-pick a session the guardian
+// already owns elsewhere.
+async function getSiblingTakenIds(env, accountId, registrationType, exceptId) {
+  const rows = await env.DB.prepare(
+    `SELECT id, program_options FROM registrations
+       WHERE guardian_account_id = ? AND registration_type = ? AND status != 'cancelled'`
+  ).bind(accountId, registrationType).all();
+  const taken = new Set();
+  for (const r of (rows?.results || [])) {
+    if (r.id === exceptId) continue;
+    try {
+      const v = JSON.parse(r.program_options || "[]");
+      if (Array.isArray(v)) for (const id of v) if (typeof id === "string") taken.add(id);
+    } catch {}
+  }
+  return taken;
+}
+
+function labelsFor(slug, ids) {
+  const cfg = getProgramOptions(slug);
+  if (!cfg) return ids;
+  return ids.map((id) => cfg.items.find((it) => it.id === id)?.label || id);
+}
+
 async function loadOptionContext(c, registrationId) {
   const session = c.get("session");
   const reg = await c.env.DB.prepare(
@@ -289,6 +317,19 @@ guardian.patch("/registrations/:id/options", async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const diff = computeOptionDiff(ctx.reg.registration_type, ctx.currentIds, body.options);
   if (!diff.ok) return c.json({ error: diff.error }, 400);
+
+  // Duplicate guard: refuse if any newly-picked id is already on a
+  // sibling (non-cancelled) registration of the same program. Cancelled
+  // siblings are intentionally excluded - they no longer hold the slot.
+  const taken = await getSiblingTakenIds(c.env, ctx.session.account_id, ctx.reg.registration_type, ctx.reg.id);
+  const overlap = diff.normalizedTo.filter((id) => taken.has(id));
+  if (overlap.length) {
+    const labels = labelsFor(ctx.reg.registration_type, overlap).join(", ");
+    return c.json({
+      error: `Already enrolled in: ${labels}. Pick a different selection or cancel the other registration first.`,
+      conflict: overlap,
+    }, 409);
+  }
 
   // Concurrency guard: refuse if a pending payment is mid-flight, otherwise
   // the change could race with a payment-callback flipping options or status.
@@ -387,6 +428,17 @@ guardian.post("/registrations/:id/options/upgrade", async (c) => {
   if (!diff.ok) return c.json({ error: diff.error }, 400);
   if (diff.action !== "upgrade") {
     return c.json({ error: "This endpoint is for upgrades only.", action: diff.action }, 400);
+  }
+
+  // Same duplicate guard as the PATCH path. Cancelled siblings excluded.
+  const taken = await getSiblingTakenIds(c.env, ctx.session.account_id, ctx.reg.registration_type, ctx.reg.id);
+  const overlap = diff.normalizedTo.filter((id) => taken.has(id));
+  if (overlap.length) {
+    const labels = labelsFor(ctx.reg.registration_type, overlap).join(", ");
+    return c.json({
+      error: `Already enrolled in: ${labels}. Pick a different selection or cancel the other registration first.`,
+      conflict: overlap,
+    }, 409);
   }
 
   const pending = await c.env.DB.prepare(

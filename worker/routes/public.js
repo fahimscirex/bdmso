@@ -46,6 +46,38 @@ function effectiveProgramPrice(reg) {
 import { getShurjopayConfig, shurjopayGetToken, shurjopayCreatePayment, shurjopayVerify } from "../lib/shurjopay.js";
 import { canonicalDistrict } from "../lib/districts.js";
 
+// Returns option ids already held by any non-cancelled registration of
+// the given program on the given account, EXCLUDING the optional
+// exceptRegistrationId (so a change-selection edit can keep its own
+// row's ids without seeing itself as a conflict). Caller compares this
+// set against the proposed ids to decide if a duplicate is being
+// attempted - same Mock Test session booked twice, same Prep subject
+// picked on a second Prep registration, etc.
+async function getTakenOptionIds(env, accountId, registrationType, exceptRegistrationId = null) {
+  const rows = await env.DB.prepare(
+    `SELECT id, program_options FROM registrations
+       WHERE guardian_account_id = ? AND registration_type = ? AND status != 'cancelled'`
+  ).bind(accountId, registrationType).all();
+  const taken = new Set();
+  for (const r of (rows?.results || [])) {
+    if (exceptRegistrationId && r.id === exceptRegistrationId) continue;
+    try {
+      const v = JSON.parse(r.program_options || "[]");
+      if (Array.isArray(v)) for (const id of v) if (typeof id === "string") taken.add(id);
+    } catch { /* skip malformed rows */ }
+  }
+  return taken;
+}
+
+// Map option ids back to human labels using the catalog. Best-effort -
+// unknown ids fall through as the raw id. Used to build helpful error
+// messages without forcing callers to plumb the catalog through.
+function labelOptionIds(slug, ids) {
+  const cfg = getProgramOptions(slug);
+  if (!cfg) return ids;
+  return ids.map((id) => cfg.items.find((it) => it.id === id)?.label || id);
+}
+
 export async function handleLogin(request, env) {
   const payload = await parseJson(request);
   const email    = requireField(payload.email,    "Email").toLowerCase();
@@ -927,6 +959,17 @@ export async function handleAddEnrollment(request, env) {
   if (programHasOptions(registrationType)) {
     const opt = validateAndPriceOptions(registrationType, payload.programOptions);
     if (!opt.ok) return badRequest(opt.error);
+    // Duplicate guard: if any of the proposed ids are already held by
+    // another non-cancelled registration on this account for the same
+    // program, refuse. A guardian who tries to book "Mock Test 1 - Math"
+    // on a second mock-test row gets a clear error pointing at the
+    // already-taken sessions instead of silently double-paying.
+    const taken = await getTakenOptionIds(env, account.account_id, registrationType);
+    const overlap = opt.normalized.filter((id) => taken.has(id));
+    if (overlap.length) {
+      const labels = labelOptionIds(registrationType, overlap).join(", ");
+      return badRequest(`Already enrolled in: ${labels}. Pick a different selection or edit the existing registration instead.`, 409);
+    }
     programOptions = JSON.stringify(opt.normalized);
   }
 
