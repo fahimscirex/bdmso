@@ -107,13 +107,12 @@ No HTML or code changes are needed.
 | `hidden` | `true` removes the program entirely - no detail page, no grid card. Omit (or set `false`) to show it. |
 | `home_order` | A string like `"01"`. Programs with this field appear on the home page grid, sorted by its value. Omit to keep a program off the home page. |
 | `category` | `beginner`, `advanced`, or `residential` - drives the `/programs` grid filter. |
-| `registrationStarts`, `registrationEnds` | ISO dates (`2026-04-01`). Drive the "Open" badge and the "soon" state on the grids. |
+| `registrationStarts`, `registrationEnds` | ISO dates (`2026-04-01`). Drive the "Open" badge, the "soon" state on the grids, AND the per-enrollment edit window - while today <= `registrationEnds`, guardians can change options, subject, and venue from their dashboard; after, the Edit affordance disappears and the server rejects writes to those fields with 409. |
 | `startsOn` | ISO date when the program begins. Shown in the guardian dashboard "Key dates" rail. |
-| `optionsEditableUntil` | ISO date deadline for guardian-initiated option changes (subject swaps, mock test session edits). Defaults to `registrationEnds` if omitted; always-editable when neither is set. |
 | `audience`, `duration`, `outcome`, `eyebrow` | Facts shown in the detail page sidebar. |
 | `bespokePage` | `true` means a hand-authored page at `public/programs/<slug>.html` is used as-is; the page generator skips it. Used for custom layouts (e.g. Maryam Mirzakhani School). |
 | `description`, `what_youll_do`, `next_steps` | Body content (arrays of strings) for generated detail pages. |
-| `options` | Per-cohort choices that carry their own prices - e.g. Mock Test sessions (checkboxes), Prep Course subjects (radio). Guardians can edit their selection from the dashboard until `optionsEditableUntil` (downgrades are free, upgrades create a top-up payment). |
+| `options` | Per-cohort choices that carry their own prices - e.g. Mock Test sessions (checkboxes), National Olympiad / Prep Course subjects (radio). Guardians can edit their selection from the dashboard while the program is in-window (downgrades are free, upgrades create a top-up payment). |
 
 Common edits:
 
@@ -349,15 +348,28 @@ Passwords are PBKDF2-SHA256 hashed at 100,000 iterations (Cloudflare Workers max
 | `/api/reset-password` | 10 requests | 15 min | Per IP |
 | `/api/admin/*` | 200 requests | 15 min | Per IP
 
-### Option Changes (Guardian Dashboard)
+### Enrollment Edits (Guardian Dashboard)
 
-Paid registrations for programs with configurable options (Mock Test sessions, Prep Course subjects) can be edited by guardians from their dashboard via the **Change Selection** modal. The flow:
+Once registered, guardians can change their own enrollment from a single **Edit enrollment** modal on each card. The modal renders only the sections that apply to that program:
 
-- **Same-price swaps** and **downgrades** (no refund) are applied immediately via `PATCH /api/me/registrations/:id/options`. A downgrade requires acknowledging the no-refund policy.
-- **Upgrades** (selecting a more expensive option) create a new ShurjoPay top-up payment via `POST /api/me/registrations/:id/options/upgrade`. The original registration stays `paid`; only the option selection changes on payment confirmation.
-- A partial unique index on `payments` prevents two concurrent upgrade payments for the same registration.
-- Each option change is recorded in `registration_option_changes` for auditability.
-- An updated receipt reflecting the new selection and cumulative total paid is emailed to the guardian on successful payment. The receipt template mirrors the dashboard's printable receipt design (logo + receipt number header, hero amount block, Payment Details + Registration cards, Total Paid summary).
+| Program | Options section | Subject section | Venue section |
+|---|---|---|---|
+| National Olympiad | radio: Math / Science / Both | Math / Science / Both (tiebreaker hint, only meaningful if Options = Both) | Dhaka / Chittagong / Rangpur / Sylhet |
+| Quiz Competition | – | – | Dhaka / Chittagong / Rangpur / Sylhet |
+| Prep Course | radio subjects | – | – |
+| Mock Test | checkbox sessions | – | – |
+
+**One window per program**: while today ≤ `registrationEnds` the Edit pill is visible on the card and the server accepts the writes; once the date passes, the affordance disappears and the corresponding endpoints return 409.
+
+Submit paths:
+
+- **Same-price option swap** or **downgrade** (no refund) -> `PATCH /api/me/registrations/:id/options`. A downgrade requires `acknowledge_no_refund: true`.
+- **Option upgrade** (selecting a more expensive option) -> `POST /api/me/registrations/:id/options/upgrade` creates a top-up ShurjoPay payment for the delta. The original registration stays `paid`; the new option commits only on successful gateway callback. A partial unique index on `payments` prevents two concurrent upgrade payments per registration.
+- **Subject / venue** -> `PATCH /api/me/registrations/:id` with `preferred_subject` and/or `preferred_venue`. Same window-check rule. The modal posts both calls when meta and options changed together (meta first, so it persists before any redirect to the gateway).
+
+Each option change is recorded in `registration_option_changes` for auditability. After a paid edit (same-price swap, downgrade, or successful upgrade) an updated receipt is emailed — the template mirrors the printable receipt design (logo + receipt number header, hero amount block, Payment Details + Registration cards, Total Paid summary, no QR until that endpoint is built).
+
+The Profile page handles only account-wide student details (name, dob, class, gender, curriculum, school, district) and is always editable. Per-program meta lives on the dashboard cards. Server-side `EDITABLE_REG_FIELDS` is split into `BULK_EDITABLE_REG_FIELDS` (universal, accepted by `PATCH /api/me/registrations`) and `ROW_ONLY_REG_FIELDS` (`preferred_subject`, `preferred_venue`, accepted only by the per-row PATCH) so the Profile bulk endpoint can't bypass the window check.
 
 #### Duplicate-option prevention
 
@@ -365,11 +377,9 @@ A guardian can't book the same Mock Test session twice across separate registrat
 
 - **Public registration form** (`/registration?program=mock-test`): when a signed-in guardian opens the form, `loadTakenOptions()` fetches `/api/me` and disables option items already held by another non-cancelled registration of the same program. Anonymous users see all options; the server catches them on submit.
 - **Server**: `handleAddEnrollment` and the change-selection routes (`PATCH /options`, `POST /options/upgrade`) all call `getTakenOptionIds()` and refuse a 409 with a human label when overlap is detected.
-- **Change Selection modal**: the dashboard modal also disables ids already held by sibling registrations (`unavailableIds` prop), so guardians see the conflict before they hit Save.
+- **Edit modal**: the dashboard modal disables ids already held by sibling registrations (`unavailableIds` prop), so guardians see the conflict before they hit Save.
 
 Cancelled registrations are intentionally excluded from every overlap check — a cancelled row doesn't permanently lock its slot.
-
-Programs can set `optionsEditableUntil` (ISO date) in `programs-detail.json` to close the edit window after a deadline (e.g. after mock test dates pass). Falls back to `registrationEnds`; defaults to always-editable when neither is set.
 
 ### Guardian Dashboard UX
 
@@ -377,6 +387,8 @@ Programs can set `optionsEditableUntil` (ISO date) in `programs-detail.json` to 
 - **Post-enrollment focus**: registration / add-enrollment redirects to `/dashboard?focus=<reg-id>`. The dashboard scrolls the matching card into view and runs a brief navy-ring pulse so guardians don't have to hunt for their just-created Pay Now card.
 - **Sort order**: `submitted → paid → cancelled` puts payment-due cards at the top, immediately actionable after enrollment.
 - **Stat tiles**: `All Enrollments` / `Payment Pending` / `Completed Enrollments` / `Cancelled Enrollments`, each filtering the list below.
+- **Single Edit pill** sits in the card header next to the status badge — covers options, subject, and venue. Inline meta lines (Subject / Exam region) are deliberately omitted from the card since the modal exposes them on demand.
+- **Notifications** read `registration_ends` + `edit_window_open` per row. The "Payment due" notice now ends with the close date; a new "Edit deadline approaching" / "Edit deadline today" notice fires for paid registrations within 7 days of `registrationEnds`, naming the fields you can still change for that program (subject + exam region for Quiz, options + subject + exam region for Olympiad).
 
 ### Security
 
@@ -415,7 +427,7 @@ public/
   *.html                  - one file per page
 apps/
   guardian/               - guardian dashboard SPA (Preact) → builds to dist/dashboard/
-    components/ChangeSelectionModal.tsx  - option-change modal for paid registrations
+    components/ChangeSelectionModal.tsx  - unified enrollment editor: options + subject + venue, sections render conditionally per program
     components/DashboardSkeleton.tsx     - loading-state shell for the dashboard
     components/ProfileSkeleton.tsx       - loading-state shell for /profile
     components/PaymentBanner.tsx         - inline payment status notice + scroll-to-list CTA
