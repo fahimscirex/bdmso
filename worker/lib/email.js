@@ -87,74 +87,156 @@ export async function sendReceiptEmail(env, reg, memberId, baseUrl, extras = {})
   });
   const totalAmount = isUpdated && cumulativeAmount != null ? cumulativeAmount : reg.amount;
   const amountFormatted = `৳ ${Number(totalAmount).toLocaleString("en-BD")}`;
-  const amountLabel = isUpdated ? "Total Paid" : "Amount Paid";
+  // Public-facing receipt number, mirrored from the dashboard printable
+  // (apps/guardian/src/pages/Home.tsx printReceipt). BdMSO- prefix plus
+  // the last 8 chars of the txn id keeps it unique without exposing
+  // gateway internals.
+  const receiptNo = `BdMSO-${String(reg.tran_id || reg.id || "").slice(-8).toUpperCase()}`;
+  const issuedLabel = new Date().toLocaleString("en-GB", {
+    day: "numeric", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
 
   console.log(`[email-receipt] ${maskEmailForLog(reg.guardian_email)} → member ${memberId} (${kind})`);
   if (!env.BREVO_API_KEY) return;
 
   const sender = parseEmailFrom(env.EMAIL_FROM);
+
+  // Updated-receipt banner: thin blue stripe above the header. The
+  // printable doesn't need this (one printable = one paid state),
+  // but the inbox does because guardians keep both initial and
+  // updated receipts in their thread history.
   const updatedBanner = isUpdated ? `
-      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-bottom:none;padding:14px 32px;color:#1e3a8a;font-size:13px;line-height:1.55;">
-        <strong>Updated receipt.</strong> You changed your selection for this registration; this receipt supersedes the one issued previously.
-      </div>` : "";
-  const selectionRow = optionLabels.length ? `
-          <tr style="border-bottom:1px solid #f3f4f6;">
-            <td style="padding:10px 0;color:#6b7280;vertical-align:top;">Selection</td>
-            <td style="padding:10px 0;font-weight:600;text-align:right;">${optionLabels.map(escapeHtml).join("<br>")}</td>
-          </tr>` : "";
-  const html = `
-    <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#0b1b3f;">
-      <div style="background:#0b1b3f;padding:24px 32px;border-radius:12px 12px 0 0;text-align:center;">
-        <div style="display:inline-block;background:#ffffff;border-radius:9px;padding:9px 14px;">
-          <img src="${logoBase}/images/logo.webp" alt="BdMSO" width="150" style="display:block;border:0;">
-        </div>
-        <p style="margin:12px 0 0;color:rgba(255,255,255,0.7);font-size:13px;">Bangladesh Mathematics &amp; Science Olympiad</p>
-      </div>${updatedBanner}
-      <div style="background:#fffbeb;border:1px solid #fcd34d;padding:20px 32px;display:flex;align-items:center;gap:16px;">
-        <div>
-          <div style="font-size:10px;font-weight:700;letter-spacing:0.15em;color:#b45309;text-transform:uppercase;">BdMSO ID</div>
-          <div style="font-size:22px;font-weight:700;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:1.5px;color:#0b1b3f;">${escapeHtml(memberId)}</div>
-        </div>
-      </div>
-      <div style="background:white;border:1px solid #e5e7eb;border-top:none;padding:28px 32px;">
-        <h2 style="margin:0 0 4px;font-size:18px;">${isUpdated ? "Updated Receipt" : "Payment Receipt"}</h2>
-        <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">${escapeHtml(programName)}</p>
-        <table style="width:100%;border-collapse:collapse;font-size:14px;">
-          <tr style="border-bottom:1px solid #f3f4f6;">
-            <td style="padding:10px 0;color:#6b7280;">Student</td>
-            <td style="padding:10px 0;font-weight:600;text-align:right;">${escapeHtml(reg.student_full_name)}</td>
-          </tr>
-          <tr style="border-bottom:1px solid #f3f4f6;">
-            <td style="padding:10px 0;color:#6b7280;">Class</td>
-            <td style="padding:10px 0;font-weight:600;text-align:right;">${escapeHtml(reg.student_class_name)}</td>
-          </tr>
-          <tr style="border-bottom:1px solid #f3f4f6;">
-            <td style="padding:10px 0;color:#6b7280;">School</td>
-            <td style="padding:10px 0;font-weight:600;text-align:right;">${escapeHtml(reg.student_school)}</td>
-          </tr>
-          <tr style="border-bottom:1px solid #f3f4f6;">
-            <td style="padding:10px 0;color:#6b7280;">Guardian</td>
-            <td style="padding:10px 0;font-weight:600;text-align:right;">${escapeHtml(reg.guardian_full_name)}</td>
-          </tr>${selectionRow}
-          <tr style="border-bottom:1px solid #f3f4f6;">
-            <td style="padding:10px 0;color:#6b7280;">Transaction ID</td>
-            <td style="padding:10px 0;font-weight:600;text-align:right;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;">${escapeHtml(reg.tran_id)}</td>
-          </tr>
-          <tr style="border-bottom:1px solid #f3f4f6;">
-            <td style="padding:10px 0;color:#6b7280;">${isUpdated ? "Updated On" : "Payment Date"}</td>
-            <td style="padding:10px 0;font-weight:600;text-align:right;">${paidAt}</td>
-          </tr>
+        <tr><td style="padding:0 24px 14px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:separate;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;">
+            <tr><td style="padding:12px 16px;color:#1e3a8a;font-size:13px;line-height:1.55;">
+              <strong>Updated receipt.</strong> You changed your selection for this registration; this receipt supersedes the one issued previously.
+            </td></tr>
+          </table>
+        </td></tr>` : "";
+
+  const optionsRow = optionLabels.length ? `
+            <tr>
+              <td style="padding:8px 0;font-size:12.5px;color:#5b6573;font-weight:500;border-bottom:1px solid #e8eaef;">Selection</td>
+              <td style="padding:8px 0;font-size:13px;color:#15233f;font-weight:600;text-align:right;border-bottom:1px solid #e8eaef;">${optionLabels.map(escapeHtml).join("<br>")}</td>
+            </tr>` : "";
+
+  // ── Email template ────────────────────────────────────────────────
+  // Tables for layout (Outlook + most inboxes treat flex/grid as
+  // suggestions at best). Inline styles only - the printable's CSS
+  // variables (--navy etc.) are inlined here as literals so the
+  // visual matches. System font stack instead of IBM Plex; web fonts
+  // are unreliable in clients like Outlook desktop.
+  const html = `<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BdMSO Receipt - ${escapeHtml(receiptNo)}</title>
+</head>
+<body style="margin:0;padding:24px 12px;background:linear-gradient(170deg,#eceef2 0%,#e0e3ea 100%);font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#15233f;-webkit-font-smoothing:antialiased;">
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:640px;margin:0 auto;border-collapse:collapse;background:#f3f4f7;border-radius:18px;box-shadow:0 24px 48px -28px rgba(21,35,63,0.35);">
+  <tr><td style="padding:30px 28px 8px;">${updatedBanner ? "" : ""}
+
+    <!-- Header: logo + doc label + receipt number -->
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+      <tr>
+        <td valign="top" style="padding:0;">
+          <img src="${logoBase}/images/logo.webp" alt="BdMSO" height="42" style="height:42px;width:auto;display:block;border:0;">
+          <div style="margin-top:14px;font-size:12px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#9aa1ad;">${isUpdated ? "Updated Receipt" : "Payment Receipt"}</div>
+          <div style="margin-top:4px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px;font-weight:600;color:#15233f;letter-spacing:0.02em;">${escapeHtml(receiptNo)}</div>
+          <div style="margin-top:4px;font-size:11px;color:#9aa1ad;">Issued ${escapeHtml(issuedLabel)}</div>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Hero amount -->
+    <div style="margin:22px 0 22px;">
+      <div style="font-size:34px;font-weight:700;letter-spacing:-0.025em;line-height:1;color:#15233f;">${escapeHtml(amountFormatted)} <span style="font-size:17px;font-weight:600;color:#15803d;letter-spacing:0;">paid</span></div>
+      <div style="margin-top:10px;font-size:13px;color:#5b6573;">${isUpdated ? "Updated on " : "Paid on "}${escapeHtml(paidAt)} &middot; ${escapeHtml(programName)}</div>
+    </div>
+
+  </td></tr>${updatedBanner}<tr><td style="padding:0 28px;">
+
+    <!-- Payment Details card -->
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:separate;background:white;border:1px solid #e8eaef;border-radius:13px;box-shadow:0 6px 16px -12px rgba(21,35,63,0.20);margin-bottom:14px;">
+      <tr><td style="padding:20px 22px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.13em;text-transform:uppercase;color:#9aa1ad;margin-bottom:12px;">Payment Details</div>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;font-size:13px;">
           <tr>
-            <td style="padding:14px 0;font-size:16px;font-weight:700;">${amountLabel}</td>
-            <td style="padding:14px 0;font-size:18px;font-weight:700;text-align:right;color:#15803d;">${amountFormatted}</td>
+            <td style="padding:8px 0;font-size:12.5px;color:#5b6573;font-weight:500;border-bottom:1px solid #e8eaef;">Receipt number</td>
+            <td style="padding:8px 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:#15233f;font-weight:500;text-align:right;border-bottom:1px solid #e8eaef;">${escapeHtml(receiptNo)}</td>
+          </tr>
+          ${reg.payment_method ? `<tr>
+            <td style="padding:8px 0;font-size:12.5px;color:#5b6573;font-weight:500;border-bottom:1px solid #e8eaef;">Payment method</td>
+            <td style="padding:8px 0;font-size:13px;color:#15233f;font-weight:600;text-align:right;border-bottom:1px solid #e8eaef;">${escapeHtml(reg.payment_method)}</td>
+          </tr>` : ""}
+          ${reg.tran_id ? `<tr>
+            <td style="padding:8px 0;font-size:12.5px;color:#5b6573;font-weight:500;border-bottom:1px solid #e8eaef;">Transaction ID</td>
+            <td style="padding:8px 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:#15233f;font-weight:500;text-align:right;border-bottom:1px solid #e8eaef;word-break:break-all;">${escapeHtml(reg.tran_id)}</td>
+          </tr>` : ""}
+          ${memberId ? `<tr>
+            <td style="padding:8px 0;font-size:12.5px;color:#5b6573;font-weight:500;border-bottom:1px solid #e8eaef;">BdMSO ID</td>
+            <td style="padding:8px 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:#15233f;font-weight:500;text-align:right;border-bottom:1px solid #e8eaef;">${escapeHtml(memberId)}</td>
+          </tr>` : ""}
+          <tr>
+            <td style="padding:8px 0;font-size:12.5px;color:#5b6573;font-weight:500;">Billed to</td>
+            <td style="padding:8px 0;font-size:13px;color:#15233f;font-weight:600;text-align:right;word-break:break-all;">${escapeHtml(reg.guardian_email)}</td>
           </tr>
         </table>
-      </div>
-      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-top:none;padding:16px 32px;border-radius:0 0 12px 12px;">
-        <p style="margin:0 0 8px;color:#6b7280;font-size:12px;line-height:1.55;">This is an electronic receipt for your BdMSO registration. Please retain it for your records; you may be asked to show it on program day. For any questions or corrections, email <strong style="color:#374151;">support@bdmso.org</strong> and quote your BdMSO ID.</p>
-        <p style="margin:0;color:#9ca3af;font-size:12px;"><strong style="color:#374151;">Refund policy:</strong> Any transaction made through the BdMSO website is non-refundable.</p>
-      </div>
-    </div>`;
+      </td></tr>
+    </table>
+
+    <!-- Registration card with line item + total -->
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:separate;background:white;border:1px solid #e8eaef;border-radius:13px;box-shadow:0 6px 16px -12px rgba(21,35,63,0.20);margin-bottom:14px;">
+      <tr><td style="padding:20px 22px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.13em;text-transform:uppercase;color:#9aa1ad;margin-bottom:14px;">Registration</div>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+          <tr>
+            <td valign="top" style="padding-bottom:14px;">
+              <div style="font-size:14.5px;font-weight:700;color:#15233f;">${escapeHtml(programName)}</div>
+              ${optionLabels.length ? `<div style="margin-top:4px;font-size:12px;font-weight:600;color:#15233f;">${optionLabels.map(escapeHtml).join(" &middot; ")}</div>` : ""}
+              <div style="margin-top:4px;font-size:12px;color:#9aa1ad;line-height:1.5;">${escapeHtml([reg.student_full_name, reg.student_class_name, reg.student_school, reg.student_district].filter(Boolean).join(" · "))}</div>
+              ${reg.guardian_full_name ? `<div style="margin-top:6px;font-size:11.5px;color:#5b6573;">Guardian: <span style="color:#15233f;font-weight:600;">${escapeHtml(reg.guardian_full_name)}</span></div>` : ""}
+            </td>
+            <td valign="top" align="right" style="padding-bottom:14px;font-size:14.5px;font-weight:700;color:#15233f;white-space:nowrap;">${escapeHtml(amountFormatted)}</td>
+          </tr>
+          <tr><td colspan="2" style="border-top:2px solid #15233f;padding-top:12px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+              <tr>
+                <td style="font-size:13px;font-weight:700;color:#15233f;">${isUpdated ? "Total paid" : "Total paid"}</td>
+                <td align="right" style="font-size:19px;font-weight:700;color:#15233f;letter-spacing:-0.01em;">${escapeHtml(amountFormatted)}</td>
+              </tr>
+            </table>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+
+    <!-- Notes -->
+    <div style="padding:6px 4px 0;">
+      <p style="margin:0 0 7px;font-size:11px;line-height:1.65;color:#5b6573;">This is an electronic receipt for your BdMSO enrollment. Please retain it for your records - you may be asked to show it on program day. For any questions or corrections, email <strong style="color:#15233f;font-weight:600;">support@bdmso.org</strong> and quote your BdMSO ID.</p>
+      <p style="margin:0;font-size:11px;line-height:1.65;color:#5b6573;"><strong style="color:#15233f;font-weight:600;">Refund policy:</strong> Any transaction made through the BdMSO website is non-refundable.</p>
+    </div>
+
+    <!-- Footer -->
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin-top:18px;padding-top:16px;border-top:1px solid #e8eaef;">
+      <tr>
+        <td valign="bottom" style="font-size:10.5px;line-height:1.6;color:#9aa1ad;">
+          <strong style="display:block;color:#15233f;font-size:11.5px;font-weight:700;margin-bottom:3px;">Bangladesh Mathematics &amp; Science Olympiad</strong>
+          Level 12, Building #758, Green City Center,<br>Sat Masjid Road, Dhanmondi, Dhaka 1209
+        </td>
+        <td valign="bottom" align="right" style="font-size:11.5px;color:#5b6573;text-align:right;white-space:nowrap;">
+          <strong style="color:#15233f;font-weight:700;">Need help?</strong><br>support@bdmso.org
+        </td>
+      </tr>
+    </table>
+
+  </td></tr>
+  <tr><td style="padding:22px;"></td></tr>
+</table>
+
+</body></html>`;
 
   const subject = isUpdated
     ? `Updated Receipt - ${programName} (${memberId})`
@@ -253,6 +335,7 @@ export async function assignMemberIdAndSendReceipt(env, tranId, baseUrl) {
            r.guardian_email, r.program_options,
            a.member_id AS account_member_id,
            a.email     AS account_email,
+           a.full_name AS account_full_name,
            p.amount, p.tran_id, p.updated_at AS paid_at
     FROM registrations r
     JOIN payments p ON p.registration_id = r.id
@@ -287,7 +370,16 @@ export async function assignMemberIdAndSendReceipt(env, tranId, baseUrl) {
     : [];
   await sendReceiptEmail(
     env,
-    { ...row, guardian_email: row.account_email || row.guardian_email, tran_id: tranId },
+    {
+      ...row,
+      // Use the account's CURRENT name + email, not the snapshot
+      // captured on the registration row. Guardians who renamed
+      // themselves via Profile after registering should see the new
+      // name on every subsequent receipt.
+      guardian_full_name: row.account_full_name || row.guardian_full_name,
+      guardian_email: row.account_email || row.guardian_email,
+      tran_id: tranId,
+    },
     memberId,
     baseUrl,
     { kind: "initial", optionLabels }
@@ -313,7 +405,8 @@ export async function sendUpdatedReceiptForRegistration(env, registrationId, bas
            r.student_class_name, r.student_school, r.student_district, r.guardian_full_name,
            r.guardian_email, r.program_options,
            a.member_id AS account_member_id,
-           a.email     AS account_email
+           a.email     AS account_email,
+           a.full_name AS account_full_name
     FROM registrations r
     JOIN guardian_accounts a ON a.id = r.guardian_account_id
     WHERE r.id = ? LIMIT 1
@@ -342,6 +435,10 @@ export async function sendUpdatedReceiptForRegistration(env, registrationId, bas
     env,
     {
       ...row,
+      // Account name/email override - see assignMemberIdAndSendReceipt
+      // for the same pattern. Receipts always reflect the guardian's
+      // current Profile values, never the registration snapshot.
+      guardian_full_name: row.account_full_name || row.guardian_full_name,
       guardian_email: row.account_email || row.guardian_email,
       tran_id: latest.tran_id,
       amount: latest.amount,
