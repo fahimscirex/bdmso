@@ -24,6 +24,11 @@ type Registration = {
   payment_status: 'pending' | 'paid' | 'failed' | null;
   payment_date: string | null;
   created_at: string;
+  // registration_ends drives the per-program edit/pay window. Used
+  // by the "Payment due by" and "Edit deadline approaching" notices
+  // - one date per program, surfaced in two different voices.
+  registration_ends: string | null;
+  edit_window_open: boolean;
 };
 
 type MeResponse = {
@@ -46,6 +51,24 @@ export function loadReadIds(): Set<string> {
 }
 export function saveReadIds(ids: Set<string>) {
   try { sessionStorage.setItem(READ_KEY, JSON.stringify([...ids])); } catch { /* ignore */ }
+}
+
+// Whole days from today to an ISO yyyy-mm-dd date. Negative when the
+// date is already in the past; null when the input is missing or
+// unparseable.
+function daysUntil(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  const target = new Date(iso + 'T23:59:59');
+  if (Number.isNaN(target.getTime())) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.ceil((target.getTime() - today.getTime()) / 86_400_000);
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  });
 }
 
 function relativeTime(iso?: string): string {
@@ -95,6 +118,22 @@ export function buildNotices(data: MeResponse): Notice[] {
           at: r.payment_date || undefined,
         });
       }
+      // Edit deadline approaching: fire within the last 7 days of
+      // the program's registrationEnds window since that's also the
+      // edit window. Surfaces details a guardian can still change
+      // (subject preference, exam region, options) before it locks.
+      if (r.edit_window_open && r.registration_ends) {
+        const days = daysUntil(r.registration_ends);
+        if (days != null && days <= 7) {
+          out.push({
+            id: `edit-deadline-${r.id}`,
+            kind: 'warn',
+            title: days <= 0 ? 'Edit deadline today' : 'Edit deadline approaching',
+            text: `${days <= 0 ? 'Today is' : `${days} day${days === 1 ? '' : 's'} left to`} update ${who}'s ${short} details (subject, exam region${r.registration_type === 'national-quiz-competition' ? '' : ', options'}).`,
+            at: r.registration_ends,
+          });
+        }
+      }
     } else if (r.payment_status === 'failed') {
       out.push({
         id: `failed-${r.id}`,
@@ -104,11 +143,17 @@ export function buildNotices(data: MeResponse): Notice[] {
         at: r.created_at,
       });
     } else if (r.status === 'submitted') {
+      // Surface the deadline in the body so guardians know how long
+      // they have. Falls back to the original generic sentence when
+      // a program has no registrationEnds.
+      const deadlineText = r.registration_ends
+        ? ` Closes ${formatDate(r.registration_ends)}.`
+        : '';
       out.push({
         id: `due-${r.id}`,
         kind: 'warn',
         title: 'Payment due',
-        text: `${short} for ${who} isn't complete until payment is made.`,
+        text: `${short} for ${who} isn't complete until payment is made.${deadlineText}`,
         at: r.created_at,
       });
     }
