@@ -18,7 +18,6 @@
     "schedule": "Registration closes 20 June 2026",
     "registrationStarts": "2026-01-01",
     "registrationEnds": "2026-06-20",
-    "optionsEditableUntil": "2026-06-20",
     "options": {
       "kind": "radio",
       "label": "Subjects",
@@ -101,7 +100,6 @@
     "schedule": "Registration closes 20 June 2026",
     "registrationStarts": "2026-05-20",
     "registrationEnds": "2026-06-20",
-    "optionsEditableUntil": "2026-06-20",
     "register_url": "/registration?program=national-quiz-competition",
     "register_label": "Register now",
     "description": [
@@ -233,7 +231,6 @@
       "Mock Test 1: 12 June 2026 · Mock Test 2: 19 June 2026"
     ],
     "registration": true,
-    "optionsEditableUntil": "2026-06-07",
     "options": {
       "kind": "radio",
       "label": "Subjects",
@@ -394,7 +391,6 @@
     ],
     "registration": true,
     "repeatable": true,
-    "optionsEditableUntil": "2026-06-19",
     "options": {
       "kind": "checkbox",
       "label": "BdMSO Mock Test sessions",
