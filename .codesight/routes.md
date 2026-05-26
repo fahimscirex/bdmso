@@ -41,5 +41,7 @@
 - `PATCH` `/me/registrations` params() [auth, payment]
 - `PATCH` `/me/registrations/:id` params(id) [auth, payment]
 - `POST` `/me/registrations/:id/cancel` params(id) [auth, payment]
+- `PATCH` `/me/registrations/:id/options` params(id) [auth, payment]
+- `POST` `/me/registrations/:id/options/upgrade` params(id) [auth, payment]
 - `POST` `/me/change-password` params() [auth, payment]
 - `POST` `/me/revoke-sessions` params() [auth, payment]

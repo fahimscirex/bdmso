@@ -9,6 +9,10 @@ The Submit-registration subsystem handles **1 routes** and touches: auth, db, ca
 - `POST` `/submit-registration` [auth, db, cache, email, upload]
   `worker/index.js`
 
+## Related Models
+
+- **registration_option_changes** (5 fields) → [database.md](./database.md)
+
 ## Source Files
 
 Read these before implementing or modifying this subsystem:

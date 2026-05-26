@@ -15,9 +15,13 @@
 - **Sponsorships** — `apps/admin/src/pages/Sponsorships.tsx`
 - **Users** — `apps/admin/src/pages/Users.tsx`
 - **App** — `apps/guardian/src/App.tsx`
+- **ChangeSelectionModal** — props: registrationId, programLabel, paid, config, currentIds, unavailableIds, onClose, onChanged — `apps/guardian/src/components/ChangeSelectionModal.tsx`
+- **DashboardSkeleton** — `apps/guardian/src/components/DashboardSkeleton.tsx`
 - **Dropdown** — props: value, onChange, options, placeholder, ariaLabel — `apps/guardian/src/components/Dropdown.tsx`
 - **NotificationTicker** — `apps/guardian/src/components/NotificationTicker.tsx`
 - **PaymentBanner** — `apps/guardian/src/components/PaymentBanner.tsx`
+- **ProfileSkeleton** — `apps/guardian/src/components/ProfileSkeleton.tsx`
+- **StudentsCardSkeleton** — `apps/guardian/src/components/ProfileSkeleton.tsx`
 - **Shell** — props: currentRoute — `apps/guardian/src/components/Shell.tsx`
 - **Home** — `apps/guardian/src/pages/Home.tsx`
 - **Login** — props: onSignedIn — `apps/guardian/src/pages/Login.tsx`

@@ -39,18 +39,27 @@
   - const DUMMY_HASH_SALT
 - `worker/lib/districts.js` — function canonicalDistrict: (value) => void, const BD_DISTRICTS
 - `worker/lib/email.js`
+  - function maskEmailForLog: (email) => void
+  - function maskTokenForLog: (token) => void
   - function createVerificationToken: (env, accountId) => void
   - function createPasswordResetToken: (env, accountId) => void
   - function parseEmailFrom: (raw) => void
-  - function sendReceiptEmail: (env, reg, memberId, baseUrl) => void
-  - function sendSponsorshipNotification: (env, lead) => void
-  - function assignMemberIdAndSendReceipt: (env, tranId, baseUrl) => void
-  - _...5 more_
+  - function sendReceiptEmail: (env, reg, memberId, baseUrl, extras) => void
+  - _...8 more_
 - `worker/lib/program-options.js`
   - function programHasOptions: (slug) => void
   - function getProgramOptions: (slug) => void
-  - function validateAndPriceOptions: (slug, rawOptions) => void
-- `worker/lib/rate-limit.js` — function checkLoginRateLimit: (env, email) => void, function recordLoginAttempt: (env, email, success) => void
+  - function getProgram: (slug) => void
+  - function getOptionLabels: (slug, ids) => void
+  - function priceOptions: (slug, ids) => void
+  - function withinEditWindow: (slug, todayISO) => void
+  - _...2 more_
+- `worker/lib/rate-limit.js`
+  - function checkLoginRateLimit: (env, email) => void
+  - function recordLoginAttempt: (env, email, success) => void
+  - function checkActionRateLimit: (env, bucket, key, limit, windowMs) => void
+  - function recordActionAttempt: (env, bucket, key) => void
+  - function clientIpFor: (request) => void
 - `worker/lib/sessions.js`
   - function createSession: (env, accountId) => void
   - function verifySession: (env, token) => void

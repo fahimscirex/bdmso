@@ -2,13 +2,7 @@
 
 > **Navigation aid.** Schema shapes and field types extracted via AST. Read the actual schema source files before writing migrations or query logic.
 
-**unknown** — 14 models
-
-### member_id_class_seq
-
-- `year`: integer _(required)_
-- `class_digit`: integer _(required)_
-- `next_seq`: integer _(required)_
+**unknown** — 16 models
 
 ### guardian_accounts
 
@@ -51,6 +45,14 @@ pk: `id` (integer)
 - `success`: integer _(required)_
 - `attempted_at`: text _(required)_
 
+### action_attempts
+
+pk: `id` (integer)
+
+- `id`: integer _(pk)_
+- `bucket`: text _(required)_
+- `attempted_at`: text _(required)_
+
 ### registrations
 
 pk: `id` (text) · fk: guardian_account_id
@@ -73,6 +75,12 @@ pk: `id` (text) · fk: guardian_account_id
 - `preferred_venue`: text
 - `preferred_subject`: text
 - `Prep`: course subjects
+
+### member_id_class_seq
+
+- `year`: integer _(required)_
+- `class_digit`: integer _(required)_
+- `next_seq`: integer _(required)_
 
 ### sponsorship_enquiries
 
@@ -133,6 +141,16 @@ pk: `id` (text) · fk: account_id
 - `account_id`: text _(required, fk)_
 - `action`: text _(required)_
 - `payload_json`: text
+
+### registration_option_changes
+
+pk: `id` (integer) · fk: registration_id
+
+- `id`: integer _(pk)_
+- `registration_id`: text _(required, fk)_
+- `from_options`: text _(required)_
+- `to_price`: real _(required)_
+- `delta`: real _(required)_
 
 ### programs
 

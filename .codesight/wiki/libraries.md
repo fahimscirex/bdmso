@@ -6,15 +6,15 @@
 
 ## Worker (13 files)
 
-- `worker/lib/email.js` — createVerificationToken, createPasswordResetToken, parseEmailFrom, sendReceiptEmail, sendSponsorshipNotification, assignMemberIdAndSendReceipt, …
+- `worker/lib/email.js` — maskEmailForLog, maskTokenForLog, createVerificationToken, createPasswordResetToken, parseEmailFrom, sendReceiptEmail, …
 - `worker/lib/util.js` — jsonResponse, badRequest, redirectTo, createId, parseClassDigit, reserveMemberId, …
+- `worker/lib/program-options.js` — programHasOptions, getProgramOptions, getProgram, getOptionLabels, priceOptions, withinEditWindow, …
+- `worker/lib/rate-limit.js` — checkLoginRateLimit, recordLoginAttempt, checkActionRateLimit, recordActionAttempt, clientIpFor
 - `worker/lib/sessions.js` — createSession, verifySession, extractToken, requireAuth, SESSION_TTL_MS
 - `worker/lib/validation.js` — normalizeString, requireField, isEmail, isPhoneLike, escapeHtml
 - `worker/lib/crypto.js` — toHex, hashPassword, PBKDF2_ITERATIONS_CURRENT, DUMMY_HASH_SALT
 - `worker/lib/shurjopay.js` — getShurjopayConfig, shurjopayGetToken, shurjopayCreatePayment, shurjopayVerify
-- `worker/lib/program-options.js` — programHasOptions, getProgramOptions, validateAndPriceOptions
 - `worker/lib/districts.js` — canonicalDistrict, BD_DISTRICTS
-- `worker/lib/rate-limit.js` — checkLoginRateLimit, recordLoginAttempt
 - `worker/lib/audit-log.js` — recordAudit
 - `worker/middleware/requireAuth.js` — requireAuth
 - `worker/middleware/requireRole.js` — requireRole

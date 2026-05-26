@@ -17,6 +17,7 @@ The Auth subsystem handles **2 routes** and touches: auth, db, cache, email.
 - **App** (auth) — `apps/guardian/src/App.tsx`
 - **api** (auth) — `apps/guardian/src/api.ts`
 - **auth** (auth) — `apps/guardian/src/auth.ts`
+- **ChangeSelectionModal** (auth) — `apps/guardian/src/components/ChangeSelectionModal.tsx`
 - **Home** (auth) — `apps/guardian/src/pages/Home.tsx`
 - **Login** (auth) — `apps/guardian/src/pages/Login.tsx`
 - **Profile** (auth) — `apps/guardian/src/pages/Profile.tsx`

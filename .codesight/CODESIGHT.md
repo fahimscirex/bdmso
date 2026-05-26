@@ -3,9 +3,9 @@
 > **Stack:** hono | none | react | typescript
 > **Monorepo:** @bdmso/admin, @bdmso/guardian, dash
 
-> 41 routes | 14 models | 23 components | 25 lib files | 3 env vars | 22 middleware
-> **Token savings:** this file is ~4,500 tokens. Without it, AI exploration would cost ~56,000 tokens. **Saves ~51,500 tokens per conversation.**
-> **Last scanned:** 2026-05-25 07:03 — re-run after significant changes
+> 43 routes | 16 models | 27 components | 25 lib files | 3 env vars | 25 middleware
+> **Token savings:** this file is ~4,900 tokens. Without it, AI exploration would cost ~59,900 tokens. **Saves ~55,000 tokens per conversation.**
+> **Last scanned:** 2026-05-26 10:52 — re-run after significant changes
 
 ---
 
@@ -52,17 +52,14 @@
 - `PATCH` `/me/registrations` params() [auth, payment]
 - `PATCH` `/me/registrations/:id` params(id) [auth, payment]
 - `POST` `/me/registrations/:id/cancel` params(id) [auth, payment]
+- `PATCH` `/me/registrations/:id/options` params(id) [auth, payment]
+- `POST` `/me/registrations/:id/options/upgrade` params(id) [auth, payment]
 - `POST` `/me/change-password` params() [auth, payment]
 - `POST` `/me/revoke-sessions` params() [auth, payment]
 
 ---
 
 # Schema
-
-### member_id_class_seq
-- year: integer (required)
-- class_digit: integer (required)
-- next_seq: integer (required)
 
 ### guardian_accounts
 - id: text (pk)
@@ -93,6 +90,11 @@
 - success: integer (required)
 - attempted_at: text (required)
 
+### action_attempts
+- id: integer (pk)
+- bucket: text (required)
+- attempted_at: text (required)
+
 ### registrations
 - id: text (pk)
 - registration_type: text (required)
@@ -112,6 +114,11 @@
 - preferred_venue: text
 - preferred_subject: text
 - Prep: course subjects
+
+### member_id_class_seq
+- year: integer (required)
+- class_digit: integer (required)
+- next_seq: integer (required)
 
 ### sponsorship_enquiries
 - id: text (pk)
@@ -154,6 +161,13 @@
 - account_id: text (required, fk)
 - action: text (required)
 - payload_json: text
+
+### registration_option_changes
+- id: integer (pk)
+- registration_id: text (required, fk)
+- from_options: text (required)
+- to_price: real (required)
+- delta: real (required)
 
 ### programs
 - slug: text (pk)
@@ -201,9 +215,13 @@
 - **Sponsorships** — `apps/admin/src/pages/Sponsorships.tsx`
 - **Users** — `apps/admin/src/pages/Users.tsx`
 - **App** — `apps/guardian/src/App.tsx`
+- **ChangeSelectionModal** — props: registrationId, programLabel, paid, config, currentIds, unavailableIds, onClose, onChanged — `apps/guardian/src/components/ChangeSelectionModal.tsx`
+- **DashboardSkeleton** — `apps/guardian/src/components/DashboardSkeleton.tsx`
 - **Dropdown** — props: value, onChange, options, placeholder, ariaLabel — `apps/guardian/src/components/Dropdown.tsx`
 - **NotificationTicker** — `apps/guardian/src/components/NotificationTicker.tsx`
 - **PaymentBanner** — `apps/guardian/src/components/PaymentBanner.tsx`
+- **ProfileSkeleton** — `apps/guardian/src/components/ProfileSkeleton.tsx`
+- **StudentsCardSkeleton** — `apps/guardian/src/components/ProfileSkeleton.tsx`
 - **Shell** — props: currentRoute — `apps/guardian/src/components/Shell.tsx`
 - **Home** — `apps/guardian/src/pages/Home.tsx`
 - **Login** — props: onSignedIn — `apps/guardian/src/pages/Login.tsx`
@@ -253,18 +271,27 @@
   - const DUMMY_HASH_SALT
 - `worker/lib/districts.js` — function canonicalDistrict: (value) => void, const BD_DISTRICTS
 - `worker/lib/email.js`
+  - function maskEmailForLog: (email) => void
+  - function maskTokenForLog: (token) => void
   - function createVerificationToken: (env, accountId) => void
   - function createPasswordResetToken: (env, accountId) => void
   - function parseEmailFrom: (raw) => void
-  - function sendReceiptEmail: (env, reg, memberId, baseUrl) => void
-  - function sendSponsorshipNotification: (env, lead) => void
-  - function assignMemberIdAndSendReceipt: (env, tranId, baseUrl) => void
-  - _...5 more_
+  - function sendReceiptEmail: (env, reg, memberId, baseUrl, extras) => void
+  - _...8 more_
 - `worker/lib/program-options.js`
   - function programHasOptions: (slug) => void
   - function getProgramOptions: (slug) => void
-  - function validateAndPriceOptions: (slug, rawOptions) => void
-- `worker/lib/rate-limit.js` — function checkLoginRateLimit: (env, email) => void, function recordLoginAttempt: (env, email, success) => void
+  - function getProgram: (slug) => void
+  - function getOptionLabels: (slug, ids) => void
+  - function priceOptions: (slug, ids) => void
+  - function withinEditWindow: (slug, todayISO) => void
+  - _...2 more_
+- `worker/lib/rate-limit.js`
+  - function checkLoginRateLimit: (env, email) => void
+  - function recordLoginAttempt: (env, email, success) => void
+  - function checkActionRateLimit: (env, bucket, key, limit, windowMs) => void
+  - function recordActionAttempt: (env, bucket, key) => void
+  - function clientIpFor: (request) => void
 - `worker/lib/sessions.js`
   - function createSession: (env, accountId) => void
   - function verifySession: (env, token) => void
@@ -325,6 +352,7 @@
 - App — `apps/guardian/src/App.tsx`
 - api — `apps/guardian/src/api.ts`
 - auth — `apps/guardian/src/auth.ts`
+- ChangeSelectionModal — `apps/guardian/src/components/ChangeSelectionModal.tsx`
 - Home — `apps/guardian/src/pages/Home.tsx`
 - Login — `apps/guardian/src/pages/Login.tsx`
 - Profile — `apps/guardian/src/pages/Profile.tsx`
@@ -335,9 +363,11 @@
 - sessionMiddleware — `worker/routes/admin.js`
 
 ## custom
+- DashboardSkeleton — `apps/guardian/src/components/DashboardSkeleton.tsx`
 - Dropdown — `apps/guardian/src/components/Dropdown.tsx`
 - NotificationTicker — `apps/guardian/src/components/NotificationTicker.tsx`
 - PaymentBanner — `apps/guardian/src/components/PaymentBanner.tsx`
+- ProfileSkeleton — `apps/guardian/src/components/ProfileSkeleton.tsx`
 - Shell — `apps/guardian/src/components/Shell.tsx`
 - main — `apps/guardian/src/main.tsx`
 - router — `apps/guardian/src/router.ts`
@@ -359,36 +389,36 @@
 - `apps/admin/src/api.ts` — imported by **11** files
 - `apps/admin/src/router.ts` — imported by **7** files
 - `apps/guardian/src/auth.ts` — imported by **5** files
+- `apps/guardian/src/api.ts` — imported by **5** files
 - `worker/lib/crypto.js` — imported by **5** files
 - `worker/lib/util.js` — imported by **5** files
 - `apps/admin/src/auth.ts` — imported by **4** files
-- `apps/guardian/src/api.ts` — imported by **4** files
 - `apps/guardian/src/router.ts` — imported by **3** files
 - `worker/lib/programs.js` — imported by **3** files
+- `worker/lib/audit-log.js` — imported by **3** files
 - `worker/lib/email.js` — imported by **3** files
 - `apps/admin/src/csv.ts` — imported by **2** files
 - `apps/guardian/src/components/NotificationTicker.tsx` — imported by **2** files
+- `apps/guardian/src/components/ChangeSelectionModal.tsx` — imported by **2** files
 - `public/js/api.js` — imported by **2** files
 - `worker/lib/validation.js` — imported by **2** files
+- `worker/lib/program-options.js` — imported by **2** files
 - `worker/lib/sessions.js` — imported by **2** files
 - `worker/middleware/session.js` — imported by **2** files
-- `worker/lib/audit-log.js` — imported by **2** files
-- `worker/lib/districts.js` — imported by **2** files
-- `apps/admin/src/pages/Login.tsx` — imported by **1** files
-- `apps/admin/src/pages/Dashboard.tsx` — imported by **1** files
+- `worker/lib/rate-limit.js` — imported by **2** files
 
 ## Import Map (who imports what)
 
 - `apps/admin/src/api.ts` ← `apps/admin/src/App.tsx`, `apps/admin/src/pages/AuditLog.tsx`, `apps/admin/src/pages/Broadcast.tsx`, `apps/admin/src/pages/Coupons.tsx`, `apps/admin/src/pages/Dashboard.tsx` +6 more
 - `apps/admin/src/router.ts` ← `apps/admin/src/App.tsx`, `apps/admin/src/components/NavShell.tsx`, `apps/admin/src/pages/AuditLog.tsx`, `apps/admin/src/pages/Dashboard.tsx`, `apps/admin/src/pages/Payments.tsx` +2 more
 - `apps/guardian/src/auth.ts` ← `apps/guardian/src/App.tsx`, `apps/guardian/src/api.ts`, `apps/guardian/src/pages/Home.tsx`, `apps/guardian/src/pages/Login.tsx`, `apps/guardian/src/pages/Profile.tsx`
+- `apps/guardian/src/api.ts` ← `apps/guardian/src/App.tsx`, `apps/guardian/src/components/ChangeSelectionModal.tsx`, `apps/guardian/src/pages/Home.tsx`, `apps/guardian/src/pages/Login.tsx`, `apps/guardian/src/pages/Profile.tsx`
 - `worker/lib/crypto.js` ← `scripts/create-admin.mjs`, `scripts/create-demo-user.mjs`, `scripts/seed-registrations.mjs`, `worker/routes/guardian.js`, `worker/routes/public.js`
 - `worker/lib/util.js` ← `worker/lib/audit-log.js`, `worker/lib/email.js`, `worker/routes/admin.js`, `worker/routes/guardian.js`, `worker/routes/public.js`
 - `apps/admin/src/auth.ts` ← `apps/admin/src/App.tsx`, `apps/admin/src/api.ts`, `apps/admin/src/components/ImageField.tsx`, `apps/admin/src/pages/Login.tsx`
-- `apps/guardian/src/api.ts` ← `apps/guardian/src/App.tsx`, `apps/guardian/src/pages/Home.tsx`, `apps/guardian/src/pages/Login.tsx`, `apps/guardian/src/pages/Profile.tsx`
 - `apps/guardian/src/router.ts` ← `apps/guardian/src/App.tsx`, `apps/guardian/src/components/PaymentBanner.tsx`, `apps/guardian/src/components/Shell.tsx`
 - `worker/lib/programs.js` ← `worker/lib/email.js`, `worker/routes/admin.js`, `worker/routes/public.js`
-- `worker/lib/email.js` ← `worker/routes/admin.js`, `worker/routes/guardian.js`, `worker/routes/public.js`
+- `worker/lib/audit-log.js` ← `worker/routes/admin.js`, `worker/routes/guardian.js`, `worker/routes/public.js`
 
 ---
 

@@ -1,10 +1,5 @@
 # Schema
 
-### member_id_class_seq
-- year: integer (required)
-- class_digit: integer (required)
-- next_seq: integer (required)
-
 ### guardian_accounts
 - id: text (pk)
 - email: text (required)
@@ -34,6 +29,11 @@
 - success: integer (required)
 - attempted_at: text (required)
 
+### action_attempts
+- id: integer (pk)
+- bucket: text (required)
+- attempted_at: text (required)
+
 ### registrations
 - id: text (pk)
 - registration_type: text (required)
@@ -53,6 +53,11 @@
 - preferred_venue: text
 - preferred_subject: text
 - Prep: course subjects
+
+### member_id_class_seq
+- year: integer (required)
+- class_digit: integer (required)
+- next_seq: integer (required)
 
 ### sponsorship_enquiries
 - id: text (pk)
@@ -95,6 +100,13 @@
 - account_id: text (required, fk)
 - action: text (required)
 - payload_json: text
+
+### registration_option_changes
+- id: integer (pk)
+- registration_id: text (required, fk)
+- from_options: text (required)
+- to_price: real (required)
+- delta: real (required)
 
 ### programs
 - slug: text (pk)
