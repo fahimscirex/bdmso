@@ -21,7 +21,7 @@
 - **Sponsorships** — `apps/admin/src/pages/Sponsorships.tsx`
 - **Users** — `apps/admin/src/pages/Users.tsx`
 - **App** — `apps/guardian/src/App.tsx`
-- **ChangeSelectionModal** — props: registrationId, programLabel, paid, config, currentIds, unavailableIds, onClose, onChanged — `apps/guardian/src/components/ChangeSelectionModal.tsx`
+- **ChangeSelectionModal** — props: registrationId, programLabel, paid, config, currentIds, unavailableIds, showSubject, showVenue, currentSubject, currentVenue — `apps/guardian/src/components/ChangeSelectionModal.tsx`
 - **DashboardSkeleton** — `apps/guardian/src/components/DashboardSkeleton.tsx`
 - **Dropdown** — props: value, onChange, options, placeholder, ariaLabel — `apps/guardian/src/components/Dropdown.tsx`
 - **NotificationTicker** — `apps/guardian/src/components/NotificationTicker.tsx`

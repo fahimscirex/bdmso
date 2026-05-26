@@ -5,7 +5,7 @@
 
 > 43 routes | 16 models | 27 components | 25 lib files | 3 env vars | 25 middleware
 > **Token savings:** this file is ~4,900 tokens. Without it, AI exploration would cost ~59,900 tokens. **Saves ~55,000 tokens per conversation.**
-> **Last scanned:** 2026-05-26 10:52 — re-run after significant changes
+> **Last scanned:** 2026-05-26 12:20 — re-run after significant changes
 
 ---
 
@@ -215,7 +215,7 @@
 - **Sponsorships** — `apps/admin/src/pages/Sponsorships.tsx`
 - **Users** — `apps/admin/src/pages/Users.tsx`
 - **App** — `apps/guardian/src/App.tsx`
-- **ChangeSelectionModal** — props: registrationId, programLabel, paid, config, currentIds, unavailableIds, onClose, onChanged — `apps/guardian/src/components/ChangeSelectionModal.tsx`
+- **ChangeSelectionModal** — props: registrationId, programLabel, paid, config, currentIds, unavailableIds, showSubject, showVenue, currentSubject, currentVenue — `apps/guardian/src/components/ChangeSelectionModal.tsx`
 - **DashboardSkeleton** — `apps/guardian/src/components/DashboardSkeleton.tsx`
 - **Dropdown** — props: value, onChange, options, placeholder, ariaLabel — `apps/guardian/src/components/Dropdown.tsx`
 - **NotificationTicker** — `apps/guardian/src/components/NotificationTicker.tsx`
