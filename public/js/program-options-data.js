@@ -59,25 +59,25 @@ export const PROGRAM_OPTIONS = {
       {
         "id": "mt1-math",
         "label": "Mock Test 1 - Math",
-        "sub": "Sat 6 Jun 2026 - 3-4 PM - MASLab, Dhaka",
+        "sub": "Fri 12 Jun 2026 - 3-4 PM - MASLab, Dhaka",
         "price": 500
       },
       {
         "id": "mt1-sci",
         "label": "Mock Test 1 - Science",
-        "sub": "Sat 6 Jun 2026 - 5-6 PM - MASLab, Dhaka",
+        "sub": "Fri 12 Jun 2026 - 5-6 PM - MASLab, Dhaka",
         "price": 500
       },
       {
         "id": "mt2-math",
         "label": "Mock Test 2 - Math",
-        "sub": "Sat 20 Jun 2026 - 3-4 PM - MASLab, Dhaka",
+        "sub": "Fri 19 Jun 2026 - 3-4 PM - MASLab, Dhaka",
         "price": 500
       },
       {
         "id": "mt2-sci",
         "label": "Mock Test 2 - Science",
-        "sub": "Sat 20 Jun 2026 - 5-6 PM - MASLab, Dhaka",
+        "sub": "Fri 19 Jun 2026 - 5-6 PM - MASLab, Dhaka",
         "price": 500
       }
     ]

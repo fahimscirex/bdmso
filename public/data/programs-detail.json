@@ -15,10 +15,10 @@
     "format": "MCQ, Short and Broad Question · 50 + 50 = 100 marks",
     "outcome": "Winners advance to National Residential Camp and TST",
     "price": "৳ 1,000",
-    "schedule": "Registration closes 15 June 2026",
+    "schedule": "Registration closes 20 June 2026",
     "registrationStarts": "2026-01-01",
-    "registrationEnds": "2026-06-15",
-    "optionsEditableUntil": "2026-06-07",
+    "registrationEnds": "2026-06-20",
+    "optionsEditableUntil": "2026-06-20",
     "options": {
       "kind": "radio",
       "label": "Subjects",
@@ -88,7 +88,7 @@
     "home_order": "02",
     "feeAmount": 1000,
     "title": "BdMSO Quiz Competition",
-    "tagline": "National Quiz competition on Math and Science for the youngest learners. Open to both bangla and english medium students.",
+    "tagline": "National Quiz competition on Mathematics and Science held on the same day as the National Olympiad for the youngest learners.",
     "metaDescription": "The BdMSO Quiz Competition - a friendly general-knowledge STEM round for pre-primary to Class 3, open to both Bangla and English mediums.",
     "eyebrow": "National · Quiz",
     "image": "/images/exam.webp",
@@ -98,9 +98,10 @@
     "format": "On-site quiz competition",
     "outcome": "Medal and Certificate of Achievement for the winners",
     "price": "৳ 1,000",
-    "schedule": "Registration closes 15 June 2026",
-    "registrationStarts": "2026-01-01",
-    "registrationEnds": "2026-06-15",
+    "schedule": "Registration closes 20 June 2026",
+    "registrationStarts": "2026-05-20",
+    "registrationEnds": "2026-06-20",
+    "optionsEditableUntil": "2026-06-20",
     "register_url": "/registration?program=national-quiz-competition",
     "register_label": "Register now",
     "description": [
@@ -213,7 +214,7 @@
     "register_label": "Enroll now",
     "description": [
       "Take your Olympiad journey to the next level with the BdMSO Preparatory Course. This intensive 12-class program is meticulously crafted for students in Class 3 to 5 who are aiming to compete at the national level.",
-      "The structured training focuses heavily on advanced problem-solving, critical thinking, and Olympiad-style question patterns. The course also includes 2 mock tests (6 June and 20 June 2026) to evaluate readiness."
+      "The structured training focuses heavily on advanced problem-solving, critical thinking, and Olympiad-style question patterns. The course also includes 2 mock tests (12 June and 19 June 2026) to evaluate readiness."
     ],
     "what_youll_do": [
       "Class 1: Scientific thinking, measurements, experimental design",
@@ -229,7 +230,7 @@
       "Class 11: Microbiology and genetics, biotechnology and modern science",
       "Class 12: Review & final assessments",
       "Math outline: announced soon",
-      "Mock Test 1: 6 June 2026 · Mock Test 2: 20 June 2026"
+      "Mock Test 1: 12 June 2026 · Mock Test 2: 19 June 2026"
     ],
     "registration": true,
     "optionsEditableUntil": "2026-06-07",
@@ -275,7 +276,7 @@
     "image": "/images/lab.webp",
     "level": "Beginner",
     "audience": "Class 5 or below",
-    "duration": "10 AM - 6 PM",
+    "duration": "05 June 2026 · 10 AM - 6 PM",
     "format": "Single-day on-site workshop at MASLab",
     "outcome": "Real lab experience and practical knowledge",
     "price": "৳ 1,500",
@@ -363,8 +364,8 @@
     "home_order": "04",
     "feeAmount": 500,
     "title": "BdMSO Mock Test",
-    "tagline": "Mock exam held on June 6th and June 20th to benchmark your skills and understand your standing. Available for Science, Math, or both subjects.",
-    "metaDescription": "BdMSO Mock Tests on 6 and 20 June 2026 - on-site simulated exams in Math and Science that mirror the real Olympiad and benchmark your child's readiness.",
+    "tagline": "Mock exam held on June 12 and June 19 to benchmark your skills and understand your standing. Available for Science, Math, or both subjects.",
+    "metaDescription": "BdMSO Mock Tests on 12 and 19 June 2026 - on-site simulated exams in Math and Science that mirror the real Olympiad and benchmark your child's readiness.",
     "startsOn": "2026-06-12",
     "registrationStarts": "2026-05-15",
     "registrationEnds": "2026-06-18",
@@ -402,25 +403,25 @@
         {
           "id": "mt1-math",
           "label": "Mock Test 1 - Math",
-          "sub": "Sat 6 Jun 2026 - 3-4 PM - MASLab, Dhaka",
+          "sub": "Fri 12 Jun 2026 - 3-4 PM - MASLab, Dhaka",
           "price": 500
         },
         {
           "id": "mt1-sci",
           "label": "Mock Test 1 - Science",
-          "sub": "Sat 6 Jun 2026 - 5-6 PM - MASLab, Dhaka",
+          "sub": "Fri 12 Jun 2026 - 5-6 PM - MASLab, Dhaka",
           "price": 500
         },
         {
           "id": "mt2-math",
           "label": "Mock Test 2 - Math",
-          "sub": "Sat 20 Jun 2026 - 3-4 PM - MASLab, Dhaka",
+          "sub": "Fri 19 Jun 2026 - 3-4 PM - MASLab, Dhaka",
           "price": 500
         },
         {
           "id": "mt2-sci",
           "label": "Mock Test 2 - Science",
-          "sub": "Sat 20 Jun 2026 - 5-6 PM - MASLab, Dhaka",
+          "sub": "Fri 19 Jun 2026 - 5-6 PM - MASLab, Dhaka",
           "price": 500
         }
       ]
