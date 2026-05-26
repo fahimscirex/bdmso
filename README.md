@@ -176,13 +176,21 @@ cp wrangler.example.toml wrangler.toml
 
 # Local secrets:
 cp .env.example .env                   # SITE_URL for build output
-cp .dev.vars.example .dev.vars         # SHURJOPAY_*, BREVO_API_KEY, EMAIL_FROM (gitignored — never commit)
+cp .dev.vars.example .dev.vars         # SHURJOPAY_*, BREVO_API_KEY, EMAIL_FROM, ENVIRONMENT (gitignored — never commit)
 
 # Initialise local D1 with the canonical schema (idempotent; safe to re-run):
 wrangler d1 execute bdmso --local --file=./db/schema.sql
+
+# Optional: seed test coupons. db/schema.sql holds structure only -
+# coupon seeds live in separate files so a stray --remote re-run of
+# schema.sql can't accidentally seed test data into production.
+cp db/seed-dev.example.sql  db/seed-dev.sql   # fill in TESTBDMSO etc.
+cp db/seed-prod.example.sql db/seed-prod.sql  # fill in the live pilot code
+wrangler d1 execute bdmso --local --file=./db/seed-dev.sql
+wrangler d1 execute bdmso --local --file=./db/seed-prod.sql
 ```
 
-`TESTBDMSO` is seeded by `db/schema.sql` - a 100%-off coupon for local checkout testing (50 uses, all programs).
+The two `seed-*.sql` files are gitignored — keep the real coupon codes there, not in source control. The `.example.sql` templates ship `REPLACE_ME_*` placeholders so contributors know the shape without leaking values.
 
 ### Daily dev - pick the workflow
 
@@ -273,13 +281,19 @@ npm exec -- wrangler d1 create bdmso
 npm exec -- wrangler d1 execute bdmso --remote --config wrangler.prod.toml --file=./db/schema.sql
 ```
 
-4. Create the R2 bucket for dashboard image uploads:
+4. Apply the production-safe seeds (the staff/partner coupon; `seed-dev.sql` should NEVER be run against `--remote`):
+
+```bash
+npm exec -- wrangler d1 execute bdmso --remote --config wrangler.prod.toml --file=./db/seed-prod.sql
+```
+
+6. Create the R2 bucket for dashboard image uploads:
 
 ```bash
 npm exec -- wrangler r2 bucket create bdmso-assets --config wrangler.prod.toml
 ```
 
-5. Set production secrets (one-time):
+7. Set production secrets (one-time):
 
 ```bash
 npm exec -- wrangler secret put SHURJOPAY_USERNAME --config wrangler.prod.toml
@@ -291,7 +305,7 @@ npm exec -- wrangler secret put EMAIL_FROM         --config wrangler.prod.toml
 
 `SHURJOPAY_SANDBOX` and `ENVIRONMENT` are plain vars in your local `wrangler.prod.toml` — set `SHURJOPAY_SANDBOX` to `"false"` and `ENVIRONMENT` to `"production"` to hit the live ShurjoPay endpoint and suppress dev-only logging. `wrangler.toml` and `wrangler.prod.toml` are gitignored (local-only); `wrangler.example.toml` is the checked-in template.
 
-6. Deploy:
+8. Deploy:
 
 ```bash
 npm run cf:deploy
@@ -343,21 +357,40 @@ Paid registrations for programs with configurable options (Mock Test sessions, P
 - **Upgrades** (selecting a more expensive option) create a new ShurjoPay top-up payment via `POST /api/me/registrations/:id/options/upgrade`. The original registration stays `paid`; only the option selection changes on payment confirmation.
 - A partial unique index on `payments` prevents two concurrent upgrade payments for the same registration.
 - Each option change is recorded in `registration_option_changes` for auditability.
-- An updated receipt reflecting the new selection and cumulative total paid is emailed to the guardian on successful payment.
+- An updated receipt reflecting the new selection and cumulative total paid is emailed to the guardian on successful payment. The receipt template mirrors the dashboard's printable receipt design (logo + receipt number header, hero amount block, Payment Details + Registration cards, Total Paid summary).
+
+#### Duplicate-option prevention
+
+A guardian can't book the same Mock Test session twice across separate registrations. The guard is enforced in three places:
+
+- **Public registration form** (`/registration?program=mock-test`): when a signed-in guardian opens the form, `loadTakenOptions()` fetches `/api/me` and disables option items already held by another non-cancelled registration of the same program. Anonymous users see all options; the server catches them on submit.
+- **Server**: `handleAddEnrollment` and the change-selection routes (`PATCH /options`, `POST /options/upgrade`) all call `getTakenOptionIds()` and refuse a 409 with a human label when overlap is detected.
+- **Change Selection modal**: the dashboard modal also disables ids already held by sibling registrations (`unavailableIds` prop), so guardians see the conflict before they hit Save.
+
+Cancelled registrations are intentionally excluded from every overlap check — a cancelled row doesn't permanently lock its slot.
 
 Programs can set `optionsEditableUntil` (ISO date) in `programs-detail.json` to close the edit window after a deadline (e.g. after mock test dates pass). Falls back to `registrationEnds`; defaults to always-editable when neither is set.
 
+### Guardian Dashboard UX
+
+- **Skeleton loaders** (`DashboardSkeleton`, `ProfileSkeleton`) replace the old "Loading…" flash during `/api/me` fetches. Same layout shells as the real content so data lands in place without a pop. Respects `prefers-reduced-motion`.
+- **Post-enrollment focus**: registration / add-enrollment redirects to `/dashboard?focus=<reg-id>`. The dashboard scrolls the matching card into view and runs a brief navy-ring pulse so guardians don't have to hunt for their just-created Pay Now card.
+- **Sort order**: `submitted → paid → cancelled` puts payment-due cards at the top, immediately actionable after enrollment.
+- **Stat tiles**: `All Enrollments` / `Payment Pending` / `Completed Enrollments` / `Cancelled Enrollments`, each filtering the list below.
+
 ### Security
 
-- Payment callbacks are server-side verified with ShurjoPay before marking paid; amounts are cross-checked against the stored payment record
+- Payment callbacks are server-side verified with ShurjoPay before marking paid; gateway-returned amounts are cross-checked against the stored `payments.amount` before flipping the row to `paid` — mismatches are flagged with `gateway_status='AmountMismatch:<n>'` and dropped to `failed`
 - Login uses a dummy-hash timing defence to prevent user enumeration
 - Forgot-password and forgot-email always return `ok: true` to prevent email/account enumeration
-- Email addresses are redacted in Worker logs via `maskEmailForLog`
+- Email addresses are redacted in Worker logs via `maskEmailForLog`; verify/reset URLs only print in full when `ENVIRONMENT=development`
 - All DB queries use parameterized bindings — no string concatenation of user input in SQL
-- Admin endpoints are uniformly gated behind `requireRole("admin")`; self-demotion and last-admin removal are blocked
-- Emails and phones can only be changed after confirming the current password
+- Admin endpoints are uniformly gated behind `requireRole("admin")`; self-demotion and last-admin removal are blocked. Admin login + logout are audited
+- Emails and phones can only be changed after confirming the current password; password changes revoke every other session for the account
+- Receipt emails (initial + updated) read the guardian's current `guardian_accounts.full_name` / `email`, not the snapshot stored at registration time — renames in Profile flow through to future receipts
 - CSP, HSTS, X-Frame-Options, and X-Content-Type-Options headers are applied to all responses
 - `wrangler.toml` and `wrangler.prod.toml` are gitignored — use `wrangler.example.toml` as a reference
+- `db/seed-dev.sql` and `db/seed-prod.sql` are gitignored — real coupon codes live there, never in source control
 
 ---
 
@@ -383,6 +416,9 @@ public/
 apps/
   guardian/               - guardian dashboard SPA (Preact) → builds to dist/dashboard/
     components/ChangeSelectionModal.tsx  - option-change modal for paid registrations
+    components/DashboardSkeleton.tsx     - loading-state shell for the dashboard
+    components/ProfileSkeleton.tsx       - loading-state shell for /profile
+    components/PaymentBanner.tsx         - inline payment status notice + scroll-to-list CTA
   admin/                  - admin dashboard SPA (Preact) → builds to dist/admin/
 worker/
   index.js                - Cloudflare Worker entry (Hono app + asset fallback)
@@ -390,7 +426,11 @@ worker/
   lib/                    - shared helpers (crypto, email, shurjopay, programs, etc.)
   middleware/             - auth, role-gating, session middleware
 db/
-  schema.sql              - D1 table definitions (idempotent)
+  schema.sql              - D1 table definitions (idempotent, structure only - no seed data)
+  seed-dev.example.sql    - placeholder for local-only seeds (TESTBDMSO etc.); copy to seed-dev.sql
+  seed-prod.example.sql   - placeholder for prod-safe seeds (live pilot coupon); copy to seed-prod.sql
+  seed-dev.sql            - LOCAL, gitignored, holds real codes
+  seed-prod.sql           - LOCAL, gitignored, applied to both local + prod
 wrangler.example.toml     - reference wrangler config (check in); copy to wrangler.toml for local use
 scripts/
   build.mjs               - generates posts/programs pages, copies public/ → dist/, writes sitemap + robots; supports --watch
