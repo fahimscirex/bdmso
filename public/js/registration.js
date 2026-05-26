@@ -2,6 +2,35 @@ import { postJson } from "./api.js";
 import { BD_DISTRICTS, canonicalDistrict } from "./bd-districts.js";
 import { PROGRAM_OPTIONS, programHasOptions, computeOptionsTotal } from "./program-options.js";
 
+// Option ids already taken by another non-cancelled registration on
+// this account for the current program. Populated by loadTakenOptions
+// when the guardian is signed in (anonymous users skip the lookup
+// since the server enforces the same rule on submit anyway).
+let takenOptionIds = new Set();
+async function loadTakenOptions() {
+  let session = null;
+  try { session = JSON.parse(localStorage.getItem("bdmso_user") || "null"); } catch {}
+  if (!session?.token) return;
+  let res;
+  try {
+    res = await fetch("/api/me", { headers: { Authorization: `Bearer ${session.token}` } });
+  } catch { return; }
+  if (!res.ok) return;
+  let data;
+  try { data = await res.json(); } catch { return; }
+  const slug = effectiveCompetition();
+  const ids = new Set();
+  for (const r of (data.registrations || [])) {
+    if (r.registration_type !== slug) continue;
+    if (r.status === "cancelled") continue;
+    try {
+      const v = JSON.parse(r.program_options || "[]");
+      if (Array.isArray(v)) for (const id of v) if (typeof id === "string") ids.add(id);
+    } catch {}
+  }
+  takenOptionIds = ids;
+}
+
 const TITLES = {
   1: "Step 1 · Student Info",
   2: "Step 2 · Guardian Info",
@@ -70,17 +99,24 @@ function renderProgramOptions() {
   }
   const cfg = PROGRAM_OPTIONS[slug];
   const inputType = cfg.kind === "radio" ? "radio" : "checkbox";
-  const items = cfg.items.map((it, i) => `
-    <label class="opt-item" data-id="${it.id}">
-      <input type="${inputType}" name="program-option" value="${it.id}" ${cfg.kind === "radio" && i === 0 ? "" : ""}>
+  // Items the guardian already holds elsewhere render disabled with an
+  // "Already enrolled" hint - the server enforces the same rule on
+  // submit, but flagging them up-front keeps users from picking a
+  // taken slot and getting a 409 back.
+  const items = cfg.items.map((it) => {
+    const taken = takenOptionIds.has(it.id);
+    return `
+    <label class="opt-item${taken ? ' opt-taken' : ''}" data-id="${it.id}">
+      <input type="${inputType}" name="program-option" value="${it.id}"${taken ? ' disabled' : ''}>
       <div class="opt-text">
         <div class="opt-label-row">
-          <span class="opt-label">${it.label}</span>
+          <span class="opt-label">${it.label}${taken ? ' · Already enrolled' : ''}</span>
           <span class="opt-price">৳ ${it.price.toLocaleString("en-BD")}</span>
         </div>
         ${it.sub ? `<div class="opt-sub">${it.sub}</div>` : ""}
       </div>
-    </label>`).join("");
+    </label>`;
+  }).join("");
 
   panel.innerHTML = `
     <div class="opt-head">
@@ -447,6 +483,13 @@ async function submitRegistration() {
     const memberIdEl = document.getElementById("member-id");
     if (memberIdEl) memberIdEl.textContent = response.memberId || "";
     document.getElementById("account-email").textContent = valueOf("g-email");
+    // Carry the new registration id onto the "Go to dashboard" button
+    // so the dashboard can scroll the guardian straight to the new
+    // Pay Now card instead of leaving them at the top of the list.
+    const dashLink = document.getElementById("success-dashboard-link");
+    if (dashLink && response.applicationId) {
+      dashLink.href = `/dashboard?focus=${encodeURIComponent(response.applicationId)}`;
+    }
     setStep(4);
     setMessage("", "neutral");
   } catch (error) {
@@ -537,6 +580,13 @@ function init() {
   // Olympiad and Quiz.
   syncConditionalFields();
   renderProgramOptions();
+  // Async refresh once we know what the guardian already holds (only
+  // happens when signed in). The initial render above used the empty
+  // default so the form isn't blocked on the round-trip; this just
+  // greys out taken slots after the fact.
+  loadTakenOptions().then(() => {
+    if (takenOptionIds.size > 0) renderProgramOptions();
+  });
 
   // Populate the District <select>. A real select (native picker on
   // mobile) is reliable everywhere - the datalist typeahead it replaced

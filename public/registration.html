@@ -4,20 +4,20 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <!-- SEO:START (generated from seo.json - do not edit) -->
-<title>Register for BdMSO 2026 - Math &amp; Science Olympiad</title>
+<title>Register for BdMSO 2026 - Math and Science Olympiad</title>
 <meta name="description" content="Register for the BdMSO 2026 National Olympiad - the official qualifying pathway for primary-school students aiming to represent Bangladesh at IMSO.">
 <link rel="canonical" href="https://bdmso.org/registration">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="BdMSO">
 <meta property="og:locale" content="en_US">
 <meta property="og:url" content="https://bdmso.org/registration">
-<meta property="og:title" content="Register for BdMSO 2026 - Math &amp; Science Olympiad">
+<meta property="og:title" content="Register for BdMSO 2026 - Math and Science Olympiad">
 <meta property="og:description" content="Register for the BdMSO 2026 National Olympiad - the official qualifying pathway for primary-school students aiming to represent Bangladesh at IMSO.">
 <meta property="og:image" content="https://bdmso.org/images/group-winner.webp">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Register for BdMSO 2026 - Math &amp; Science Olympiad">
+<meta name="twitter:title" content="Register for BdMSO 2026 - Math and Science Olympiad">
 <meta name="twitter:description" content="Register for the BdMSO 2026 National Olympiad - the official qualifying pathway for primary-school students aiming to represent Bangladesh at IMSO.">
 <meta name="twitter:image" content="https://bdmso.org/images/group-winner.webp">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Event","name":"BdMSO 2026 National Round","startDate":"2026-06-15","eventStatus":"https://schema.org/EventScheduled","eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode","location":{"@type":"Place","name":"Multiple regional venues, Bangladesh","address":{"@type":"PostalAddress","addressCountry":"BD"}},"image":"https://bdmso.org/images/group-winner.webp","description":"Register for the BdMSO 2026 National Round - the official qualifying olympiad for primary-school students competing for the Bangladesh team at IMSO 2026.","organizer":{"@type":"Organization","name":"BdMSO","url":"https://bdmso.org"},"offers":{"@type":"Offer","price":"1000","priceCurrency":"BDT","url":"https://bdmso.org/registration","availability":"https://schema.org/InStock"}}</script>
@@ -120,6 +120,10 @@
 .opt-item:hover { border-color: var(--navy-700); background: white; }
 .opt-item input { margin-top: 3px; accent-color: var(--navy-900); }
 .opt-item.is-checked { border-color: var(--navy-900); background: white; box-shadow: 0 4px 12px -8px rgba(15, 31, 74, 0.35); }
+/* Items the signed-in guardian already booked on another active
+   registration: rendered but non-interactive. Server rejects the same
+   id at submit time too - this is the up-front affordance. */
+.opt-item.opt-taken { opacity: 0.55; cursor: not-allowed; pointer-events: none; }
 .opt-text { flex: 1; min-width: 0; }
 .opt-label-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .opt-label { font-weight: 700; font-size: 14px; color: var(--navy-900); }
@@ -319,8 +323,8 @@
   <h2 style="margin-bottom: 8px;">Choose what to register for</h2>
   <p style="margin-bottom: 20px; color:var(--ink-3); font-size:14px;">Locked stages require qualification through an earlier stage - they open automatically when you're eligible.</p>
   <div class="card-grid">
-    <div class="reg-card"><span class="status open">Open · Olympiad · Class 6 or below</span><h3>BdMSO National Olympiad</h3><p>Your journey to Bangladesh Mathematics &amp; Science Olympiad begins here.</p><span class="meta">Closes June 15, 2026 · 1,000 BDT</span><a class="btn btn-primary" href="/registration?program=national-olympiad">Register</a></div>
-    <div class="reg-card"><span class="status open">Open · Quiz · Class 3 or below</span><h3>BdMSO Quiz Competition</h3><p>General knowledge quiz for pre-primary to Class 3 students - open to both Bangla and English mediums.</p><span class="meta">Closes June 15, 2026 · 1,000 BDT</span><a class="btn btn-primary" href="/registration?program=national-quiz-competition">Register</a></div>
+    <div class="reg-card"><span class="status open">Open · Olympiad · Class 6 or below</span><h3>BdMSO National Olympiad</h3><p>Your journey to Bangladesh Mathematics &amp; Science Olympiad begins here.</p><span class="meta">Closes June 20, 2026 · From 1,000 BDT</span><a class="btn btn-primary" href="/registration?program=national-olympiad">Register</a></div>
+    <div class="reg-card"><span class="status open">Open · Quiz · Class 3 or below</span><h3>BdMSO Quiz Competition</h3><p>General knowledge quiz for pre-primary to Class 3 students - open to both Bangla and English mediums.</p><span class="meta">Closes June 20, 2026 · 1,000 BDT</span><a class="btn btn-primary" href="/registration?program=national-quiz-competition">Register</a></div>
     <div class="reg-card"><span class="status open">Open · Enrollment</span><h3>Programs &amp; Courses</h3><p>Enroll in year-round training modules - prep courses, camps, workshops.</p><span class="meta">Rolling admissions</span><a class="btn btn-ghost" href="/programs">Browse Programs</a></div>
     <div class="reg-card locked"><span class="status locked-s">🔒 Locked</span><h3>National Residential Camp</h3><p>Three-day camp for Olympiad winners (approx. top 20-30%). 3,000–5,000 BDT.</p><span class="meta">Opens July 2026</span></div>
     <div class="reg-card locked"><span class="status locked-s">🔒 Locked</span><h3>Team Selection Test (TST)</h3><p>Day-long per-subject evaluation, ~7 days after the camp. 1,000 BDT per subject.</p><span class="meta">Opens July 2026</span></div>
@@ -475,7 +479,7 @@
         </div>
 
         <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-          <a class="btn btn-primary btn-lg" href="/dashboard">Go to dashboard →</a>
+          <a class="btn btn-primary btn-lg" id="success-dashboard-link" href="/dashboard">Go to dashboard →</a>
           <a class="btn btn-ghost btn-lg" href="/resources">View student resources</a>
         </div>
       </div>
@@ -907,11 +911,15 @@ async function initQuickEnroll() {
       btn.disabled = true;
       btn.textContent = 'Adding enrollment…';
       try {
-        await postJson('add-enrollment', {
+        const res = await postJson('add-enrollment', {
           registrationType: effectiveProgram,
           ...(programOptions ? { programOptions } : {}),
         }, session.token);
-        window.location.href = 'dashboard.html?enrolled=1';
+        // Carry the new registration id so the dashboard can scroll
+        // straight to its Pay Now card instead of dumping the guardian
+        // at the top of a long list.
+        const focus = res?.applicationId ? `?focus=${encodeURIComponent(res.applicationId)}` : '?enrolled=1';
+        window.location.href = `dashboard.html${focus}`;
       } catch (err) {
         errEl.textContent = err.message;
         errEl.style.display = 'block';
