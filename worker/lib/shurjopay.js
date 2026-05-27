@@ -106,6 +106,12 @@ export async function shurjopayCreatePayment(config, tokenInfo, payload) {
     currency: "BDT",
     ...payload,
   };
+  // Diagnostic: log the sanitised request body and the gateway's
+  // response so we can see what shurjoPay parsed and how it answered.
+  // Token + store_id are credentials so they get redacted; amount,
+  // order_id, and customer_* are non-secret and useful for debugging.
+  const safeBody = { ...body, token: "***", store_id: "***" };
+  console.log(`[shurjopay] create-payment body=${JSON.stringify(safeBody)}`);
   const res = await fetch(`${config.base}/api/secret-pay`, {
     method: "POST",
     headers: {
@@ -116,6 +122,7 @@ export async function shurjopayCreatePayment(config, tokenInfo, payload) {
     body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
+  console.log(`[shurjopay] create-payment status=${res.status} response=${JSON.stringify(data)}`);
   if (!data.checkout_url) {
     throw new Error(data.message || data.sp_message || "shurjoPay create-payment failed");
   }
