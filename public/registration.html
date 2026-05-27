@@ -6,20 +6,20 @@
 <!-- SEO:START (generated from seo.json - do not edit) -->
 <title>Register for BdMSO 2026 - Math and Science Olympiad</title>
 <meta name="description" content="Register for the BdMSO 2026 National Olympiad - the official qualifying pathway for primary-school students aiming to represent Bangladesh at IMSO.">
-<link rel="canonical" href="https://bdmso.org/registration">
+<link rel="canonical" href="https://www.bdmso.org/registration">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="BdMSO">
 <meta property="og:locale" content="en_US">
-<meta property="og:url" content="https://bdmso.org/registration">
+<meta property="og:url" content="https://www.bdmso.org/registration">
 <meta property="og:title" content="Register for BdMSO 2026 - Math and Science Olympiad">
 <meta property="og:description" content="Register for the BdMSO 2026 National Olympiad - the official qualifying pathway for primary-school students aiming to represent Bangladesh at IMSO.">
-<meta property="og:image" content="https://bdmso.org/images/group-winner.webp">
+<meta property="og:image" content="https://www.bdmso.org/images/group-winner.webp">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Register for BdMSO 2026 - Math and Science Olympiad">
 <meta name="twitter:description" content="Register for the BdMSO 2026 National Olympiad - the official qualifying pathway for primary-school students aiming to represent Bangladesh at IMSO.">
-<meta name="twitter:image" content="https://bdmso.org/images/group-winner.webp">
+<meta name="twitter:image" content="https://www.bdmso.org/images/group-winner.webp">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Event","name":"BdMSO 2026 National Round","startDate":"2026-06-15","eventStatus":"https://schema.org/EventScheduled","eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode","location":{"@type":"Place","name":"Multiple regional venues, Bangladesh","address":{"@type":"PostalAddress","addressCountry":"BD"}},"image":"https://bdmso.org/images/group-winner.webp","description":"Register for the BdMSO 2026 National Round - the official qualifying olympiad for primary-school students competing for the Bangladesh team at IMSO 2026.","organizer":{"@type":"Organization","name":"BdMSO","url":"https://bdmso.org"},"offers":{"@type":"Offer","price":"1000","priceCurrency":"BDT","url":"https://bdmso.org/registration","availability":"https://schema.org/InStock"}}</script>
 <!-- SEO:END -->
 <meta name="theme-color" content="#0b1b3f">
@@ -209,6 +209,93 @@
   margin-top: 2px;
 }
 .field.is-error .field-error { display: block; }
+
+/* Required-field marker. A subtle red asterisk after the label text so
+   users can see at a glance which fields they must complete. */
+.field label .req {
+  color: #dc2626;
+  font-weight: 700;
+  margin-left: 3px;
+}
+
+/* Character counter under bounded text inputs (e.g. address). Lives
+   alongside .field-error and stays present (just colour-shifts) as the
+   user approaches the limit. */
+.char-counter {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: right;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.char-counter.is-near { color: #b45309; }
+.char-counter.is-at   { color: #b91c1c; }
+
+/* Password requirement checklist. Sits below the password input and
+   ticks off rules as they're satisfied. Each row is muted by default
+   and goes green when its check passes. */
+.pwd-checklist {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: var(--bg-alt, #f4f6fb);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+}
+.pwd-rule {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+.pwd-rule .pwd-rule-icon {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: white;
+  border: 1.5px solid var(--line);
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  font-size: 10px;
+  color: transparent;
+  line-height: 1;
+}
+.pwd-rule.is-pass { color: #166534; }
+.pwd-rule.is-pass .pwd-rule-icon {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: white;
+}
+
+/* Step-footer status pill next to the disabled Continue/Submit button.
+   Lets the user know exactly what's still pending. */
+/* Step-footer status pill: sits right next to the (disabled) Continue
+   button so it reads as a label for what the button is waiting on,
+   not as a free-floating message attached to the Back link. */
+.step-status {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  font-weight: 600;
+  flex: 1;
+  text-align: right;
+  align-self: center;
+  line-height: 1.4;
+}
+.step-status:empty { display: none; }
+.step-status.is-warn { color: #b45309; }
+@media (max-width: 560px) {
+  /* On phones the footer wraps; the status drops to its own line and
+     spans the row width so it doesn't squeeze between the buttons. */
+  .step-status { flex: 1 1 100%; text-align: center; order: -1; margin-bottom: 4px; }
+}
+.form-foot .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .form-foot { padding: 20px 32px; border-top: 1px solid var(--line-2); display: flex; justify-content: space-between; gap: 12px; background: var(--bg-alt); }
 .confirm-view { padding: 32px; }
 .confirm-view h4 { font-family: var(--font-sans); color: var(--navy-900); font-size: 1rem; margin: 0 0 10px; }
@@ -268,6 +355,10 @@
 .quick-enroll .qe-foot { padding:20px 32px; border-top:1px solid var(--line-2); display:flex; justify-content:space-between; align-items:center; gap:12px; background:var(--bg-alt); flex-wrap:wrap; }
 .quick-enroll .qe-price { font-family:var(--font-display); font-size:1.2rem; font-weight:700; color:var(--navy-900); }
 </style>
+<!-- ANALYTICS:START (generated by scripts/build.mjs - do not edit) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-RVLXK20WK8"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-RVLXK20WK8');</script>
+<!-- ANALYTICS:END -->
 </head>
 <body data-page="registration">
 
@@ -324,7 +415,7 @@
   <p style="margin-bottom: 20px; color:var(--ink-3); font-size:14px;">Locked stages require qualification through an earlier stage - they open automatically when you're eligible.</p>
   <div class="card-grid">
     <div class="reg-card"><span class="status open">Open · Olympiad · Class 6 or below</span><h3>BdMSO National Olympiad</h3><p>Your journey to Bangladesh Mathematics &amp; Science Olympiad begins here.</p><span class="meta">Closes June 20, 2026 · From 1,000 BDT</span><a class="btn btn-primary" href="/registration?program=national-olympiad">Register</a></div>
-    <div class="reg-card"><span class="status open">Open · Quiz · Class 3 or below</span><h3>BdMSO Quiz Competition</h3><p>General knowledge quiz for pre-primary to Class 3 students - open to both Bangla and English mediums.</p><span class="meta">Closes June 20, 2026 · 1,000 BDT</span><a class="btn btn-primary" href="/registration?program=national-quiz-competition">Register</a></div>
+    <div class="reg-card"><span class="status open">Open · Quiz · Class 3 or below</span><h3>BdMSO Quiz Competition</h3><p>National Quiz competition on Mathematics and Science held on the same day as the National Olympiad for the youngest learners.</p><span class="meta">Closes June 20, 2026 · 1,000 BDT</span><a class="btn btn-primary" href="/registration?program=national-quiz-competition">Register</a></div>
     <div class="reg-card"><span class="status open">Open · Enrollment</span><h3>Programs &amp; Courses</h3><p>Enroll in year-round training modules - prep courses, camps, workshops.</p><span class="meta">Rolling admissions</span><a class="btn btn-ghost" href="/programs">Browse Programs</a></div>
     <div class="reg-card locked"><span class="status locked-s">🔒 Locked</span><h3>National Residential Camp</h3><p>Three-day camp for Olympiad winners (approx. top 20-30%). 3,000–5,000 BDT.</p><span class="meta">Opens July 2026</span></div>
     <div class="reg-card locked"><span class="status locked-s">🔒 Locked</span><h3>Team Selection Test (TST)</h3><p>Day-long per-subject evaluation, ~7 days after the camp. 1,000 BDT per subject.</p><span class="meta">Opens July 2026</span></div>
@@ -400,7 +491,7 @@
           </select>
         </div>
       </div>
-      <div class="form-foot"><span></span><button class="btn btn-primary" type="button" data-next-step="2">Continue →</button></div>
+      <div class="form-foot"><span class="step-status" id="step-1-status" aria-live="polite"></span><button class="btn btn-primary" type="button" id="step-1-next" data-next-step="2">Continue →</button></div>
     </div>
 
     <div id="step-2" hidden>
@@ -418,9 +509,9 @@
           </div>
         </div>
         <div class="field"><label>Email</label><input id="g-email" type="email" placeholder="guardian@example.com" /></div>
-        <div class="field full"><label>Address</label><textarea id="g-addr" rows="2" placeholder="Flat, Road, Area, Postcode"></textarea></div>
+        <div class="field full"><label>Address</label><textarea id="g-addr" rows="2" maxlength="240" placeholder="Flat, Road, Area, Postcode"></textarea><div class="char-counter" id="g-addr-counter" aria-live="polite">0 / 240</div></div>
       </div>
-      <div class="form-foot"><button class="btn btn-ghost" type="button" data-prev-step="1">← Back</button><button class="btn btn-primary" type="button" data-next-step="3">Continue →</button></div>
+      <div class="form-foot"><button class="btn btn-ghost" type="button" data-prev-step="1">← Back</button><span class="step-status" id="step-2-status" aria-live="polite"></span><button class="btn btn-primary" type="button" id="step-2-next" data-next-step="3">Continue →</button></div>
     </div>
 
     <div id="step-3" hidden>
@@ -434,7 +525,15 @@
           <h4 style="margin-bottom:10px;">Create the guardian account</h4>
           <p style="font-size:14px; color:var(--ink-3); margin:0 0 16px;">The guardian email will be used as the account login for future BdMSO portal access.</p>
           <div class="form-body" style="padding:0;">
-            <div class="field"><label>Password</label><input id="account-password" type="password" autocomplete="new-password" placeholder="At least 8 characters" /></div>
+            <div class="field">
+              <label>Password</label>
+              <input id="account-password" type="password" autocomplete="new-password" placeholder="At least 8 characters" />
+              <div class="pwd-checklist" id="pwd-checklist" aria-live="polite">
+                <div class="pwd-rule" data-rule="length"><span class="pwd-rule-icon">✓</span>At least 8 characters</div>
+                <div class="pwd-rule" data-rule="letter"><span class="pwd-rule-icon">✓</span>Includes a letter</div>
+                <div class="pwd-rule" data-rule="number"><span class="pwd-rule-icon">✓</span>Includes a number</div>
+              </div>
+            </div>
             <div class="field"><label>Confirm Password</label><input id="account-password-confirm" type="password" autocomplete="new-password" placeholder="Re-enter password" /></div>
           </div>
         </div>
@@ -443,7 +542,7 @@
           <label for="terms">I confirm the information provided is accurate and agree to the BdMSO <a href="/resources" style="color:var(--navy-700); text-decoration:underline;">Rules &amp; Regulations</a> and <a href="/terms" style="color:var(--navy-700); text-decoration:underline;">Terms &amp; Conditions</a>.</label>
         </div>
       </div>
-      <div class="form-foot"><button class="btn btn-ghost" type="button" data-prev-step="2">← Back</button><button class="btn btn-gold" type="button" id="submit-registration">Submit &amp; Create Account →</button></div>
+      <div class="form-foot"><button class="btn btn-ghost" type="button" data-prev-step="2">← Back</button><span class="step-status" id="step-3-status" aria-live="polite"></span><button class="btn btn-gold" type="button" id="submit-registration">Submit &amp; Create Account →</button></div>
     </div>
 
     <div id="step-4" hidden>
@@ -552,9 +651,16 @@ const PROGRAM_CONTENT = {
   'bdmso-preparatory': {
     eyebrow:  'BdMSO Preparatory Course',
     title:    'Enroll in the BdMSO Preparatory Course.',
-    intro:    'A focused 12-class Math &amp; Science syllabus aligned with the BdMSO National Olympiad - for Class 3 to 5.',
+    intro:    'Basic level online preparatory course for BdMSO Olympiad - 10 live sessions and 2 mock tests for Class 6 or below.',
     step1Title: 'Confirm enrollment',
     step1Body:  'You\'re enrolling in the <strong>BdMSO Preparatory Course</strong>. We\'ll save the student details and reserve a seat in the next batch.',
+  },
+  'bdmso-preparatory-camp': {
+    eyebrow:  'BdMSO Preparatory Camp',
+    title:    'Enroll in the BdMSO Preparatory Camp.',
+    intro:    'Advanced level on-site preparatory camp for BdMSO Aspirants - 10 offline sessions and 2 mock tests for grade 4-5-6.',
+    step1Title: 'Confirm enrollment',
+    step1Body:  'You\'re enrolling in the <strong>BdMSO Preparatory Camp</strong>. We\'ll save the student details and reserve a seat in the next batch.',
   },
   'stem-masterclass': {
     eyebrow:  'STEM Masterclass Series',
@@ -929,19 +1035,35 @@ async function initQuickEnroll() {
     });
 
   } else if (program) {
-    // Not logged in + program param → skip all cards, go straight to the form
+    // Not logged in + program param → skip the hero/instructions/cards
+    // entirely and put the form at the top of the viewport. The user
+    // got here from a per-program "Register" button, so the program
+    // intent is already confirmed and the 3-step instructions just add
+    // scroll-cost without information value.
     fullReg.hidden = true;
     formShell.hidden = false;
     formShell.style.marginTop = '0';
+    document.querySelector('.page-head')?.setAttribute('hidden', '');
+    document.querySelector('.instructions')?.setAttribute('hidden', '');
+    document.querySelector('.reg-wrap')?.style.setProperty('margin-top', '24px');
 
     // Update form header to show the actual program being enrolled in
     const formContextLabel = formShell.querySelector('.form-head div > div:first-child');
     if (formContextLabel) formContextLabel.textContent = programName;
 
-    // Add a slim back link above the form
+    // Add a slim back link + program label above the form. Built with
+    // DOM methods (not innerHTML) since `programName` is catalog text
+    // but defense-in-depth: never trust strings into innerHTML.
     const backBar = document.createElement('div');
-    backBar.style.cssText = 'margin-bottom:16px;';
-    backBar.innerHTML = `<a href="/programs" style="font-size:14px;color:var(--navy-700);font-weight:600;">← Back to programs</a>`;
+    backBar.style.cssText = 'margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;';
+    const backLink = document.createElement('a');
+    backLink.href = '/programs';
+    backLink.style.cssText = 'font-size:14px;color:var(--navy-700);font-weight:600;text-decoration:none;';
+    backLink.textContent = '← Back to programs';
+    const tag = document.createElement('span');
+    tag.style.cssText = 'font-size:12px;color:var(--ink-3);font-weight:600;letter-spacing:0.04em;text-transform:uppercase;';
+    tag.textContent = programName;
+    backBar.append(backLink, tag);
     formShell.parentElement.insertBefore(backBar, formShell);
   }
 }
