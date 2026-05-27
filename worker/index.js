@@ -139,7 +139,13 @@ const CACHE_RULES = [
   // against fresh HTML (e.g. new markup with old JS that never runs).
   { test: /\.(?:css|js|mjs)$/i,                                    value: "public, max-age=0, must-revalidate" },
   { test: /\.json$/i,                                              value: "public, max-age=300, must-revalidate" },
-  { test: /\.html$/i,                                              value: "public, max-age=0, must-revalidate" },
+  // HTML: never edge-cache. `s-maxage=0` tells Cloudflare's edge cache
+  // to skip caching entirely; browsers still cache for 0s then
+  // revalidate. Catches `.html`, extensionless URLs (`/about`), and the
+  // root `/` so a deploy is visible at the edge immediately.
+  { test: /\.html$/i,                                              value: "public, max-age=0, s-maxage=0, must-revalidate" },
+  { test: /\/$/,                                                   value: "public, max-age=0, s-maxage=0, must-revalidate" },
+  { test: /\/[^.]+$/,                                              value: "public, max-age=0, s-maxage=0, must-revalidate" },
 ];
 
 function applyCacheHeaders(response, pathname) {
