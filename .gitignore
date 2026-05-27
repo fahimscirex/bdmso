@@ -98,3 +98,4 @@ wrangler.local.toml
 # so contributors know how to seed without leaking values.
 db/seed-prod.sql
 db/seed-dev.sql
+security-review.md

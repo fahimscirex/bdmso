@@ -98,11 +98,13 @@ async function serveR2(request, env, url) {
 
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  // Google Analytics (gtag.js) loads from googletagmanager.com and
+  // beacons fire to *.google-analytics.com + *.analytics.google.com.
+  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: https:",
-  "connect-src 'self'",
+  "connect-src 'self' https://www.google-analytics.com https://*.analytics.google.com https://*.google-analytics.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
