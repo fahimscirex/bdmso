@@ -177,7 +177,7 @@ pnpm install
 # `--config wrangler.local.toml`.
 
 # Local secrets:
-cp .env.example .env                   # SITE_URL, GA_ID for build output (gitignored — never commit)
+cp .env.example .env                   # SITE_URL for build output (gitignored — never commit)
 cp .dev.vars.example .dev.vars         # SHURJOPAY_*, BREVO_API_KEY, EMAIL_FROM (gitignored — never commit)
 
 # Initialise local D1 with the canonical schema (idempotent; safe to re-run):
@@ -280,8 +280,7 @@ One-time setup:
    - `BREVO_API_KEY`
    - `EMAIL_FROM`
 5. Add the following **build environment variables** (plain, not secret):
-   - `SITE_URL` (e.g. `https://www.bdmso.org`)
-   - `GA_ID` (Google Analytics 4 Measurement ID; leave unset to skip the gtag injection)
+   - `SITE_URL` (e.g. `https://bdmso.org`)
 6. Push to `main`. CF pulls the repo, runs the build command, then `wrangler deploy --env production` using `wrangler.toml`.
 
 Secrets are NEVER stored in `wrangler.toml`, `.env`, or the repo. The dashboard's "Variables and Secrets" panel is the source of truth for production.
@@ -437,7 +436,7 @@ Cancelled registrations are intentionally excluded from every overlap check — 
 - CSP, HSTS, X-Frame-Options, and X-Content-Type-Options headers are applied to all responses
 - `wrangler.toml` is committed and carries `[env.production]` so the Cloudflare dashboard's Git integration can deploy directly. Secrets are never in this file - they live in the dashboard's "Variables and Secrets" panel
 - `wrangler.local.toml` is gitignored, for contributors who fork against their own CF account
-- `.env` and `.dev.vars` are gitignored - `SITE_URL`, `GA_ID`, `SHURJOPAY_*`, `BREVO_API_KEY`, `EMAIL_FROM` never enter source control
+- `.env` and `.dev.vars` are gitignored - `SITE_URL`, `SHURJOPAY_*`, `BREVO_API_KEY`, `EMAIL_FROM` never enter source control
 - `db/seed-dev.sql` and `db/seed-prod.sql` are gitignored — real coupon codes live there, never in source control
 
 ---
