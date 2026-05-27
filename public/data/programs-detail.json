@@ -15,9 +15,9 @@
     "format": "MCQ, Short and Broad Question · 50 + 50 = 100 marks",
     "outcome": "Winners advance to National Residential Camp and TST",
     "price": "৳ 1,000",
-    "schedule": "Registration closes 20 June 2026",
+    "schedule": "Registration closes 26 June 2026",
     "registrationStarts": "2026-01-01",
-    "registrationEnds": "2026-06-20",
+    "registrationEnds": "2026-06-26",
     "options": {
       "kind": "radio",
       "label": "Subjects",
@@ -97,9 +97,9 @@
     "format": "On-site quiz competition",
     "outcome": "Medal and Certificate of Achievement for the winners",
     "price": "৳ 1,000",
-    "schedule": "Registration closes 20 June 2026",
+    "schedule": "Registration closes 26 June 2026",
     "registrationStarts": "2026-05-20",
-    "registrationEnds": "2026-06-20",
+    "registrationEnds": "2026-06-26",
     "register_url": "/registration?program=national-quiz-competition",
     "register_label": "Register now",
     "description": [
