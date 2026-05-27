@@ -3,9 +3,9 @@
 > **Stack:** hono | none | react | typescript
 > **Monorepo:** @bdmso/admin, @bdmso/guardian, dash
 
-> 43 routes | 16 models | 27 components | 25 lib files | 3 env vars | 25 middleware
-> **Token savings:** this file is ~4,900 tokens. Without it, AI exploration would cost ~59,900 tokens. **Saves ~55,000 tokens per conversation.**
-> **Last scanned:** 2026-05-26 12:20 — re-run after significant changes
+> 43 routes | 16 models | 27 components | 25 lib files | 4 env vars | 25 middleware
+> **Token savings:** this file is ~4,900 tokens. Without it, AI exploration would cost ~60,000 tokens. **Saves ~55,100 tokens per conversation.**
+> **Last scanned:** 2026-05-27 10:25 — re-run after significant changes
 
 ---
 
@@ -327,6 +327,7 @@
 
 ## Environment Variables
 
+- `GA_ID` **required** — .env.example
 - `SITE_URL` (has default) — .env.example
 - `VITE_PORT` **required** — apps/admin/vite.config.ts
 - `WRANGLER_PORT` **required** — apps/admin/vite.config.ts

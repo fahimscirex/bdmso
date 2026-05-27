@@ -2,6 +2,7 @@
 
 ## Environment Variables
 
+- `GA_ID` **required** — .env.example
 - `SITE_URL` (has default) — .env.example
 - `VITE_PORT` **required** — apps/admin/vite.config.ts
 - `WRANGLER_PORT` **required** — apps/admin/vite.config.ts
