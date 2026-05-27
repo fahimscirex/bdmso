@@ -20,6 +20,12 @@ import { Users } from './pages/Users';
 import { Settings } from './pages/Settings';
 import { Coupons } from './pages/Coupons';
 import { Broadcast } from './pages/Broadcast';
+import { Posts } from './pages/Posts';
+import { PostEditor } from './pages/PostEditor';
+import { Triage } from './pages/Triage';
+import { PaymentReports } from './pages/PaymentReports';
+import { Events } from './pages/Events';
+import { CommandPalette } from './components/CommandPalette';
 import { NavShell } from './components/NavShell';
 
 type Identity = { email: string; role: string };
@@ -28,7 +34,24 @@ export function App() {
   const [token, setTokenState] = useState<string | null>(() => getToken());
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [identityError, setIdentityError] = useState<string | null>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const route = useRoute();
+
+  // Global keyboard shortcuts.
+  //   Cmd+K / Ctrl+K  - toggle command palette
+  //   /               - same (when not in an input/textarea)
+  //   ?               - same (cheap "show shortcuts" until we have a help page)
+  useEffect(() => {
+    function handler(e: KeyboardEvent) {
+      const isModK = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k';
+      const target = e.target as HTMLElement | null;
+      const inField = target && /^(input|textarea|select)$/i.test(target.tagName);
+      if (isModK) { e.preventDefault(); setPaletteOpen((o) => !o); return; }
+      if (!inField && (e.key === '/' || e.key === '?')) { e.preventDefault(); setPaletteOpen(true); }
+    }
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   // Once we have a token, fetch /api/admin/health to populate the topbar.
   // A 401 here means the token is dead - drop it and bounce to login.
@@ -72,9 +95,12 @@ export function App() {
   }
 
   return (
-    <NavShell currentRoute={route} userEmail={identity.email} onSignOut={signOut}>
-      {renderPage(route)}
-    </NavShell>
+    <>
+      <NavShell currentRoute={route} userEmail={identity.email} onSignOut={signOut}>
+        {renderPage(route)}
+      </NavShell>
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+    </>
   );
 }
 
@@ -83,13 +109,22 @@ function renderPage(route: string) {
   const regDetail = route.match(/^\/registrations\/([\w-]+)$/);
   if (regDetail) return <RegistrationDetail id={regDetail[1]} />;
 
+  // /posts/new and /posts/<slug>/edit - the editor handles both.
+  const postEdit = route.match(/^\/posts\/([a-z0-9][a-z0-9-]*)\/edit$/);
+  if (postEdit) return <PostEditor slug={postEdit[1]} />;
+  if (route === '/posts/new') return <PostEditor slug="new" />;
+
   switch (route) {
     case '/':              return <Dashboard />;
+    case '/triage':        return <Triage />;
     case '/registrations': return <Registrations />;
-    case '/payments':      return <Payments />;
+    case '/payments':         return <Payments />;
+    case '/payments/reports': return <PaymentReports />;
     case '/sponsorships':  return <Sponsorships />;
     case '/coupons':       return <Coupons />;
     case '/broadcast':     return <Broadcast />;
+    case '/events':        return <Events />;
+    case '/posts':         return <Posts />;
     case '/users':         return <Users />;
     case '/audit':         return <AuditLog />;
     case '/settings':      return <Settings />;

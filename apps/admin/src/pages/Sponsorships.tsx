@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from 'preact/hooks';
 import { api, ApiError } from '../api';
+import { SkRoot, SkStatRow, SkTable } from '../components/Skeleton';
 
 type Row = {
   id: string;
@@ -103,7 +104,12 @@ export function Sponsorships() {
       </div>
 
       {error && <div class="error">{error}</div>}
-      {!data && !error && <div class="muted">Loading…</div>}
+      {!data && !error && (
+        <SkRoot>
+          <SkStatRow />
+          <SkTable headers={['Organization', 'Contact', 'Interest', 'Message', 'Status', 'Received']} rows={5} />
+        </SkRoot>
+      )}
 
       {data && data.rows.length === 0 && (
         <div class="empty">

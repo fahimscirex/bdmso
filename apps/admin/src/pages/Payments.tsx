@@ -5,6 +5,8 @@ import { useEffect, useState } from 'preact/hooks';
 import { api, ApiError } from '../api';
 import { navigate, href } from '../router';
 import { toCsv, downloadCsv } from '../csv';
+import { SkRoot, SkStatRow, SkTable } from '../components/Skeleton';
+import { Icon } from '../components/Icon';
 
 type Row = {
   id: string;
@@ -49,15 +51,48 @@ export function Payments() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [exporting, setExporting] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  useEffect(() => {
+  function load() {
     setError(null);
     setData(null);
     const qs = statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : '';
     api.get<Response>(`/api/admin/payments${qs}`)
       .then(setData)
       .catch((err: ApiError) => setError(err.message));
-  }, [statusFilter]);
+  }
+
+  async function reverify(id: string) {
+    setBusyId(id);
+    try {
+      const r = await api.post<{ status?: string; gateway?: unknown; message?: string }>(`/api/admin/payments/${id}/reverify`, {});
+      if (r.message) alert(r.message);
+      else           alert(`Reconciled: gateway says "${r.status || 'unchanged'}".`);
+      load();
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function refund(id: string) {
+    const note = prompt('Optional internal note for this refund (visible in audit log only):', '');
+    if (note === null) return; // cancelled
+    if (!confirm('Mark this payment as refunded internally? The actual money refund must be initiated from the shurjoPay merchant dashboard.')) return;
+    setBusyId(id);
+    try {
+      const r = await api.post<{ message?: string }>(`/api/admin/payments/${id}/refund`, { note });
+      if (r.message) alert(r.message);
+      load();
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  useEffect(load, [statusFilter]);
 
   // Export the current filtered view (up to the API's 1000-row cap) to CSV.
   async function exportCsv() {
@@ -85,9 +120,14 @@ export function Payments() {
 
   return (
     <>
-      <div class="page-header">
-        <h1>Payments</h1>
-        <p class="sub">All payment attempts via shurjoPay. Updated-first.</p>
+      <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <div>
+          <h1>Payments</h1>
+          <p class="sub">All payment attempts via shurjoPay. Updated-first.</p>
+        </div>
+        <button type="button" class="btn-secondary" onClick={() => navigate('/payments/reports')}>
+          <Icon name="dashboard" size={14} /> Reports
+        </button>
       </div>
 
       {data && (
@@ -124,7 +164,12 @@ export function Payments() {
       </div>
 
       {error && <div class="error">{error}</div>}
-      {!data && !error && <div class="muted">Loading…</div>}
+      {!data && !error && (
+        <SkRoot>
+          <SkStatRow />
+          <SkTable headers={['Status', 'Amount', 'Student', 'Guardian', 'Tran ID', 'Gateway', 'Coupon', 'Updated']} rows={6} />
+        </SkRoot>
+      )}
 
       {data && data.rows.length === 0 && (
         <div class="empty">
@@ -145,6 +190,7 @@ export function Payments() {
                 <th>Gateway</th>
                 <th>Coupon</th>
                 <th>Updated</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -152,6 +198,7 @@ export function Payments() {
                 const linkable = !!p.registration_id;
                 return (
                   <tr
+                    key={p.id}
                     class={linkable ? 'row-link' : undefined}
                     onClick={linkable ? () => navigate(`/registrations/${p.registration_id}`) : undefined}
                   >
@@ -185,6 +232,29 @@ export function Payments() {
                     <td>{p.gateway_status || '-'}</td>
                     <td>{p.coupon_code ? <code>{p.coupon_code}</code> : <span class="muted">-</span>}</td>
                     <td class="cell-sub">{formatDateTime(p.updated_at)}</td>
+                    <td onClick={(e) => e.stopPropagation()} style="white-space:nowrap;">
+                      {(p.status === 'pending' || p.status === 'failed') && (
+                        <button
+                          type="button" class="btn-secondary"
+                          disabled={busyId === p.id || !p.val_id}
+                          title={p.val_id ? 'Ask shurjoPay for the current status' : 'No sp_order_id stored'}
+                          onClick={() => reverify(p.id)}
+                          style="padding:5px 9px;font-size:11.5px;margin-right:4px;"
+                        >
+                          <Icon name="refresh" size={11} /> Re-verify
+                        </button>
+                      )}
+                      {p.status === 'paid' && (
+                        <button
+                          type="button" class="btn-danger"
+                          disabled={busyId === p.id}
+                          onClick={() => refund(p.id)}
+                          style="padding:5px 9px;font-size:11.5px;"
+                        >
+                          Refund
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
