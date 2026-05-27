@@ -130,8 +130,11 @@ function renderProgramOptions() {
   panel.querySelectorAll('input[name="program-option"]').forEach((el) => {
     el.addEventListener("change", updateOptionsTotal);
     // Picking an option may have just satisfied the step 1 gate;
-    // refresh the Continue button immediately.
+    // refresh the Continue button immediately. The conditional fields
+    // (Preferred Subject for Olympiad's "both") also depend on the
+    // picked option, so re-evaluate visibility too.
     el.addEventListener("change", () => {
+      syncConditionalFields();
       if (typeof refreshStepButtons === "function") refreshStepButtons();
     });
   });
@@ -139,8 +142,12 @@ function renderProgramOptions() {
   if (typeof refreshStepButtons === "function") refreshStepButtons();
 }
 
+// Preferred Subject is only meaningful when a student registers for BOTH
+// Olympiad subjects. Picking math-only or science-only already declares
+// the subject, so the field is hidden in those cases.
 function showSubjectField() {
-  return effectiveCompetition() === "national-olympiad";
+  if (effectiveCompetition() !== "national-olympiad") return false;
+  return getSelectedOptions().includes("both");
 }
 
 const SUBJECT_LABEL = {
@@ -233,7 +240,7 @@ const REQUIRED_HINT = {
   "f-gender":   "Select a gender.",
   "f-school":   "Enter the school name.",
   "f-district": "Select a district.",
-  "f-subject":  "Select a preferred subject.",
+  "f-subject":  "Pick which subject to prioritise.",
   "f-venue":    "Select an exam region.",
   "g-name":     "Enter the guardian's full name.",
   "g-rel":      "Select the guardian's relationship.",

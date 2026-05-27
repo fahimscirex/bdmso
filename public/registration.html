@@ -468,13 +468,13 @@
           <select id="f-district"><option value="">Select district</option></select>
         </div>
         <div class="field" id="field-subject" hidden>
-          <label>Preferred Subject</label>
+          <label>Priority Subject</label>
           <select id="f-subject">
             <option value="">Select subject</option>
             <option value="math">Mathematics</option>
             <option value="science">Science</option>
-            <option value="both">Both (Math + Science)</option>
           </select>
+          <p class="field-hint">If you qualify in both subjects, this is the one we prioritise for top placement.</p>
         </div>
         <div class="field" id="field-venue" hidden>
           <label>Exam Region</label>
@@ -1092,10 +1092,16 @@ function updateClassOptions() {
 }
 
 // Exam Region shows for Olympiad and Quiz (where students pick a
-// regional exam centre). Preferred Subject shows for the Olympiad only
-// (Math, Science or Both).
+// regional exam centre). Preferred Subject only shows on the Olympiad
+// AND only once the student has picked the "both subjects" program
+// option - it's a tiebreaker, meaningless when they've already chosen
+// math-only or science-only.
 function showVenueField()   { return effectiveProgram === 'national-olympiad' || effectiveProgram === 'national-quiz-competition'; }
-function showSubjectField() { return effectiveProgram === 'national-olympiad'; }
+function showSubjectField() {
+  if (effectiveProgram !== 'national-olympiad') return false;
+  const picked = document.querySelector('#program-options-panel input[name="program-option"]:checked');
+  return !!picked && picked.value === 'both';
+}
 
 function applyConditionalFields() {
   document.getElementById('field-venue').hidden   = !showVenueField();
