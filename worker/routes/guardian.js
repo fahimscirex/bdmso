@@ -500,7 +500,10 @@ guardian.post("/registrations/:id/options/upgrade", async (c) => {
     const tokenInfo = await shurjopayGetToken(config, c.env);
     spRes = await shurjopayCreatePayment(config, tokenInfo, {
       order_id:           tranId,
-      amount:             String(amount),
+      // Live shurjoPay zeroes a stringified amount; send the raw
+      // number. See worker/routes/public.js for the same fix on the
+      // initial-payment path.
+      amount:             amount,
       client_ip:          clientIp,
       return_url:         `${base}/api/payment-callback`,
       cancel_url:         `${base}/api/payment-callback`,

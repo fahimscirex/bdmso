@@ -712,7 +712,12 @@ export async function handleCreatePayment(request, env) {
     const tokenInfo = await shurjopayGetToken(config, env);
     spRes = await shurjopayCreatePayment(config, tokenInfo, {
       order_id:           tranId,
-      amount:             String(amount),
+      // Live shurjoPay (engine.shurjopayment.com) parses `amount` as a
+      // number and silently zeroes a stringified value, which surfaces
+      // as a 0.00 BDT total on the hosted checkout. Sandbox coerces
+      // strings to numbers and so worked fine. Always send the raw
+      // number now.
+      amount:             amount,
       client_ip:          clientIp,
       return_url:         `${base}/api/payment-callback`,
       cancel_url:         `${base}/api/payment-callback`,
