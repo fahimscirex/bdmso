@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import preact from '@preact/preset-vite';
 
 // Builds to <repo-root>/dist/dashboard/. The Worker serves this prefix via
-// the ASSETS binding (wrangler.prod.toml uses dist/, wrangler.toml uses public/).
+// the ASSETS binding ([env.production] uses dist/, the default env uses public/).
 // In production, asset paths must be /dashboard/<file> so the Worker can
 // resolve them. `base` handles that.
 //
