@@ -98,13 +98,21 @@ async function serveR2(request, env, url) {
 
 const CSP = [
   "default-src 'self'",
-  // Google Analytics (gtag.js) loads from googletagmanager.com and
-  // beacons fire to *.google-analytics.com + *.analytics.google.com.
-  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com",
+  // script-src:
+  //   googletagmanager.com - GA4 gtag.js library
+  //   static.cloudflareinsights.com - Cloudflare Web Analytics beacon
+  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://static.cloudflareinsights.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: https:",
-  "connect-src 'self' https://www.google-analytics.com https://*.analytics.google.com https://*.google-analytics.com",
+  // connect-src:
+  //   *.google-analytics.com + *.analytics.google.com - GA4 main beacon
+  //   stats.g.doubleclick.net - GA4 Google Signals (cross-device beacon).
+  //     GA's tag-installation verifier waits to see this one fire before
+  //     flipping the property to "detected"; without it the dashboard
+  //     reports "no tag" even when realtime data is flowing.
+  //   cloudflareinsights.com - CF Web Analytics POST target
+  "connect-src 'self' https://www.google-analytics.com https://*.analytics.google.com https://*.google-analytics.com https://stats.g.doubleclick.net https://cloudflareinsights.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
