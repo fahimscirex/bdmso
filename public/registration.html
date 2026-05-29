@@ -296,7 +296,10 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
-.form-foot { padding: 20px 32px; border-top: 1px solid var(--line-2); display: flex; justify-content: space-between; gap: 12px; background: var(--bg-alt); }
+.form-foot { padding: 20px 32px; border-top: 1px solid var(--line-2); display: flex; justify-content: flex-end; align-items: center; gap: 12px; background: var(--bg-alt); }
+/* Continue/Submit sit on the right; when a Back button exists it's pushed to
+   the far left. (space-between would left-align a lone Continue on step 1.) */
+.form-foot [data-prev-step] { margin-right: auto; }
 .confirm-view { padding: 32px; }
 .confirm-view h4 { font-family: var(--font-sans); color: var(--navy-900); font-size: 1rem; margin: 0 0 10px; }
 .summary { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 28px; margin-bottom: 18px; background: var(--bg-alt); padding: 20px; border-radius: var(--r); }
