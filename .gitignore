@@ -87,11 +87,15 @@ entities.json
 # TypeScript incremental build artifacts
 *.tsbuildinfo
 tsconfig.tsbuildinfo
-wrangler.prod.toml
-wrangler.toml
+# Personal Wrangler overrides (e.g. wrangler.local.toml for a contributor
+# pointing at their own D1/R2). The canonical wrangler.toml IS committed
+# and carries both the default (local dev) and [env.production] config.
+wrangler.local.toml
+!wrangler.example.toml
 
 # DB seeds with real coupon codes / internal data. The .example.sql
 # files at the same path show the structure with placeholder codes
 # so contributors know how to seed without leaking values.
 db/seed-prod.sql
 db/seed-dev.sql
+security-review.md

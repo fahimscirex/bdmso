@@ -125,24 +125,31 @@ guardian.patch("/profile", async (c) => {
   return c.json({ ok: true, emailChanged });
 });
 
-// Student-detail fields a guardian may self-edit on their registrations.
-// Allowed regardless of payment status - guardians fix typos in
-// school/district/gender without going through support. BdMSO ID +
-// receipt stay attached to the row, so the audit trail is preserved.
-const EDITABLE_REG_FIELDS = [
+// Universal student-detail fields - accepted by BOTH the bulk PATCH
+// /api/me/registrations (Profile page) AND the per-row PATCH
+// /api/me/registrations/:id. Always editable regardless of payment
+// status or any program's registrationEnds window; guardians fix
+// typos in name/school/district without going through support.
+const BULK_EDITABLE_REG_FIELDS = [
   "student_full_name", "student_date_of_birth", "student_class_name",
   "student_gender", "student_medium", "student_school", "student_district",
-  "preferred_venue", "preferred_subject",
 ];
+
+// Per-program meta - accepted ONLY by the per-row PATCH (the dashboard
+// Edit-enrollment modal). preferred_subject is the Olympiad tiebreaker
+// hint; preferred_venue is the exam-day region for Olympiad + Quiz.
+// Both are gated by withinEditWindow() on the per-row handler.
+const ROW_ONLY_REG_FIELDS = ["preferred_venue", "preferred_subject"];
 
 const VALID_PREFERRED_SUBJECTS = ["math", "science", "both"];
 
-// Builds the SET clause + bind values for an EDITABLE_REG_FIELDS patch.
+// Builds the SET clause + bind values from a body. `allowed` lists the
+// field names the caller permits; anything else in the body is ignored.
 // Returns { error } on a bad district / subject, else { sets, binds }.
-function buildRegUpdate(body) {
+function buildRegUpdate(body, allowed) {
   const sets  = [];
   const binds = [];
-  for (const f of EDITABLE_REG_FIELDS) {
+  for (const f of allowed) {
     if (!(f in body)) continue;
     let v = typeof body[f] === "string" ? body[f].trim() : body[f];
     // District must match one of the 64 Bangladesh districts - same
@@ -179,7 +186,10 @@ guardian.patch("/registrations", async (c) => {
   const session = c.get("session");
   const body = await c.req.json();
 
-  const { sets, binds, error } = buildRegUpdate(body);
+  // Bulk path - universal student-detail fields only. preferred_subject
+  // and preferred_venue are per-program meta; they go through the
+  // per-row PATCH below so the registrationEnds window can be enforced.
+  const { sets, binds, error } = buildRegUpdate(body, BULK_EDITABLE_REG_FIELDS);
   if (error) return c.json({ error }, 400);
   if (!sets.length) return c.json({ error: "Nothing to update." }, 400);
 
@@ -190,21 +200,40 @@ guardian.patch("/registrations", async (c) => {
   return c.json({ ok: true, updated: result.meta?.changes ?? 0 });
 });
 
-// PATCH /api/me/registrations/:id  { student_*, preferred_venue }
+// PATCH /api/me/registrations/:id  { student_*, preferred_venue, preferred_subject }
 // Single-row edit, scoped to a registration the caller owns. The bulk
 // PATCH above is what the dashboard uses for student-detail edits; this
-// stays for targeted one-row corrections.
+// is what the dashboard's unified edit modal posts to when the
+// guardian touches preferred_subject (Olympiad tiebreaker) or
+// preferred_venue (Olympiad + Quiz exam region). Per-program meta
+// edits are gated by the program's registrationEnds window so a
+// guardian can't change exam-day fields after registration has closed.
 guardian.patch("/registrations/:id", async (c) => {
   const session = c.get("session");
   const id   = c.req.param("id");
   const body = await c.req.json();
 
   const reg = await c.env.DB.prepare(
-    "SELECT id, status FROM registrations WHERE id = ? AND guardian_account_id = ? LIMIT 1"
+    "SELECT id, registration_type, status FROM registrations WHERE id = ? AND guardian_account_id = ? LIMIT 1"
   ).bind(id, session.account_id).first();
   if (!reg) return c.json({ error: "Registration not found." }, 404);
 
-  const { sets, binds, error } = buildRegUpdate(body);
+  // Gate per-enrollment meta (subject/venue) by the program's edit
+  // window. Student-detail fields (name, school, etc.) are universal
+  // and stay editable any time - they're handled by the bulk PATCH
+  // above too.
+  const touchingMeta = "preferred_subject" in body || "preferred_venue" in body;
+  if (touchingMeta && !withinEditWindow(reg.registration_type)) {
+    return c.json({
+      error: "The edit window for this program has closed. Email support@bdmso.org if you need help.",
+    }, 409);
+  }
+
+  // Per-row path accepts both the universal student fields AND the
+  // per-program meta (subject / venue). Window check above already
+  // gates the meta fields.
+  const allowed = [...BULK_EDITABLE_REG_FIELDS, ...ROW_ONLY_REG_FIELDS];
+  const { sets, binds, error } = buildRegUpdate(body, allowed);
   if (error) return c.json({ error }, 400);
   if (!sets.length) return c.json({ error: "Nothing to update." }, 400);
 
@@ -471,7 +500,10 @@ guardian.post("/registrations/:id/options/upgrade", async (c) => {
     const tokenInfo = await shurjopayGetToken(config, c.env);
     spRes = await shurjopayCreatePayment(config, tokenInfo, {
       order_id:           tranId,
-      amount:             String(amount),
+      // Live shurjoPay zeroes a stringified amount; send the raw
+      // number. See worker/routes/public.js for the same fix on the
+      // initial-payment path.
+      amount:             amount,
       client_ip:          clientIp,
       return_url:         `${base}/api/payment-callback`,
       cancel_url:         `${base}/api/payment-callback`,

@@ -226,17 +226,18 @@ export async function handleMe(request, env) {
       program_label: PROGRAM_NAMES[r.registration_type] || r.registration_type,
       program_price: effectiveProgramPrice(r),
       option_labels: optionLabelsFor(r),
-      // The SPA renders the change-selection modal entirely from these
-      // fields, so it never needs to fetch the catalog. options_config is
-      // null for programs without options; options_editable reflects the
-      // per-program optionsEditableUntil deadline (falls back to
-      // registrationEnds).
+      // The SPA renders the unified edit modal entirely from these
+      // fields, so it never needs to fetch the catalog. options_config
+      // is null for programs without options. edit_window_open gates
+      // every guardian-initiated change (options, subject, venue) and
+      // is true while today <= registrationEnds. A single deadline per
+      // program drives the whole flow now - no separate
+      // optionsEditableUntil field.
       options_config: optionsConfig,
-      options_editable: !!optionsConfig && withinEditWindow(r.registration_type),
+      edit_window_open: withinEditWindow(r.registration_type),
       // Date fields the dashboard's "Key dates" card derives from. ISO
       // strings; absent fields stay null on the row.
       registration_ends:       program.registrationEnds || null,
-      options_editable_until:  program.optionsEditableUntil || null,
       starts_on:               program.startsOn || null,
     };
   });
@@ -711,7 +712,12 @@ export async function handleCreatePayment(request, env) {
     const tokenInfo = await shurjopayGetToken(config, env);
     spRes = await shurjopayCreatePayment(config, tokenInfo, {
       order_id:           tranId,
-      amount:             String(amount),
+      // Live shurjoPay (engine.shurjopayment.com) parses `amount` as a
+      // number and silently zeroes a stringified value, which surfaces
+      // as a 0.00 BDT total on the hosted checkout. Sandbox coerces
+      // strings to numbers and so worked fine. Always send the raw
+      // number now.
+      amount:             amount,
       client_ip:          clientIp,
       return_url:         `${base}/api/payment-callback`,
       cancel_url:         `${base}/api/payment-callback`,

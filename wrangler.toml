@@ -1,0 +1,86 @@
+# Cloudflare Worker config (committed). Two environments live here:
+#
+#   default          - local dev. Serves uncompiled `public/` for fast
+#                      HMR via `wrangler dev` (no flag needed).
+#   [env.production] - the deployable target. Serves built `dist/`,
+#                      flips ENVIRONMENT/SHURJOPAY_SANDBOX, and turns
+#                      on Workers observability. Used by the Cloudflare
+#                      dashboard's Git integration AND by manual
+#                      `wrangler deploy --env production`.
+#
+# Secrets (SHURJOPAY_USERNAME/PASSWORD/PREFIX, BREVO_API_KEY, EMAIL_FROM)
+# are NEVER stored here. Set them in the Cloudflare dashboard under
+# Workers & Pages -> bdmso -> Settings -> Variables and Secrets, OR via
+# `wrangler secret put NAME --env production`. Plain `[vars]` is fine
+# for non-sensitive switches like SHURJOPAY_SANDBOX.
+
+name = "bdmso"
+main = "worker/index.js"
+compatibility_date = "2026-04-21"
+
+# ===== Local dev (default) ============================================
+# `wrangler dev` picks this up. Static assets come from public/ so edits
+# show without a rebuild.
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "404-page"
+html_handling = "none"
+run_worker_first = true
+
+[vars]
+SHURJOPAY_SANDBOX = "true"
+ENVIRONMENT = "development"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bdmso"
+database_id = "650eb353-3ecb-4710-87b6-4d72aea2cd71"
+preview_database_id = "650eb353-3ecb-4710-87b6-4d72aea2cd71"
+
+[[r2_buckets]]
+binding = "ASSETS_R2"
+bucket_name = "bdmso-assets"
+preview_bucket_name = "bdmso-assets"
+
+# ===== Production =====================================================
+# Used by Cloudflare's Git integration and manual prod deploys.
+# `name = "bdmso"` keeps the deployed Worker named "bdmso" instead of
+# the default "bdmso-production" that named envs would otherwise produce.
+
+[env.production]
+name = "bdmso"
+
+[env.production.assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "404-page"
+html_handling = "none"
+run_worker_first = true
+
+[env.production.vars]
+# "development" unlocks plaintext logging of verify/reset URLs. Anything
+# else (including unset) is treated as prod.
+ENVIRONMENT = "production"
+# Flip to "false" to hit ShurjoPay's live endpoint. The committed value
+# is safe-by-default; the dashboard's "Variables and Secrets" panel can
+# override per-environment without touching this file.
+SHURJOPAY_SANDBOX = "false"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "bdmso"
+database_id = "650eb353-3ecb-4710-87b6-4d72aea2cd71"
+
+[[env.production.r2_buckets]]
+binding = "ASSETS_R2"
+bucket_name = "bdmso-assets"
+
+# Workers logs (console + per-invocation) and traces in the CF dashboard.
+[env.production.observability.logs]
+enabled = true
+invocation_logs = true
+
+[env.production.observability.traces]
+enabled = true

@@ -28,7 +28,8 @@ export function maskTokenForLog(token) {
 // Tightened dev-mode gate. The previous heuristic ("sandbox truthy OR
 // missing PROD") could leak verification/reset tokens into production
 // logs if SHURJOPAY_SANDBOX got toggled on by accident. ENVIRONMENT is
-// an explicit binding set in .dev.vars / wrangler.prod.toml.
+// an explicit binding set in .dev.vars or the [env.production.vars]
+// block of wrangler.toml.
 function isDev(env) {
   return env.ENVIRONMENT === "development";
 }

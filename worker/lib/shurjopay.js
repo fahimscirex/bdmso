@@ -29,10 +29,24 @@
 // confirmed against return.js in their usage-examples repo.
 
 export function getShurjopayConfig(env) {
-  const sandbox = (env.SHURJOPAY_SANDBOX ?? "true") !== "false";
+  // Endpoint selection is now driven primarily by ENVIRONMENT, with
+  // SHURJOPAY_SANDBOX as a secondary override for local dev only.
+  //
+  //   ENVIRONMENT === "production"  -> ALWAYS engine.shurjopayment.com,
+  //       regardless of SHURJOPAY_SANDBOX. This guarantees a prod deploy
+  //       can't silently fall back to sandbox if the SANDBOX var is
+  //       missing/misset on the worker.
+  //   anything else                 -> honour SHURJOPAY_SANDBOX (default
+  //       "true" so local dev hits sandbox without extra config).
+  const isProd = env.ENVIRONMENT === "production";
+  const sandbox = isProd ? false : ((env.SHURJOPAY_SANDBOX ?? "true") !== "false");
   const base = sandbox
     ? "https://sandbox.shurjopayment.com"
     : "https://engine.shurjopayment.com";
+  // Log the resolution once per request. Visible via `wrangler tail`.
+  // env-var values are non-sensitive (creds live in secrets); only the
+  // routing decision is logged here.
+  console.log(`[shurjopay] endpoint=${base} env=${env.ENVIRONMENT ?? "unset"} sandbox_var=${env.SHURJOPAY_SANDBOX ?? "unset"}`);
   return {
     base,
     username: env.SHURJOPAY_USERNAME || "",
@@ -92,6 +106,12 @@ export async function shurjopayCreatePayment(config, tokenInfo, payload) {
     currency: "BDT",
     ...payload,
   };
+  // Diagnostic: log the sanitised request body and the gateway's
+  // response so we can see what shurjoPay parsed and how it answered.
+  // Token + store_id are credentials so they get redacted; amount,
+  // order_id, and customer_* are non-secret and useful for debugging.
+  const safeBody = { ...body, token: "***", store_id: "***" };
+  console.log(`[shurjopay] create-payment body=${JSON.stringify(safeBody)}`);
   const res = await fetch(`${config.base}/api/secret-pay`, {
     method: "POST",
     headers: {
@@ -102,6 +122,7 @@ export async function shurjopayCreatePayment(config, tokenInfo, payload) {
     body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
+  console.log(`[shurjopay] create-payment status=${res.status} response=${JSON.stringify(data)}`);
   if (!data.checkout_url) {
     throw new Error(data.message || data.sp_message || "shurjoPay create-payment failed");
   }

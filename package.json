@@ -13,10 +13,10 @@
     "dev:worker": "node scripts/dev.mjs",
     "dev:admin": "node scripts/dev-admin.mjs",
     "dev:guardian": "node scripts/dev-guardian.mjs",
-    "preview": "npm run build:all && wrangler dev --config wrangler.prod.toml",
-    "cf:deploy": "npm run build:all && wrangler deploy --config wrangler.prod.toml",
+    "preview": "npm run build:all && wrangler dev --env production",
+    "cf:deploy": "npm run build:all && wrangler deploy --env production",
     "cf:d1:init": "wrangler d1 execute bdmso --local --file=./db/schema.sql",
-    "cf:d1:init:prod": "wrangler d1 execute bdmso --file=./db/schema.sql",
+    "cf:d1:init:prod": "wrangler d1 execute bdmso --env production --remote --file=./db/schema.sql",
     "admin:create": "node scripts/create-admin.mjs",
     "demo:user": "node scripts/create-demo-user.mjs",
     "seed:registrations": "node scripts/seed-registrations.mjs"

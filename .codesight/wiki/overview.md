@@ -8,7 +8,7 @@
 
 ## Scale
 
-43 API routes · 16 database models · 27 UI components · 25 library files · 25 middleware layers · 3 environment variables
+43 API routes · 16 database models · 27 UI components · 25 library files · 25 middleware layers · 4 environment variables
 
 ## Subsystems
 
@@ -47,8 +47,9 @@ Changes to these files have the widest blast radius across the codebase:
 
 ## Required Environment Variables
 
+- `GA_ID` — `.env.example`
 - `VITE_PORT` — `apps/admin/vite.config.ts`
 - `WRANGLER_PORT` — `apps/admin/vite.config.ts`
 
 ---
-_Back to [index.md](./index.md) · Generated 2026-05-26_
+_Back to [index.md](./index.md) · Generated 2026-05-27_

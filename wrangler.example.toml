@@ -1,3 +1,15 @@
+# Template showing the shape of wrangler.toml WITHOUT bdmso.org's
+# specific D1/R2 IDs. Contributors who want to run against their own
+# Cloudflare account should copy this to `wrangler.local.toml` (which
+# is gitignored), fill in their IDs, and run wrangler with
+# `--config wrangler.local.toml`. Default `wrangler.toml` is committed
+# and points at the production D1/R2 - safe for dashboard-driven CF
+# Git deploys, but not what you want for someone else's test account.
+#
+# Secrets are NEVER added to this file (or any .toml). They live in
+# the Cloudflare dashboard under Workers & Pages -> <worker> ->
+# Settings -> Variables and Secrets, or via `wrangler secret put`.
+
 name = "bdmso"
 main = "worker/index.js"
 compatibility_date = "2026-04-21"
@@ -27,3 +39,7 @@ preview_database_id = ""
 binding = "ASSETS_R2"
 bucket_name = ""
 preview_bucket_name = ""
+
+# Optional [env.production] block if you also want a deployable target.
+# The committed wrangler.toml in this repo carries one - mirror it here
+# if you're forking and need a different production binding set.

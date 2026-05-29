@@ -129,12 +129,25 @@ function renderProgramOptions() {
   panel.hidden = false;
   panel.querySelectorAll('input[name="program-option"]').forEach((el) => {
     el.addEventListener("change", updateOptionsTotal);
+    // Picking an option may have just satisfied the step 1 gate;
+    // refresh the Continue button immediately. The conditional fields
+    // (Preferred Subject for Olympiad's "both") also depend on the
+    // picked option, so re-evaluate visibility too.
+    el.addEventListener("change", () => {
+      syncConditionalFields();
+      if (typeof refreshStepButtons === "function") refreshStepButtons();
+    });
   });
   updateOptionsTotal();
+  if (typeof refreshStepButtons === "function") refreshStepButtons();
 }
 
+// Preferred Subject is only meaningful when a student registers for BOTH
+// Olympiad subjects. Picking math-only or science-only already declares
+// the subject, so the field is hidden in those cases.
 function showSubjectField() {
-  return effectiveCompetition() === "national-olympiad";
+  if (effectiveCompetition() !== "national-olympiad") return false;
+  return getSelectedOptions().includes("both");
 }
 
 const SUBJECT_LABEL = {
@@ -156,6 +169,10 @@ function syncConditionalFields() {
     if (!visible && subjectInput) subjectInput.value = "";
   }
   if (venueField) venueField.hidden = !showVenueField();
+  // Conditional fields just changed - the required-label markers and
+  // step button state may need to follow. Both helpers are idempotent.
+  if (typeof markRequiredLabels === "function") markRequiredLabels();
+  if (typeof refreshStepButtons === "function") refreshStepButtons();
 }
 
 let currentStep = 1;
@@ -223,7 +240,7 @@ const REQUIRED_HINT = {
   "f-gender":   "Select a gender.",
   "f-school":   "Enter the school name.",
   "f-district": "Select a district.",
-  "f-subject":  "Select a preferred subject.",
+  "f-subject":  "Pick which subject to prioritise.",
   "f-venue":    "Select an exam region.",
   "g-name":     "Enter the guardian's full name.",
   "g-rel":      "Select the guardian's relationship.",
@@ -315,10 +332,16 @@ function validateStep(step) {
     const password = valueOf("account-password");
     const confirm = valueOf("account-password-confirm");
 
-    if (password.length < 8) {
+    if (!PWD_RULES.length(password)) {
       markError("account-password", "Password must be at least 8 characters long.");
       document.getElementById("account-password").focus();
       setMessage("Password must be at least 8 characters long.", "error");
+      return false;
+    }
+    if (!PWD_RULES.letter(password) || !PWD_RULES.number(password)) {
+      markError("account-password", "Include at least one letter and one number.");
+      document.getElementById("account-password").focus();
+      setMessage("Password must include at least one letter and one number.", "error");
       return false;
     }
 
@@ -569,6 +592,227 @@ function initDob() {
   yearEl.addEventListener("input", syncHidden);
 }
 
+// ─── Live validation primitives ───────────────────────────────────
+// These run as the guardian types/blurs - separate from validateStep,
+// which is the gate fired on Continue/Submit. The blur handler shows
+// an error immediately for format-bound fields (email, phone, password
+// rules); the input handlers feed isStepValid() which decides whether
+// the Continue/Submit button is enabled.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PWD_RULES = {
+  length: (v) => v.length >= 8,
+  letter: (v) => /[a-zA-Z]/.test(v),
+  number: (v) => /\d/.test(v),
+};
+
+function requiredFieldsForStep(step) {
+  const base = {
+    1: ["f-name", "f-dob", "f-medium", "f-class", "f-gender", "f-school", "f-district"],
+    2: ["g-name", "g-rel", "g-phone", "g-email", "g-addr"],
+    3: ["account-password", "account-password-confirm"],
+  };
+  const ids = [...(base[step] || [])];
+  if (step === 1 && showSubjectField()) ids.push("f-subject");
+  if (step === 1 && showVenueField())   ids.push("f-venue");
+  return ids;
+}
+
+// Boolean version of validateStep with no side-effects on the DOM,
+// used for live button enable/disable. Mirrors the rules in
+// validateStep but only returns true/false.
+function isStepValid(step) {
+  const ids = requiredFieldsForStep(step);
+  for (const id of ids) {
+    const el = document.getElementById(id);
+    if (!el || !el.value.trim()) return false;
+  }
+  if (step === 1 && programHasOptions(effectiveCompetition()) && getSelectedOptions().length === 0) return false;
+  if (step === 1) {
+    const districtVal = document.getElementById("f-district")?.value || "";
+    if (districtVal && !canonicalDistrict(districtVal)) return false;
+  }
+  if (step === 2) {
+    if (!EMAIL_RE.test(valueOf("g-email"))) return false;
+    if (!/^\d{10}$/.test(valueOf("g-phone"))) return false;
+  }
+  if (step === 3) {
+    const pwd     = valueOf("account-password");
+    const confirm = valueOf("account-password-confirm");
+    if (!PWD_RULES.length(pwd) || !PWD_RULES.letter(pwd) || !PWD_RULES.number(pwd)) return false;
+    if (pwd !== confirm) return false;
+    if (!document.getElementById("terms")?.checked) return false;
+  }
+  return true;
+}
+
+// Append a small red asterisk after a label when the field is required.
+// Skips the conditional ones (subject/venue) - those get marked on
+// the fly by syncConditionalFields().
+function markRequiredLabels() {
+  const labelText = (el) => el?.closest(".field")?.querySelector("label");
+  const ensureStar = (label) => {
+    if (!label || label.querySelector(".req")) return;
+    const star = document.createElement("span");
+    star.className = "req";
+    star.setAttribute("aria-hidden", "true");
+    star.textContent = "*";
+    label.appendChild(star);
+  };
+  for (const step of [1, 2, 3]) {
+    for (const id of requiredFieldsForStep(step)) {
+      // f-dob is a hidden composite input; mark the visible field group instead.
+      const target = id === "f-dob" ? document.getElementById("field-dob") : document.getElementById(id);
+      const label  = id === "f-dob" ? target?.querySelector("label") : labelText(target);
+      ensureStar(label);
+    }
+  }
+  // Terms checkbox label gets a star too - it's a required gate to submit.
+  const terms = document.querySelector('label[for="terms"]');
+  if (terms && !terms.querySelector(".req")) ensureStar(terms);
+}
+
+// Re-evaluate every step's Continue/Submit + status text. Cheap to run
+// on every input event; only touches button.disabled + text.
+function refreshStepButtons() {
+  const map = [
+    { step: 1, btn: "step-1-next",         status: "step-1-status" },
+    { step: 2, btn: "step-2-next",         status: "step-2-status" },
+    { step: 3, btn: "submit-registration", status: "step-3-status" },
+  ];
+  for (const { step, btn, status } of map) {
+    const button = document.getElementById(btn);
+    const statusEl = document.getElementById(status);
+    if (!button) continue;
+    const valid = isStepValid(step);
+    button.disabled = !valid;
+    if (statusEl) {
+      if (valid) {
+        statusEl.textContent = "";
+        statusEl.classList.remove("is-warn");
+      } else {
+        statusEl.textContent = stepMissingHint(step);
+        statusEl.classList.add("is-warn");
+      }
+    }
+  }
+}
+
+// Short, human-readable summary of what's still missing on a step.
+function stepMissingHint(step) {
+  const missing = requiredFieldsForStep(step).filter((id) => !document.getElementById(id)?.value.trim());
+  if (step === 1 && programHasOptions(effectiveCompetition()) && getSelectedOptions().length === 0) {
+    return "Pick an option above to continue.";
+  }
+  if (missing.length > 0) {
+    return missing.length === 1
+      ? "Complete the highlighted field to continue."
+      : `Fill in ${missing.length} more required fields to continue.`;
+  }
+  if (step === 2) {
+    if (!EMAIL_RE.test(valueOf("g-email"))) return "Enter a valid email to continue.";
+    if (!/^\d{10}$/.test(valueOf("g-phone"))) return "Enter a 10-digit mobile number.";
+  }
+  if (step === 3) {
+    const pwd = valueOf("account-password");
+    if (!PWD_RULES.length(pwd) || !PWD_RULES.letter(pwd) || !PWD_RULES.number(pwd))
+      return "Set a password that meets every rule.";
+    if (pwd !== valueOf("account-password-confirm"))
+      return "Re-enter the same password to confirm.";
+    if (!document.getElementById("terms")?.checked)
+      return "Tick the Terms checkbox to enable submission.";
+  }
+  return "";
+}
+
+// Tick off password rules live. Called on every keystroke in the
+// password field.
+function refreshPwdChecklist() {
+  const pwd = document.getElementById("account-password")?.value || "";
+  for (const rule of Object.keys(PWD_RULES)) {
+    const row = document.querySelector(`.pwd-rule[data-rule="${rule}"]`);
+    if (!row) continue;
+    row.classList.toggle("is-pass", PWD_RULES[rule](pwd));
+  }
+}
+
+// Address character counter. Soft warns at 90%, hard caps at the
+// textarea's maxlength.
+function refreshAddrCounter() {
+  const el = document.getElementById("g-addr");
+  const counter = document.getElementById("g-addr-counter");
+  if (!el || !counter) return;
+  const max = Number(el.getAttribute("maxlength")) || 240;
+  const len = el.value.length;
+  counter.textContent = `${len} / ${max}`;
+  counter.classList.toggle("is-near", len >= max * 0.9 && len < max);
+  counter.classList.toggle("is-at",   len >= max);
+}
+
+// Pre-fill guardian email/name from the session when the guardian is
+// signed in but lands on the full-form path (no existing student row).
+// Doesn't try to overwrite anything the user has already typed.
+function prefillFromSession() {
+  let session = null;
+  try { session = JSON.parse(localStorage.getItem("bdmso_user") || "null"); } catch {}
+  if (!session) return;
+  const emailEl = document.getElementById("g-email");
+  const nameEl  = document.getElementById("g-name");
+  if (emailEl && !emailEl.value && session.email)    emailEl.value = session.email;
+  if (nameEl  && !nameEl.value  && session.fullName) nameEl.value  = session.fullName;
+}
+
+// Blur validators: fire immediately when the user leaves a format-bound
+// field so they don't discover the problem at submit time.
+function bindBlurValidators() {
+  const emailEl = document.getElementById("g-email");
+  if (emailEl) emailEl.addEventListener("blur", () => {
+    const v = emailEl.value.trim();
+    if (v && !EMAIL_RE.test(v)) markError("g-email", "Enter a valid email address (name@example.com).");
+  });
+  const phoneEl = document.getElementById("g-phone");
+  if (phoneEl) phoneEl.addEventListener("blur", () => {
+    const v = phoneEl.value.trim();
+    if (v && !/^\d{10}$/.test(v)) markError("g-phone", "Enter exactly 10 digits (the part after +880).");
+  });
+  const pwdEl = document.getElementById("account-password");
+  if (pwdEl) pwdEl.addEventListener("blur", () => {
+    const v = pwdEl.value;
+    if (!v) return;
+    if (!PWD_RULES.length(v)) markError("account-password", "Password must be at least 8 characters long.");
+    else if (!PWD_RULES.letter(v) || !PWD_RULES.number(v))
+      markError("account-password", "Include at least one letter and one number.");
+  });
+  const confirmEl = document.getElementById("account-password-confirm");
+  if (confirmEl) confirmEl.addEventListener("blur", () => {
+    if (confirmEl.value && confirmEl.value !== (pwdEl?.value || ""))
+      markError("account-password-confirm", "This must match the password above.");
+  });
+  const districtEl = document.getElementById("f-district");
+  if (districtEl) districtEl.addEventListener("blur", () => {
+    const v = districtEl.value.trim();
+    if (v && !canonicalDistrict(v))
+      markError("f-district", "Pick one of the 64 Bangladesh districts from the list.");
+  });
+}
+
+// Bind input/change to refresh button states + checklists live.
+function bindLiveRefresh() {
+  const watched = [
+    "f-name", "f-dob", "f-medium", "f-class", "f-gender", "f-school", "f-district", "f-subject", "f-venue",
+    "g-name", "g-rel", "g-phone", "g-email", "g-addr",
+    "account-password", "account-password-confirm", "terms",
+  ];
+  for (const id of watched) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.addEventListener("input",  refreshStepButtons);
+    el.addEventListener("change", refreshStepButtons);
+  }
+  document.getElementById("account-password")?.addEventListener("input", refreshPwdChecklist);
+  document.getElementById("g-addr")?.addEventListener("input", refreshAddrCounter);
+  document.getElementById("program-options-panel")?.addEventListener("change", refreshStepButtons);
+}
+
 function init() {
   bindStepControls();
   document.getElementById("submit-registration").addEventListener("click", submitRegistration);
@@ -632,6 +876,19 @@ function init() {
       if (clean !== el.value) el.value = clean;
     });
   });
+
+  // UX layer: required-field markers, live button gating, blur
+  // validation, password checklist, address char counter, and session
+  // pre-fill. Each helper is idempotent so it's safe to call once on
+  // init and again whenever syncConditionalFields fires for a program
+  // that newly shows/hides Subject/Venue.
+  markRequiredLabels();
+  prefillFromSession();
+  bindBlurValidators();
+  bindLiveRefresh();
+  refreshPwdChecklist();
+  refreshAddrCounter();
+  refreshStepButtons();
 }
 
 // This file is loaded as type="module" which is deferred, so by the

@@ -98,11 +98,19 @@ async function serveR2(request, env, url) {
 
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  // static.cloudflareinsights.com - Cloudflare Web Analytics beacon.
+  // Zaraz loads its own scripts first-party via /cdn-cgi/zaraz/ so no
+  // extra script-src host is needed for it.
+  "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: https:",
-  "connect-src 'self'",
+  // connect-src:
+  //   cloudflareinsights.com - CF Web Analytics POST target
+  //   google-analytics.com + analytics.google.com - Zaraz forwards
+  //     these GA4 client-side beacons through the browser
+  //   stats.g.doubleclick.net - GA4 Google Signals (cross-device)
+  "connect-src 'self' https://cloudflareinsights.com https://www.google-analytics.com https://*.analytics.google.com https://*.google-analytics.com https://stats.g.doubleclick.net",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -137,7 +145,13 @@ const CACHE_RULES = [
   // against fresh HTML (e.g. new markup with old JS that never runs).
   { test: /\.(?:css|js|mjs)$/i,                                    value: "public, max-age=0, must-revalidate" },
   { test: /\.json$/i,                                              value: "public, max-age=300, must-revalidate" },
-  { test: /\.html$/i,                                              value: "public, max-age=0, must-revalidate" },
+  // HTML: never edge-cache. `s-maxage=0` tells Cloudflare's edge cache
+  // to skip caching entirely; browsers still cache for 0s then
+  // revalidate. Catches `.html`, extensionless URLs (`/about`), and the
+  // root `/` so a deploy is visible at the edge immediately.
+  { test: /\.html$/i,                                              value: "public, max-age=0, s-maxage=0, must-revalidate" },
+  { test: /\/$/,                                                   value: "public, max-age=0, s-maxage=0, must-revalidate" },
+  { test: /\/[^.]+$/,                                              value: "public, max-age=0, s-maxage=0, must-revalidate" },
 ];
 
 function applyCacheHeaders(response, pathname) {

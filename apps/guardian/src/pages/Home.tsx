@@ -18,16 +18,18 @@ type Registration = {
   // never hard-codes program names or prices.
   program_label: string;
   option_labels?: string[];
-  // Raw stored option ids (JSON-stringified array). options_config /
-  // options_editable are inlined by /api/me so the change-selection
-  // modal can render without a second fetch.
+  // Raw stored option ids (JSON-stringified array). options_config +
+  // edit_window_open are inlined by /api/me so the edit modal can
+  // render without a second fetch.
   program_options: string | null;
   options_config: OptionsConfig | null;
-  options_editable: boolean;
+  // True while today <= registrationEnds for this program. Gates every
+  // guardian-initiated edit (options + subject + venue) - one window
+  // per program, no separate fields.
+  edit_window_open: boolean;
   // Date metadata used by the "Key dates" rail. ISO yyyy-mm-dd strings
   // or null; populated from the catalog by /api/me.
   registration_ends: string | null;
-  options_editable_until: string | null;
   starts_on: string | null;
   program_price: number | null;
   student_full_name: string;
@@ -679,11 +681,17 @@ function buildKeyDates(regs: Registration[], todayISO: string): DateItem[] {
     if (r.starts_on && r.starts_on >= todayISO) {
       push(r.starts_on, '', r.program_label, ' starts');
     }
+    // Pay-by line for unpaid enrollments; carries the same date as the
+    // edit deadline below, but the verb / urgency is different.
     if (r.payment_status !== 'paid' && r.registration_ends && r.registration_ends >= todayISO) {
       push(r.registration_ends, 'Pay for ', r.program_label, ' by this date');
     }
-    if (r.options_editable && r.options_editable_until && r.options_editable_until >= todayISO) {
-      push(r.options_editable_until, 'Last day to edit info for ', r.program_label, '');
+    // Edit deadline for paid enrollments only - one window per program
+    // (registrationEnds). Unpaid rows already get a Pay-by entry on the
+    // same date, so showing both would just duplicate the row.
+    if (r.payment_status === 'paid' && r.edit_window_open
+        && r.registration_ends && r.registration_ends >= todayISO) {
+      push(r.registration_ends, 'Last day to edit ', r.program_label, '');
     }
   }
   items.sort((a, b) => a.iso.localeCompare(b.iso));
@@ -827,14 +835,22 @@ function RegistrationCard({ reg, allRegs, account, onChanged }: { reg: Registrat
   const [validating, setValidating]     = useState(false);
   const [paying, setPaying]             = useState(false);
   const [payError, setPayError]         = useState<string | null>(null);
-  const [showChange, setShowChange]     = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+
+  // Olympiad / Quiz have per-program meta (preferred_subject for
+  // Olympiad, preferred_venue for both) editable via the same modal
+  // as options. The values aren't shown inline on the card any more;
+  // they live behind the Edit button so the card stays compact.
+  const isOlympiad = reg.registration_type === 'national-olympiad';
+  const isQuiz     = reg.registration_type === 'national-quiz-competition';
+  const canEditDetails = (isOlympiad || isQuiz) && reg.edit_window_open && reg.status !== 'cancelled';
 
   // Change-selection is offered only for programs with options whose
   // edit window is still open AND a non-cancelled registration. On a
   // pending payment we hide it - the guardian must finish or cancel
   // their checkout first (server enforces this too).
   const canChangeOptions =
-    !!reg.options_config && reg.options_editable
+    !!reg.options_config && reg.edit_window_open
     && reg.status !== 'cancelled' && reg.payment_status !== 'pending';
   const currentOptionIds: string[] = (() => {
     if (!reg.program_options) return [];
@@ -946,26 +962,36 @@ function RegistrationCard({ reg, allRegs, account, onChanged }: { reg: Registrat
           <span class={`badge badge-${reg.status === 'paid' ? 'ok' : reg.status === 'cancelled' ? 'muted' : 'warn'}`}>
             {reg.status}
           </span>
-        </div>
-        {canChangeOptions && (
-          <div class="reg-card-options-row">
-            <div class="reg-card-options">{reg.option_labels?.length ? reg.option_labels.join(' · ') : 'No selection yet'}</div>
+          {/* Single Edit affordance for everything a guardian can change
+              on this row: option selection (Prep / Mock / Olympiad
+              price tier) AND per-program meta (Olympiad subject,
+              Olympiad+Quiz venue). The unified modal renders only the
+              applicable sections. Sitting in the header keeps the
+              card consistent: programs without an options row (Quiz)
+              get the same affordance in the same spot as programs
+              with one (Olympiad). */}
+          {(canChangeOptions || canEditDetails) && (
             <button
               type="button"
               class="reg-card-change-btn"
-              onClick={() => setShowChange(true)}
+              onClick={() => setShowEdit(true)}
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M12 20h9" />
                 <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z" />
               </svg>
-              Change
+              Edit
             </button>
-          </div>
-        )}
-        {!canChangeOptions && reg.option_labels && reg.option_labels.length > 0 && (
+          )}
+        </div>
+        {/* Options row (informational only - button moved up to the
+            header). Skipped entirely when the program has no options
+            block; subject + venue are NOT shown inline since they're
+            accessible from the Edit modal and were redundant on the
+            card. */}
+        {(canChangeOptions || (reg.option_labels && reg.option_labels.length > 0)) && (
           <div class="reg-card-options-row">
-            <div class="reg-card-options">{reg.option_labels.join(' · ')}</div>
+            <div class="reg-card-options">{reg.option_labels?.length ? reg.option_labels.join(' · ') : 'No selection yet'}</div>
           </div>
         )}
         <div class="reg-card-student">
@@ -973,15 +999,16 @@ function RegistrationCard({ reg, allRegs, account, onChanged }: { reg: Registrat
           {reg.student_gender ? ` · ${reg.student_gender}` : ''}
         </div>
 
-        <div class="reg-card-facts">
-          <div class="reg-fact"><span class="k">Registered</span><span class="v">{formatDate(reg.created_at)}</span></div>
-          {reg.payment_status === 'paid' && reg.payment_date && (
-            <div class="reg-fact"><span class="k">Paid on</span><span class="v">{formatDate(reg.payment_date)}</span></div>
-          )}
-          {reg.payment_status === 'paid' && reg.tran_id && (
-            <div class="reg-fact"><span class="k">Txn ID</span><span class="v mono">{reg.tran_id.slice(-12).toUpperCase()}</span></div>
-          )}
-        </div>
+        {reg.payment_status === 'paid' && (reg.payment_date || reg.tran_id) && (
+          <div class="reg-card-facts">
+            {reg.payment_date && (
+              <div class="reg-fact"><span class="k">Paid on</span><span class="v">{formatDate(reg.payment_date)}</span></div>
+            )}
+            {reg.tran_id && (
+              <div class="reg-fact"><span class="k">Txn ID</span><span class="v mono">{reg.tran_id.slice(-12).toUpperCase()}</span></div>
+            )}
+          </div>
+        )}
 
       </div>
 
@@ -1072,15 +1099,19 @@ function RegistrationCard({ reg, allRegs, account, onChanged }: { reg: Registrat
         )}
       </div>
 
-      {showChange && reg.options_config && (
+      {showEdit && (
         <ChangeSelectionModal
           registrationId={reg.id}
           programLabel={reg.program_label}
           paid={reg.status === 'paid'}
-          config={reg.options_config}
+          config={canChangeOptions ? reg.options_config : null}
           currentIds={currentOptionIds}
           unavailableIds={siblingOptionIds}
-          onClose={() => setShowChange(false)}
+          showSubject={canEditDetails && isOlympiad}
+          showVenue={canEditDetails && (isOlympiad || isQuiz)}
+          currentSubject={reg.preferred_subject}
+          currentVenue={reg.preferred_venue}
+          onClose={() => setShowEdit(false)}
           onChanged={onChanged}
         />
       )}

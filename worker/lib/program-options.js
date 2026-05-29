@@ -49,16 +49,18 @@ export function priceOptions(slug, ids) {
   return total;
 }
 
-// True if today is on or before the option-edit deadline. Falls back to
-// `registrationEnds` when `optionsEditableUntil` is not set; treats the
-// program as always-editable when neither is set.
+// True if today is on or before the program's `registrationEnds` date.
+// One window per program drives every guardian-initiated edit (options,
+// preferred_subject, preferred_venue). Programs without an end date are
+// treated as always-editable. Previously this respected a separate
+// `optionsEditableUntil` field; dropped in favour of a single
+// "edits allowed while registration is open" rule.
 export function withinEditWindow(slug, todayISO = null) {
   const p = PROGRAMS_BY_SLUG[slug];
   if (!p) return false;
-  const deadline = p.optionsEditableUntil || p.registrationEnds;
-  if (!deadline) return true;
+  if (!p.registrationEnds) return true;
   const today = todayISO || new Date().toISOString().slice(0, 10);
-  return today <= deadline;
+  return today <= p.registrationEnds;
 }
 
 // Diff between two option id sets for the same program. Validates the new

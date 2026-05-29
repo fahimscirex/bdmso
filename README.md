@@ -107,13 +107,12 @@ No HTML or code changes are needed.
 | `hidden` | `true` removes the program entirely - no detail page, no grid card. Omit (or set `false`) to show it. |
 | `home_order` | A string like `"01"`. Programs with this field appear on the home page grid, sorted by its value. Omit to keep a program off the home page. |
 | `category` | `beginner`, `advanced`, or `residential` - drives the `/programs` grid filter. |
-| `registrationStarts`, `registrationEnds` | ISO dates (`2026-04-01`). Drive the "Open" badge and the "soon" state on the grids. |
+| `registrationStarts`, `registrationEnds` | ISO dates (`2026-04-01`). Drive the "Open" badge, the "soon" state on the grids, AND the per-enrollment edit window - while today <= `registrationEnds`, guardians can change options, subject, and venue from their dashboard; after, the Edit affordance disappears and the server rejects writes to those fields with 409. |
 | `startsOn` | ISO date when the program begins. Shown in the guardian dashboard "Key dates" rail. |
-| `optionsEditableUntil` | ISO date deadline for guardian-initiated option changes (subject swaps, mock test session edits). Defaults to `registrationEnds` if omitted; always-editable when neither is set. |
 | `audience`, `duration`, `outcome`, `eyebrow` | Facts shown in the detail page sidebar. |
 | `bespokePage` | `true` means a hand-authored page at `public/programs/<slug>.html` is used as-is; the page generator skips it. Used for custom layouts (e.g. Maryam Mirzakhani School). |
 | `description`, `what_youll_do`, `next_steps` | Body content (arrays of strings) for generated detail pages. |
-| `options` | Per-cohort choices that carry their own prices - e.g. Mock Test sessions (checkboxes), Prep Course subjects (radio). Guardians can edit their selection from the dashboard until `optionsEditableUntil` (downgrades are free, upgrades create a top-up payment). |
+| `options` | Per-cohort choices that carry their own prices - e.g. Mock Test sessions (checkboxes), National Olympiad / Prep Course subjects (radio). Guardians can edit their selection from the dashboard while the program is in-window (downgrades are free, upgrades create a top-up payment). |
 
 Common edits:
 
@@ -171,12 +170,15 @@ npm install -g wrangler pnpm
 # Workspace deps (root + apps/):
 pnpm install
 
-# Copy the wrangler template and fill in your D1 + R2 IDs:
-cp wrangler.example.toml wrangler.toml
+# `wrangler.toml` is committed and ready to use - it points at the
+# project's D1/R2 by default. Contributors running against their own
+# CF account should copy `wrangler.example.toml` to `wrangler.local.toml`
+# (gitignored), fill in their own IDs, and run wrangler with
+# `--config wrangler.local.toml`.
 
 # Local secrets:
-cp .env.example .env                   # SITE_URL for build output
-cp .dev.vars.example .dev.vars         # SHURJOPAY_*, BREVO_API_KEY, EMAIL_FROM, ENVIRONMENT (gitignored — never commit)
+cp .env.example .env                   # SITE_URL for build output (gitignored — never commit)
+cp .dev.vars.example .dev.vars         # SHURJOPAY_*, BREVO_API_KEY, EMAIL_FROM (gitignored — never commit)
 
 # Initialise local D1 with the canonical schema (idempotent; safe to re-run):
 wrangler d1 execute bdmso --local --file=./db/schema.sql
@@ -205,7 +207,7 @@ The site has three independent dev surfaces. You'll usually only run one at a ti
 
 `dev:guardian` and `dev:admin` each spawn **two** processes: `wrangler dev` (API on :8787) and a Vite dev server (HMR on :5173 or :5174). The Vite server proxies `/api/*` to wrangler so cookies and auth flow naturally during development.
 
-`preview` builds the marketing site + both SPAs into `dist/` then serves the result via `wrangler dev --config wrangler.prod.toml` (local-only, not in the repo). Use this when you want to verify production routing, asset paths, or anything else that differs between dev and prod.
+`preview` builds the marketing site + both SPAs into `dist/` then serves the result via `wrangler dev --env production`, which picks up the `[env.production]` block in `wrangler.toml`. Use this when you want to verify production routing, asset paths, or anything else that differs between dev and prod.
 
 > **Note:** `dev:worker` serves `public/` directly, but `preview` serves the built `dist/` copy. After editing files in `public/`, run `npm run build` (or `build:all`) before previewing, or your changes won't appear.
 
@@ -257,11 +259,39 @@ Set `SITE_URL` in `.env` (copy from `.env.example`) so the sitemap gets the corr
 
 ## Deployment
 
+There are two supported deploy paths. **GitHub -> Cloudflare** is the default and runs unattended. **Manual** is for emergency overrides from a developer laptop.
+
+### GitHub -> Cloudflare (recommended)
+
+The Cloudflare dashboard's "Connect to Git" integration builds and deploys on every push to `main`. The configuration lives in two places:
+
+- `wrangler.toml` (committed) - bindings, observability, and the `[env.production]` overrides
+- Cloudflare dashboard -> Workers & Pages -> `bdmso` -> Settings -> Variables and Secrets - everything sensitive
+
+One-time setup:
+
+1. In the Cloudflare dashboard, connect this repository.
+2. Set the **build command** to `npm run build:all`.
+3. Set the **deploy command** to `npx wrangler deploy --env production`.
+4. Add the following **secrets** (Variables and Secrets -> "Add variable" -> type "Secret"):
+   - `SHURJOPAY_USERNAME`
+   - `SHURJOPAY_PASSWORD`
+   - `SHURJOPAY_PREFIX`
+   - `BREVO_API_KEY`
+   - `EMAIL_FROM`
+5. Add the following **build environment variables** (plain, not secret):
+   - `SITE_URL` (e.g. `https://bdmso.org`)
+6. Push to `main`. CF pulls the repo, runs the build command, then `wrangler deploy --env production` using `wrangler.toml`.
+
+Secrets are NEVER stored in `wrangler.toml`, `.env`, or the repo. The dashboard's "Variables and Secrets" panel is the source of truth for production.
+
+### Manual deploy (laptop)
+
 ```bash
 npm run cf:deploy
 ```
 
-This runs `build:all` then `wrangler deploy --config wrangler.prod.toml` (local-only, not in the repo).
+Runs `build:all` then `wrangler deploy --env production` using the committed `wrangler.toml`. The first manual deploy from a new laptop will need the same secrets set via `wrangler secret put NAME --env production`.
 
 ---
 
@@ -273,37 +303,39 @@ This runs `build:all` then `wrangler deploy --config wrangler.prod.toml` (local-
 npm exec -- wrangler d1 create bdmso
 ```
 
-2. Copy the returned `database_id` UUID into your local `wrangler.toml` (replacing both `database_id` and `preview_database_id`). See `wrangler.example.toml` for a template.
+2. Copy the returned `database_id` UUID into `wrangler.toml` - both the default `[[d1_databases]]` block (for local dev) and the `[[env.production.d1_databases]]` block (for prod). The committed file already carries the BdMSO project's IDs; only update if you're forking against a different CF account.
 
 3. Apply the schema to the remote DB (idempotent - safe to re-run):
 
 ```bash
-npm exec -- wrangler d1 execute bdmso --remote --config wrangler.prod.toml --file=./db/schema.sql
+npm exec -- wrangler d1 execute bdmso --env production --remote --file=./db/schema.sql
 ```
 
 4. Apply the production-safe seeds (the staff/partner coupon; `seed-dev.sql` should NEVER be run against `--remote`):
 
 ```bash
-npm exec -- wrangler d1 execute bdmso --remote --config wrangler.prod.toml --file=./db/seed-prod.sql
+npm exec -- wrangler d1 execute bdmso --env production --remote --file=./db/seed-prod.sql
 ```
 
-6. Create the R2 bucket for dashboard image uploads:
+5. Create the R2 bucket for dashboard image uploads:
 
 ```bash
-npm exec -- wrangler r2 bucket create bdmso-assets --config wrangler.prod.toml
+npm exec -- wrangler r2 bucket create bdmso-assets
 ```
 
-7. Set production secrets (one-time):
+6. Set production secrets. **Preferred path:** add them via the Cloudflare dashboard (Workers & Pages -> `bdmso` -> Settings -> Variables and Secrets -> "Add variable" -> type "Secret"). That way GitHub-triggered deploys pick them up automatically and no one's laptop ever needs them. The dashboard accepts the same names listed in the "GitHub -> Cloudflare" section above.
+
+If you must set them from a laptop instead, use:
 
 ```bash
-npm exec -- wrangler secret put SHURJOPAY_USERNAME --config wrangler.prod.toml
-npm exec -- wrangler secret put SHURJOPAY_PASSWORD --config wrangler.prod.toml
-npm exec -- wrangler secret put SHURJOPAY_PREFIX   --config wrangler.prod.toml
-npm exec -- wrangler secret put BREVO_API_KEY      --config wrangler.prod.toml
-npm exec -- wrangler secret put EMAIL_FROM         --config wrangler.prod.toml
+npm exec -- wrangler secret put SHURJOPAY_USERNAME --env production
+npm exec -- wrangler secret put SHURJOPAY_PASSWORD --env production
+npm exec -- wrangler secret put SHURJOPAY_PREFIX   --env production
+npm exec -- wrangler secret put BREVO_API_KEY      --env production
+npm exec -- wrangler secret put EMAIL_FROM         --env production
 ```
 
-`SHURJOPAY_SANDBOX` and `ENVIRONMENT` are plain vars in your local `wrangler.prod.toml` — set `SHURJOPAY_SANDBOX` to `"false"` and `ENVIRONMENT` to `"production"` to hit the live ShurjoPay endpoint and suppress dev-only logging. `wrangler.toml` and `wrangler.prod.toml` are gitignored (local-only); `wrangler.example.toml` is the checked-in template.
+`SHURJOPAY_SANDBOX` and `ENVIRONMENT` are plain vars in `wrangler.toml`'s `[env.production.vars]` block (set to `"false"` and `"production"` respectively). Override either from the dashboard's "Variables" panel if you ever need a temporary swap without re-deploying. `wrangler.toml` is committed; `wrangler.local.toml` is gitignored for personal forks.
 
 8. Deploy:
 
@@ -349,15 +381,28 @@ Passwords are PBKDF2-SHA256 hashed at 100,000 iterations (Cloudflare Workers max
 | `/api/reset-password` | 10 requests | 15 min | Per IP |
 | `/api/admin/*` | 200 requests | 15 min | Per IP
 
-### Option Changes (Guardian Dashboard)
+### Enrollment Edits (Guardian Dashboard)
 
-Paid registrations for programs with configurable options (Mock Test sessions, Prep Course subjects) can be edited by guardians from their dashboard via the **Change Selection** modal. The flow:
+Once registered, guardians can change their own enrollment from a single **Edit enrollment** modal on each card. The modal renders only the sections that apply to that program:
 
-- **Same-price swaps** and **downgrades** (no refund) are applied immediately via `PATCH /api/me/registrations/:id/options`. A downgrade requires acknowledging the no-refund policy.
-- **Upgrades** (selecting a more expensive option) create a new ShurjoPay top-up payment via `POST /api/me/registrations/:id/options/upgrade`. The original registration stays `paid`; only the option selection changes on payment confirmation.
-- A partial unique index on `payments` prevents two concurrent upgrade payments for the same registration.
-- Each option change is recorded in `registration_option_changes` for auditability.
-- An updated receipt reflecting the new selection and cumulative total paid is emailed to the guardian on successful payment. The receipt template mirrors the dashboard's printable receipt design (logo + receipt number header, hero amount block, Payment Details + Registration cards, Total Paid summary).
+| Program | Options section | Subject section | Venue section |
+|---|---|---|---|
+| National Olympiad | radio: Math / Science / Both | Math / Science / Both (tiebreaker hint, only meaningful if Options = Both) | Dhaka / Chittagong / Rangpur / Sylhet |
+| Quiz Competition | – | – | Dhaka / Chittagong / Rangpur / Sylhet |
+| Prep Course | radio subjects | – | – |
+| Mock Test | checkbox sessions | – | – |
+
+**One window per program**: while today ≤ `registrationEnds` the Edit pill is visible on the card and the server accepts the writes; once the date passes, the affordance disappears and the corresponding endpoints return 409.
+
+Submit paths:
+
+- **Same-price option swap** or **downgrade** (no refund) -> `PATCH /api/me/registrations/:id/options`. A downgrade requires `acknowledge_no_refund: true`.
+- **Option upgrade** (selecting a more expensive option) -> `POST /api/me/registrations/:id/options/upgrade` creates a top-up ShurjoPay payment for the delta. The original registration stays `paid`; the new option commits only on successful gateway callback. A partial unique index on `payments` prevents two concurrent upgrade payments per registration.
+- **Subject / venue** -> `PATCH /api/me/registrations/:id` with `preferred_subject` and/or `preferred_venue`. Same window-check rule. The modal posts both calls when meta and options changed together (meta first, so it persists before any redirect to the gateway).
+
+Each option change is recorded in `registration_option_changes` for auditability. After a paid edit (same-price swap, downgrade, or successful upgrade) an updated receipt is emailed — the template mirrors the printable receipt design (logo + receipt number header, hero amount block, Payment Details + Registration cards, Total Paid summary, no QR until that endpoint is built).
+
+The Profile page handles only account-wide student details (name, dob, class, gender, curriculum, school, district) and is always editable. Per-program meta lives on the dashboard cards. Server-side `EDITABLE_REG_FIELDS` is split into `BULK_EDITABLE_REG_FIELDS` (universal, accepted by `PATCH /api/me/registrations`) and `ROW_ONLY_REG_FIELDS` (`preferred_subject`, `preferred_venue`, accepted only by the per-row PATCH) so the Profile bulk endpoint can't bypass the window check.
 
 #### Duplicate-option prevention
 
@@ -365,11 +410,9 @@ A guardian can't book the same Mock Test session twice across separate registrat
 
 - **Public registration form** (`/registration?program=mock-test`): when a signed-in guardian opens the form, `loadTakenOptions()` fetches `/api/me` and disables option items already held by another non-cancelled registration of the same program. Anonymous users see all options; the server catches them on submit.
 - **Server**: `handleAddEnrollment` and the change-selection routes (`PATCH /options`, `POST /options/upgrade`) all call `getTakenOptionIds()` and refuse a 409 with a human label when overlap is detected.
-- **Change Selection modal**: the dashboard modal also disables ids already held by sibling registrations (`unavailableIds` prop), so guardians see the conflict before they hit Save.
+- **Edit modal**: the dashboard modal disables ids already held by sibling registrations (`unavailableIds` prop), so guardians see the conflict before they hit Save.
 
 Cancelled registrations are intentionally excluded from every overlap check — a cancelled row doesn't permanently lock its slot.
-
-Programs can set `optionsEditableUntil` (ISO date) in `programs-detail.json` to close the edit window after a deadline (e.g. after mock test dates pass). Falls back to `registrationEnds`; defaults to always-editable when neither is set.
 
 ### Guardian Dashboard UX
 
@@ -377,6 +420,8 @@ Programs can set `optionsEditableUntil` (ISO date) in `programs-detail.json` to 
 - **Post-enrollment focus**: registration / add-enrollment redirects to `/dashboard?focus=<reg-id>`. The dashboard scrolls the matching card into view and runs a brief navy-ring pulse so guardians don't have to hunt for their just-created Pay Now card.
 - **Sort order**: `submitted → paid → cancelled` puts payment-due cards at the top, immediately actionable after enrollment.
 - **Stat tiles**: `All Enrollments` / `Payment Pending` / `Completed Enrollments` / `Cancelled Enrollments`, each filtering the list below.
+- **Single Edit pill** sits in the card header next to the status badge — covers options, subject, and venue. Inline meta lines (Subject / Exam region) are deliberately omitted from the card since the modal exposes them on demand.
+- **Notifications** read `registration_ends` + `edit_window_open` per row. The "Payment due" notice now ends with the close date; a new "Edit deadline approaching" / "Edit deadline today" notice fires for paid registrations within 7 days of `registrationEnds`, naming the fields you can still change for that program (subject + exam region for Quiz, options + subject + exam region for Olympiad).
 
 ### Security
 
@@ -389,7 +434,9 @@ Programs can set `optionsEditableUntil` (ISO date) in `programs-detail.json` to 
 - Emails and phones can only be changed after confirming the current password; password changes revoke every other session for the account
 - Receipt emails (initial + updated) read the guardian's current `guardian_accounts.full_name` / `email`, not the snapshot stored at registration time — renames in Profile flow through to future receipts
 - CSP, HSTS, X-Frame-Options, and X-Content-Type-Options headers are applied to all responses
-- `wrangler.toml` and `wrangler.prod.toml` are gitignored — use `wrangler.example.toml` as a reference
+- `wrangler.toml` is committed and carries `[env.production]` so the Cloudflare dashboard's Git integration can deploy directly. Secrets are never in this file - they live in the dashboard's "Variables and Secrets" panel
+- `wrangler.local.toml` is gitignored, for contributors who fork against their own CF account
+- `.env` and `.dev.vars` are gitignored - `SITE_URL`, `SHURJOPAY_*`, `BREVO_API_KEY`, `EMAIL_FROM` never enter source control
 - `db/seed-dev.sql` and `db/seed-prod.sql` are gitignored — real coupon codes live there, never in source control
 
 ---
@@ -415,7 +462,7 @@ public/
   *.html                  - one file per page
 apps/
   guardian/               - guardian dashboard SPA (Preact) → builds to dist/dashboard/
-    components/ChangeSelectionModal.tsx  - option-change modal for paid registrations
+    components/ChangeSelectionModal.tsx  - unified enrollment editor: options + subject + venue, sections render conditionally per program
     components/DashboardSkeleton.tsx     - loading-state shell for the dashboard
     components/ProfileSkeleton.tsx       - loading-state shell for /profile
     components/PaymentBanner.tsx         - inline payment status notice + scroll-to-list CTA
@@ -431,7 +478,8 @@ db/
   seed-prod.example.sql   - placeholder for prod-safe seeds (live pilot coupon); copy to seed-prod.sql
   seed-dev.sql            - LOCAL, gitignored, holds real codes
   seed-prod.sql           - LOCAL, gitignored, applied to both local + prod
-wrangler.example.toml     - reference wrangler config (check in); copy to wrangler.toml for local use
+wrangler.toml             - committed Wrangler config: default = local dev, [env.production] = CF prod target
+wrangler.example.toml     - template for forks running against a different CF account (copy to wrangler.local.toml, fill in IDs)
 scripts/
   build.mjs               - generates posts/programs pages, copies public/ → dist/, writes sitemap + robots; supports --watch
   dev.mjs                 - dev orchestrator for `npm run dev:worker`

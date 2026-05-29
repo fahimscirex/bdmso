@@ -340,6 +340,12 @@ body.modal-open { overflow: hidden; }
 <main>
 <section class="page-head"><div class="container">
   <span class="eyebrow">Programs &amp; Courses</span>
+  <!-- This is the only real H1 on /programs. Two other <h1> occurrences
+       further down sit inside JS template literals for the modal hero
+       (`p-modal-hero h1`) and only mount into the DOM when a modal opens,
+       at which point this page-head section is visually covered. SEO
+       audits that count <h1> in raw HTML will see 3; the rendered DOM
+       has exactly 1 at any given time. -->
   <h1>Your journey to STEM excellence starts here.</h1>
   <p>Build a strong foundation through these official camps and training modules, from beginner-friendly workshops to international-level residential camps.</p>
 </div></section>
