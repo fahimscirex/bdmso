@@ -13,12 +13,13 @@
   --ink:      #0f172a;
   --ink-2:    #475569;
   --ink-3:    #94a3b8;
-  /* Page + surfaces */
-  --bg:       #f4f5f7;   /* page background */
-  --bg-alt:   #f8fafc;   /* secondary surface (hover, table head) */
+  /* Page + surfaces. The page bg is a hair darker than --line so the
+     border around a white card visibly clears the page beneath it. */
+  --bg:       #eef0f4;   /* page background (slightly cooler/darker) */
+  --bg-alt:   #f5f7fa;
   --surface:  #ffffff;
-  --line:     #e5e7eb;
-  --line-2:   #f1f5f9;
+  --line:     #dde1e8;   /* card borders - more visible */
+  --line-2:   #eef0f4;
   /* Accent: single teal/mint matching the BdMSO logo's left gradient. */
   --accent:    #10b981;
   --accent-fg: #047857;
@@ -41,19 +42,23 @@
   /* Primary action button is solid black (not navy). */
   --primary:    #0f172a;
   --primary-fg: #ffffff;
-  /* Softer shadows - barely visible elevation. */
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.06);
+  /* Soft elevation - just enough to lift the card off the page. */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 1px rgba(15, 23, 42, 0.03);
+  --shadow-md: 0 6px 20px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
   --radius:    14px;
   --radius-sm: 10px;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  /* Inter's variable-axis features: tabular numerals + readability tweaks
-     (cv02 alt 1, cv03 alt 4, cv04 alt 6, cv11 alt l). Bring the type a
-     step closer to Linear/Vercel-style polish. */
-  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01', 'tnum';
+  /* Space Grotesk - geometric sans with distinctive character. The
+     stems are slightly mechanical (derived from Space Mono), which
+     reads as "designed" rather than neutral default. Pairs with
+     Space Mono for the code/tabular bits. */
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: 'ss01', 'tnum';
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Space Grotesk's default tracking is slightly wide, so no further
+     negative letter-spacing needed at body sizes. Headings get -0.02em
+     applied directly via .page-header h1. */
   font-size: 14px;
   color: var(--navy-900);
   background: var(--bg);
@@ -100,7 +105,7 @@
 * { box-sizing: border-box; }
 html, body, #app { height: 100%; margin: 0; }
 a { color: inherit; text-decoration: none; }
-code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-size: 0.88em; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-size: 0.88em; font-family: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
 
 /* ─── Auth shell (login + bare states) ──────────────────────────────────── */
 
@@ -232,7 +237,7 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 .topbar-search > svg { flex-shrink: 0; }
 .topbar-search-text { flex: 1; }
 .topbar-search kbd {
-  font-family: ui-monospace, Menlo, monospace; font-size: 10.5px;
+  font-family: 'Space Mono', ui-monospace, Menlo, monospace; font-size: 10.5px;
   background: var(--muted-bg); color: var(--ink-3);
   padding: 1px 6px; border-radius: 4px;
   border: 1px solid var(--line);
@@ -474,19 +479,24 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 .activity li:last-child { border-bottom: none; }
 .activity code { background: var(--navy-50); padding: 1px 6px; border-radius: 4px; font-size: 12px; }
 
-/* ─── KPI tile (Dashboard primary row) ──────────────────────────────────
-   Two-column layout: left has label + big value + trend pill, right has
-   a compact sparkline. Matches the Salce / Linear-style reference. */
+/* ─── KPI tile (Dashboard primary row) ─────────────────────────────────
+   Vertical stack: label + (value next to sparkline) + delta row that
+   spans the FULL card width so captions like "no activity today" don't
+   get truncated by a narrow column. */
 .stat-kpi {
-  display: grid; grid-template-columns: 1fr auto;
-  align-items: center; gap: 14px;
+  display: flex; flex-direction: column; gap: 6px;
   min-height: 116px;
   padding: 18px 22px;
   position: relative;
+  text-align: left;
+}
+.stat-kpi-top {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px;
 }
 .stat-kpi-left {
-  display: flex; flex-direction: column; gap: 8px;
-  min-width: 0;
+  display: flex; flex-direction: column; gap: 4px;
+  min-width: 0; flex: 1;
 }
 .stat-kpi .stat-label {
   font-size: 13px; font-weight: 500;
@@ -497,24 +507,40 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
   font-size: 1.85rem; line-height: 1; font-weight: 700;
   letter-spacing: -0.03em;
   color: var(--ink);
-  margin: 0;
+  margin: 4px 0 0;
+  /* Don't wrap "৳ 14,500" onto two lines when the sparkline shares the
+     row - clamp + shrink instead. The min-width:0 on .stat-kpi-left
+     gives the value room to clip if needed, but the no-wrap rule means
+     currency + number stay together as one unit. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .stat-kpi .sparkline {
-  width: 90px; height: 36px;
+  width: 92px; height: 38px;
   display: block;
+  align-self: flex-start;
+  flex-shrink: 0;
+}
+
+/* Delta line: pill + caption inline. Sits below value+spark so it can
+   use the FULL card width - no truncation. */
+.kpi-delta-row {
+  display: flex; align-items: center; gap: 6px;
+  white-space: nowrap;
+  margin-top: 4px;
 }
 .kpi-delta {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 12px; font-weight: 600;
-  padding: 2px 8px; border-radius: 6px;
-  width: max-content;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11.5px; font-weight: 600;
+  padding: 2px 7px; border-radius: 6px;
+  flex-shrink: 0;
 }
 .kpi-delta-up   { background: var(--green-bg); color: var(--green); }
 .kpi-delta-down { background: var(--red-bg);   color: var(--red); }
 .kpi-delta-flat { background: var(--muted-bg); color: var(--muted); }
 .kpi-delta-caption {
-  font-size: 12px; color: var(--ink-3); margin-left: 6px;
-  font-weight: 400;
+  font-size: 11.5px; color: var(--ink-3); font-weight: 400;
 }
 
 /* ─── Needs-attention widget ─────────────────────────────────────────── */
@@ -558,6 +584,115 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .attention-item > svg { opacity: 0.35; color: var(--ink-3); flex-shrink: 0; }
+
+/* ─── Notification bell + popover (topbar) ────────────────────────────
+   Replaces the larger "Needs your attention" card. The bell is a
+   topbar-iconbtn with a small red badge overlay. Clicking opens a
+   floating popover anchored under the bell. */
+.notif-wrap { position: relative; display: inline-block; }
+.notif-trigger { position: relative; }
+.notif-trigger.notif-has-items svg { color: var(--ink); }
+
+.notif-badge {
+  position: absolute; top: -3px; right: -3px;
+  min-width: 16px; height: 16px;
+  display: grid; place-items: center;
+  padding: 0 4px; border-radius: 999px;
+  background: var(--red); color: white;
+  font-size: 10px; font-weight: 700; line-height: 1;
+  border: 2px solid var(--surface);
+  font-variant-numeric: tabular-nums;
+}
+
+.notif-popover {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  width: 360px; max-width: calc(100vw - 32px);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; box-shadow: var(--shadow-md);
+  z-index: 100;
+  display: flex; flex-direction: column;
+  animation: notif-pop 140ms ease-out;
+}
+@keyframes notif-pop {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+.notif-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line-2);
+}
+.notif-head h3 {
+  margin: 0; font-size: 13.5px; font-weight: 600; color: var(--ink);
+}
+.notif-head .link { padding: 4px 6px; }
+
+.notif-list {
+  list-style: none; padding: 6px;
+  margin: 0;
+  display: flex; flex-direction: column; gap: 2px;
+  max-height: 50vh; overflow-y: auto;
+}
+.notif-list li { list-style: none; }
+
+.notif-item {
+  width: 100%;
+  display: flex; align-items: center; gap: 12px;
+  background: transparent; border: 0; cursor: pointer;
+  padding: 10px 10px;
+  border-radius: 8px;
+  font: inherit; text-align: left;
+  transition: background 0.12s;
+}
+.notif-item:hover { background: var(--bg-alt); }
+.notif-red   { --tone: var(--red); }
+.notif-amber { --tone: var(--amber); }
+.notif-navy  { --tone: var(--accent); }
+
+.notif-item-count {
+  flex-shrink: 0;
+  min-width: 30px; height: 30px;
+  display: grid; place-items: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--tone) 12%, transparent);
+  color: var(--tone);
+  font-weight: 700; font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.notif-item-body {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.notif-item-label {
+  font-size: 13px; font-weight: 600; color: var(--ink);
+  line-height: 1.3;
+}
+.notif-item-hint {
+  font-size: 11.5px; color: var(--ink-3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.notif-item > svg {
+  color: var(--ink-3); opacity: 0.5; flex-shrink: 0;
+}
+
+.notif-empty {
+  padding: 28px 16px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  color: var(--ink-3);
+}
+.notif-empty > svg { color: var(--green); }
+.notif-empty p { margin: 0; font-size: 13px; }
+
+.notif-footer {
+  padding: 8px 12px;
+  border-top: 1px solid var(--line-2);
+  display: flex; justify-content: flex-end;
+}
+.notif-footer .link {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px;
+}
 
 /* ─── Filter chips (Registrations + Triage + Payments) ─────────────────── */
 .chip-row {
@@ -700,7 +835,7 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
   border: 0; outline: 0; background: transparent; color: var(--navy-900);
 }
 .cmdk-kbd {
-  font-family: ui-monospace, Menlo, monospace; font-size: 10.5px;
+  font-family: 'Space Mono', ui-monospace, Menlo, monospace; font-size: 10.5px;
   background: var(--bg-alt); border: 1px solid var(--line);
   padding: 1px 6px; border-radius: 4px;
   color: var(--ink-3);
@@ -741,7 +876,7 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
   font-size: 11.5px; color: var(--ink-3);
 }
 .cmdk-footer kbd {
-  font-family: ui-monospace, Menlo, monospace; font-size: 10.5px;
+  font-family: 'Space Mono', ui-monospace, Menlo, monospace; font-size: 10.5px;
   background: var(--bg-alt); border: 1px solid var(--line);
   padding: 0 5px; border-radius: 3px;
   color: var(--ink-2);

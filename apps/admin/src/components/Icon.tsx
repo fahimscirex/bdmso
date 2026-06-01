@@ -14,7 +14,7 @@ export type IconName =
   | 'chevron-down' | 'chevron-right' | 'check' | 'x'
   | 'download' | 'refresh' | 'plus' | 'alert' | 'sparkle'
   | 'log-out' | 'edit' | 'trash' | 'eye' | 'mail'
-  | 'phone' | 'external' | 'menu' | 'filter';
+  | 'phone' | 'external' | 'menu' | 'filter' | 'bell';
 
 const PATHS: Record<IconName, JSX.Element> = {
   // Layout / nav
@@ -52,6 +52,7 @@ const PATHS: Record<IconName, JSX.Element> = {
   external:    <><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></>,
   menu:        <><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>,
   filter:      <><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></>,
+  bell:        <><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></>,
 };
 
 export function Icon({ name, size = 18, class: cls }: Props) {

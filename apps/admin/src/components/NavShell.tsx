@@ -8,6 +8,7 @@ import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { navigate } from '../router';
 import { Icon, type IconName } from './Icon';
+import { NotificationBell } from './NotificationBell';
 
 type Section = { label: string; href: string; icon: IconName; soon?: boolean };
 
@@ -130,9 +131,7 @@ export function NavShell({ currentRoute, userEmail, onSignOut, children }: Props
             <kbd>⌘K</kbd>
           </button>
           <div class="topbar-right">
-            <button type="button" class="topbar-iconbtn" title="Help (coming soon)" aria-label="Help">
-              <Icon name="alert" size={15} />
-            </button>
+            <NotificationBell />
             <button type="button" class="topbar-iconbtn" onClick={onSignOut} title="Sign out" aria-label="Sign out">
               <Icon name="log-out" size={15} />
             </button>

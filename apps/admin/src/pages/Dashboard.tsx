@@ -8,7 +8,6 @@ import { api, ApiError } from '../api';
 import { navigate, href } from '../router';
 import { SkRoot, SkStatRow, SkCard } from '../components/Skeleton';
 import { Sparkline, padDailySeries } from '../components/Sparkline';
-import { NeedsAttention } from '../components/NeedsAttention';
 import { Icon } from '../components/Icon';
 
 type RegSummary = { total: number; paid: number; pending: number; cancelled: number };
@@ -85,7 +84,7 @@ function DeltaLine({ today, yesterday }: { today: number; yesterday: number; cur
   if (today === 0 && yesterday === 0) return null;
   if (today === 0) {
     return (
-      <div>
+      <div class="kpi-delta-row">
         <span class="kpi-delta kpi-delta-flat">— 0%</span>
         <span class="kpi-delta-caption">no activity today</span>
       </div>
@@ -93,7 +92,7 @@ function DeltaLine({ today, yesterday }: { today: number; yesterday: number; cur
   }
   if (yesterday === 0) {
     return (
-      <div>
+      <div class="kpi-delta-row">
         <span class="kpi-delta kpi-delta-up">↗ new</span>
         <span class="kpi-delta-caption">from yesterday</span>
       </div>
@@ -102,7 +101,7 @@ function DeltaLine({ today, yesterday }: { today: number; yesterday: number; cur
   const diff = today - yesterday;
   if (diff === 0) {
     return (
-      <div>
+      <div class="kpi-delta-row">
         <span class="kpi-delta kpi-delta-flat">— 0%</span>
         <span class="kpi-delta-caption">vs yesterday</span>
       </div>
@@ -112,7 +111,7 @@ function DeltaLine({ today, yesterday }: { today: number; yesterday: number; cur
   const cls = diff > 0 ? 'kpi-delta-up' : 'kpi-delta-down';
   const arrow = diff > 0 ? '↗' : '↘';
   return (
-    <div>
+    <div class="kpi-delta-row">
       <span class={`kpi-delta ${cls}`}>{arrow} {pct}%</span>
       <span class="kpi-delta-caption">from yesterday</span>
     </div>
@@ -148,7 +147,6 @@ export function Dashboard() {
       {error && <div class="error">{error}</div>}
       {!data && !error && (
         <SkRoot>
-          <SkCard title="Needs your attention" lines={3} />
           <SkStatRow />
           <SkStatRow />
           <SkCard title="Conversion funnel"     lines={1} />
@@ -162,10 +160,9 @@ export function Dashboard() {
 
       {data && (
         <>
-          <NeedsAttention data={data.an.attention} />
-
           {/* Primary KPIs: registrations, paid, pending, revenue.
-              Each tile carries a 30-day sparkline + today-vs-yesterday delta. */}
+              Each tile carries a 30-day sparkline + today-vs-yesterday delta.
+              (The previous "Needs attention" card moved to the topbar bell.) */}
           <div class="stat-row">
             <KpiTile
               label="Registrations" value={data.reg.total}
@@ -317,12 +314,14 @@ function KpiTile({ label, value, tone, sparkTone = 'navy', spark, delta, onClick
 }) {
   return (
     <button type="button" class={`stat stat-tile stat-kpi${tone ? ` stat-${tone}` : ''}`} onClick={onClick}>
-      <div class="stat-kpi-left">
-        <div class="stat-label">{label}</div>
-        <div class="stat-value">{value}</div>
-        {delta}
+      <div class="stat-kpi-top">
+        <div class="stat-kpi-left">
+          <div class="stat-label">{label}</div>
+          <div class="stat-value">{value}</div>
+        </div>
+        {spark && spark.length > 1 && <Sparkline data={spark} tone={sparkTone} height={38} />}
       </div>
-      {spark && spark.length > 1 && <Sparkline data={spark} tone={sparkTone} height={36} />}
+      {delta}
     </button>
   );
 }
