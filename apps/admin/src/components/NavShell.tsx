@@ -21,6 +21,7 @@ const NAV: Section[] = [
   { label: 'Broadcast',     href: '/broadcast',     icon: 'send' },
   { label: 'Events',        href: '/events',        icon: 'sparkle' },
   { label: 'Posts',         href: '/posts',         icon: 'file-text' },
+  { label: 'Programs',      href: '/programs',      icon: 'book' },
   { label: 'Coupons',       href: '/coupons',       icon: 'tag' },
   { label: 'Users',         href: '/users',         icon: 'users' },
   { label: 'Audit log',     href: '/audit',         icon: 'history' },

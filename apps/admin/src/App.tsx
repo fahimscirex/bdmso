@@ -22,6 +22,8 @@ import { Coupons } from './pages/Coupons';
 import { Broadcast } from './pages/Broadcast';
 import { Posts } from './pages/Posts';
 import { PostEditor } from './pages/PostEditor';
+import { Programs } from './pages/Programs';
+import { ProgramEditor } from './pages/ProgramEditor';
 import { Triage } from './pages/Triage';
 import { PaymentReports } from './pages/PaymentReports';
 import { Events } from './pages/Events';
@@ -114,6 +116,11 @@ function renderPage(route: string) {
   if (postEdit) return <PostEditor slug={postEdit[1]} />;
   if (route === '/posts/new') return <PostEditor slug="new" />;
 
+  // /programs/new and /programs/<slug>/edit - the editor handles both.
+  const progEdit = route.match(/^\/programs\/([a-z0-9][a-z0-9-]*)\/edit$/);
+  if (progEdit) return <ProgramEditor slug={progEdit[1]} />;
+  if (route === '/programs/new') return <ProgramEditor slug="new" />;
+
   switch (route) {
     case '/':              return <Dashboard />;
     case '/triage':        return <Triage />;
@@ -125,6 +132,7 @@ function renderPage(route: string) {
     case '/broadcast':     return <Broadcast />;
     case '/events':        return <Events />;
     case '/posts':         return <Posts />;
+    case '/programs':      return <Programs />;
     case '/users':         return <Users />;
     case '/audit':         return <AuditLog />;
     case '/settings':      return <Settings />;

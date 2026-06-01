@@ -5,7 +5,7 @@
 
 > 80 routes | 22 models | 37 components | 26 lib files | 3 env vars | 25 middleware
 > **Token savings:** this file is ~6,300 tokens. Without it, AI exploration would cost ~85,000 tokens. **Saves ~78,600 tokens per conversation.**
-> **Last scanned:** 2026-06-01 10:06 — re-run after significant changes
+> **Last scanned:** 2026-06-01 10:13 — re-run after significant changes
 
 ---
 
@@ -483,12 +483,12 @@
 - `worker/lib/util.js` — imported by **5** files
 - `apps/admin/src/auth.ts` — imported by **4** files
 - `worker/lib/programs.js` — imported by **4** files
-- `public/js/md.js` — imported by **3** files
 - `apps/guardian/src/router.ts` — imported by **3** files
 - `public/js/api.js` — imported by **3** files
 - `worker/lib/audit-log.js` — imported by **3** files
 - `worker/lib/email.js` — imported by **3** files
 - `apps/admin/src/components/Sparkline.tsx` — imported by **2** files
+- `public/js/md.js` — imported by **2** files
 - `apps/guardian/src/components/NotificationTicker.tsx` — imported by **2** files
 - `apps/guardian/src/components/ChangeSelectionModal.tsx` — imported by **2** files
 - `public/js/program-catalog.js` — imported by **2** files
