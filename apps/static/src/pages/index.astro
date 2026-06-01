@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { getCollection } from "astro:content";
+import { deriveRegState } from "../lib/regState.js";
 
 const title = "BdMSO - Bangladesh Mathematics and Science Olympiad";
 const description =
@@ -85,12 +86,38 @@ const GUIDE: Record<string, string[]> = {
 };
 
 const todayISO = new Date().toISOString().slice(0, 10);
-const cardState = (p: { registration?: boolean; registrationStarts?: string; registrationEnds?: string }) => {
-  if (p.registration === false) return "closed";
-  if (p.registrationStarts && todayISO < p.registrationStarts) return "upcoming";
-  if (p.registrationEnds && todayISO > p.registrationEnds) return "closed";
-  return "open";
-};
+// State is derived from the date window plus the year-round flag (always open).
+const cardState = (p: { yearRound?: boolean; registrationStarts?: string; registrationEnds?: string }) =>
+  deriveRegState(p.yearRound === true, p.registrationStarts, p.registrationEnds, todayISO);
+
+// Top announcement banner, derived from REAL registration state (no hardcoded
+// claim). Announce whatever is open now; if nothing is open, point at the
+// soonest upcoming intake; if neither, the banner is not rendered at all.
+const stripBd = (t: string) => t.replace(/^BdMSO\s+/i, "");
+const joinNames = (names: string[]) =>
+  names.length === 1 ? names[0]
+  : names.length === 2 ? `${names[0]} and ${names[1]}`
+  : names.length === 3 ? `${names[0]}, ${names[1]} and ${names[2]}`
+  : `${names[0]}, ${names[1]} and ${names.length - 2} more`;
+const fmtDate = (iso?: string) =>
+  iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "";
+
+const openProgs = programs.filter((p) => cardState(p.data) === "open");
+const upcomingProgs = programs
+  .filter((p) => cardState(p.data) === "upcoming" && p.data.registrationStarts)
+  .sort((a, b) => String(a.data.registrationStarts).localeCompare(String(b.data.registrationStarts)));
+
+let bannerDesktop = "";
+let bannerMobile = "";
+if (openProgs.length) {
+  bannerDesktop = `BdMSO 2026 - Registration is open for ${joinNames(openProgs.map((p) => stripBd(p.data.title)))}.`;
+  bannerMobile = "Registration open for BdMSO 2026.";
+} else if (upcomingProgs.length) {
+  const next = upcomingProgs[0];
+  bannerDesktop = `BdMSO 2026 - Registration for ${stripBd(next.data.title)} opens ${fmtDate(next.data.registrationStarts)}.`;
+  bannerMobile = "Registration opening soon.";
+}
+const showBanner = bannerDesktop !== "";
 ---
 
 <BaseLayout
@@ -1173,16 +1200,18 @@ const cardState = (p: { registration?: boolean; registrationStarts?: string; reg
 
   <!-- Top announcement banner (Zoom-style) - sits below the fixed nav, above
        the hero. The "Upcoming Events" pill opens the existing modal. -->
+  {showBanner && (
   <div class="top-banner" id="top-banner">
     <div class="top-banner-inner">
-      <span class="top-banner-text top-banner-text-desktop">BdMSO 2026 - Registration is open for the National Olympiad and Quiz Competition.</span>
-      <span class="top-banner-text top-banner-text-mobile">Registration open for BdMSO 2026.</span>
+      <span class="top-banner-text top-banner-text-desktop">{bannerDesktop}</span>
+      <span class="top-banner-text top-banner-text-mobile">{bannerMobile}</span>
       <button type="button" class="top-banner-cta" id="upcoming-events-btn" aria-haspopup="dialog" aria-controls="upcoming-events-modal">
         Upcoming Events <span aria-hidden="true">→</span>
       </button>
     </div>
     <button type="button" class="top-banner-close" id="top-banner-close" aria-label="Dismiss banner"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
+  )}
 
   <main>
     <!-- SECTION 1: HERO + featured cards (Zoom-style: dark, centered, with a

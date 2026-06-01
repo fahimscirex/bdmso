@@ -4,16 +4,20 @@ feeAmount: 1000
 title: "BdMSO Quiz Competition"
 tagline: "National Quiz competition on Mathematics and Science held on the same day as the National Olympiad."
 metaDescription: "The BdMSO Quiz Competition - a friendly general-knowledge STEM round for pre-primary to Class 3, open to both Bangla and English mediums."
+registrationStarts: "2026-05-20"
+registrationEnds: "2026-06-26"
 eyebrow: "National · Quiz"
 image: "/images/exam.webp"
 audience: "Class 3 or below"
 duration: "60 minutes"
 format: "On-site quiz competition"
 outcome: "Medal and Certificate of Achievement for the winners"
+level: "Open · Class 3 or below"
 schedule: "Registration closes 26 June 2026"
-registrationStarts: "2026-05-20"
-registrationEnds: "2026-06-26"
+price: "৳ 1,000"
+register_url: "/registration?program=national-quiz-competition"
 register_label: "Register now"
+category: "competition"
 ---
 
 ## About this program

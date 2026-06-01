@@ -49,6 +49,7 @@ const programs = defineCollection({
       outcome: z.string().optional(),
       home_order: z.string().optional(),
       registration: z.boolean().optional(),
+      yearRound: z.boolean().optional(),
       registrationStarts: z.string().optional(),
       registrationEnds: z.string().optional(),
       startsOn: z.string().optional(),

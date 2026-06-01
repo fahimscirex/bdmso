@@ -1,19 +1,20 @@
 ---
 home_order: "07"
-feeAmount: null
 title: "STEM Masterclass Series"
 tagline: "Masterclasses of specialized topics on physics, chemistry, biology or Math. One masterclass consists of 6 classes."
 metaDescription: "A 6-class STEM Masterclass for Class 4-6 and 7-8 students, led by mentors and past Olympiad champions, bridging Olympiad prep to TST-level fluency."
 startsOn: "2026-08-01"
+registrationStarts: "2026-08-01"
 eyebrow: "Year-round · Masterclass"
 image: "/images/class.webp"
 audience: "Class 4-6, 7-8"
 duration: "2hrs/class, total 6 classes"
 format: "Specialized Classes for Advanced Students"
 outcome: "TST-level fluency and advanced analytical skills"
-price: "৳ On enquiry"
+level: "Advanced"
 schedule: "Starts 1 August 2026"
-registrationStarts: "2026-08-01"
+price: "৳ On enquiry"
+register_url: "/registration?program=stem-masterclass"
 register_label: "Enroll now"
 category: "advanced"
 ---

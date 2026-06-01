@@ -1,18 +1,19 @@
 ---
 home_order: "10"
-feeAmount: null
 title: "SPSB Nature Camp"
 tagline: "An activity-packed, 3-day residential camp coming up this December that turns the great outdoors into a living classroom."
 metaDescription: "The SPSB Nature Camp - a 4-day residential program of outdoor learning, ecology treks, stargazing and conservation projects for curious young explorers."
+registrationStarts: "2026-12-01"
 eyebrow: "Residential · Nature"
 image: "/images/nature_camp.webp"
 audience: "Open to all"
 duration: "4 days residential"
 format: "Outdoor residential camp"
 outcome: "Real-world ecology skills and friends for life"
-price: "৳ On enquiry"
+level: "Open · Residential"
 schedule: "Starts December 2026"
-registrationStarts: "2026-12-01"
+price: "৳ On enquiry"
+register_url: "/registration?program=summer-camp"
 register_label: "Book a seat"
 category: "residential"
 ---

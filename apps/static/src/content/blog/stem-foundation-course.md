@@ -6,7 +6,7 @@ date: 2026-04-28
 author: Samin Yasar Ahmed
 excerpt: The online foundation program for classes 3–6 ran from March 14 to May 1, covering scientific method, chemistry, physics, mathematics, coding, astronomy, environmental science, biology, and machine learning over 20 sessions.
 description: BdMSO's online STEM Foundation course for classes 3-6 wrapped its first batch - 20 sessions spanning scientific method, physics, coding, astronomy and biology.
-image: images/stem.webp
+image: /images/stem.webp
 ---
 
 From March 14 to May 1, ten primary school students took part in BdMSO's first STEM Foundation Course - a 20-session online program designed to build strong conceptual foundations before the national round.

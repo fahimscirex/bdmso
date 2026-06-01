@@ -14,7 +14,10 @@ audience: "All BdMSO aspirants"
 duration: "1 hour per subject"
 format: "On-site mock exam · MASLab, Dhaka"
 outcome: "Exam confidence and competitive leaderboard placement"
+level: "All aspirants"
 schedule: "Mock 1: 12 June 2026 · Mock 2: 19 June 2026"
+price: "৳ 500"
+register_url: "/registration?program=mock-test"
 register_label: "Sign up for a mock"
 repeatable: true
 options: {"kind":"checkbox","label":"BdMSO Mock Test sessions","help":"Pick one or more sessions. Each subject is BDT 500.","items":[{"id":"mt1-math","label":"Mock Test 1 - Math","sub":"Fri 12 Jun 2026 - 3-4 PM - MASLab, Dhaka","price":500},{"id":"mt1-sci","label":"Mock Test 1 - Science","sub":"Fri 12 Jun 2026 - 5-6 PM - MASLab, Dhaka","price":500},{"id":"mt2-math","label":"Mock Test 2 - Math","sub":"Fri 19 Jun 2026 - 3-4 PM - MASLab, Dhaka","price":500},{"id":"mt2-sci","label":"Mock Test 2 - Science","sub":"Fri 19 Jun 2026 - 5-6 PM - MASLab, Dhaka","price":500}]}

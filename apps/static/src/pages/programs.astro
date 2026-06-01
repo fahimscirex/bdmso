@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { getCollection } from "astro:content";
+import { deriveRegState } from "../lib/regState.js";
 
 const title = "STEM and Olympiad Programs for Primary Students - BdMSO";
 const description =
@@ -70,12 +71,10 @@ const cards = programs
     // window and today falls inside it. Year-round programs (no dates)
     // and closed ones show their category badge (Beginner/Advanced/...).
     let badgeClass, badgeLabel;
-    const inWindow =
-      p.registration !== false &&
-      (p.registrationStarts || p.registrationEnds) &&
-      (!p.registrationStarts || todayISO >= p.registrationStarts) &&
-      (!p.registrationEnds || todayISO <= p.registrationEnds);
-    if (inWindow) {
+    const regOpen =
+      deriveRegState(p.yearRound === true, p.registrationStarts, p.registrationEnds, todayISO) ===
+      "open";
+    if (regOpen) {
       badgeClass = "b-open";
       badgeLabel = "Open";
     } else {
@@ -99,7 +98,7 @@ const cards = programs
       `data-schedule="${dated ? "dated" : "year-round"}"`,
       p.registrationStarts ? `data-starts="${escAttr(p.registrationStarts)}"` : "",
       p.registrationEnds ? `data-ends="${escAttr(p.registrationEnds)}"` : "",
-      p.registration === false ? 'data-registration="false"' : "",
+      p.yearRound ? 'data-year-round="true"' : "",
     ]
       .filter(Boolean)
       .join(" ");
@@ -514,14 +513,24 @@ const cards = programs
     const STATUS_LABEL = { open: 'Open now', soon: 'Opens soon', closed: 'Registration closed' };
     const ORDER        = { open: 0, soon: 1, closed: 2 };
 
-    // `registration` (from the catalog) is the master switch. When it's
-    // open, a future-dated intake shows as "Upcoming"; everything else
-    // (year-round programs, in-window intakes) shows as Open.
+    // Canonical rule (copy of deriveRegState): state is derived from the date
+    // window plus the year-round flag (always open). 'upcoming' maps to the
+    // 'soon' visual bucket below.
+    function deriveRegState(yearRound, starts, ends, today) {
+      if (yearRound) return 'open';
+      if (starts && today < starts) return 'upcoming';
+      if (ends && today > ends) return 'closed';
+      if (starts || ends) return 'open';
+      return 'closed';
+    }
     function statusFor(card) {
-      if (card.dataset.registration === 'false') return 'closed';
-      const starts = card.dataset.starts;
-      if (starts && todayISO < starts) return 'soon';
-      return 'open';
+      const state = deriveRegState(
+        card.dataset.yearRound === 'true',
+        card.dataset.starts,
+        card.dataset.ends,
+        todayISO
+      );
+      return state === 'upcoming' ? 'soon' : state;
     }
 
     const all = cardEls.map((card) => ({

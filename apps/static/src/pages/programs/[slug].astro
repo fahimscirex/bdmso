@@ -1,6 +1,7 @@
 ---
 import { getCollection, render } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import { deriveRegState } from "../../lib/regState.js";
 
 const SITE = "https://bdmso.org";
 
@@ -26,7 +27,9 @@ const metaDesc = p.metaDescription || p.tagline || "";
 const pageTitle = /^BdMSO\b/i.test(p.title) ? p.title : `${p.title} - BdMSO`;
 
 const isExternal = /^https?:/.test(p.register_url || "");
-const regOpen = p.registration !== false;
+const todayISO = new Date().toISOString().slice(0, 10);
+const regState = deriveRegState(p.yearRound === true, p.registrationStarts, p.registrationEnds, todayISO);
+const regOpen = regState === "open";
 const closedBoxStyle =
   "text-align:center;padding:14px;border-radius:12px;background:var(--bg-alt,#f1f3f7);color:var(--ink-3);font-weight:700;font-size:14px;";
 
@@ -91,6 +94,7 @@ if (courseInstance) courseSchema.hasCourseInstance = courseInstance;
                 {...(isExternal ? { target: "_blank", rel: "noopener" } : {})}
                 data-reg-starts={p.registrationStarts}
                 data-reg-ends={p.registrationEnds}
+                data-year-round={p.yearRound ? "true" : undefined}
               >{p.register_label || "Register"} →</a>
             ) : (
               <div class="pd-cta" style={closedBoxStyle}>Registration closed</div>
@@ -116,15 +120,25 @@ if (courseInstance) courseSchema.hasCourseInstance = courseInstance;
 
   <script is:inline>
     // Downgrade the CTA to "opens on…/closed" based on the registration window.
-    // Kept client-side so static pages never go stale.
+    // Kept client-side so static pages never go stale. Canonical rule (copy of
+    // deriveRegState): year-round programs are always open; otherwise derive
+    // from the date window.
     (function () {
       var c = document.getElementById("pd-cta");
       if (!c) return;
       var t = new Date().toISOString().slice(0, 10);
       var s = c.dataset.regStarts, e = c.dataset.regEnds, m = "";
-      if (s && t < s) {
+      function deriveRegState(yearRound, starts, ends, today) {
+        if (yearRound) return "open";
+        if (starts && today < starts) return "upcoming";
+        if (ends && today > ends) return "closed";
+        if (starts || ends) return "open";
+        return "closed";
+      }
+      var state = deriveRegState(c.dataset.yearRound === "true", s, e, t);
+      if (state === "upcoming") {
         m = "Registration opens " + new Date(s).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-      } else if (e && t > e) {
+      } else if (state === "closed") {
         m = "Registration closed";
       }
       if (m) {

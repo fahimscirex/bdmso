@@ -1,6 +1,5 @@
 ---
 home_order: "11"
-feeAmount: null
 title: "International Summer/Winter Camp"
 tagline: "Residential Camp outside Bangladesh with global experts."
 metaDescription: "A 5-day international residential camp outside Bangladesh connecting young learners with global STEM experts and BdMSO alumni for mentorship and cross-cultural projects."
@@ -10,10 +9,11 @@ audience: "By Application Only"
 duration: "Residential Camp"
 format: "International residential camp"
 outcome: "International exposure and elite networking"
-price: "৳ On enquiry"
+level: "Open · Residential · Limited seats"
 schedule: "Coming soon"
+price: "৳ On enquiry"
+register_url: "/registration?program=winter-camp"
 register_label: "Book a seat"
-registration: false
 category: "residential"
 ---
 

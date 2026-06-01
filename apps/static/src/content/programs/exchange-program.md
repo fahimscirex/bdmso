@@ -1,6 +1,5 @@
 ---
 home_order: "12"
-feeAmount: null
 title: "BdMSO Exchange Program"
 tagline: "The pinnacle - 30-day international exchange for top BdMSO performers, by invitation only."
 metaDescription: "The BdMSO Exchange Program - a 30-day international academic exchange for top-performing BdMSO students, by invitation only. Real international research exposure."
@@ -10,10 +9,11 @@ audience: "Top BdMSO students (by invitation / rigorous selection only)"
 duration: "30 days"
 format: "International exchange placement"
 outcome: "Ultimate international exposure and collaborative research"
-price: "৳ On enquiry"
+level: "Open · Top BdMSO students"
 schedule: "Coming soon"
+price: "৳ On enquiry"
+register_url: "/registration?program=exchange-program"
 register_label: "Apply"
-registration: false
 category: "residential"
 ---
 

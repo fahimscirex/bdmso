@@ -13,6 +13,7 @@ import {
   labelsOf,
   computeDiff,
   isWithinEditWindow,
+  deriveRegState,
 } from "./program-options.js";
 
 // Stored pricing_json is { selection, choices:[{id,label,note,price}] }.
@@ -43,7 +44,8 @@ function toClientConfig(cfg) {
 export async function loadCatalog(env) {
   const { results } = await env.DB.prepare(
     `SELECT slug, title, fee_amount, pricing_json, registration_status,
-            registration_opens, registration_closes, starts_on, hidden, repeatable
+            registration_opens, registration_closes, starts_on, hidden, repeatable,
+            always_open
        FROM programs`
   ).all();
   const rows = results || [];
@@ -106,7 +108,9 @@ export async function loadCatalog(env) {
       return bySlug[slug]?.registration_closes || null;
     },
     registrationStatusFor(slug) {
-      return bySlug[slug]?.registration_status || null;
+      const r = bySlug[slug];
+      if (!r) return null;
+      return deriveRegState(r.always_open === 1, r.registration_opens, r.registration_closes, null);
     },
     startsOnFor(slug) {
       return bySlug[slug]?.starts_on || null;
@@ -114,18 +118,13 @@ export async function loadCatalog(env) {
     repeatable(slug) {
       return bySlug[slug]?.repeatable === 1;
     },
-    // Enrollable iff known, not hidden, status 'open', and today within
-    // [registration_opens, registration_closes]. Mirrors the old
-    // registrationOpenFor (registration:false -> not 'open').
+    // Enrollable iff known, not hidden, and the derived registration state is
+    // 'open' (always_open flag, else today within the date window).
     registrationOpenFor(slug, todayISO = null) {
       const r = bySlug[slug];
       if (!r) return false;
       if (r.hidden) return false;
-      if (r.registration_status !== "open") return false;
-      const today = todayISO || new Date().toISOString().slice(0, 10);
-      if (r.registration_opens && today < r.registration_opens) return false;
-      if (r.registration_closes && today > r.registration_closes) return false;
-      return true;
+      return deriveRegState(r.always_open === 1, r.registration_opens, r.registration_closes, todayISO) === "open";
     },
     // Effective fee for a registration row: option-priced -> derived from the
     // stored options; else the flat fee; null = on enquiry.

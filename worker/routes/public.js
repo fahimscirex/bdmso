@@ -10,6 +10,7 @@ import { checkLoginRateLimit, recordLoginAttempt, checkActionRateLimit, recordAc
 import { createVerificationToken, sendVerificationEmail, sendSponsorshipNotification, assignMemberIdAndSendReceipt, createPasswordResetToken, sendPasswordResetEmail, sendUpdatedReceiptForRegistration } from "../lib/email.js";
 import { recordAudit } from "../lib/audit-log.js";
 import { loadCatalog } from "../lib/programs.js";
+import { deriveRegState } from "../lib/program-options.js";
 // Program catalog now comes from D1 via loadCatalog(env). registrationOpenFor,
 // effectiveProgramPrice, names/prices and the option logic are catalog methods
 // (see lib/programs.js) - each handler does `const catalog = await loadCatalog(env)`
@@ -218,7 +219,7 @@ export async function handleCatalog(request, env) {
     SELECT slug, title, category, eyebrow, image, audience, duration, format, outcome,
            level, price_label, fee_amount, pricing_json, schedule_label, starts_on, ends_on,
            registration_status, registration_opens, registration_closes, meta_description,
-           home_order, register_url, register_label, hidden, repeatable
+           home_order, register_url, register_label, hidden, repeatable, always_open
     FROM programs
     WHERE published = 1
     ORDER BY COALESCE(home_order, '99'), title
@@ -254,8 +255,9 @@ export async function handleCatalog(request, env) {
       registrationStatus: r.registration_status,
       registrationStarts: r.registration_opens || null,
       registrationEnds: r.registration_closes || null,
-      // legacy boolean: open/coming-soon count as "registration enabled"
-      registration: r.registration_status === "open" || r.registration_status === "coming_soon",
+      // Derived from the always_open flag + date window (not the legacy enum).
+      registration: deriveRegState(r.always_open === 1, r.registration_opens, r.registration_closes, null) === "open",
+      yearRound: r.always_open === 1,
       metaDescription: r.meta_description || null,
       home_order: r.home_order || null,
       register_url: r.register_url || null,
@@ -773,7 +775,8 @@ export async function handleCreatePayment(request, env) {
       customer_post_code: "1000",
     });
   } catch (err) {
-    return badRequest(err.message || "Payment gateway error. Please try again.");
+    console.error("[public.createPayment] gateway error:", err?.stack || err?.message || err);
+    return badRequest("Payment gateway error. Please try again.");
   }
 
   // val_id starts out holding shurjoPay's order id. We need this because

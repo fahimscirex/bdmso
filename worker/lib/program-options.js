@@ -87,3 +87,16 @@ export function isWithinEditWindow(registrationCloses, todayISO = null) {
   const today = todayISO || new Date().toISOString().slice(0, 10);
   return today <= registrationCloses;
 }
+
+// Derive a program's registration state (open | upcoming | closed) from its
+// always-open flag plus the date window. `today` is an ISO 'YYYY-MM-DD' string
+// (lexicographic compare is correct for ISO dates); null -> today's date.
+// This is the single shared helper - "registration is open" === 'open'.
+export function deriveRegState(yearRound, starts, ends, today = null) {
+  today = today || new Date().toISOString().slice(0, 10);
+  if (yearRound) return 'open';
+  if (starts && today < starts) return 'upcoming';
+  if (ends && today > ends) return 'closed';
+  if (starts || ends) return 'open';
+  return 'closed';
+}

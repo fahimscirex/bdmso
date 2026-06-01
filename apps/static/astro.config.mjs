@@ -20,5 +20,11 @@ export default defineConfig({
   // Dev only: proxy /api to the worker running under `wrangler dev` (see
   // scripts/dev.mjs). Production routing is the worker itself; this just lets
   // `astro dev` serve the site while /api/* reaches the local worker + D1.
-  vite: { server: { proxy: { "/api": `http://localhost:${process.env.WRANGLER_PORT || 8787}` } } },
+  vite: {
+    // Do NOT wipe the shared dist/ on build - it also holds dist/admin and
+    // dist/dashboard (the SPAs). Astro overwrites its own files; the SPA dirs
+    // stay put so an incremental static rebuild never kills the dashboards.
+    build: { emptyOutDir: false },
+    server: { proxy: { "/api": `http://localhost:${process.env.WRANGLER_PORT || 8787}` } },
+  },
 });
