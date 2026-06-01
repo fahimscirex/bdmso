@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS guardian_accounts (
   email_verified INTEGER NOT NULL DEFAULT 0,
   member_id TEXT,
   role TEXT NOT NULL DEFAULT 'guardian',   -- 'guardian' | 'admin' | 'editor' | 'mentor'
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  updated_at TEXT                          -- last change; maintained by trigger (see bottom)
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_guardian_accounts_member_id
@@ -93,6 +94,7 @@ CREATE TABLE IF NOT EXISTS registrations (
   source_page TEXT,
   member_id TEXT UNIQUE,           -- BdMSOYY0C-XXX; assigned on first paid receipt
   created_at TEXT NOT NULL,
+  updated_at TEXT,                         -- last change; maintained by trigger (see bottom)
   FOREIGN KEY (guardian_account_id) REFERENCES guardian_accounts (id)
 );
 
@@ -128,7 +130,8 @@ CREATE TABLE IF NOT EXISTS sponsorship_enquiries (
   message TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'new',
   source_page TEXT,
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  updated_at TEXT                          -- last change; maintained by trigger (see bottom)
 );
 
 CREATE INDEX IF NOT EXISTS idx_sponsorship_enquiries_email
@@ -206,7 +209,8 @@ CREATE TABLE IF NOT EXISTS coupons (
   used_count INTEGER NOT NULL DEFAULT 0,
   applies_to TEXT,                -- NULL = all programs; comma-separated slugs otherwise
   expires_at TEXT,
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  updated_at TEXT                          -- last change; maintained by trigger (see bottom)
 );
 
 -- NOTE: coupon seed data lives in separate files, not here:
@@ -428,3 +432,31 @@ CREATE TABLE IF NOT EXISTS scores (
 );
 CREATE INDEX IF NOT EXISTS idx_scores_event_section
 ON scores (event_key, section, score DESC);
+
+-- Keep updated_at current on the mutable tables that carry it. The WHEN guard
+-- only touches the row when the write did not already change updated_at, so it
+-- is safe regardless of the recursive_triggers setting. (See migration 0006.)
+CREATE TRIGGER IF NOT EXISTS trg_guardian_accounts_updated_at
+AFTER UPDATE ON guardian_accounts FOR EACH ROW
+WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE guardian_accounts SET updated_at = datetime('now') WHERE rowid = NEW.rowid;
+END;
+CREATE TRIGGER IF NOT EXISTS trg_registrations_updated_at
+AFTER UPDATE ON registrations FOR EACH ROW
+WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE registrations SET updated_at = datetime('now') WHERE rowid = NEW.rowid;
+END;
+CREATE TRIGGER IF NOT EXISTS trg_coupons_updated_at
+AFTER UPDATE ON coupons FOR EACH ROW
+WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE coupons SET updated_at = datetime('now') WHERE rowid = NEW.rowid;
+END;
+CREATE TRIGGER IF NOT EXISTS trg_sponsorship_enquiries_updated_at
+AFTER UPDATE ON sponsorship_enquiries FOR EACH ROW
+WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE sponsorship_enquiries SET updated_at = datetime('now') WHERE rowid = NEW.rowid;
+END;
