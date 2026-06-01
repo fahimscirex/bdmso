@@ -4,17 +4,18 @@
 
 **bdmso-site** is a typescript project built with hono, organized as a monorepo.
 
-**Workspaces:** `@bdmso/admin` (`apps/admin`), `@bdmso/guardian` (`apps/guardian`), `dash` (`dash`)
+**Workspaces:** `@bdmso/admin` (`apps/admin`), `@bdmso/guardian` (`apps/guardian`), `@bdmso/static` (`apps/static`), `dash` (`dash`)
 
 ## Scale
 
-74 API routes · 22 database models · 37 UI components · 25 library files · 25 middleware layers · 3 environment variables
+80 API routes · 22 database models · 37 UI components · 26 library files · 25 middleware layers · 3 environment variables
 
 ## Subsystems
 
 - **[Auth](./auth.md)** — 2 routes — touches: auth, db, cache, email, upload
 - **[Add-enrollment](./add-enrollment.md)** — 1 routes — touches: auth, db, cache, email, upload
-- **[Admin](./admin.md)** — 51 routes — touches: auth, db, queue, email, upload
+- **[Admin](./admin.md)** — 56 routes — touches: auth, db, queue, email, payment
+- **[Catalog](./catalog.md)** — 1 routes — touches: auth, db, cache, email, upload
 - **[Create-payment](./create-payment.md)** — 1 routes — touches: auth, db, cache, email, upload
 - **[Forgot-email](./forgot-email.md)** — 1 routes — touches: auth, db, cache, email, upload
 - **[Forgot-password](./forgot-password.md)** — 1 routes — touches: auth, db, cache, email, upload
@@ -32,7 +33,7 @@
 
 **UI:** 37 components (react) — see [ui.md](./ui.md)
 
-**Libraries:** 25 files — see [libraries.md](./libraries.md)
+**Libraries:** 26 files — see [libraries.md](./libraries.md)
 
 ## High-Impact Files
 
@@ -51,4 +52,4 @@ Changes to these files have the widest blast radius across the codebase:
 - `WRANGLER_PORT` — `apps/admin/vite.config.ts`
 
 ---
-_Back to [index.md](./index.md) · Generated 2026-05-28_
+_Back to [index.md](./index.md) · Generated 2026-06-01_

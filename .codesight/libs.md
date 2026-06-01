@@ -30,7 +30,11 @@
   - function parseFrontmatter: (raw) => void
   - function markdownToHtml: (md) => void
 - `public/js/program-catalog.js` — function loadCatalog: () => void, function programMaps: () => void
-- `public/js/program-options.js` — function programHasOptions: (slug) => void, function computeOptionsTotal: (slug, ids) => void
+- `public/js/program-options.js`
+  - function initProgramOptions: () => void
+  - function programHasOptions: (slug) => void
+  - function computeOptionsTotal: (slug, ids) => void
+  - const PROGRAM_OPTIONS
 - `worker/lib/audit-log.js` — function recordAudit: (env, accountId, action, target) => void
 - `worker/lib/crypto.js`
   - function toHex: (buffer) => void
@@ -47,13 +51,12 @@
   - function sendReceiptEmail: (env, reg, memberId, baseUrl, extras) => void
   - _...8 more_
 - `worker/lib/program-options.js`
-  - function programHasOptions: (slug) => void
-  - function getProgramOptions: (slug) => void
-  - function getProgram: (slug) => void
-  - function getOptionLabels: (slug, ids) => void
-  - function priceOptions: (slug, ids) => void
-  - function withinEditWindow: (slug, todayISO) => void
-  - _...2 more_
+  - function validateAndPrice: (cfg, rawOptions) => void
+  - function priceOf: (cfg, ids) => void
+  - function labelsOf: (cfg, ids) => void
+  - function computeDiff: (cfg, fromIds, toIds) => void
+  - function isWithinEditWindow: (registrationCloses, todayISO) => void
+- `worker/lib/programs.js` — function loadCatalog: (env) => void, function getCatalog: (c) => void
 - `worker/lib/rate-limit.js`
   - function checkLoginRateLimit: (env, email) => void
   - function recordLoginAttempt: (env, email, success) => void

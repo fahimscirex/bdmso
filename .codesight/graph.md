@@ -12,16 +12,16 @@
 - `worker/lib/crypto.js` — imported by **5** files
 - `worker/lib/util.js` — imported by **5** files
 - `apps/admin/src/auth.ts` — imported by **4** files
+- `worker/lib/programs.js` — imported by **4** files
 - `public/js/md.js` — imported by **3** files
 - `apps/guardian/src/router.ts` — imported by **3** files
-- `worker/lib/programs.js` — imported by **3** files
+- `public/js/api.js` — imported by **3** files
 - `worker/lib/audit-log.js` — imported by **3** files
 - `worker/lib/email.js` — imported by **3** files
 - `apps/admin/src/components/Sparkline.tsx` — imported by **2** files
 - `apps/guardian/src/components/NotificationTicker.tsx` — imported by **2** files
 - `apps/guardian/src/components/ChangeSelectionModal.tsx` — imported by **2** files
-- `public/js/api.js` — imported by **2** files
-- `worker/lib/validation.js` — imported by **2** files
+- `public/js/program-catalog.js` — imported by **2** files
 
 ## Import Map (who imports what)
 

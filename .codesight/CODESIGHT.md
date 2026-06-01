@@ -1,11 +1,11 @@
 # bdmso-site — AI Context Map
 
 > **Stack:** hono | none | react | typescript
-> **Monorepo:** @bdmso/admin, @bdmso/guardian, dash
+> **Monorepo:** @bdmso/admin, @bdmso/guardian, @bdmso/static, dash
 
-> 74 routes | 22 models | 37 components | 25 lib files | 3 env vars | 25 middleware
-> **Token savings:** this file is ~6,200 tokens. Without it, AI exploration would cost ~81,600 tokens. **Saves ~75,400 tokens per conversation.**
-> **Last scanned:** 2026-05-28 12:35 — re-run after significant changes
+> 80 routes | 22 models | 37 components | 26 lib files | 3 env vars | 25 middleware
+> **Token savings:** this file is ~6,300 tokens. Without it, AI exploration would cost ~85,000 tokens. **Saves ~78,600 tokens per conversation.**
+> **Last scanned:** 2026-06-01 10:06 — re-run after significant changes
 
 ---
 
@@ -17,12 +17,14 @@
 - **`/admin/registrations/:id/notes`** GET | POST | GET/:id | DELETE/:id → Note
 - **`/admin/templates`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Template
 - **`/admin/posts`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Post
+- **`/admin/programs`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Program
 
 ## Other Routes
 
 - `POST` `/login` params() [auth, db, cache, email, upload]
 - `POST` `/logout` params() [auth, db, cache, email, upload]
 - `GET` `/me` params() [auth, db, cache, email, upload]
+- `GET` `/catalog` params() [auth, db, cache, email, upload]
 - `POST` `/submit-registration` params() [auth, db, cache, email, upload]
 - `POST` `/add-enrollment` params() [auth, db, cache, email, upload]
 - `GET` `/validate-coupon` params() [auth, db, cache, email, upload]
@@ -34,41 +36,41 @@
 - `POST` `/forgot-password` params() [auth, db, cache, email, upload]
 - `POST` `/forgot-email` params() [auth, db, cache, email, upload]
 - `POST` `/reset-password` params() [auth, db, cache, email, upload]
-- `GET` `/admin/health` params() [auth, db, queue, email, upload]
-- `GET` `/admin/registrations` params() [auth, db, queue, email, upload]
-- `GET` `/admin/registrations/:id` params(id) [auth, db, queue, email, upload]
-- `PATCH` `/admin/registrations/:id/status` params(id) [auth, db, queue, email, upload]
-- `POST` `/admin/registrations/:id/resend-verification` params(id) [auth, db, queue, email, upload]
-- `POST` `/admin/registrations/:id/resend-receipt` params(id) [auth, db, queue, email, upload]
-- `GET` `/admin/payments` params() [auth, db, queue, email, upload]
-- `POST` `/admin/payments/:id/reverify` params(id) [auth, db, queue, email, upload]
-- `POST` `/admin/payments/:id/refund` params(id) [auth, db, queue, email, upload]
-- `GET` `/admin/payments/reports` params() [auth, db, queue, email, upload]
-- `GET` `/admin/sponsorships` params() [auth, db, queue, email, upload]
-- `PATCH` `/admin/sponsorships/:id/status` params(id) [auth, db, queue, email, upload]
-- `GET` `/admin/users` params() [auth, db, queue, email, upload]
-- `PATCH` `/admin/users/:id/role` params(id) [auth, db, queue, email, upload]
-- `POST` `/admin/uploads` params() [auth, db, queue, email, upload]
-- `GET` `/admin/audit` params() [auth, db, queue, email, upload]
-- `GET` `/admin/analytics` params() [auth, db, queue, email, upload]
-- `GET` `/admin/broadcast/recipients` params() [auth, db, queue, email, upload]
-- `POST` `/admin/broadcast` params() [auth, db, queue, email, upload]
-- `POST` `/admin/registrations/bulk/remind` params() [auth, db, queue, email, upload]
-- `POST` `/admin/registrations/bulk/cancel` params() [auth, db, queue, email, upload]
-- `GET` `/admin/triage` params() [auth, db, queue, email, upload]
-- `POST` `/admin/triage/snooze` params() [auth, db, queue, email, upload]
-- `POST` `/admin/triage/dismiss` params() [auth, db, queue, email, upload]
-- `GET` `/admin/system` params() [auth, db, queue, email, upload]
-- `POST` `/admin/users/:id/send-password-reset` params(id) [auth, db, queue, email, upload]
-- `POST` `/admin/users/:id/force-reverify-email` params(id) [auth, db, queue, email, upload]
-- `POST` `/admin/coupons/bulk-generate` params() [auth, db, queue, email, upload]
-- `GET` `/admin/broadcast/log` params() [auth, db, queue, email, upload]
-- `GET` `/admin/events` params() [auth, db, queue, email, upload]
-- `GET` `/admin/events/:event/roster` params(event) [auth, db, queue, email, upload]
-- `POST` `/admin/events/:event/checkin` params(event) [auth, db, queue, email, upload]
-- `GET` `/admin/events/:event/scores` params(event) [auth, db, queue, email, upload]
-- `POST` `/admin/events/:event/scores` params(event) [auth, db, queue, email, upload]
-- `POST` `/admin/events/:event/scores/finalize` params(event) [auth, db, queue, email, upload]
+- `GET` `/admin/health` params() [auth, db, queue, email, payment, upload]
+- `GET` `/admin/registrations` params() [auth, db, queue, email, payment, upload]
+- `GET` `/admin/registrations/:id` params(id) [auth, db, queue, email, payment, upload]
+- `PATCH` `/admin/registrations/:id/status` params(id) [auth, db, queue, email, payment, upload]
+- `POST` `/admin/registrations/:id/resend-verification` params(id) [auth, db, queue, email, payment, upload]
+- `POST` `/admin/registrations/:id/resend-receipt` params(id) [auth, db, queue, email, payment, upload]
+- `GET` `/admin/payments` params() [auth, db, queue, email, payment, upload]
+- `POST` `/admin/payments/:id/reverify` params(id) [auth, db, queue, email, payment, upload]
+- `POST` `/admin/payments/:id/refund` params(id) [auth, db, queue, email, payment, upload]
+- `GET` `/admin/payments/reports` params() [auth, db, queue, email, payment, upload]
+- `GET` `/admin/sponsorships` params() [auth, db, queue, email, payment, upload]
+- `PATCH` `/admin/sponsorships/:id/status` params(id) [auth, db, queue, email, payment, upload]
+- `GET` `/admin/users` params() [auth, db, queue, email, payment, upload]
+- `PATCH` `/admin/users/:id/role` params(id) [auth, db, queue, email, payment, upload]
+- `POST` `/admin/uploads` params() [auth, db, queue, email, payment, upload]
+- `GET` `/admin/audit` params() [auth, db, queue, email, payment, upload]
+- `GET` `/admin/analytics` params() [auth, db, queue, email, payment, upload]
+- `GET` `/admin/broadcast/recipients` params() [auth, db, queue, email, payment, upload]
+- `POST` `/admin/broadcast` params() [auth, db, queue, email, payment, upload]
+- `POST` `/admin/registrations/bulk/remind` params() [auth, db, queue, email, payment, upload]
+- `POST` `/admin/registrations/bulk/cancel` params() [auth, db, queue, email, payment, upload]
+- `GET` `/admin/triage` params() [auth, db, queue, email, payment, upload]
+- `POST` `/admin/triage/snooze` params() [auth, db, queue, email, payment, upload]
+- `POST` `/admin/triage/dismiss` params() [auth, db, queue, email, payment, upload]
+- `GET` `/admin/system` params() [auth, db, queue, email, payment, upload]
+- `POST` `/admin/users/:id/send-password-reset` params(id) [auth, db, queue, email, payment, upload]
+- `POST` `/admin/users/:id/force-reverify-email` params(id) [auth, db, queue, email, payment, upload]
+- `POST` `/admin/coupons/bulk-generate` params() [auth, db, queue, email, payment, upload]
+- `GET` `/admin/broadcast/log` params() [auth, db, queue, email, payment, upload]
+- `GET` `/admin/events` params() [auth, db, queue, email, payment, upload]
+- `GET` `/admin/events/:event/roster` params(event) [auth, db, queue, email, payment, upload]
+- `POST` `/admin/events/:event/checkin` params(event) [auth, db, queue, email, payment, upload]
+- `GET` `/admin/events/:event/scores` params(event) [auth, db, queue, email, payment, upload]
+- `POST` `/admin/events/:event/scores` params(event) [auth, db, queue, email, payment, upload]
+- `POST` `/admin/events/:event/scores/finalize` params(event) [auth, db, queue, email, payment, upload]
 - `GET` `/me/profile` params() [auth, payment]
 - `PATCH` `/me/profile` params() [auth, payment]
 - `PATCH` `/me/registrations` params() [auth, payment]
@@ -82,6 +84,19 @@
 ---
 
 # Schema
+
+### programs
+- slug: text (pk)
+- title: text (required)
+- category: text
+- image: text
+- duration: text
+- format: text
+- outcome: text
+- level: text
+- meta_description: text
+- home_order: text
+- 01: register_url text
 
 ### guardian_accounts
 - id: text (pk)
@@ -190,21 +205,6 @@
 - from_options: text (required)
 - to_price: real (required)
 - delta: real (required)
-
-### programs
-- slug: text (pk)
-- title: text (required)
-- tagline: text
-- cohort: text
-- image: text
-- venue: text
-- audience: text
-- subjects_json: text
-- rendered: at request time
-  routine_json text
-- published: integer (required)
-- published_at: text
-- updated_by: text
 
 ### posts
 - slug: text (pk)
@@ -345,7 +345,11 @@
   - function parseFrontmatter: (raw) => void
   - function markdownToHtml: (md) => void
 - `public/js/program-catalog.js` — function loadCatalog: () => void, function programMaps: () => void
-- `public/js/program-options.js` — function programHasOptions: (slug) => void, function computeOptionsTotal: (slug, ids) => void
+- `public/js/program-options.js`
+  - function initProgramOptions: () => void
+  - function programHasOptions: (slug) => void
+  - function computeOptionsTotal: (slug, ids) => void
+  - const PROGRAM_OPTIONS
 - `worker/lib/audit-log.js` — function recordAudit: (env, accountId, action, target) => void
 - `worker/lib/crypto.js`
   - function toHex: (buffer) => void
@@ -362,13 +366,12 @@
   - function sendReceiptEmail: (env, reg, memberId, baseUrl, extras) => void
   - _...8 more_
 - `worker/lib/program-options.js`
-  - function programHasOptions: (slug) => void
-  - function getProgramOptions: (slug) => void
-  - function getProgram: (slug) => void
-  - function getOptionLabels: (slug, ids) => void
-  - function priceOptions: (slug, ids) => void
-  - function withinEditWindow: (slug, todayISO) => void
-  - _...2 more_
+  - function validateAndPrice: (cfg, rawOptions) => void
+  - function priceOf: (cfg, ids) => void
+  - function labelsOf: (cfg, ids) => void
+  - function computeDiff: (cfg, fromIds, toIds) => void
+  - function isWithinEditWindow: (registrationCloses, todayISO) => void
+- `worker/lib/programs.js` — function loadCatalog: (env) => void, function getCatalog: (c) => void
 - `worker/lib/rate-limit.js`
   - function checkLoginRateLimit: (env, email) => void
   - function recordLoginAttempt: (env, email, success) => void
@@ -479,16 +482,16 @@
 - `worker/lib/crypto.js` — imported by **5** files
 - `worker/lib/util.js` — imported by **5** files
 - `apps/admin/src/auth.ts` — imported by **4** files
+- `worker/lib/programs.js` — imported by **4** files
 - `public/js/md.js` — imported by **3** files
 - `apps/guardian/src/router.ts` — imported by **3** files
-- `worker/lib/programs.js` — imported by **3** files
+- `public/js/api.js` — imported by **3** files
 - `worker/lib/audit-log.js` — imported by **3** files
 - `worker/lib/email.js` — imported by **3** files
 - `apps/admin/src/components/Sparkline.tsx` — imported by **2** files
 - `apps/guardian/src/components/NotificationTicker.tsx` — imported by **2** files
 - `apps/guardian/src/components/ChangeSelectionModal.tsx` — imported by **2** files
-- `public/js/api.js` — imported by **2** files
-- `worker/lib/validation.js` — imported by **2** files
+- `public/js/program-catalog.js` — imported by **2** files
 
 ## Import Map (who imports what)
 

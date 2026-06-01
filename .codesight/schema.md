@@ -1,5 +1,18 @@
 # Schema
 
+### programs
+- slug: text (pk)
+- title: text (required)
+- category: text
+- image: text
+- duration: text
+- format: text
+- outcome: text
+- level: text
+- meta_description: text
+- home_order: text
+- 01: register_url text
+
 ### guardian_accounts
 - id: text (pk)
 - email: text (required)
@@ -107,21 +120,6 @@
 - from_options: text (required)
 - to_price: real (required)
 - delta: real (required)
-
-### programs
-- slug: text (pk)
-- title: text (required)
-- tagline: text
-- cohort: text
-- image: text
-- venue: text
-- audience: text
-- subjects_json: text
-- rendered: at request time
-  routine_json text
-- published: integer (required)
-- published_at: text
-- updated_by: text
 
 ### posts
 - slug: text (pk)

@@ -4,6 +4,22 @@
 
 **unknown** — 22 models
 
+### programs
+
+pk: `slug` (text)
+
+- `slug`: text _(pk)_
+- `title`: text _(required)_
+- `category`: text
+- `image`: text
+- `duration`: text
+- `format`: text
+- `outcome`: text
+- `level`: text
+- `meta_description`: text
+- `home_order`: text
+- `01`: register_url text
+
 ### guardian_accounts
 
 pk: `id` (text) · fk: member_id
@@ -151,24 +167,6 @@ pk: `id` (integer) · fk: registration_id
 - `from_options`: text _(required)_
 - `to_price`: real _(required)_
 - `delta`: real _(required)_
-
-### programs
-
-pk: `slug` (text)
-
-- `slug`: text _(pk)_
-- `title`: text _(required)_
-- `tagline`: text
-- `cohort`: text
-- `image`: text
-- `venue`: text
-- `audience`: text
-- `subjects_json`: text
-- `rendered`: at request time
-  routine_json text
-- `published`: integer _(required)_
-- `published_at`: text
-- `updated_by`: text
 
 ### posts
 

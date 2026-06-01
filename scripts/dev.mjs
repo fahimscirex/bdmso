@@ -1,8 +1,11 @@
 import { spawn } from "node:child_process";
 
+// The Astro dev server serves the site (with HMR) and proxies /api to the
+// worker running under `wrangler dev` (see vite.server.proxy in astro.config).
+// Visit the Astro dev URL (printed below, :4321); /api/* hits the worker.
 const procs = [
-  { name: "posts",    cmd: "node",        args: ["scripts/build.mjs", "--watch"] },
-  { name: "wrangler", cmd: "npx",         args: ["wrangler", "dev", "--live-reload"] },
+  { name: "worker", cmd: "npx",  args: ["wrangler", "dev", "--port", "8787"] },
+  { name: "astro",  cmd: "pnpm", args: ["--filter", "@bdmso/static", "dev"] },
 ];
 
 const children = procs.map(({ name, cmd, args }) => {
