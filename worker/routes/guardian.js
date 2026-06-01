@@ -506,7 +506,8 @@ guardian.post("/registrations/:id/options/upgrade", async (c) => {
       customer_post_code: "1000",
     });
   } catch (err) {
-    return c.json({ error: err.message || "Payment gateway error. Please try again." }, 502);
+    console.error("[guardian.pay] gateway error:", err?.stack || err?.message || err);
+    return c.json({ error: "Payment gateway error. Please try again." }, 502);
   }
 
   const paymentId = createId("pay");

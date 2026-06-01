@@ -74,6 +74,21 @@ export function parseEmailFrom(raw) {
 //   cumulativeAmount on 'updated' receipts, the total the guardian has paid
 //                    across all payments for this registration. Initial
 //                    receipts ignore it and use reg.amount as today.
+// Single Brevo transactional-email POST. Callers build the payload and handle
+// the Response/errors; this removes the url + method + headers boilerplate that
+// was copied into every send* function.
+async function sendBrevoEmail(env, payload) {
+  return fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "api-key": env.BREVO_API_KEY,
+      "content-type": "application/json",
+      "accept": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function sendReceiptEmail(env, reg, memberId, baseUrl, extras = {}) {
   const { kind = "initial", optionLabels = [], cumulativeAmount = null } = extras;
   const isUpdated = kind === "updated";
@@ -244,19 +259,11 @@ export async function sendReceiptEmail(env, reg, memberId, baseUrl, extras = {})
     : `Payment Confirmed - ${programName} (${memberId})`;
 
   try {
-    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
-        "api-key": env.BREVO_API_KEY,
-        "content-type": "application/json",
-        "accept": "application/json",
-      },
-      body: JSON.stringify({
-        sender,
-        to: [{ email: reg.guardian_email, name: reg.guardian_full_name }],
-        subject,
-        htmlContent: html,
-      }),
+    const res = await sendBrevoEmail(env, {
+      sender,
+      to: [{ email: reg.guardian_email, name: reg.guardian_full_name }],
+      subject,
+      htmlContent: html,
     });
     const body = await res.text().catch(() => "");
     if (!res.ok) {
@@ -302,20 +309,12 @@ export async function sendSponsorshipNotification(env, lead) {
     </div>`;
 
   try {
-    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
-        "api-key": env.BREVO_API_KEY,
-        "content-type": "application/json",
-        "accept": "application/json",
-      },
-      body: JSON.stringify({
-        sender,
-        to: [{ email: recipient, name: "BdMSO Partnerships" }],
-        replyTo: { email: lead.email, name: lead.contactPerson },
-        subject: `New sponsorship enquiry - ${lead.organization}`,
-        htmlContent: html,
-      }),
+    const res = await sendBrevoEmail(env, {
+      sender,
+      to: [{ email: recipient, name: "BdMSO Partnerships" }],
+      replyTo: { email: lead.email, name: lead.contactPerson },
+      subject: `New sponsorship enquiry - ${lead.organization}`,
+      htmlContent: html,
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
@@ -490,19 +489,11 @@ export async function sendVerificationEmail(env, email, verifyUrl) {
     </div>`;
 
   try {
-    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
-        "api-key": env.BREVO_API_KEY,
-        "content-type": "application/json",
-        "accept": "application/json",
-      },
-      body: JSON.stringify({
-        sender,
-        to: [{ email }],
-        subject: "Verify your BdMSO account",
-        htmlContent: html,
-      }),
+    const res = await sendBrevoEmail(env, {
+      sender,
+      to: [{ email }],
+      subject: "Verify your BdMSO account",
+      htmlContent: html,
     });
     const body = await res.text().catch(() => "");
     if (!res.ok) {
@@ -549,19 +540,11 @@ export async function sendPasswordResetEmail(env, email, resetUrl) {
     </div>`;
 
   try {
-    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
-        "api-key": env.BREVO_API_KEY,
-        "content-type": "application/json",
-        "accept": "application/json",
-      },
-      body: JSON.stringify({
-        sender,
-        to: [{ email }],
-        subject: "Reset your BdMSO password",
-        htmlContent: html,
-      }),
+    const res = await sendBrevoEmail(env, {
+      sender,
+      to: [{ email }],
+      subject: "Reset your BdMSO password",
+      htmlContent: html,
     });
     const body = await res.text().catch(() => "");
     if (!res.ok) console.log(`[email-reset] brevo error ${res.status}: ${body}`);
@@ -598,19 +581,11 @@ export async function sendBroadcastEmail(env, { subject, message, recipients }) 
   for (let i = 0; i < recipients.length; i += 500) {
     const chunk = recipients.slice(i, i + 500);
     try {
-      const res = await fetch("https://api.brevo.com/v3/smtp/email", {
-        method: "POST",
-        headers: {
-          "api-key": env.BREVO_API_KEY,
-          "content-type": "application/json",
-          "accept": "application/json",
-        },
-        body: JSON.stringify({
-          sender,
-          subject,
-          htmlContent: html,
-          messageVersions: chunk.map((email) => ({ to: [{ email }] })),
-        }),
+      const res = await sendBrevoEmail(env, {
+        sender,
+        subject,
+        htmlContent: html,
+        messageVersions: chunk.map((email) => ({ to: [{ email }] })),
       });
       if (res.ok) {
         sent += chunk.length;

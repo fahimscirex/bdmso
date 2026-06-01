@@ -124,6 +124,7 @@ admin.get("/registrations", async (c) => {
         r.guardian_phone,
         r.status,
         r.created_at,
+        a.member_id AS bdmso_id,
         (CASE WHEN r.status = 'submitted'
               AND r.created_at < datetime('now', '-3 days')
               THEN 1 ELSE 0 END)                            AS stuck,
@@ -134,6 +135,7 @@ admin.get("/registrations", async (c) => {
         p.coupon_code AS payment_coupon,
         p.updated_at AS payment_updated_at
       FROM registrations r
+      LEFT JOIN guardian_accounts a ON a.id = r.guardian_account_id
       LEFT JOIN payments p ON p.id = (
         SELECT id FROM payments WHERE registration_id = r.id ORDER BY created_at DESC LIMIT 1
       )
@@ -325,11 +327,17 @@ admin.get("/payments", async (c) => {
       p.status, p.coupon_code, p.created_at, p.updated_at,
       r.id                AS registration_id,
       r.registration_type,
+      r.preferred_subject,
+      r.program_options,
       r.student_full_name,
       r.guardian_full_name,
-      r.guardian_email
+      r.guardian_email,
+      a.member_id         AS bdmso_id,
+      prog.title          AS program_label
     FROM payments p
-    LEFT JOIN registrations r ON r.id = p.registration_id
+    LEFT JOIN registrations r     ON r.id = p.registration_id
+    LEFT JOIN guardian_accounts a ON a.id = r.guardian_account_id
+    LEFT JOIN programs prog       ON prog.slug = r.registration_type
     ${whereSql}
     ORDER BY p.updated_at DESC
     LIMIT ?
@@ -377,7 +385,8 @@ admin.post("/payments/:id/reverify", async (c) => {
     const tokenInfo = await shurjopayGetToken(config, c.env);
     verified = await shurjopayVerify(config, tokenInfo, row.val_id);
   } catch (err) {
-    return c.json({ error: "shurjoPay verify call failed: " + (err?.message || "unknown") }, 502);
+    console.error("[admin.reverify] shurjoPay verify failed:", err?.stack || err?.message || err);
+    return c.json({ error: "Payment verification failed. Please try again." }, 502);
   }
 
   // Map gateway status to our internal status.
@@ -406,41 +415,6 @@ admin.post("/payments/:id/reverify", async (c) => {
   }
 
   return c.json({ ok: true, status: newStatus, gateway: verified });
-});
-
-// POST /api/admin/payments/:id/refund
-// Marks a paid payment as refunded internally. NOTE: this does NOT call the
-// shurjoPay refund API (gateway-side refunds must be initiated from the
-// shurjoPay merchant dashboard until that integration is added). The
-// internal flag + status flip-back unblocks the guardian from re-paying.
-admin.post("/payments/:id/refund", async (c) => {
-  const id   = c.req.param("id");
-  const body = await c.req.json().catch(() => ({}));
-  const note = (body.note || "").trim();
-  const row  = await c.env.DB.prepare(
-    "SELECT id, status, registration_id, amount, tran_id FROM payments WHERE id = ? LIMIT 1"
-  ).bind(id).first();
-  if (!row) return c.json({ error: "Payment not found." }, 404);
-  if (row.status !== "paid") return c.json({ error: `Can only refund paid payments (this one is ${row.status}).` }, 409);
-
-  const session = c.get("session");
-  // Use 'failed' as the internal closed-out status so existing payment-state
-  // logic continues to treat the row as not-paid. The audit log records the
-  // intent ("refund") so this is distinguishable from a real failure.
-  await c.env.DB.prepare(
-    "UPDATE payments SET status = 'failed', gateway_status = 'AdminRefund', updated_at = datetime('now') WHERE id = ?"
-  ).bind(id).run();
-  if (row.registration_id) {
-    await c.env.DB.prepare(
-      "UPDATE registrations SET status = 'submitted' WHERE id = ? AND status = 'paid'"
-    ).bind(row.registration_id).run();
-  }
-
-  await recordAudit(c.env, session.account_id, "payment.refund", {
-    type: "payment", id, payload: { tran_id: row.tran_id, amount: row.amount, note: note || null },
-  });
-
-  return c.json({ ok: true, message: "Marked refunded internally. Remember to issue the actual refund via the shurjoPay merchant dashboard." });
 });
 
 // GET /api/admin/payments/reports?period=day|week|month&from=&to=
@@ -1338,7 +1312,7 @@ admin.get("/triage", async (c) => {
       LIMIT 50
     `).all(),
     c.env.DB.prepare(`
-      SELECT id, organization, contact_email, contact_phone, message, created_at
+      SELECT id, organization, email AS contact_email, phone AS contact_phone, message, created_at
       FROM sponsorship_enquiries
       WHERE status = 'new'
       ORDER BY created_at ASC
@@ -1631,7 +1605,8 @@ admin.post("/templates", async (c) => {
     if (String(err?.message || "").includes("UNIQUE")) {
       return c.json({ error: "A template with this name already exists." }, 409);
     }
-    return c.json({ error: err?.message || "Failed to save template." }, 500);
+    console.error("[admin.template] save failed:", err?.stack || err?.message || err);
+    return c.json({ error: "Failed to save template." }, 500);
   }
 });
 
@@ -2177,6 +2152,7 @@ function normaliseProgramRow(r, { withBody = false } = {}) {
     price_label:         r.price_label || "",
     fee_amount:          r.fee_amount ?? null,
     pricing,
+    tagline:             r.tagline || "",
     eyebrow:             r.eyebrow || "",
     image:               r.image || "",
     audience:            r.audience || "",
@@ -2190,6 +2166,7 @@ function normaliseProgramRow(r, { withBody = false } = {}) {
     register_label:      r.register_label || "",
     hidden:              r.hidden === 1,
     repeatable:          r.repeatable === 1,
+    always_open:         r.always_open === 1,
     published:           r.published === 1,
     updated_at:          r.updated_at,
     updated_by:          r.updated_by || null,
@@ -2221,7 +2198,7 @@ function sanitiseProgramInput(input, { partial = false } = {}) {
   }
   for (const k of [
     "registration_opens", "registration_closes", "schedule_label", "starts_on", "ends_on",
-    "price_label", "eyebrow", "image", "audience", "duration", "format", "outcome", "level",
+    "price_label", "tagline", "eyebrow", "image", "audience", "duration", "format", "outcome", "level",
     "meta_description", "home_order", "register_url", "register_label",
   ]) {
     if (has(k)) v[k] = trimOrNull(input[k]);
@@ -2242,7 +2219,7 @@ function sanitiseProgramInput(input, { partial = false } = {}) {
     if (res.error) return { error: res.error };
     v.pricing_json = res.json;
   }
-  for (const k of ["hidden", "repeatable", "published"]) {
+  for (const k of ["hidden", "repeatable", "always_open", "published"]) {
     if (has(k)) v[k] = input[k] ? 1 : 0;
   }
   return { values: v };

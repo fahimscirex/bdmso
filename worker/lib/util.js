@@ -58,7 +58,13 @@ export function couponAppliesToType(appliesTo, type) {
 
 export async function parseJson(request) {
   try { return await request.json(); }
-  catch { throw new Error("Request body must be valid JSON."); }
+  catch {
+    // Mark as 400 so the onError handler returns a clear client error instead
+    // of an opaque 500.
+    const err = new Error("Request body must be valid JSON.");
+    err.status = 400;
+    throw err;
+  }
 }
 
 export async function parseForm(request) {

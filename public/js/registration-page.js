@@ -3,6 +3,9 @@
 import { postJson } from './api.js';
 import { PROGRAM_OPTIONS, programHasOptions, computeOptionsTotal, initProgramOptions } from './program-options.js';
 import { loadCatalog, programMaps } from './program-catalog.js';
+// Program names come from the (admin-edited) catalog, so escape before any
+// innerHTML interpolation to prevent stored XSS via a crafted program title.
+import { escHtml } from './md.js';
 
 // Program names + prices come from the catalog (programs-detail.json),
 // the single source of truth. Populated by loadCatalogMaps() before
@@ -247,8 +250,8 @@ function showRegistrationClosed(programName, state, prog) {
     const body = document.querySelector('.qe-body');
     if (body) {
       body.innerHTML = upcoming
-        ? `<p style="color:var(--ink-2); margin:0;">Registration for <strong>${programName}</strong> ${opensOn ? `opens on <strong>${opensOn}</strong>` : 'hasn\'t opened yet'}. You can browse other open programs or return to your dashboard.</p>`
-        : `<p style="color:var(--ink-2); margin:0;">Registration for <strong>${programName}</strong> is currently closed. You can browse other open programs or return to your dashboard.</p>`;
+        ? `<p style="color:var(--ink-2); margin:0;">Registration for <strong>${escHtml(programName)}</strong> ${opensOn ? `opens on <strong>${escHtml(opensOn)}</strong>` : 'hasn\'t opened yet'}. You can browse other open programs or return to your dashboard.</p>`
+        : `<p style="color:var(--ink-2); margin:0;">Registration for <strong>${escHtml(programName)}</strong> is currently closed. You can browse other open programs or return to your dashboard.</p>`;
     }
     const foot = document.querySelector('.qe-foot');
     if (foot) {
@@ -365,7 +368,7 @@ async function initQuickEnroll() {
         head.querySelector('p').textContent  = 'Head to your dashboard to view your BdMSO ID, complete payment, or browse other programs.';
       }
       document.querySelector('.qe-body').innerHTML = `
-        <p style="color:var(--ink-2); margin:0;">Your enrollment for ${programName} is already on file.
+        <p style="color:var(--ink-2); margin:0;">Your enrollment for ${escHtml(programName)} is already on file.
         You can manage it - and add more programs - from your dashboard.</p>`;
       const foot = document.querySelector('.qe-foot');
       if (foot) foot.innerHTML = `<div></div><div style="display:flex;gap:10px;flex-wrap:wrap;"><a class="btn btn-ghost" href="/programs">Browse other programs</a><a class="btn btn-gold" href="/dashboard">Go to dashboard →</a></div>`;
@@ -401,7 +404,7 @@ async function initQuickEnroll() {
           head.querySelector('p').textContent  = 'There are no more sessions left to add right now.';
         }
         document.querySelector('.qe-body').innerHTML = `
-          <p style="color:var(--ink-2); margin:0 0 10px;">All ${programName} sessions are already on your child's account, so there's nothing left to add here.</p>
+          <p style="color:var(--ink-2); margin:0 0 10px;">All ${escHtml(programName)} sessions are already on your child's account, so there's nothing left to add here.</p>
           <p style="color:var(--ink-3); margin:0; font-size:13px;">Didn't book them yourself? The BdMSO Preparatory Course includes free Mock Tests, which are added automatically. You can see every session on your dashboard.</p>`;
         const foot = document.querySelector('.qe-foot');
         if (foot) foot.innerHTML = `<div></div><div style="display:flex;gap:10px;flex-wrap:wrap;"><a class="btn btn-ghost" href="/programs">Browse other programs</a><a class="btn btn-gold" href="/dashboard">Go to dashboard →</a></div>`;
