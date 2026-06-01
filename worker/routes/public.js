@@ -668,6 +668,17 @@ export async function handleCreatePayment(request, env) {
   ).bind(registrationId).first();
   if (alreadyPaid) return badRequest("This registration has already been paid.");
 
+  // Supersede any earlier still-pending attempt on this registration so retries
+  // (or a cleared session) don't leave stale 'pending' rows cluttering the admin
+  // dashboard. ShurjoPay checkout sessions are time-limited, so an abandoned
+  // pending can't be resumed anyway - we always start a fresh one below. Scoped
+  // to purpose='initial'; option-upgrade top-ups are tracked separately. If the
+  // old gateway session somehow still completes, its callback matches by val_id
+  // and still flips that row to 'paid'.
+  await env.DB.prepare(
+    "UPDATE payments SET status = 'expired', updated_at = ? WHERE registration_id = ? AND status = 'pending' AND purpose = 'initial'"
+  ).bind(new Date().toISOString(), registrationId).run();
+
   // Programs with selectable options (Mock Test sessions, Prep Course
   // subjects) derive their price from the stored options list; the rest use the
   // flat catalog fee. null fee = "on enquiry".
