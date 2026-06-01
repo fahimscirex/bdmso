@@ -58,7 +58,7 @@ try {
   console.log("");
   console.log(`Sign in at:`);
   console.log(`  http://localhost:5174/   (with: pnpm --filter @bdmso/admin dev)`);
-  console.log(`  http://localhost:8787/admin   (after: npm run preview)`);
+  console.log(`  http://localhost:8787/admin   (after: pnpm run preview)`);
 } finally {
   unlinkSync(tmpFile);
 }

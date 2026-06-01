@@ -19,7 +19,7 @@ The Bangladesh Mathematics & Science Olympiad website: a static marketing site, 
 
 ## Making Content Edits
 
-Most content on the home page is driven by JSON files in `public/data/`. Edit the relevant file, run `npm run build`, and refresh - no HTML changes needed.
+Most content on the home page is driven by JSON files in `public/data/`. Edit the relevant file, run `pnpm run build`, and refresh - no HTML changes needed.
 
 ### Stats bar (numbers after each event)
 
@@ -77,9 +77,9 @@ Paragraphs, **bold**, *italic*, [links](https://example.com), lists, blockquotes
 
 | When you're working | Run |
 |---|---|
-| Building for deploy | `npm run build` |
+| Building for deploy | `pnpm run build` |
 | One-off regeneration | `node scripts/build.mjs` |
-| Live editing while a dev server is running | `npm run dev:worker` (rebuilds on every `.md` save) or `npm run posts:watch` in a second terminal |
+| Live editing while a dev server is running | `pnpm run dev:worker` (rebuilds on every `.md` save) or `pnpm run posts:watch` in a second terminal |
 
 Body content (everything after the frontmatter) is read directly from the `.md` file, so edits to the body show up on reload without re-running anything.
 
@@ -120,7 +120,7 @@ Common edits:
 - **Hide a program completely:** set `"hidden": true`.
 - **Add a program:** add an object with at least `slug`, `title`, `tagline`, `feeAmount`, `registration`; add `home_order` to feature it on the home page.
 
-After editing, run `npm run build` so `dist/` and the generated `/programs/*` pages pick up the change. `public/js/program-options-data.js` is generated from the `options` field during the build - do not edit it by hand.
+After editing, run `pnpm run build` so `dist/` and the generated `/programs/*` pages pick up the change. `public/js/program-options-data.js` is generated from the `options` field during the build - do not edit it by hand.
 
 ---
 
@@ -165,7 +165,7 @@ Drop PDFs and documents into `public/downloads/`. They are copied to `dist/` by 
 
 ```bash
 # Tools (install globally if not already):
-npm install -g wrangler pnpm
+corepack enable   # provides pnpm; wrangler is a project dep (ppnpm exec wrangler)
 
 # Workspace deps (root + apps/):
 pnpm install
@@ -200,25 +200,25 @@ The site has three independent dev surfaces. You'll usually only run one at a ti
 
 | What you're working on | Command | URL |
 |---|---|---|
-| **Marketing site + Worker API** | `npm run dev:worker` | http://localhost:8787 |
-| **Guardian dashboard** (HMR) | `npm run dev:guardian` | http://localhost:5173 |
-| **Admin dashboard** (HMR) | `npm run dev:admin` | http://localhost:5174 |
-| **Production-like preview** (full integration) | `npm run preview` | http://localhost:8787 |
+| **Marketing site + Worker API** | `pnpm run dev:worker` | http://localhost:8787 |
+| **Guardian dashboard** (HMR) | `pnpm run dev:guardian` | http://localhost:5173 |
+| **Admin dashboard** (HMR) | `pnpm run dev:admin` | http://localhost:5174 |
+| **Production-like preview** (full integration) | `pnpm run preview` | http://localhost:8787 |
 
 `dev:guardian` and `dev:admin` each spawn **two** processes: `wrangler dev` (API on :8787) and a Vite dev server (HMR on :5173 or :5174). The Vite server proxies `/api/*` to wrangler so cookies and auth flow naturally during development.
 
 `preview` builds the marketing site + both SPAs into `dist/` then serves the result via `wrangler dev --env production`, which picks up the `[env.production]` block in `wrangler.toml`. Use this when you want to verify production routing, asset paths, or anything else that differs between dev and prod.
 
-> **Note:** `dev:worker` serves `public/` directly, but `preview` serves the built `dist/` copy. After editing files in `public/`, run `npm run build` (or `build:all`) before previewing, or your changes won't appear.
+> **Note:** `dev:worker` serves `public/` directly, but `preview` serves the built `dist/` copy. After editing files in `public/`, run `pnpm run build` (or `build:all`) before previewing, or your changes won't appear.
 
 ### Try the admin dashboard
 
 ```bash
 # Create an admin account (one-time; idempotent on conflict):
-npm run admin:create -- admin@bdmso.org admin1234
+pnpm run admin:create -- admin@bdmso.org admin1234
 
 # Start the admin dev server (vite + wrangler dev together):
-npm run dev:admin
+pnpm run dev:admin
 
 # Open http://localhost:5174 and sign in with the credentials above.
 ```
@@ -234,13 +234,13 @@ wrangler d1 execute bdmso --local --command "UPDATE guardian_accounts SET role='
 ### Seed test data
 
 ```bash
-npm run demo:user            # create a demo guardian account
-npm run seed:registrations   # add sample registrations
+pnpm run demo:user            # create a demo guardian account
+pnpm run seed:registrations   # add sample registrations
 ```
 
 ### Blog post watcher
 
-Whenever `npm run dev:worker` (or `dev:guardian` / `dev:admin`) is running, edits to any `.md` in `public/posts/` regenerate `posts/index.json` and per-post HTML in the background via `scripts/build.mjs --watch`.
+Whenever `pnpm run dev:worker` (or `dev:guardian` / `dev:admin`) is running, edits to any `.md` in `public/posts/` regenerate `posts/index.json` and per-post HTML in the background via `scripts/build.mjs --watch`.
 
 ---
 
@@ -248,10 +248,10 @@ Whenever `npm run dev:worker` (or `dev:guardian` / `dev:admin`) is running, edit
 
 | Command | What it does |
 |---|---|
-| `npm run build` | Regenerates `posts/index.json`, generated `/programs/*` pages and `program-options-data.js`, copies `public/` → `dist/`, writes `sitemap.xml` + `robots.txt`. |
-| `npm run build:apps` | Builds the guardian and admin SPAs into `dist/dashboard/` and `dist/admin/`. |
-| `npm run build:all` | Runs both of the above. Required before `preview` or `cf:deploy`. |
-| `npm run clean` | Removes `dist/` and `apps/*/dist`. |
+| `pnpm run build` | Regenerates `posts/index.json`, generated `/programs/*` pages and `program-options-data.js`, copies `public/` → `dist/`, writes `sitemap.xml` + `robots.txt`. |
+| `pnpm run build:apps` | Builds the guardian and admin SPAs into `dist/dashboard/` and `dist/admin/`. |
+| `pnpm run build:all` | Runs both of the above. Required before `preview` or `cf:deploy`. |
+| `pnpm run clean` | Removes `dist/` and `apps/*/dist`. |
 
 Set `SITE_URL` in `.env` (copy from `.env.example`) so the sitemap gets the correct URLs.
 
@@ -271,7 +271,7 @@ The Cloudflare dashboard's "Connect to Git" integration builds and deploys on ev
 One-time setup:
 
 1. In the Cloudflare dashboard, connect this repository.
-2. Set the **build command** to `npm run build:all`.
+2. Set the **build command** to `pnpm run build:all`.
 3. Set the **deploy command** to `npx wrangler deploy --env production`.
 4. Add the following **secrets** (Variables and Secrets -> "Add variable" -> type "Secret"):
    - `SHURJOPAY_USERNAME`
@@ -288,7 +288,7 @@ Secrets are NEVER stored in `wrangler.toml`, `.env`, or the repo. The dashboard'
 ### Manual deploy (laptop)
 
 ```bash
-npm run cf:deploy
+pnpm run cf:deploy
 ```
 
 Runs `build:all` then `wrangler deploy --env production` using the committed `wrangler.toml`. The first manual deploy from a new laptop will need the same secrets set via `wrangler secret put NAME --env production`.
@@ -300,7 +300,7 @@ Runs `build:all` then `wrangler deploy --env production` using the committed `wr
 1. Create the D1 database:
 
 ```bash
-npm exec -- wrangler d1 create bdmso
+ppnpm exec wrangler d1 create bdmso
 ```
 
 2. Copy the returned `database_id` UUID into `wrangler.toml` - both the default `[[d1_databases]]` block (for local dev) and the `[[env.production.d1_databases]]` block (for prod). The committed file already carries the BdMSO project's IDs; only update if you're forking against a different CF account.
@@ -308,19 +308,19 @@ npm exec -- wrangler d1 create bdmso
 3. Apply the schema to the remote DB (idempotent - safe to re-run):
 
 ```bash
-npm exec -- wrangler d1 execute bdmso --env production --remote --file=./db/schema.sql
+ppnpm exec wrangler d1 execute bdmso --env production --remote --file=./db/schema.sql
 ```
 
 4. Apply the production-safe seeds (the staff/partner coupon; `seed-dev.sql` should NEVER be run against `--remote`):
 
 ```bash
-npm exec -- wrangler d1 execute bdmso --env production --remote --file=./db/seed-prod.sql
+ppnpm exec wrangler d1 execute bdmso --env production --remote --file=./db/seed-prod.sql
 ```
 
 5. Create the R2 bucket for dashboard image uploads:
 
 ```bash
-npm exec -- wrangler r2 bucket create bdmso-assets
+ppnpm exec wrangler r2 bucket create bdmso-assets
 ```
 
 6. Set production secrets. **Preferred path:** add them via the Cloudflare dashboard (Workers & Pages -> `bdmso` -> Settings -> Variables and Secrets -> "Add variable" -> type "Secret"). That way GitHub-triggered deploys pick them up automatically and no one's laptop ever needs them. The dashboard accepts the same names listed in the "GitHub -> Cloudflare" section above.
@@ -328,11 +328,11 @@ npm exec -- wrangler r2 bucket create bdmso-assets
 If you must set them from a laptop instead, use:
 
 ```bash
-npm exec -- wrangler secret put SHURJOPAY_USERNAME --env production
-npm exec -- wrangler secret put SHURJOPAY_PASSWORD --env production
-npm exec -- wrangler secret put SHURJOPAY_PREFIX   --env production
-npm exec -- wrangler secret put BREVO_API_KEY      --env production
-npm exec -- wrangler secret put EMAIL_FROM         --env production
+ppnpm exec wrangler secret put SHURJOPAY_USERNAME --env production
+ppnpm exec wrangler secret put SHURJOPAY_PASSWORD --env production
+ppnpm exec wrangler secret put SHURJOPAY_PREFIX   --env production
+ppnpm exec wrangler secret put BREVO_API_KEY      --env production
+ppnpm exec wrangler secret put EMAIL_FROM         --env production
 ```
 
 `SHURJOPAY_SANDBOX` and `ENVIRONMENT` are plain vars in `wrangler.toml`'s `[env.production.vars]` block (set to `"false"` and `"production"` respectively). Override either from the dashboard's "Variables" panel if you ever need a temporary swap without re-deploying. `wrangler.toml` is committed; `wrangler.local.toml` is gitignored for personal forks.
@@ -340,7 +340,7 @@ npm exec -- wrangler secret put EMAIL_FROM         --env production
 8. Deploy:
 
 ```bash
-npm run cf:deploy
+pnpm run cf:deploy
 ```
 
 The Worker is created on the first deploy and serves at `bdmso.<your-subdomain>.workers.dev`. Subsequent deploys just push updates.
@@ -482,7 +482,7 @@ wrangler.toml             - committed Wrangler config: default = local dev, [env
 wrangler.example.toml     - template for forks running against a different CF account (copy to wrangler.local.toml, fill in IDs)
 scripts/
   build.mjs               - generates posts/programs pages, copies public/ → dist/, writes sitemap + robots; supports --watch
-  dev.mjs                 - dev orchestrator for `npm run dev:worker`
+  dev.mjs                 - dev orchestrator for `pnpm run dev:worker`
   dev-guardian.mjs        - dev orchestrator for the guardian SPA
   dev-admin.mjs           - dev orchestrator for the admin SPA
 ```

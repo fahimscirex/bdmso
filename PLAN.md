@@ -146,7 +146,7 @@ After the structure settles:
 }
 ```
 
-`npm run build` (bare) should print a helpful message rather than building
+`pnpm run build` (bare) should print a helpful message rather than building
 everything by accident.
 
 ## Migration safety rules

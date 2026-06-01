@@ -20,5 +20,5 @@ export default defineConfig({
   // Dev only: proxy /api to the worker running under `wrangler dev` (see
   // scripts/dev.mjs). Production routing is the worker itself; this just lets
   // `astro dev` serve the site while /api/* reaches the local worker + D1.
-  vite: { server: { proxy: { "/api": "http://localhost:8787" } } },
+  vite: { server: { proxy: { "/api": `http://localhost:${process.env.WRANGLER_PORT || 8787}` } } },
 });
