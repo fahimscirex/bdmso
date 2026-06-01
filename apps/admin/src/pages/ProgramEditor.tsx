@@ -40,7 +40,6 @@ type Program = {
   register_label: string;
   body_md: string;
   hidden: boolean;
-  bespoke_page: boolean;
   repeatable: boolean;
   published: boolean;
 };
@@ -58,7 +57,7 @@ const EMPTY: FormState = {
   price_label: '', fee_amount: '', pricing: null,
   eyebrow: '', image: '', audience: '', duration: '', format: '', outcome: '',
   level: '', meta_description: '', home_order: '', register_url: '', register_label: '',
-  body_md: '', hidden: false, bespoke_page: false, repeatable: false, published: false,
+  body_md: '', hidden: false, repeatable: false, published: false,
 };
 
 function slugify(t: string): string {
@@ -150,7 +149,7 @@ export function ProgramEditor({ slug }: { slug: string }) {
       format: form.format, outcome: form.outcome, level: form.level, meta_description: form.meta_description,
       home_order: form.home_order, register_url: form.register_url, register_label: form.register_label,
       body_md: form.body_md,
-      hidden: form.hidden, bespoke_page: form.bespoke_page, repeatable: form.repeatable,
+      hidden: form.hidden, repeatable: form.repeatable,
       published: publish ?? form.published,
     };
     try {
@@ -356,7 +355,6 @@ export function ProgramEditor({ slug }: { slug: string }) {
       <div class="card" style="margin-top:18px;padding:18px;display:flex;gap:24px;flex-wrap:wrap;">
         <label class="checkbox-inline"><input type="checkbox" checked={form.repeatable} onChange={(e) => set('repeatable', (e.target as HTMLInputElement).checked)} /> Repeatable (register more than once)</label>
         <label class="checkbox-inline"><input type="checkbox" checked={form.hidden} onChange={(e) => set('hidden', (e.target as HTMLInputElement).checked)} /> Hidden (no public page)</label>
-        <label class="checkbox-inline"><input type="checkbox" checked={form.bespoke_page} onChange={(e) => set('bespoke_page', (e.target as HTMLInputElement).checked)} /> Bespoke page (hand-authored page owns this slug)</label>
       </div>
     </>
   );

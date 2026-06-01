@@ -99,7 +99,6 @@ const cards = programs
       `data-schedule="${dated ? "dated" : "year-round"}"`,
       p.registrationStarts ? `data-starts="${escAttr(p.registrationStarts)}"` : "",
       p.registrationEnds ? `data-ends="${escAttr(p.registrationEnds)}"` : "",
-      p.bespokePage ? 'data-no-modal="1"' : "",
       p.registration === false ? 'data-registration="false"' : "",
     ]
       .filter(Boolean)
@@ -644,28 +643,6 @@ const cards = programs
             bodyClone.querySelector('.pd-main img.cover')?.remove();
 
             html = heroHtml + `<div class="p-modal-inner">${bodyClone.innerHTML}</div>`;
-          } else if (progBody) {
-            // Bespoke page (e.g. Maryam). Synthesize a modal hero from
-            // .prog-hero h1 + .tagline + .fact-row tiles, then embed the
-            // body content below.
-            const h1Text   = doc.querySelector('.prog-hero h1')?.textContent.trim() || title || '';
-            const ledeText = doc.querySelector('.prog-hero .tagline')?.textContent.trim() || '';
-            const factTiles = [...doc.querySelectorAll('.prog-hero .fact-row > div')].map((f) => {
-              const k = f.querySelector('.k')?.textContent.trim() || '';
-              // The fact-row's value is the text node after .k - use full
-              // textContent minus the .k text for the value.
-              const full = f.textContent.trim();
-              const v = full.startsWith(k) ? full.slice(k.length).trim() : full;
-              return `<div class="fact"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`;
-            }).join('');
-            const heroHtml = `<section class="p-modal-hero">
-              <div class="title-row">
-                <h1>${esc(h1Text)}</h1>
-              </div>
-              ${ledeText ? `<p class="lede">${esc(ledeText)}</p>` : ''}
-              ${factTiles ? `<div class="facts">${factTiles}</div>` : ''}
-            </section>`;
-            html = heroHtml + `<div class="p-modal-inner">${progBody.outerHTML}</div>`;
           } else {
             html = `<div class="p-modal-inner"><p style="padding:40px;text-align:center;color:var(--ink-3);">Content unavailable. <a href="${esc(href)}">Open the full page →</a></p></div>`;
           }

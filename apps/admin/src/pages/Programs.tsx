@@ -18,7 +18,6 @@ type Row = {
   pricing: { selection: string; choices: { id: string; label: string; note: string; price: number }[] } | null;
   home_order: string;
   hidden: boolean;
-  bespoke_page: boolean;
   published: boolean;
   updated_at: string;
   updated_by: string | null;
@@ -130,7 +129,7 @@ export function Programs() {
                 <tr class="row-link" key={r.slug} onClick={() => navigate(`/programs/${r.slug}/edit`)}>
                   <td>
                     <div class="cell-strong">{r.title}</div>
-                    <div class="cell-sub">/programs/{r.slug}{r.bespoke_page ? ' · bespoke' : ''}{r.hidden ? ' · hidden' : ''}</div>
+                    <div class="cell-sub">/programs/{r.slug}{r.hidden ? ' · hidden' : ''}</div>
                   </td>
                   <td>{r.category || <span class="muted">-</span>}</td>
                   <td>

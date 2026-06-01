@@ -284,7 +284,6 @@ CREATE TABLE IF NOT EXISTS programs (
   register_label TEXT,
   body_md TEXT NOT NULL DEFAULT '',
   hidden INTEGER NOT NULL DEFAULT 0,
-  bespoke_page INTEGER NOT NULL DEFAULT 0,
   repeatable INTEGER NOT NULL DEFAULT 0,
   published INTEGER NOT NULL DEFAULT 0,
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),

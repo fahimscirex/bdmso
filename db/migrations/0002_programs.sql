@@ -53,7 +53,6 @@ CREATE TABLE IF NOT EXISTS programs (
   -- body + visibility
   body_md TEXT NOT NULL DEFAULT '',                    -- detail-page prose (About / What you'll do / ...)
   hidden INTEGER NOT NULL DEFAULT 0,                   -- 1 = no public page at all
-  bespoke_page INTEGER NOT NULL DEFAULT 0,             -- 1 = a hand-authored static page owns this slug
   repeatable INTEGER NOT NULL DEFAULT 0,               -- 1 = a guardian may register more than once (e.g. mock-test sessions)
   published INTEGER NOT NULL DEFAULT 0,                -- 0 = draft (not materialised to a file)
 

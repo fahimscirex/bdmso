@@ -218,7 +218,7 @@ export async function handleCatalog(request, env) {
     SELECT slug, title, category, eyebrow, image, audience, duration, format, outcome,
            level, price_label, fee_amount, pricing_json, schedule_label, starts_on, ends_on,
            registration_status, registration_opens, registration_closes, meta_description,
-           home_order, register_url, register_label, hidden, bespoke_page, repeatable
+           home_order, register_url, register_label, hidden, repeatable
     FROM programs
     WHERE published = 1
     ORDER BY COALESCE(home_order, '99'), title
@@ -261,7 +261,6 @@ export async function handleCatalog(request, env) {
       register_url: r.register_url || null,
       register_label: r.register_label || null,
       hidden: r.hidden === 1,
-      bespokePage: r.bespoke_page === 1,
       repeatable: r.repeatable === 1,
       options,
     };

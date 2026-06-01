@@ -56,7 +56,6 @@ const programs = defineCollection({
       register_url: z.string().optional(),
       register_label: z.string().optional(),
       hidden: z.boolean().optional(),
-      bespokePage: z.boolean().optional(),
       options: z.any().optional(),
     })
     .passthrough(),

@@ -2056,7 +2056,7 @@ admin.get("/programs", async (c) => {
 
   const list = await c.env.DB.prepare(`
     SELECT slug, title, category, registration_status, price_label, fee_amount,
-           pricing_json, home_order, hidden, bespoke_page, published, updated_at, updated_by
+           pricing_json, home_order, hidden, published, updated_at, updated_by
     FROM programs
     ${whereSql}
     ORDER BY COALESCE(home_order, '99'), title
@@ -2189,7 +2189,6 @@ function normaliseProgramRow(r, { withBody = false } = {}) {
     register_url:        r.register_url || "",
     register_label:      r.register_label || "",
     hidden:              r.hidden === 1,
-    bespoke_page:        r.bespoke_page === 1,
     repeatable:          r.repeatable === 1,
     published:           r.published === 1,
     updated_at:          r.updated_at,
@@ -2243,7 +2242,7 @@ function sanitiseProgramInput(input, { partial = false } = {}) {
     if (res.error) return { error: res.error };
     v.pricing_json = res.json;
   }
-  for (const k of ["hidden", "bespoke_page", "repeatable", "published"]) {
+  for (const k of ["hidden", "repeatable", "published"]) {
     if (has(k)) v[k] = input[k] ? 1 : 0;
   }
   return { values: v };
