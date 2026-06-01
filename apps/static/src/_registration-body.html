@@ -1,0 +1,225 @@
+<main>
+<section class="page-head">
+  <div class="container">
+    <span class="eyebrow">Registration Portal</span>
+    <h1>Register your child for BdMSO 2026.</h1>
+    <p>Pick one: the <strong style="color:white;">BdMSO National Olympiad</strong> (Class 6 or below) or the <strong style="color:white;">BdMSO Quiz Competition</strong> (Class 3 or below). Create your BdMSO ID once and use it across every stage.</p>
+  </div>
+</section>
+
+<section class="container reg-wrap">
+  <div class="instructions">
+    <div class="step"><div class="st-num">1</div><div><h3>Select what to register for</h3><p>Choose the <strong>BdMSO National Olympiad</strong> (Olympiad, Class 6 or below) or the <strong>BdMSO Quiz Competition</strong> (Quiz,Class 3 or below). Each student may register for only one of the two.</p></div></div>
+    <div class="step"><div class="st-num">2</div><div><h3>Fill in the form - 5 minutes</h3><p>Student details → Guardian contact → Set password. Your BdMSO ID is issued after payment is confirmed.</p></div></div>
+    <div class="step"><div class="st-num">3</div><div><h3>Verify email &amp; pay</h3><p>Check your inbox for a verification link, then complete payment through the portal.</p></div></div>
+  </div>
+
+  <!-- Quick-enroll panel: shown only when user is logged in + ?program= is present -->
+  <div id="quick-enroll" class="quick-enroll" hidden>
+    <div class="qe-head">
+      <div class="tag" id="qe-program-tag">Program</div>
+      <h3 id="qe-program-name">Enrolling in program…</h3>
+    </div>
+    <div class="qe-body">
+      <p style="color:var(--ink-2); margin-bottom:18px;">You're already registered. We'll use your existing student information - no need to fill anything in again.</p>
+      <div class="student-row" id="qe-student-row">
+        <div class="s-avatar">🎓</div>
+        <div>
+          <div class="s-name" id="qe-student-name">Loading…</div>
+          <div class="s-detail" id="qe-student-detail"></div>
+        </div>
+      </div>
+      <!-- Options picker for programs that need a per-cohort choice
+           (Mock Test sessions, Prep Course subjects). Hidden unless
+           the inline script finds matching options for the program. -->
+      <div id="qe-options-panel" hidden></div>
+      <div id="qe-error" style="color:var(--color-error); font-size:14px; font-weight:600; display:none;"></div>
+    </div>
+    <div class="qe-foot">
+      <div class="qe-price" id="qe-price"></div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <a class="btn btn-ghost" href="/programs">← Back to programs</a>
+        <button class="btn btn-gold" id="qe-confirm-btn">Confirm enrollment →</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="full-reg-section">
+  <h2 style="margin-bottom: 8px;">Choose what to register for</h2>
+  <p style="margin-bottom: 20px; color:var(--ink-3); font-size:14px;">Locked stages require qualification through an earlier stage - they open automatically when you're eligible.</p>
+  <div class="card-grid">
+    <div class="reg-card"><span class="status open">Open · Olympiad · Class 6 or below</span><h3>BdMSO National Olympiad</h3><p>Your journey to Bangladesh Mathematics &amp; Science Olympiad begins here.</p><span class="meta">Closes June 20, 2026 · From 1,000 BDT</span><a class="btn btn-primary" href="/registration?program=national-olympiad">Register</a></div>
+    <div class="reg-card"><span class="status open">Open · Quiz · Class 3 or below</span><h3>BdMSO Quiz Competition</h3><p>National Quiz competition on Mathematics and Science held on the same day as the National Olympiad for the youngest learners.</p><span class="meta">Closes June 20, 2026 · 1,000 BDT</span><a class="btn btn-primary" href="/registration?program=national-quiz-competition">Register</a></div>
+    <div class="reg-card"><span class="status open">Open · Enrollment</span><h3>Programs &amp; Courses</h3><p>Enroll in year-round training modules - prep courses, camps, workshops.</p><span class="meta">Rolling admissions</span><a class="btn btn-ghost" href="/programs">Browse Programs</a></div>
+    <div class="reg-card locked"><span class="status locked-s">🔒 Locked</span><h3>National Residential Camp</h3><p>Three-day camp for Olympiad winners (approx. top 20-30%). 3,000–5,000 BDT.</p><span class="meta">Opens July 2026</span></div>
+    <div class="reg-card locked"><span class="status locked-s">🔒 Locked</span><h3>Team Selection Test (TST)</h3><p>Day-long per-subject evaluation, ~7 days after the camp. 1,000 BDT per subject.</p><span class="meta">Opens July 2026</span></div>
+    <div class="reg-card locked"><span class="status locked-s">🔒 Locked</span><h3>IMSO Participation</h3><p>Final 6+6 delegation to the 23rd IMSO in Indonesia. Logistics managed centrally.</p><span class="meta">Opens October 2026</span></div>
+  </div>
+
+  </div><!-- /full-reg-section -->
+
+  <div id="form" class="form-shell" style="margin-bottom: 96px;">
+    <div class="form-head">
+      <div>
+        <div class="form-eyebrow" style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--navy-700); margin-bottom:4px;">BdMSO National Olympiad 2026</div>
+        <h3 id="step-title" class="step-title">Step 1 · Student Info</h3>
+      </div>
+      <div class="progress" aria-label="Progress">
+        <div class="bar active" data-s="1"></div>
+        <div class="bar" data-s="2"></div>
+        <div class="bar" data-s="3"></div>
+      </div>
+      <span class="progress-label" id="step-count">1 / 3</span>
+    </div>
+
+    <div id="step-1">
+      <!-- Program options panel: filled by registration.js when the
+           selected program has selectable options (mock-test sessions,
+           prep-course subjects, etc.). Hidden when not applicable. -->
+      <div id="program-options-panel" hidden></div>
+      <div class="form-body">
+        <div class="field"><label>Student's Full Name</label><input id="f-name" placeholder="e.g. Tasneem Islam" /></div>
+        <div class="field" id="field-dob">
+          <label>Date of Birth</label>
+          <div class="dob-row">
+            <input type="number" id="f-dob-day" aria-label="Day of birth" placeholder="DD" min="1" max="31" inputmode="numeric" />
+            <select id="f-dob-month" aria-label="Month of birth"></select>
+            <input type="number" id="f-dob-year" aria-label="Year of birth" placeholder="YYYY" inputmode="numeric" />
+          </div>
+          <input type="hidden" id="f-dob" />
+        </div>
+        <div class="field"><label>Curriculum</label>
+          <select id="f-medium">
+            <option value="">Select curriculum</option>
+            <option value="national">National (Bangla or English version)</option>
+            <option value="international">International (English Medium)</option>
+          </select>
+        </div>
+        <div class="field"><label>Class</label>
+          <select id="f-class"><option>Class 3</option><option>Class 4</option><option selected>Class 5</option><option>Class 6</option></select>
+        </div>
+        <div class="field"><label>Gender</label>
+          <select id="f-gender"><option value="">Select</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select>
+        </div>
+        <div class="field"><label>School</label><input id="f-school" placeholder="e.g. Viqarunnisa Noon School" /></div>
+        <div class="field"><label>District</label>
+          <select id="f-district"><option value="">Select district</option></select>
+        </div>
+        <div class="field" id="field-subject" hidden>
+          <label>Priority Subject</label>
+          <select id="f-subject">
+            <option value="">Select subject</option>
+            <option value="math">Mathematics</option>
+            <option value="science">Science</option>
+          </select>
+          <p class="field-hint">If you qualify in both subjects, this is the one we prioritise for top placement.</p>
+        </div>
+        <div class="field" id="field-venue" hidden>
+          <label>Exam Region</label>
+          <select id="f-venue">
+            <option value="">Select exam region</option>
+            <option value="dhaka">Dhaka</option>
+            <option value="chittagong">Chittagong</option>
+            <option value="rangpur">Rangpur</option>
+            <option value="sylhet">Sylhet</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-foot"><span class="step-status" id="step-1-status" aria-live="polite"></span><button class="btn btn-primary" type="button" id="step-1-next" data-next-step="2">Continue →</button></div>
+    </div>
+
+    <div id="step-2" hidden>
+      <div class="form-body">
+        <div class="field"><label>Guardian's Name</label><input id="g-name" placeholder="e.g. Rumana Haque" /></div>
+        <div class="field"><label>Relationship</label>
+          <select id="g-rel"><option>Mother</option><option>Father</option><option>Guardian</option></select>
+        </div>
+        <div class="field">
+          <label>Mobile (WhatsApp preferred)</label>
+          <div class="phone-group">
+            <span class="phone-prefix">+880</span>
+            <input id="g-phone" type="tel" inputmode="numeric" maxlength="10" pattern="[0-9]{10}"
+              placeholder="1XXXXXXXXX" autocomplete="tel-national" />
+          </div>
+        </div>
+        <div class="field"><label>Email</label><input id="g-email" type="email" placeholder="guardian@example.com" /></div>
+        <div class="field full"><label>Address</label><textarea id="g-addr" rows="2" maxlength="240" placeholder="Flat, Road, Area, Postcode"></textarea><div class="char-counter" id="g-addr-counter" aria-live="polite">0 / 240</div></div>
+      </div>
+      <div class="form-foot"><button class="btn btn-ghost" type="button" data-prev-step="1">← Back</button><span class="step-status" id="step-2-status" aria-live="polite"></span><button class="btn btn-primary" type="button" id="step-2-next" data-next-step="3">Continue →</button></div>
+    </div>
+
+    <div id="step-3" hidden>
+      <div class="confirm-view">
+        <!-- Review section disabled - kept in source for re-enable. -->
+        <div hidden>
+          <h4>Please review your information</h4>
+          <div class="summary" id="summary-grid"></div>
+        </div>
+        <div class="account-note">
+          <h4 style="margin-bottom:10px;">Create the guardian account</h4>
+          <p style="font-size:14px; color:var(--ink-3); margin:0 0 16px;">The guardian email will be used as the account login for future BdMSO portal access.</p>
+          <div class="form-body" style="padding:0;">
+            <div class="field">
+              <label>Password</label>
+              <input id="account-password" type="password" autocomplete="new-password" placeholder="At least 8 characters" />
+              <div class="pwd-checklist" id="pwd-checklist" aria-live="polite">
+                <div class="pwd-rule" data-rule="length"><span class="pwd-rule-icon">✓</span>At least 8 characters</div>
+                <div class="pwd-rule" data-rule="letter"><span class="pwd-rule-icon">✓</span>Includes a letter</div>
+                <div class="pwd-rule" data-rule="number"><span class="pwd-rule-icon">✓</span>Includes a number</div>
+              </div>
+            </div>
+            <div class="field"><label>Confirm Password</label><input id="account-password-confirm" type="password" autocomplete="new-password" placeholder="Re-enter password" /></div>
+          </div>
+        </div>
+        <div class="terms" style="margin-top:18px;">
+          <input type="checkbox" id="terms" style="margin-top:4px;" />
+          <label for="terms">I confirm the information provided is accurate and agree to the BdMSO <a href="/resources" style="color:var(--navy-700); text-decoration:underline;">Rules &amp; Regulations</a> and <a href="/terms" style="color:var(--navy-700); text-decoration:underline;">Terms &amp; Conditions</a>.</label>
+        </div>
+      </div>
+      <div class="form-foot"><button class="btn btn-ghost" type="button" data-prev-step="2">← Back</button><span class="step-status" id="step-3-status" aria-live="polite"></span><button class="btn btn-gold" type="button" id="submit-registration">Submit &amp; Create Account →</button></div>
+    </div>
+
+    <div id="step-4" hidden>
+      <div class="success">
+        <div class="ic"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg></div>
+        <h3 style="font-family:var(--font-display); color: var(--navy-900); font-size: 1.6rem; margin-bottom: 8px;">Details saved - one more step.</h3>
+        <p style="max-width:560px; margin:0 auto 18px;">Your BdMSO registration form has been saved and the guardian account is now active for <strong id="account-email"></strong>.</p>
+
+        <div style="max-width:560px; margin:0 auto 20px; padding:18px 20px; background:#fef2f2; border:2px solid #dc2626; border-radius:12px; text-align:left;">
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#991b1b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top:2px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div>
+              <div style="font-weight:800; color:#991b1b; margin-bottom:4px; font-size:14.5px; letter-spacing:0.02em;">Your registration is NOT complete until payment is confirmed.</div>
+              <div style="font-size:13.5px; color:#7f1d1d; line-height:1.55;">You will not receive a BdMSO ID, exam admit, or any program resources until your payment is confirmed. Go to your dashboard now to complete payment.</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="max-width:560px; margin:0 auto 20px; padding:18px 20px; background:var(--bg-alt); border:1px solid var(--line); border-radius:12px; text-align:center;">
+          <div style="font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">BdMSO ID - Pending</div>
+          <div style="font-size:14px; color:var(--navy-800);">Your student's BdMSO ID is issued only after payment is confirmed.</div>
+          <div id="member-id" hidden></div>
+        </div>
+
+        <div style="max-width:560px; margin:0 auto 24px; padding:16px 20px; background:#fffbeb; border:1px solid #fcd34d; border-radius:12px; text-align:left;">
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top:2px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <div>
+              <div style="font-weight:700; color:#92400e; margin-bottom:4px;">Please verify your email</div>
+              <div style="font-size:14px; color:#78350f;">We've sent a verification link to your inbox. You'll need to verify before you can pay for this registration. The link expires in 24 hours. If you don't see it, check your spam folder.</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+          <a class="btn btn-primary btn-lg" id="success-dashboard-link" href="/dashboard">Go to dashboard →</a>
+          <a class="btn btn-ghost btn-lg" href="/resources">View student resources</a>
+        </div>
+      </div>
+    </div>
+    <div class="form-message" id="form-message" aria-live="polite"></div>
+  </div>
+</section>
+</main>
+
+<script type="module" src="/js/registration.js"></script>

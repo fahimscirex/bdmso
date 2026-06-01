@@ -1,0 +1,25 @@
+---
+// Registration (multi-step form + quick-enroll + ShurjoPay). Ported from the
+// legacy public/registration.html during the Astro cutover. BaseLayout supplies
+// the server-rendered Header/Footer + SEO/fonts. The page's CSS and markup are
+// injected raw (set:html) so the payment form is byte-identical to the legacy
+// page; the client logic lives in /js/registration-page.js.
+import BaseLayout from "../layouts/BaseLayout.astro";
+import STYLES from "../_registration-styles.css?raw";
+import BODY from "../_registration-body.html?raw";
+
+const jsonLd = [{"@context":"https://schema.org","@type":"Event","name":"BdMSO 2026 National Round","startDate":"2026-06-15","eventStatus":"https://schema.org/EventScheduled","eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode","location":{"@type":"Place","name":"Multiple regional venues, Bangladesh","address":{"@type":"PostalAddress","addressCountry":"BD"}},"image":"https://bdmso.org/images/group-winner.webp","description":"Register for the BdMSO 2026 National Round - the official qualifying olympiad for primary-school students competing for the Bangladesh team at IMSO 2026.","organizer":{"@type":"Organization","name":"BdMSO","url":"https://bdmso.org"},"offers":{"@type":"Offer","price":"1000","priceCurrency":"BDT","url":"https://bdmso.org/registration","availability":"https://schema.org/InStock"}}];
+---
+
+<BaseLayout
+  title="Register for BdMSO 2026 - Math and Science Olympiad"
+  description="Register for the BdMSO 2026 National Olympiad - the official qualifying pathway for primary-school students aiming to represent Bangladesh at IMSO."
+  page="registration"
+  canonical="https://bdmso.org/registration"
+  image="https://bdmso.org/images/group-winner.webp"
+  jsonLd={jsonLd}
+>
+  <Fragment slot="head" set:html={`<style>${STYLES}</style>`} />
+  <Fragment set:html={BODY} />
+  <script is:inline type="module" src="/js/registration-page.js"></script>
+</BaseLayout>

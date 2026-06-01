@@ -1,0 +1,323 @@
+.page-head { background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-page-dark) 100%); color: white; padding: 80px 0 100px; text-align: center; position: relative; overflow: hidden; }
+.page-head::before { content:""; position:absolute; inset:0; background: radial-gradient(600px 300px at 50% 100%, var(--glow-gold-sm), transparent 60%); }
+/* Override the global hero-grid layout so this page's centered hero
+   stays centered (eyebrow above title), not split into 2 columns. */
+.page-head .container { display: block; }
+.page-head .container > .eyebrow { margin: 0 auto 18px; justify-self: auto; }
+.page-head .container > h1 { margin: 0 auto 12px; }
+.page-head .eyebrow { background: var(--navy-surface-dk); color: var(--gold-on-dark); border-color: var(--navy-border-dk); }
+.page-head h1 { color: white; max-width: 780px; }
+.page-head p { color: var(--on-dark-2); max-width: 640px; margin: 0 auto; font-size: 1.05rem; }
+
+.reg-wrap { margin-top: -56px; position: relative; z-index: 2; }
+
+.instructions {
+  background: white; border-radius: var(--r-lg); box-shadow: var(--shadow);
+  padding: 28px 32px; margin-bottom: 40px; border: 1px solid var(--line);
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px;
+}
+.instructions h3 { font-size: 1rem; font-family: var(--font-sans); margin-bottom: 6px; color: var(--navy-900); }
+.instructions p { font-size: 13.5px; color: var(--ink-3); margin: 0; }
+.instructions .step { display: flex; gap: 14px; }
+.instructions .st-num { width: 30px; height: 30px; border-radius: 50%; background: var(--navy-50); color: var(--navy-800); font-weight: 700; display: grid; place-items: center; flex-shrink: 0; font-size: 14px; }
+@media (max-width: 800px) { .instructions { grid-template-columns: 1fr; } }
+
+.card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 48px; }
+.reg-card {
+  background: white; border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: 24px; display: flex; flex-direction: column; gap: 12px;
+  transition: transform 0.25s, box-shadow 0.25s, border-color 0.2s;
+  position: relative;
+}
+.reg-card:not(.locked):hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: var(--navy-600); }
+.reg-card.locked { background: var(--bg-alt); }
+.reg-card.locked::after { content: ""; position: absolute; inset: 0; background: white; opacity: 0.5; border-radius: var(--r-lg); pointer-events: none; }
+.reg-card .status { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; padding: 4px 10px; border-radius: 999px; align-self: flex-start; }
+.reg-card .status.open { background: var(--status-open-bg); color: var(--status-open-text2); }
+.reg-card .status.locked-s { background: var(--line); color: var(--ink-3); }
+.reg-card h3 { font-size: 1.1rem; }
+.reg-card p { font-size: 13.5px; margin: 0; flex-grow: 1; }
+.reg-card .meta { font-size: 12px; color: var(--ink-3); font-family: var(--font-mono); }
+@media (max-width: 900px) { .card-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .card-grid { grid-template-columns: 1fr; } }
+
+/* Step form */
+.form-shell {
+  background: white; border: 1px solid var(--line); border-radius: var(--r-xl);
+  box-shadow: var(--shadow-sm);
+}
+.form-head { padding: 28px 32px; border-bottom: 1px solid var(--line-2); display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; }
+.form-head h3, .step-title { font-family: var(--font-display); font-size: 1.2rem; margin: 0; }
+.progress { display: flex; gap: 8px; flex-grow: 1; max-width: 400px; }
+.progress .bar { flex: 1; height: 6px; border-radius: 3px; background: var(--line); transition: background 0.3s; }
+.progress .bar.active { background: var(--navy-700); }
+.progress .bar.done { background: var(--gold-500); }
+.progress-label { font-size: 13px; color: var(--ink-3); font-weight: 600; }
+
+.form-body { padding: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+/* Program-options panel: rendered above the form body for programs
+   that need a selection up front (mock-test sessions, prep-course
+   subjects). Drives the displayed total live as boxes toggle. */
+#program-options-panel {
+  margin: 20px 32px 0;
+  padding: 18px 20px;
+  background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+}
+#program-options-panel[hidden] { display: none; }
+.opt-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.opt-title { font-size: 14px; font-weight: 800; color: var(--navy-900); letter-spacing: -0.005em; }
+.opt-total { font-family: var(--font-display); font-size: 1.2rem; font-weight: 800; color: var(--navy-900); }
+.opt-total .l { font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #b45309; display: block; margin-bottom: -2px; }
+.opt-help { font-size: 12.5px; color: #92400e; margin: 0 0 14px; }
+.opt-list { display: grid; gap: 8px; }
+.opt-item {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 11px 14px;
+  border: 1px solid rgba(252, 211, 77, 0.7);
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.opt-item:hover { border-color: var(--navy-700); background: white; }
+.opt-item input { margin-top: 3px; accent-color: var(--navy-900); }
+.opt-item.is-checked { border-color: var(--navy-900); background: white; box-shadow: 0 4px 12px -8px rgba(15, 31, 74, 0.35); }
+/* Items the signed-in guardian already booked on another active
+   registration: rendered but non-interactive. Server rejects the same
+   id at submit time too - this is the up-front affordance. */
+.opt-item.opt-taken { opacity: 0.55; cursor: not-allowed; pointer-events: none; }
+.opt-text { flex: 1; min-width: 0; }
+.opt-label-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.opt-label { font-weight: 700; font-size: 14px; color: var(--navy-900); }
+.opt-price { font-family: var(--font-display); font-weight: 800; color: var(--navy-900); font-size: 14.5px; }
+.opt-sub { font-size: 12.5px; color: var(--ink-3); margin-top: 2px; }
+.form-body .full { grid-column: span 2; }
+@media (max-width: 700px) { .form-body { grid-template-columns: 1fr; } .form-body .full { grid-column: auto; } }
+@media (max-width: 640px) {
+  .form-shell, .quick-enroll { border-radius: var(--r-lg); } /* 22px - less bubbly than 32px */
+  .reg-wrap { margin-top: -24px; }
+  .form-eyebrow { display: none; }
+  .form-head { padding: 16px; gap: 12px; }
+  .form-head h3, .step-title { font-size: 0.95rem !important; }
+  .progress { max-width: none; }
+  .form-body { padding: 20px 16px; }
+  .form-foot { padding: 14px 16px; flex-wrap: wrap; }
+  /* Stack footer buttons full-width on mobile - "Submit & Create
+     Account" is too wide to sit beside "Back" on a phone. */
+  .form-foot .btn { flex: 1 1 100%; }
+  .form-message { padding: 0 16px 14px; }
+  .confirm-view { padding: 20px 16px; }
+  .summary { grid-template-columns: 1fr; padding: 16px; }
+  .quick-enroll .qe-head, .quick-enroll .qe-body, .quick-enroll .qe-foot { padding: 20px 16px; }
+  .instructions { padding: 20px 16px; }
+  .success { padding: 32px 16px; }
+}
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field label { font-size: 13px; font-weight: 600; color: var(--navy-900); }
+.field input, .field select, .field textarea {
+  width: 100%; padding: 11px 14px; font-size: 15px; border: 1px solid var(--line);
+  border-radius: 10px; background: white; font-family: inherit; color: var(--ink);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--navy-700); box-shadow: 0 0 0 4px var(--focus-ring); }
+/* Date of Birth: three selects (Day / Month / Year) so the order is
+   always dd/mm/yyyy regardless of the browser's locale - a native
+   <input type="date"> renders mm/dd/yyyy on US-locale browsers. */
+.dob-row { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 8px; }
+/* Phone-with-prefix composite: a single rounded box with "+880" baked
+   in on the left. The whole box highlights on focus inside, so it
+   reads as one input despite being a span + input. The actual <input>
+   takes exactly 10 digits (typical Bangladesh mobile - 1XXXXXXXXX). */
+.field .phone-group {
+  display: flex; align-items: stretch;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: white; overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.field .phone-group:focus-within { border-color: var(--navy-700); box-shadow: 0 0 0 4px var(--focus-ring); }
+.field .phone-group .phone-prefix {
+  display: inline-flex; align-items: center;
+  padding: 0 12px;
+  background: var(--bg-alt);
+  border-right: 1px solid var(--line);
+  font-weight: 700; color: var(--navy-900);
+  font-size: 14px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.04em;
+  user-select: none;
+}
+.field .phone-group input {
+  border: none; box-shadow: none !important; border-radius: 0;
+  padding: 11px 14px;
+  flex: 1; min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+.field .phone-group input:focus { box-shadow: none !important; border: none; }
+.field.is-error .phone-group { border-color: #dc2626; background: #fef2f2; }
+.field.is-error .phone-group .phone-prefix { background: #fee2e2; border-right-color: #fecaca; color: #991b1b; }
+.field.is-error .phone-group input { background: transparent; }
+/* Invalid field: red border + soft red glow, plus a small inline error
+   hint just below the input. The hint is cleared as soon as the user
+   edits the field (see registration.js). */
+.field.is-error label { color: #b91c1c; }
+.field.is-error input, .field.is-error select, .field.is-error textarea {
+  border-color: #dc2626; background: #fef2f2;
+}
+.field.is-error input:focus, .field.is-error select:focus, .field.is-error textarea:focus {
+  border-color: #dc2626; box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.15);
+}
+.field .field-error {
+  display: none;
+  font-size: 12.5px; color: #b91c1c; font-weight: 600;
+  margin-top: 2px;
+}
+.field.is-error .field-error { display: block; }
+
+/* Required-field marker. A subtle red asterisk after the label text so
+   users can see at a glance which fields they must complete. */
+.field label .req {
+  color: #dc2626;
+  font-weight: 700;
+  margin-left: 3px;
+}
+
+/* Character counter under bounded text inputs (e.g. address). Lives
+   alongside .field-error and stays present (just colour-shifts) as the
+   user approaches the limit. */
+.char-counter {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: right;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.char-counter.is-near { color: #b45309; }
+.char-counter.is-at   { color: #b91c1c; }
+
+/* Password requirement checklist. Sits below the password input and
+   ticks off rules as they're satisfied. Each row is muted by default
+   and goes green when its check passes. */
+.pwd-checklist {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: var(--bg-alt, #f4f6fb);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+}
+.pwd-rule {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+.pwd-rule .pwd-rule-icon {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: white;
+  border: 1.5px solid var(--line);
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  font-size: 10px;
+  color: transparent;
+  line-height: 1;
+}
+.pwd-rule.is-pass { color: #166534; }
+.pwd-rule.is-pass .pwd-rule-icon {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: white;
+}
+
+/* Step-footer status pill next to the disabled Continue/Submit button.
+   Lets the user know exactly what's still pending. */
+/* Step-footer status pill: sits right next to the (disabled) Continue
+   button so it reads as a label for what the button is waiting on,
+   not as a free-floating message attached to the Back link. */
+.step-status {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  font-weight: 600;
+  flex: 1;
+  text-align: right;
+  align-self: center;
+  line-height: 1.4;
+}
+.step-status:empty { display: none; }
+.step-status.is-warn { color: #b45309; }
+@media (max-width: 560px) {
+  /* On phones the footer wraps; the status drops to its own line and
+     spans the row width so it doesn't squeeze between the buttons. */
+  .step-status { flex: 1 1 100%; text-align: center; order: -1; margin-bottom: 4px; }
+}
+.form-foot .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.form-foot { padding: 20px 32px; border-top: 1px solid var(--line-2); display: flex; justify-content: flex-end; align-items: center; gap: 12px; background: var(--bg-alt); }
+/* Continue/Submit sit on the right; when a Back button exists it's pushed to
+   the far left. (space-between would left-align a lone Continue on step 1.) */
+.form-foot [data-prev-step] { margin-right: auto; }
+.confirm-view { padding: 32px; }
+.confirm-view h4 { font-family: var(--font-sans); color: var(--navy-900); font-size: 1rem; margin: 0 0 10px; }
+.summary { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 28px; margin-bottom: 18px; background: var(--bg-alt); padding: 20px; border-radius: var(--r); }
+.summary .k { font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 3px; }
+.summary .v { font-weight: 600; color: var(--navy-900); font-size: 14.5px; }
+.terms { display: flex; gap: 10px; align-items: flex-start; margin: 18px 0; font-size: 14px; color: var(--ink-2); }
+.account-note {
+  margin: 18px 0 0;
+  padding: 16px 18px;
+  border-radius: var(--r);
+  background: var(--bg-alt);
+  border: 1px solid var(--line);
+}
+.form-message {
+  margin: 0 32px 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.form-message:empty { display: none; }
+.form-message[data-kind="error"], .form-message[data-kind="success"] {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid;
+  line-height: 1.45;
+}
+.form-message[data-kind="error"]   { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+.form-message[data-kind="success"] { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+.form-message::before {
+  content: "";
+  flex-shrink: 0;
+  width: 20px; height: 20px;
+  background-repeat: no-repeat; background-position: center; background-size: contain;
+}
+.form-message[data-kind="error"]::before   { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dc2626' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='12' y1='8' x2='12' y2='12'/><line x1='12' y1='16' x2='12.01' y2='16'/></svg>"); }
+.form-message[data-kind="success"]::before { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2316a34a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M5 12l5 5L20 7'/></svg>"); }
+@media (max-width: 640px) { .form-message { margin: 0 16px 14px; } }
+.success {
+  padding: 48px 32px; text-align: center;
+}
+.success .ic { width: 64px; height: 64px; border-radius: 50%; background: var(--status-open-bg); color: var(--status-open-text2); display: grid; place-items: center; margin: 0 auto 18px; }
+
+.quick-enroll {
+  background: white; border: 1px solid var(--navy-200); border-radius: var(--r-xl);
+  overflow: hidden; box-shadow: var(--shadow-sm); margin-bottom: 96px;
+}
+.quick-enroll .qe-head { background: var(--navy-900); padding: 24px 32px; position: relative; overflow: hidden; }
+.quick-enroll .qe-head::before { content:""; position:absolute; inset:0; background: radial-gradient(400px 200px at 100% 50%, var(--glow-gold), transparent 60%); pointer-events:none; }
+.quick-enroll .qe-head .tag { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.14em; color:var(--gold-on-dark); margin-bottom:6px; }
+.quick-enroll .qe-head h3 { color:white; margin:0; font-size:1.3rem; }
+.quick-enroll .qe-body { padding: 28px 32px; }
+.quick-enroll .student-row { display:flex; gap:20px; align-items:center; padding:16px 20px; background:var(--bg-alt); border-radius:var(--r); margin-bottom:20px; border:1px solid var(--line); }
+.quick-enroll .student-row .s-avatar { width:48px; height:48px; border-radius:50%; background:var(--navy-100); display:grid; place-items:center; font-size:20px; flex-shrink:0; }
+.quick-enroll .student-row .s-name { font-weight:700; font-size:1rem; color:var(--navy-900); }
+.quick-enroll .student-row .s-detail { font-size:13px; color:var(--ink-3); margin-top:2px; }
+.quick-enroll .qe-foot { padding:20px 32px; border-top:1px solid var(--line-2); display:flex; justify-content:space-between; align-items:center; gap:12px; background:var(--bg-alt); flex-wrap:wrap; }
+.quick-enroll .qe-price { font-family:var(--font-display); font-size:1.2rem; font-weight:700; color:var(--navy-900); }
