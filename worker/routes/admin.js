@@ -8,7 +8,7 @@ import { Hono } from "hono";
 import { sessionMiddleware } from "../middleware/session.js";
 import { requireRole } from "../middleware/requireRole.js";
 import { recordAudit } from "../lib/audit-log.js";
-import { PROGRAM_NAMES } from "../lib/programs.js";
+import { getCatalog } from "../lib/programs.js";
 import { getShurjopayConfig, shurjopayGetToken, shurjopayVerify } from "../lib/shurjopay.js";
 import { createVerificationToken, sendVerificationEmail, createPasswordResetToken, sendPasswordResetEmail, assignMemberIdAndSendReceipt, sendBroadcastEmail } from "../lib/email.js";
 import { getBaseUrl } from "../lib/util.js";
@@ -65,6 +65,7 @@ const REG_SORTABLE = {
 };
 
 admin.get("/registrations", async (c) => {
+  const catalog = await getCatalog(c);
   const status   = c.req.query("status");
   const type     = c.req.query("type");
   const venue    = c.req.query("venue");
@@ -162,7 +163,7 @@ admin.get("/registrations", async (c) => {
 
   const enriched = (rowsRes.results || []).map((r) => ({
     ...r,
-    program_label: PROGRAM_NAMES[r.registration_type] || r.registration_type,
+    program_label: catalog.nameFor(r.registration_type),
     stuck: Number(r.stuck) === 1,
     notes_count: Number(r.notes_count) || 0,
   }));
@@ -982,6 +983,7 @@ admin.get("/audit", async (c) => {
 // Aggregate breakdowns for the dashboard overview: the submitted->paid
 // funnel, registrations per exam venue, and registrations per program.
 admin.get("/analytics", async (c) => {
+  const catalog = await getCatalog(c);
   // All eight aggregates run in parallel - D1 latency dominates, so
   // sequential awaits would compound badly.
   const [
@@ -1085,7 +1087,7 @@ admin.get("/analytics", async (c) => {
     })),
     byProgram: (byProgram.results || []).map((r) => ({
       type:  r.registration_type,
-      label: PROGRAM_NAMES[r.registration_type] || r.registration_type,
+      label: catalog.nameFor(r.registration_type),
       total: Number(r.total),
       paid:  Number(r.paid),
     })),
@@ -1314,6 +1316,7 @@ admin.post("/registrations/bulk/cancel", async (c) => {
 // has snoozed disappears from their view until that time passes.
 
 admin.get("/triage", async (c) => {
+  const catalog = await getCatalog(c);
   const session = c.get("session");
   const adminId = session.account_id;
 
@@ -1381,7 +1384,7 @@ admin.get("/triage", async (c) => {
     items.push({
       kind: "stuck_reg", id: r.id, urgency: "medium",
       title: `Stuck unpaid: ${r.student_full_name}`,
-      detail: `${PROGRAM_NAMES[r.registration_type] || r.registration_type} · ${r.guardian_email}`,
+      detail: `${catalog.nameFor(r.registration_type)} · ${r.guardian_email}`,
       timestamp: r.created_at,
       link: `/registrations/${r.id}`,
     });
@@ -1698,6 +1701,7 @@ admin.get("/events", async (c) => {
 
 // GET /api/admin/events/:event/roster?venue=&class=
 admin.get("/events/:event/roster", async (c) => {
+  const catalog = await getCatalog(c);
   const event_key = c.req.param("event");
   const venue = c.req.query("venue");
   const klass = c.req.query("class");
@@ -1728,7 +1732,7 @@ admin.get("/events/:event/roster", async (c) => {
     event_key, venue: venue || null, class: klass || null,
     rows: (rows.results || []).map((r) => ({
       ...r,
-      program_label: PROGRAM_NAMES[r.registration_type] || r.registration_type,
+      program_label: catalog.nameFor(r.registration_type),
       attendance_status: r.attendance_status || "absent",
     })),
   });
@@ -2034,6 +2038,247 @@ function trimOrNull(v) {
   if (v == null) return null;
   const s = String(v).trim();
   return s ? s : null;
+}
+
+// ─── Programs (catalogue) ─────────────────────────────────────────────────
+// D1 is the source of truth for program data + the price the worker validates
+// at checkout. The editor CRUDs here; publishing (materialise the .md + commit)
+// is a separate step. Mirrors the Posts routes above.
+const PROGRAM_CATEGORIES   = ["competition", "beginner", "advanced", "residential"];
+const REGISTRATION_STATUSES = ["open", "closed", "coming_soon", "on_enquiry"];
+
+admin.get("/programs", async (c) => {
+  const status = c.req.query("status"); // 'published' | 'draft' | undefined
+  const wheres = [];
+  if (status === "published") wheres.push("published = 1");
+  else if (status === "draft") wheres.push("published = 0");
+  const whereSql = wheres.length ? `WHERE ${wheres.join(" AND ")}` : "";
+
+  const list = await c.env.DB.prepare(`
+    SELECT slug, title, category, registration_status, price_label, fee_amount,
+           pricing_json, home_order, hidden, bespoke_page, published, updated_at, updated_by
+    FROM programs
+    ${whereSql}
+    ORDER BY COALESCE(home_order, '99'), title
+    LIMIT 200
+  `).all();
+
+  const summary = await c.env.DB.prepare(`
+    SELECT COUNT(*) AS total,
+           SUM(CASE WHEN published = 1 THEN 1 ELSE 0 END) AS published,
+           SUM(CASE WHEN published = 0 THEN 1 ELSE 0 END) AS drafts
+    FROM programs
+  `).first();
+
+  return c.json({
+    ok: true,
+    rows: (list.results || []).map((r) => normaliseProgramRow(r)),
+    summary: {
+      total:     Number(summary?.total)     || 0,
+      published: Number(summary?.published) || 0,
+      drafts:    Number(summary?.drafts)    || 0,
+    },
+  });
+});
+
+admin.get("/programs/:slug", async (c) => {
+  const slug = c.req.param("slug");
+  const row  = await c.env.DB.prepare("SELECT * FROM programs WHERE slug = ? LIMIT 1").bind(slug).first();
+  if (!row) return c.json({ error: "Program not found." }, 404);
+  return c.json({ ok: true, program: normaliseProgramRow(row, { withBody: true }) });
+});
+
+admin.post("/programs", async (c) => {
+  const body = await c.req.json();
+  const slug = (body.slug || "").trim().toLowerCase();
+  if (!SLUG_RE.test(slug)) {
+    return c.json({ error: "Slug must be lowercase letters/numbers/hyphens (3-80 chars)." }, 400);
+  }
+  const exists = await c.env.DB.prepare("SELECT 1 FROM programs WHERE slug = ?").bind(slug).first();
+  if (exists) return c.json({ error: "A program with this slug already exists." }, 409);
+
+  const sani = sanitiseProgramInput(body);
+  if (sani.error) return c.json({ error: sani.error }, 400);
+  if (!sani.values.title) return c.json({ error: "Title is required." }, 400);
+
+  const session = c.get("session");
+  const keys  = Object.keys(sani.values);
+  const cols  = ["slug", ...keys, "updated_at", "updated_by"];
+  const ph    = ["?", ...keys.map(() => "?"), "datetime('now')", "?"];
+  const binds = [slug, ...keys.map((k) => sani.values[k]), session.account_id];
+
+  await c.env.DB.prepare(`INSERT INTO programs (${cols.join(", ")}) VALUES (${ph.join(", ")})`)
+    .bind(...binds).run();
+
+  await recordAudit(c.env, session.account_id, "program.create", {
+    type: "program", id: slug,
+    payload: { title: sani.values.title, published: sani.values.published },
+  });
+
+  return c.json({ ok: true, slug });
+});
+
+admin.patch("/programs/:slug", async (c) => {
+  const slug   = c.req.param("slug");
+  const before = await c.env.DB.prepare("SELECT slug FROM programs WHERE slug = ? LIMIT 1").bind(slug).first();
+  if (!before) return c.json({ error: "Program not found." }, 404);
+
+  const sani = sanitiseProgramInput(await c.req.json(), { partial: true });
+  if (sani.error) return c.json({ error: sani.error }, 400);
+  const keys = Object.keys(sani.values);
+  if (keys.length === 0) return c.json({ error: "No editable fields provided." }, 400);
+
+  const session = c.get("session");
+  const sets  = [...keys.map((k) => `${k} = ?`), "updated_at = datetime('now')", "updated_by = ?"];
+  const binds = [...keys.map((k) => sani.values[k]), session.account_id, slug];
+
+  await c.env.DB.prepare(`UPDATE programs SET ${sets.join(", ")} WHERE slug = ?`).bind(...binds).run();
+
+  await recordAudit(c.env, session.account_id, "program.update", {
+    type: "program", id: slug,
+    payload: Object.fromEntries(
+      keys.filter((k) => k !== "body_md" && k !== "pricing_json").map((k) => [k, sani.values[k]])
+    ),
+  });
+
+  return c.json({ ok: true });
+});
+
+admin.delete("/programs/:slug", async (c) => {
+  const slug   = c.req.param("slug");
+  const before = await c.env.DB.prepare("SELECT slug, title FROM programs WHERE slug = ?").bind(slug).first();
+  if (!before) return c.json({ error: "Program not found." }, 404);
+
+  await c.env.DB.prepare("DELETE FROM programs WHERE slug = ?").bind(slug).run();
+
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "program.delete", {
+    type: "program", id: slug, payload: { title: before.title },
+  });
+
+  return c.json({ ok: true });
+});
+
+// DB row -> the shape the admin client edits. `pricing` is the parsed
+// {selection,choices} object (null = option-less). `withBody` keeps body_md.
+function normaliseProgramRow(r, { withBody = false } = {}) {
+  let pricing = null;
+  try { pricing = r.pricing_json ? JSON.parse(r.pricing_json) : null; } catch { pricing = null; }
+  return {
+    slug:                r.slug,
+    title:               r.title,
+    category:            r.category || "",
+    registration_status: r.registration_status || "closed",
+    registration_opens:  r.registration_opens || null,
+    registration_closes: r.registration_closes || null,
+    schedule_label:      r.schedule_label || "",
+    starts_on:           r.starts_on || null,
+    ends_on:             r.ends_on || null,
+    price_label:         r.price_label || "",
+    fee_amount:          r.fee_amount ?? null,
+    pricing,
+    eyebrow:             r.eyebrow || "",
+    image:               r.image || "",
+    audience:            r.audience || "",
+    duration:            r.duration || "",
+    format:              r.format || "",
+    outcome:             r.outcome || "",
+    level:               r.level || "",
+    meta_description:    r.meta_description || "",
+    home_order:          r.home_order || "",
+    register_url:        r.register_url || "",
+    register_label:      r.register_label || "",
+    hidden:              r.hidden === 1,
+    bespoke_page:        r.bespoke_page === 1,
+    repeatable:          r.repeatable === 1,
+    published:           r.published === 1,
+    updated_at:          r.updated_at,
+    updated_by:          r.updated_by || null,
+    ...(withBody ? { body_md: r.body_md || "" } : {}),
+  };
+}
+
+// Validate + coerce editor input to column values. In `partial` mode only
+// provided keys are returned. Returns { values } or { error }. Prices and
+// fees are validated hard - this is the money path.
+function sanitiseProgramInput(input, { partial = false } = {}) {
+  const v = {};
+  const has = (k) => (k in input) || !partial;
+
+  if (has("title"))    v.title = trimOrNull(input.title);
+  if (has("category")) {
+    const cat = trimOrNull(input.category);
+    if (cat && !PROGRAM_CATEGORIES.includes(cat)) {
+      return { error: `category must be one of: ${PROGRAM_CATEGORIES.join(", ")}` };
+    }
+    v.category = cat;
+  }
+  if (has("registration_status")) {
+    const s = trimOrNull(input.registration_status) || "closed";
+    if (!REGISTRATION_STATUSES.includes(s)) {
+      return { error: `registration_status must be one of: ${REGISTRATION_STATUSES.join(", ")}` };
+    }
+    v.registration_status = s;
+  }
+  for (const k of [
+    "registration_opens", "registration_closes", "schedule_label", "starts_on", "ends_on",
+    "price_label", "eyebrow", "image", "audience", "duration", "format", "outcome", "level",
+    "meta_description", "home_order", "register_url", "register_label",
+  ]) {
+    if (has(k)) v[k] = trimOrNull(input[k]);
+  }
+  if (has("body_md")) v.body_md = typeof input.body_md === "string" ? input.body_md : "";
+
+  if (has("fee_amount")) {
+    const f = input.fee_amount;
+    if (f == null || f === "") v.fee_amount = null;
+    else {
+      const num = Number(f);
+      if (!Number.isInteger(num) || num < 0) return { error: "fee_amount must be a non-negative whole number or empty." };
+      v.fee_amount = num;
+    }
+  }
+  if ("pricing" in input || (!partial)) {
+    const res = sanitisePricing(input.pricing ?? null);
+    if (res.error) return { error: res.error };
+    v.pricing_json = res.json;
+  }
+  for (const k of ["hidden", "bespoke_page", "repeatable", "published"]) {
+    if (has(k)) v[k] = input[k] ? 1 : 0;
+  }
+  return { values: v };
+}
+
+// Validate the priced-choices object -> JSON string (or null). Hard checks:
+// selection enum, non-empty unique slug ids, non-empty labels, non-negative
+// integer prices.
+function sanitisePricing(pricing) {
+  if (pricing == null) return { json: null };
+  if (typeof pricing !== "object") return { error: "pricing must be an object or null." };
+  if (pricing.selection !== "single" && pricing.selection !== "multiple") {
+    return { error: "pricing.selection must be 'single' or 'multiple'." };
+  }
+  if (!Array.isArray(pricing.choices) || pricing.choices.length === 0) {
+    return { error: "pricing needs at least one choice." };
+  }
+  const seen = new Set();
+  const choices = [];
+  for (const ch of pricing.choices) {
+    const id = trimOrNull(ch && ch.id);
+    if (!id || !/^[a-z0-9][a-z0-9-]*$/.test(id)) {
+      return { error: `choice id "${ch && ch.id}" must be lowercase letters/numbers/hyphens.` };
+    }
+    if (seen.has(id)) return { error: `duplicate choice id "${id}".` };
+    seen.add(id);
+    const label = trimOrNull(ch.label);
+    if (!label) return { error: `choice "${id}" needs a label.` };
+    const price = Number(ch.price);
+    if (!Number.isInteger(price) || price < 0) {
+      return { error: `choice "${id}" price must be a non-negative whole number.` };
+    }
+    choices.push({ id, label, note: trimOrNull(ch.note) || "", price });
+  }
+  return { json: JSON.stringify({ selection: pricing.selection, choices }) };
 }
 
 export default admin;

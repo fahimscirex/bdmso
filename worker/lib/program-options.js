@@ -1,118 +1,89 @@
-// Program option logic. The option CONFIG now lives in the catalog
-// (public/data/programs-detail.json) under each program's `options`
-// field - this module only holds the validation + pricing logic that
-// reads it. To add/change options, edit programs-detail.json.
+// Pure program-option logic. No catalog/DB access here - every function takes
+// an already-resolved option config in the stored shape:
 //
-// `kind` is "checkbox" (multi-select, sum prices) or "radio"
-// (single-pick, exact price).
+//   { selection: 'single' | 'multiple', choices: [{ id, label, note, price }] }
+//
+// `single` = pick exactly one (exact price). `multiple` = pick any, prices sum.
+// The catalog (lib/programs.js) resolves a slug to its config and binds these.
+// Keeping this layer pure means it is trivially unit/parity-testable and the
+// route call sites never see raw shape - future vocabulary changes stay in the
+// catalog + here, not at the ~20 consumers.
 
-import CATALOG from "../../public/data/programs-detail.json";
-
-const PROGRAMS_BY_SLUG = Object.fromEntries(
-  CATALOG.filter((p) => p && p.slug).map((p) => [p.slug, p]),
-);
-const OPTIONS_BY_SLUG = Object.fromEntries(
-  Object.entries(PROGRAMS_BY_SLUG)
-    .filter(([, p]) => p.options)
-    .map(([slug, p]) => [slug, p.options]),
-);
-
-export function programHasOptions(slug) {
-  return !!OPTIONS_BY_SLUG[slug];
-}
-
-export function getProgramOptions(slug) {
-  return OPTIONS_BY_SLUG[slug] || null;
-}
-
-export function getProgram(slug) {
-  return PROGRAMS_BY_SLUG[slug] || null;
-}
-
-// Human-readable labels for a set of option ids, in catalog order so the
-// receipt + audit log read consistently regardless of input order.
-export function getOptionLabels(slug, ids) {
-  const cfg = OPTIONS_BY_SLUG[slug];
-  if (!cfg) return [];
-  const idSet = new Set(Array.isArray(ids) ? ids : []);
-  return cfg.items.filter((it) => idSet.has(it.id)).map((it) => it.label);
-}
-
-// Price of an arbitrary id list against a program's config. Used to price
-// the "from" side of a diff where the stored ids must already be valid.
-export function priceOptions(slug, ids) {
-  const cfg = OPTIONS_BY_SLUG[slug];
-  if (!cfg) return null;
-  const idSet = new Set(Array.isArray(ids) ? ids : []);
-  let total = 0;
-  for (const it of cfg.items) if (idSet.has(it.id)) total += it.price;
-  return total;
-}
-
-// True if today is on or before the program's `registrationEnds` date.
-// One window per program drives every guardian-initiated edit (options,
-// preferred_subject, preferred_venue). Programs without an end date are
-// treated as always-editable. Previously this respected a separate
-// `optionsEditableUntil` field; dropped in favour of a single
-// "edits allowed while registration is open" rule.
-export function withinEditWindow(slug, todayISO = null) {
-  const p = PROGRAMS_BY_SLUG[slug];
-  if (!p) return false;
-  if (!p.registrationEnds) return true;
-  const today = todayISO || new Date().toISOString().slice(0, 10);
-  return today <= p.registrationEnds;
-}
-
-// Diff between two option id sets for the same program. Validates the new
-// set; the old set is taken as-is (DB-held values are already valid).
-// Returns { ok: false, error } on a bad `to`, otherwise:
-// { ok: true, fromPrice, toPrice, delta, action: 'same'|'upgrade'|'downgrade', normalizedTo }
-export function computeOptionDiff(slug, fromIds, toIds) {
-  const validation = validateAndPriceOptions(slug, toIds);
-  if (!validation.ok) return { ok: false, error: validation.error };
-  const fromPrice = priceOptions(slug, fromIds) ?? 0;
-  const toPrice   = validation.price ?? 0;
-  const delta     = toPrice - fromPrice;
-  const action    = delta === 0 ? "same" : delta > 0 ? "upgrade" : "downgrade";
-  return {
-    ok: true,
-    fromPrice,
-    toPrice,
-    delta,
-    action,
-    normalizedTo: validation.normalized,
-  };
-}
-
-// Validate a list of option ids against the program's config. Returns
-// { ok, price, normalized } - normalized is the sanitised id list so
-// callers can store exactly what we accepted.
-export function validateAndPriceOptions(slug, rawOptions) {
-  const cfg = OPTIONS_BY_SLUG[slug];
+// Validate a list of option ids against a config. Returns
+// { ok, price, normalized } (normalized = the sanitised id list we accepted),
+// or { ok:false, error } on a bad selection. A null config means "no options"
+// -> { ok:true, price:null, normalized:[] } so option-less programs pass.
+export function validateAndPrice(cfg, rawOptions) {
   if (!cfg) return { ok: true, price: null, normalized: [] };
   const ids = Array.isArray(rawOptions) ? rawOptions.filter((x) => typeof x === "string") : [];
-  const validIds = new Set(cfg.items.map((it) => it.id));
+  const validIds = new Set(cfg.choices.map((c) => c.id));
 
-  if (cfg.kind === "radio") {
-    if (ids.length !== 1) return { ok: false, error: `Please pick one ${cfg.label.toLowerCase()} option.` };
+  if (cfg.selection === "single") {
+    if (ids.length !== 1) return { ok: false, error: "Please pick one option." };
     if (!validIds.has(ids[0])) return { ok: false, error: "Invalid option." };
-    const item = cfg.items.find((it) => it.id === ids[0]);
-    return { ok: true, price: item.price, normalized: [item.id] };
+    const choice = cfg.choices.find((c) => c.id === ids[0]);
+    return { ok: true, price: choice.price, normalized: [choice.id] };
   }
 
-  if (cfg.kind === "checkbox") {
-    if (ids.length === 0) return { ok: false, error: `Pick at least one ${cfg.label.toLowerCase()} option.` };
+  if (cfg.selection === "multiple") {
+    if (ids.length === 0) return { ok: false, error: "Pick at least one option." };
     const accepted = [];
     let price = 0;
     for (const id of ids) {
-      const item = cfg.items.find((it) => it.id === id);
-      if (!item || accepted.includes(item.id)) continue;
-      accepted.push(item.id);
-      price += item.price;
+      const choice = cfg.choices.find((c) => c.id === id);
+      if (!choice || accepted.includes(choice.id)) continue;
+      accepted.push(choice.id);
+      price += choice.price;
     }
     if (accepted.length === 0) return { ok: false, error: "Invalid option selection." };
     return { ok: true, price, normalized: accepted };
   }
 
-  return { ok: false, error: "Unsupported option kind." };
+  return { ok: false, error: "Unsupported option selection." };
+}
+
+// Price of an arbitrary id list against a config. Used for the "from" side of a
+// diff, where stored ids are already known-valid. null config -> null.
+export function priceOf(cfg, ids) {
+  if (!cfg) return null;
+  const idSet = new Set(Array.isArray(ids) ? ids : []);
+  let total = 0;
+  for (const c of cfg.choices) if (idSet.has(c.id)) total += c.price;
+  return total;
+}
+
+// Human labels for a set of ids, in config order so receipts/audit read
+// consistently regardless of input order.
+export function labelsOf(cfg, ids) {
+  if (!cfg) return [];
+  const idSet = new Set(Array.isArray(ids) ? ids : []);
+  return cfg.choices.filter((c) => idSet.has(c.id)).map((c) => c.label);
+}
+
+// Diff between two id sets for the same config. Validates `toIds`; `fromIds`
+// is taken as-is (DB-held values are already valid). Returns { ok:false, error }
+// on a bad `to`, otherwise { ok, fromPrice, toPrice, delta, action, normalizedTo }.
+export function computeDiff(cfg, fromIds, toIds) {
+  const v = validateAndPrice(cfg, toIds);
+  if (!v.ok) return { ok: false, error: v.error };
+  const fromPrice = priceOf(cfg, fromIds) ?? 0;
+  const toPrice = v.price ?? 0;
+  const delta = toPrice - fromPrice;
+  return {
+    ok: true,
+    fromPrice,
+    toPrice,
+    delta,
+    action: delta === 0 ? "same" : delta > 0 ? "upgrade" : "downgrade",
+    normalizedTo: v.normalized,
+  };
+}
+
+// True if today is on or before the program's registration_closes date. A
+// program with no close date is always-editable. One window drives every
+// guardian-initiated edit (options/subject/venue).
+export function isWithinEditWindow(registrationCloses, todayISO = null) {
+  if (!registrationCloses) return true;
+  const today = todayISO || new Date().toISOString().slice(0, 10);
+  return today <= registrationCloses;
 }

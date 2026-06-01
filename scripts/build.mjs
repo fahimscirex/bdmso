@@ -82,17 +82,6 @@ function formatPostDate(str) {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 }
 
-// Reads the program catalog. Returns [] (with a warning) on any failure so
-// the rest of the build still proceeds.
-function readPrograms() {
-  try {
-    return JSON.parse(readFileSync(path.join(publicDir, "data", "programs-detail.json"), "utf8"));
-  } catch (e) {
-    console.warn(`[programs] could not read catalog: ${e.message}`);
-    return [];
-  }
-}
-
 // Writes a file only when its content actually differs. Keeps unchanged
 // pages' mtime stable (so sitemap <lastmod> stays honest) and avoids
 // needless churn in the working tree.
@@ -187,8 +176,7 @@ function regeneratePosts() {
   // serves public/) can resolve /posts/<slug>, /robots.txt, /sitemap.xml.
   // The full build re-emits all of these into dist/.
   buildPostPages(posts, { target: "public" });
-  buildProgramPages({ target: "public" });
-  buildProgramOptionsData({ target: "public" });
+  // Programs are owned by the Astro app + D1 now (no build.mjs program output).
   writeRobotsAndSitemap(posts, { target: "public" });
   return posts;
 }
@@ -312,256 +300,6 @@ function buildPostPages(posts, { target = "dist" } = {}) {
   console.log(`[posts] generated ${posts.length} static post page(s) in ${path.relative(rootDir, outDir)}/`);
 }
 
-// ── Per-program static HTML ──────────────────────────────────────────────────
-
-// Generates public/js/program-options-data.js (and dist) from the
-// catalog. The browser's program-options.js imports this generated
-// file, so the option config has one editable home: the JSON.
-function buildProgramOptionsData({ target = "dist" } = {}) {
-  const programs = readPrograms();
-
-  const optionsBySlug = {};
-  for (const p of programs) {
-    if (p && p.options) optionsBySlug[p.slug] = p.options;
-  }
-
-  const outDir = target === "public"
-    ? path.join(publicDir, "js")
-    : path.join(distDir, "js");
-  mkdirSync(outDir, { recursive: true });
-
-  const file = `// GENERATED from public/data/programs-detail.json by scripts/build.mjs.
-// Do not edit by hand - change each program's "options" in the JSON.
-export const PROGRAM_OPTIONS = ${JSON.stringify(optionsBySlug, null, 2)};
-`;
-  writeIfChanged(path.join(outDir, "program-options-data.js"), file);
-  console.log(`[program-options] generated data for ${Object.keys(optionsBySlug).length} program(s) in ${path.relative(rootDir, outDir)}/`);
-}
-
-function buildProgramPages({ target = "dist" } = {}) {
-  const programs = readPrograms();
-
-  const outDir = target === "public"
-    ? path.join(publicDir, "programs")
-    : path.join(distDir, "programs");
-  mkdirSync(outDir, { recursive: true });
-
-  let generated = 0;
-  for (const p of programs) {
-    // Hidden programs (hidden: true in programs-detail.json) get no
-    // page at all - they're fully off.
-    if (p.hidden) continue;
-    // Some programs ship with a hand-authored static page (e.g. Maryam
-    // Mirzakhani School has bespoke styling that doesn't fit the
-    // generated template). Skip generating - the existing file stays as-is.
-    if (p.bespokePage) continue;
-    const url = `${SITE_URL}/programs/${p.slug}`;
-    const image = p.image
-      ? (p.image.startsWith("http") ? p.image : `${SITE_URL}${p.image.startsWith("/") ? p.image : `/${p.image}`}`)
-      : `${SITE_URL}/images/logo.webp`;
-    // metaDescription drives the <meta>/OG/schema description; tagline
-    // stays the visible hero lede.
-    const metaDesc = p.metaDescription || p.tagline;
-
-    const descPara  = (p.description || []).map(t => `<p>${escHtml(t)}</p>`).join("\n        ");
-    const bullets   = (p.what_youll_do || []).map(t => `<li>${escHtml(t)}</li>`).join("\n          ");
-    const nextSteps = (p.next_steps || []).map(t => `<li>${escHtml(t)}</li>`).join("\n          ");
-    const whatYoullGet = (p.what_youll_get || []).map(t => `<li>${escHtml(t)}</li>`).join("\n          ");
-    const howToParticipate = (p.how_to_participate || []).map(t => `<li>${t}</li>`).join("\n          ");
-    const programDay = (p.program_day || []).map(t => `<li>${escHtml(t)}</li>`).join("\n          ");
-    const quizStructure = (p.quiz_structure || []).map(t => `<li>${escHtml(t)}</li>`).join("\n          ");
-    // Structured schedule sections (Class Schedule + Mock Tests + note)
-    // currently used by the BdMSO Preparatory Course and Camp. Each
-    // class_schedule entry renders as a subheading + list, so the page
-    // surfaces a clear "Science vs Math" split rather than one long list.
-    const classScheduleHtml = Array.isArray(p.class_schedule) && p.class_schedule.length
-      ? `<h2>${escHtml(p.class_schedule_label || "Class Schedule")}</h2>\n      ` +
-        p.class_schedule.map(group => {
-          const items = (group.sessions || []).map(s => `<li>${escHtml(s)}</li>`).join("\n          ");
-          return `<h3>${escHtml(group.subject || "")}</h3>\n      <ul>\n          ${items}\n        </ul>`;
-        }).join("\n      ")
-      : "";
-    const mockTestsHtml = Array.isArray(p.mock_tests) && p.mock_tests.length
-      ? `<h2>${escHtml(p.mock_tests_label || "Mock Test Dates")}</h2>\n      <ul>\n          ` +
-        p.mock_tests.map(t => `<li>${escHtml(t)}</li>`).join("\n          ") +
-        `\n        </ul>`
-      : "";
-    const scheduleNoteHtml = p.schedule_note
-      ? `<p class="pd-note"><strong>Note:</strong> ${escHtml(p.schedule_note)}</p>`
-      : "";
-    // Sibling-program callout. Plain-styled card with a real <a href>
-    // so search engines see the internal link (helps disambiguate close
-    // siblings like the Prep Course vs the Prep Camp).
-    const relatedHtml = Array.isArray(p.related_programs) && p.related_programs.length
-      ? `<aside class="pd-related" aria-label="Related programs">\n        ` +
-        p.related_programs.map(r => `<a class="pd-related-card" href="${escAttr(r.url)}">
-          <span class="pd-related-label">${escHtml(r.label || "See also")}</span>
-          <span class="pd-related-title">${escHtml(r.title || "")}</span>
-          ${r.note ? `<span class="pd-related-note">${escHtml(r.note)}</span>` : ""}
-        </a>`).join("\n        ") +
-        `\n      </aside>`
-      : "";
-
-    const isExternal = /^https?:/.test(p.register_url || "");
-    const ctaAttrs   = isExternal ? ` target="_blank" rel="noopener"` : "";
-    // registration: false in programs-detail.json closes a program -
-    // no active Register button, no payment warning. When registration
-    // is true the active CTA carries the window dates so the inline
-    // script below can downgrade it to "opens on…" for upcoming
-    // programs (kept client-side so static pages never go stale).
-    const regOpen = p.registration !== false;
-    const closedBox = (text) =>
-      `<div class="pd-cta" style="text-align:center;padding:14px;border-radius:12px;background:var(--bg-alt,#f1f3f7);color:var(--ink-3);font-weight:700;font-size:14px;">${text}</div>`;
-    const winAttrs = `${p.registrationStarts ? ` data-reg-starts="${escAttr(p.registrationStarts)}"` : ""}${p.registrationEnds ? ` data-reg-ends="${escAttr(p.registrationEnds)}"` : ""}`;
-    const ctaHtml = regOpen
-      ? `<a class="btn btn-primary btn-lg pd-cta" id="pd-cta" href="${escAttr(p.register_url || "/registration")}"${ctaAttrs}${winAttrs}>${escHtml(p.register_label || "Register")} →</a>`
-      : closedBox("Registration closed");
-    const windowScript = (regOpen && (p.registrationStarts || p.registrationEnds))
-      ? `<script>(function(){var c=document.getElementById('pd-cta');if(!c)return;var t=new Date().toISOString().slice(0,10);var s=c.dataset.regStarts,e=c.dataset.regEnds,m='';if(s&&t<s){m='Registration opens '+new Date(s).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}else if(e&&t>e){m='Registration closed';}if(m){var b=document.createElement('div');b.className='pd-cta';b.style.cssText='text-align:center;padding:14px;border-radius:12px;background:var(--bg-alt,#f1f3f7);color:var(--ink-3);font-weight:700;font-size:14px;';b.textContent=m;c.replaceWith(b);}})();</script>`
-      : "";
-
-    // Avoid "BdMSO X - BdMSO" double-branding when the program title
-     // already leads with "BdMSO".
-    const pageTitle = /^BdMSO\b/i.test(p.title) ? p.title : `${p.title} - BdMSO`;
-
-    // Course schema. Where the program has concrete dates, fee, and a
-    // location, also emit hasCourseInstance so the page is eligible for
-    // Google's Course rich result. Mode is inferred from `format` (Live
-    // online -> Online, on-site -> Onsite, mixed otherwise).
-    const courseInstance = (() => {
-      if (!p.startsOn && !p.endsOn) return null;
-      const fmt = (p.format || "").toLowerCase();
-      const mode = /online/.test(fmt) && !/on-site|onsite|offline/.test(fmt)
-        ? "Online"
-        : (/on-site|onsite|offline|maslab|residential/.test(fmt) ? "Onsite" : "Blended");
-      const instance = {
-        "@type": "CourseInstance",
-        "courseMode": mode,
-      };
-      if (p.startsOn) instance.startDate = p.startsOn;
-      if (p.endsOn)   instance.endDate   = p.endsOn;
-      if (mode !== "Online") {
-        instance.location = {
-          "@type": "Place",
-          "name": "MASLab, Dhaka",
-          "address": { "@type": "PostalAddress", "addressCountry": "BD" },
-        };
-      }
-      if (p.feeAmount != null) {
-        instance.offers = {
-          "@type": "Offer",
-          "price": String(p.feeAmount),
-          "priceCurrency": "BDT",
-          "url": url,
-          "availability": "https://schema.org/InStock",
-          "category": "Paid",
-        };
-      }
-      return instance;
-    })();
-
-    const courseSchema = {
-      "@context": "https://schema.org",
-      "@type": "Course",
-      "name": p.title,
-      "description": metaDesc,
-      "url": url,
-      "image": image,
-      "provider": {
-        "@type": "EducationalOrganization",
-        "name": "Bangladesh Mathematics & Science Olympiad",
-        "url": SITE_URL,
-      },
-    };
-    if (courseInstance) courseSchema.hasCourseInstance = courseInstance;
-
-    const seoTags = buildSeoTags({
-      title:       pageTitle,
-      description: metaDesc,
-      canonical:   url,
-      image,
-      ogType:      "website",
-      schema: [courseSchema],
-    });
-
-    const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-${seoTags}
-<meta name="theme-color" content="#0b1b3f">
-<link rel="icon" href="/favicon.ico" sizes="any">
-<link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
-${FONT_LINKS}
-<link rel="stylesheet" href="/css/styles.css" />
-</head>
-<body data-page="program-detail">
-<div id="site-header"></div>
-<main>
-
-<section class="pd-hero"><div class="container">
-  <div class="pd-topbar">
-    <a class="pd-back" href="/programs">All programs</a>
-    <span class="eyebrow">${escHtml(p.eyebrow || "Program")}</span>
-  </div>
-  <h1>${escHtml(p.title)}</h1>
-  <p class="lede">${escHtml(p.tagline)}</p>
-</div></section>
-
-<section class="container pd-wrap">
-  <div class="pd-grid">
-    <article class="pd-main">
-      ${p.image ? `<img class="cover" loading="lazy" src="${escAttr(p.image)}" alt="${escAttr(p.title)}">` : ""}
-      <h2>About this program</h2>
-        ${descPara}
-      ${classScheduleHtml}
-      ${mockTestsHtml}
-      ${scheduleNoteHtml}
-      ${bullets ? `<h2>${escHtml(p.what_youll_do_label || "What you'll do")}</h2>\n      <ul>\n          ${bullets}\n        </ul>` : ""}
-      ${whatYoullGet ? `<h2>${escHtml(p.what_youll_get_label || "What You'll Get")}</h2>\n      <ul>\n          ${whatYoullGet}\n        </ul>` : ""}
-      ${programDay ? `<h2>${escHtml(p.program_day_label || "Program Day Outline")}</h2>\n      <ul>\n          ${programDay}\n        </ul>` : ""}
-      ${quizStructure ? `<h2>${escHtml(p.quiz_structure_label || "Quiz Competition Structure")}</h2>\n      <ul>\n          ${quizStructure}\n        </ul>` : ""}
-      ${howToParticipate ? `<h2>${escHtml(p.how_to_participate_label || "How To Participate")}</h2>\n      <ol>\n          ${howToParticipate}\n        </ol>` : ""}
-      ${nextSteps ? `<h2>${escHtml(p.next_steps_label || "Next steps")}</h2>\n      <ul>\n          ${nextSteps}\n        </ul>` : ""}
-      ${relatedHtml}
-    </article>
-
-    <aside class="pd-side">
-      <div class="pd-card">
-        <div class="pd-price">${escHtml(p.price || "")}</div>
-        ${p.schedule ? `<p class="pd-schedule">${escHtml(p.schedule)}</p>` : ""}
-        ${ctaHtml}
-        <div class="pd-facts">
-          ${p.audience ? `<div class="pd-fact"><div class="k">Who it's for</div><div class="v">${escHtml(p.audience)}</div></div>` : ""}
-          ${p.duration ? `<div class="pd-fact"><div class="k">Duration</div><div class="v">${escHtml(p.duration)}</div></div>` : ""}
-          ${p.format   ? `<div class="pd-fact"><div class="k">Format</div><div class="v">${escHtml(p.format)}</div></div>` : ""}
-          ${p.outcome  ? `<div class="pd-fact"><div class="k">Outcome</div><div class="v">${escHtml(p.outcome)}</div></div>` : ""}
-        </div>
-      </div>
-
-      ${regOpen ? `<div class="pd-card pd-warning">
-        <div class="t">⚠ Registration isn't complete until payment is confirmed</div>
-        <div class="b">Submitting the registration form alone does not enroll your child. You'll need to complete payment from your dashboard to receive a BdMSO ID and access program resources.</div>
-      </div>` : ""}
-    </aside>
-  </div>
-</section>
-
-</main>
-<div id="site-footer"></div>
-<script src="/js/site.js"></script>
-${windowScript}
-</body>
-</html>
-`;
-
-    writeIfChanged(path.join(outDir, `${p.slug}.html`), html);
-    generated += 1;
-  }
-  console.log(`[programs] generated ${generated} static program page(s) in ${path.relative(rootDir, outDir)}/`);
-}
-
 // ── Full build ───────────────────────────────────────────────────────────────
 
 function buildDist() {
@@ -572,10 +310,8 @@ function buildDist() {
 
   const posts = readPosts();
   buildPostPages(posts);
-  buildProgramPages({ target: "dist" });
-  buildProgramOptionsData({ target: "dist" });
   buildBlogIndex(posts);
-  buildProgramsIndex();
+  // Programs are owned by the Astro app + D1 now (no build.mjs program output).
   injectSeoIntoDir(distDir);
   injectFontsIntoDir(distDir);
   const { count } = writeRobotsAndSitemap(posts, { target: "dist" });
@@ -719,88 +455,6 @@ function buildBlogIndex(posts) {
   console.log(`[blog] pre-rendered dist/blog.html (${posts.length} posts)`);
 }
 
-// ── Programs index: pre-render program cards for crawlers ─────────────────────
-//
-// public/programs.html ships an empty card grid that JS hydrates from
-// programs-detail.json. We overwrite dist/programs.html with the cards
-// pre-rendered as real <a href="/programs/slug"> links so crawlers and
-// no-JS visitors get them; the page's own JS detects these and enhances
-// them in place. Card markup MUST stay in sync with the fallback template
-// in public/programs.html.
-
-function buildProgramsIndex() {
-  const programs = readPrograms().filter(p => p && p.slug && !p.hidden);
-  if (!programs.length) { console.warn("[programs] index skipped: empty catalog"); return; }
-
-  const ICON = {
-    person: "<svg viewBox='0 0 20 20' fill='currentColor'><path d='M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z'/></svg>",
-    clock:  "<svg viewBox='0 0 20 20' fill='none' stroke='currentColor' stroke-width='1.8'><circle cx='10' cy='10' r='7'/><path d='M10 6v4l2.5 2.5' stroke-linecap='round'/></svg>",
-    star:   "<svg viewBox='0 0 20 20' fill='none' stroke='currentColor' stroke-width='1.8'><path d='M10 3l2.5 5 5.5.5-4 4 1 5.5L10 15l-5 3 1-5.5-4-4L7.5 8z' stroke-linejoin='round'/></svg>",
-  };
-  const CTA_ARROW = "<svg viewBox='0 0 20 20' fill='currentColor'><path fill-rule='evenodd' d='M7.3 5.3a1 1 0 011.4 0l4 4a1 1 0 010 1.4l-4 4a1 1 0 11-1.4-1.4L10.6 10 7.3 6.7a1 1 0 010-1.4z'/></svg>";
-  const BADGE = { beginner: ["b-beginner", "Beginner"], advanced: ["b-advanced", "Advanced"], residential: ["b-residential", "Residential"] };
-
-  const cards = programs.map((p) => {
-    // Badge: "Open" only when the program has an explicit registration
-    // window and today falls inside it. Year-round programs (no dates)
-    // and closed ones show their category badge (Beginner/Advanced/...).
-    let badgeClass, badgeLabel;
-    const todayISO = new Date().toISOString().slice(0, 10);
-    const inWindow = p.registration !== false
-      && (p.registrationStarts || p.registrationEnds)
-      && (!p.registrationStarts || todayISO >= p.registrationStarts)
-      && (!p.registrationEnds   || todayISO <= p.registrationEnds);
-    if (inWindow) {
-      badgeClass = "b-open"; badgeLabel = "Open";
-    } else {
-      [badgeClass, badgeLabel] = BADGE[p.category] || ["b-open", "Open"];
-    }
-    const dated = !!(p.registrationStarts || p.registrationEnds);
-    const facts = [
-      [ICON.person, p.audience],
-      [ICON.clock,  p.duration],
-      [ICON.star,   p.outcome],
-    ].filter(([, v]) => v).map(([icon, v]) =>
-      `<div class="p-card-fact">${icon}<span>${escHtml(v)}</span></div>`).join("");
-    const attrs = [
-      `data-slug="${escAttr(p.slug)}"`,
-      `data-tags="${escAttr(p.category || "")}"`,
-      `data-schedule="${dated ? "dated" : "year-round"}"`,
-      p.registrationStarts ? `data-starts="${escAttr(p.registrationStarts)}"` : "",
-      p.registrationEnds ? `data-ends="${escAttr(p.registrationEnds)}"` : "",
-      p.bespokePage ? 'data-no-modal="1"' : "",
-      p.registration === false ? 'data-registration="false"' : "",
-    ].filter(Boolean).join(" ");
-    const fee = p.feeAmount != null
-      ? `৳ ${Number(p.feeAmount).toLocaleString("en-BD")}`
-      : "On enquiry";
-    return `<a class="p-card" href="/programs/${escAttr(p.slug)}" ${attrs}>
-      <div class="p-card-topbar">
-        <div class="p-card-topbar-l">
-          <span class="p-card-badge ${badgeClass}">${badgeLabel}</span>
-        </div>
-      </div>
-      <h3 class="p-card-title">${escHtml(p.title)}</h3>
-      <p class="p-card-desc">${escHtml(p.tagline || "")}</p>
-      <div class="p-card-facts">${facts}</div>
-      <div class="p-card-foot">
-        <span class="p-card-fee">${fee}</span>
-        <span class="p-card-cta">Details${CTA_ARROW}</span>
-      </div>
-    </a>`;
-  }).join("\n");
-
-  const template = readFileSync(path.join(publicDir, "programs.html"), "utf8");
-  const marker = '<div class="p-list" data-list="all"></div>';
-  if (!template.includes(marker)) {
-    console.warn("[programs] index skipped: grid placeholder not found in programs.html");
-    return;
-  }
-  const html = template.replace(marker, `<div class="p-list" data-list="all">\n${cards}\n</div>`);
-  writeIfChanged(path.join(distDir, "programs.html"), html);
-  console.log(`[programs] pre-rendered dist/programs.html (${programs.length} cards)`);
-}
-
 // ── robots.txt + sitemap.xml ─────────────────────────────────────────────────
 
 function writeRobotsAndSitemap(posts, { target = "dist" } = {}) {
@@ -834,12 +488,9 @@ function writeRobotsAndSitemap(posts, { target = "dist" } = {}) {
     { slug: "terms",        priority: "0.3",  changefreq: "yearly" },
   ];
 
-  // Program detail pages - derived from the catalog so the sitemap stays in
-  // sync with buildProgramPages(). Excludes hidden programs; includes both
-  // generated and bespoke pages (e.g. maryam-mirzakhani-school).
-  const programPages = readPrograms()
-    .filter(p => p && p.slug && !p.hidden)
-    .map(p => ({ slug: `programs/${p.slug}`, priority: "0.85", changefreq: "monthly" }));
+  // Program pages live in the Astro app + D1 now; its build owns their
+  // sitemap entries, so build.mjs emits none.
+  const programPages = [];
 
   const now = new Date().toISOString();
   const pageMtime = (slug) => {

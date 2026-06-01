@@ -254,30 +254,46 @@ CREATE TABLE IF NOT EXISTS registration_option_changes (
 CREATE INDEX IF NOT EXISTS idx_option_changes_registration
 ON registration_option_changes (registration_id, created_at DESC);
 
+-- Programs catalogue (editable from the admin dashboard; D1 is source of truth
+-- for editing + checkout pricing). Field vocabulary: see db/migrations/0002_programs.sql
+-- and docs/content-samples/. (Replaces an earlier speculative scaffold that was
+-- never wired up - cohort/venue/routine_json/subjects_json.)
 CREATE TABLE IF NOT EXISTS programs (
   slug TEXT PRIMARY KEY,
   title TEXT NOT NULL,
-  tagline TEXT,
-  cohort TEXT,
-  image TEXT,                       -- R2 key or /images/ path
-  start_date TEXT,                  -- ISO date
-  end_date TEXT,
-  venue TEXT,
+  category TEXT,                                       -- competition | beginner | advanced | residential
+  registration_status TEXT NOT NULL DEFAULT 'closed',  -- open | closed | coming_soon | on_enquiry
+  registration_opens TEXT,
+  registration_closes TEXT,                            -- also drives the guardian edit window
+  schedule_label TEXT,
+  starts_on TEXT,
+  ends_on TEXT,
+  price_label TEXT,
+  fee_amount INTEGER,                                  -- flat fee for programs without choices; NULL = on enquiry
+  pricing_json TEXT,                                   -- {selection,choices:[{id,label,note,price}]}; overrides fee_amount when set
+  eyebrow TEXT,
+  image TEXT,
   audience TEXT,
-  subjects_json TEXT,               -- JSON array: ["Mathematics","Science","Both"]
-  body_md TEXT,                     -- markdown body, rendered at request time
-  routine_json TEXT,                -- JSON: [{day,date,blocks:[{subject,slots:[{time,label}]}]}]
-  pricing_json TEXT,                -- JSON: [{name,price,currency,perks,featured}]
-  registration_url TEXT,
+  duration TEXT,
+  format TEXT,
+  outcome TEXT,
+  level TEXT,
+  meta_description TEXT,
+  home_order TEXT,
+  register_url TEXT,
+  register_label TEXT,
+  body_md TEXT NOT NULL DEFAULT '',
+  hidden INTEGER NOT NULL DEFAULT 0,
+  bespoke_page INTEGER NOT NULL DEFAULT 0,
+  repeatable INTEGER NOT NULL DEFAULT 0,
   published INTEGER NOT NULL DEFAULT 0,
-  published_at TEXT,
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_by TEXT,
   FOREIGN KEY (updated_by) REFERENCES guardian_accounts (id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_programs_published
-ON programs (published, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_programs_published_order
+ON programs (published, home_order);
 
 CREATE TABLE IF NOT EXISTS posts (
   slug TEXT PRIMARY KEY,

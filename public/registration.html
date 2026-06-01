@@ -593,7 +593,7 @@
 <script src="/js/site.js"></script>
 <script type="module">
 import { postJson } from './js/api.js';
-import { PROGRAM_OPTIONS, programHasOptions, computeOptionsTotal } from './js/program-options.js';
+import { PROGRAM_OPTIONS, programHasOptions, computeOptionsTotal, initProgramOptions } from './js/program-options.js';
 import { loadCatalog, programMaps } from './js/program-catalog.js';
 
 // Program names + prices come from the catalog (programs-detail.json),
@@ -608,6 +608,8 @@ async function loadCatalogMaps() {
   PROGRAM_PRICES = prices;
   const catalog = await loadCatalog();
   CATALOG_BY_SLUG = Object.fromEntries(catalog.map((p) => [p.slug, p]));
+  // Populate PROGRAM_OPTIONS from the same catalog before the form reads it.
+  await initProgramOptions();
 }
 
 // Mirrors the worker's registrationOpenFor(). Returns the enrollability

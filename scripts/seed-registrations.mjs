@@ -21,18 +21,20 @@ const SCHOOLS = ["St. Joseph Higher Secondary", "Viqarunnisa Noon School", "Holy
 const DISTRICTS = ["Dhaka", "Chittagong", "Sylhet", "Rajshahi", "Khulna", "Barishal", "Rangpur", "Mymensingh"];
 const CLASSES = ["Class 2", "Class 3", "Class 4", "Class 5", "Class 6"];
 const GENDERS = ["Male", "Female"];
-// Registration types to seed. Prices come from the catalog
-// (programs-detail.json) - the single source of truth.
+// Registration types to seed, with their flat fee (dev-only fake data; the
+// real catalog + prices live in D1 / db/seeds/programs.sql now).
 const TYPES = [
   "national-olympiad", "national-quiz-competition",
   "stem-foundation", "bdmso-preparatory", "lab-day", "mock-test",
 ];
-const CATALOG = JSON.parse(
-  readFileSync(new URL("../public/data/programs-detail.json", import.meta.url), "utf8"),
-);
-const PRICES = Object.fromEntries(
-  CATALOG.map((p) => [p.slug, p.feeAmount ?? 0]),
-);
+const PRICES = {
+  "national-olympiad": 1000,
+  "national-quiz-competition": 1000,
+  "stem-foundation": 3000,
+  "bdmso-preparatory": 3500,
+  "lab-day": 1500,
+  "mock-test": 500,
+};
 
 const pick  = (a) => a[Math.floor(Math.random() * a.length)];
 const id    = (p) => `${p}_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`;

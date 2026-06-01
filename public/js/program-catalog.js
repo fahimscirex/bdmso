@@ -1,14 +1,13 @@
-// Program catalog accessor for the static pages. The single source of
-// truth is /data/programs-detail.json (the same file the worker
-// imports and the SPAs read). Fetched once, cached for the page.
+// Program catalog accessor for the dashboards + interactive pages. The single
+// source of truth is the D1 `programs` table, served by the worker at
+// /api/catalog. Fetched once, cached for the page.
 
 let catalogPromise = null;
 
 export function loadCatalog() {
   if (!catalogPromise) {
-    // no-cache: always revalidate so edits to programs-detail.json
-    // show up without a hard refresh.
-    catalogPromise = fetch('/data/programs-detail.json', { cache: 'no-cache' })
+    // no-cache: always revalidate so edits show up without a hard refresh.
+    catalogPromise = fetch('/api/catalog', { cache: 'no-cache' })
       .then((r) => (r.ok ? r.json() : []))
       .catch(() => []);
   }

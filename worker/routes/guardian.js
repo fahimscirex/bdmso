@@ -10,12 +10,7 @@ import { recordAudit } from "../lib/audit-log.js";
 import { getBaseUrl, createId } from "../lib/util.js";
 import { createVerificationToken, sendVerificationEmail, sendUpdatedReceiptForRegistration } from "../lib/email.js";
 import { canonicalDistrict } from "../lib/districts.js";
-import {
-  programHasOptions,
-  getProgramOptions,
-  computeOptionDiff,
-  withinEditWindow,
-} from "../lib/program-options.js";
+import { getCatalog } from "../lib/programs.js";
 import {
   getShurjopayConfig,
   shurjopayGetToken,
@@ -223,7 +218,8 @@ guardian.patch("/registrations/:id", async (c) => {
   // and stay editable any time - they're handled by the bulk PATCH
   // above too.
   const touchingMeta = "preferred_subject" in body || "preferred_venue" in body;
-  if (touchingMeta && !withinEditWindow(reg.registration_type)) {
+  const catalog = await getCatalog(c);
+  if (touchingMeta && !catalog.withinEditWindow(reg.registration_type)) {
     return c.json({
       error: "The edit window for this program has closed. Email support@bdmso.org if you need help.",
     }, 409);
@@ -307,12 +303,6 @@ async function getSiblingTakenIds(env, accountId, registrationType, exceptId) {
   return taken;
 }
 
-function labelsFor(slug, ids) {
-  const cfg = getProgramOptions(slug);
-  if (!cfg) return ids;
-  return ids.map((id) => cfg.items.find((it) => it.id === id)?.label || id);
-}
-
 async function loadOptionContext(c, registrationId) {
   const session = c.get("session");
   const reg = await c.env.DB.prepare(
@@ -322,17 +312,18 @@ async function loadOptionContext(c, registrationId) {
   if (reg.status === "cancelled") {
     return { error: c.json({ error: "This registration was cancelled." }, 409) };
   }
-  if (!programHasOptions(reg.registration_type)) {
+  const catalog = await getCatalog(c);
+  if (!catalog.programHasOptions(reg.registration_type)) {
     return { error: c.json({ error: "This program has no editable selection." }, 400) };
   }
-  if (!withinEditWindow(reg.registration_type)) {
+  if (!catalog.withinEditWindow(reg.registration_type)) {
     return { error: c.json({
       error: "The selection edit window for this program has closed. Email support@bdmso.org if you need help.",
     }, 409) };
   }
   let currentIds = [];
   try { currentIds = JSON.parse(reg.program_options || "[]"); } catch {}
-  return { session, reg, currentIds };
+  return { session, reg, currentIds, catalog };
 }
 
 // PATCH /api/me/registrations/:id/options  { options, acknowledge_no_refund? }
@@ -344,7 +335,7 @@ guardian.patch("/registrations/:id/options", async (c) => {
   const ctx = await loadOptionContext(c, c.req.param("id"));
   if (ctx.error) return ctx.error;
   const body = await c.req.json().catch(() => ({}));
-  const diff = computeOptionDiff(ctx.reg.registration_type, ctx.currentIds, body.options);
+  const diff = ctx.catalog.computeOptionDiff(ctx.reg.registration_type, ctx.currentIds, body.options);
   if (!diff.ok) return c.json({ error: diff.error }, 400);
 
   // Duplicate guard: refuse if any newly-picked id is already on a
@@ -353,7 +344,7 @@ guardian.patch("/registrations/:id/options", async (c) => {
   const taken = await getSiblingTakenIds(c.env, ctx.session.account_id, ctx.reg.registration_type, ctx.reg.id);
   const overlap = diff.normalizedTo.filter((id) => taken.has(id));
   if (overlap.length) {
-    const labels = labelsFor(ctx.reg.registration_type, overlap).join(", ");
+    const labels = ctx.catalog.getOptionLabels(ctx.reg.registration_type, overlap).join(", ");
     return c.json({
       error: `Already enrolled in: ${labels}. Pick a different selection or cancel the other registration first.`,
       conflict: overlap,
@@ -453,7 +444,7 @@ guardian.post("/registrations/:id/options/upgrade", async (c) => {
     return c.json({ error: "This registration isn't paid yet - update options directly via PATCH." }, 409);
   }
   const body = await c.req.json().catch(() => ({}));
-  const diff = computeOptionDiff(ctx.reg.registration_type, ctx.currentIds, body.options);
+  const diff = ctx.catalog.computeOptionDiff(ctx.reg.registration_type, ctx.currentIds, body.options);
   if (!diff.ok) return c.json({ error: diff.error }, 400);
   if (diff.action !== "upgrade") {
     return c.json({ error: "This endpoint is for upgrades only.", action: diff.action }, 400);
@@ -463,7 +454,7 @@ guardian.post("/registrations/:id/options/upgrade", async (c) => {
   const taken = await getSiblingTakenIds(c.env, ctx.session.account_id, ctx.reg.registration_type, ctx.reg.id);
   const overlap = diff.normalizedTo.filter((id) => taken.has(id));
   if (overlap.length) {
-    const labels = labelsFor(ctx.reg.registration_type, overlap).join(", ");
+    const labels = ctx.catalog.getOptionLabels(ctx.reg.registration_type, overlap).join(", ");
     return c.json({
       error: `Already enrolled in: ${labels}. Pick a different selection or cancel the other registration first.`,
       conflict: overlap,

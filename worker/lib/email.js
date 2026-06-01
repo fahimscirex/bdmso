@@ -3,8 +3,7 @@
 
 import { normalizeString, escapeHtml } from "./validation.js";
 import { reserveMemberId, parseClassDigit } from "./util.js";
-import { PROGRAM_NAMES } from "./programs.js";
-import { getOptionLabels, programHasOptions } from "./program-options.js";
+import { loadCatalog } from "./programs.js";
 
 // Cloudflare Workers retains console output. Emails and URL tokens are
 // PII; redact before logging. logEmail keeps the domain (useful for
@@ -79,7 +78,8 @@ export async function sendReceiptEmail(env, reg, memberId, baseUrl, extras = {})
   const { kind = "initial", optionLabels = [], cumulativeAmount = null } = extras;
   const isUpdated = kind === "updated";
 
-  const programName = PROGRAM_NAMES[reg.registration_type] || reg.registration_type;
+  const catalog = await loadCatalog(env);
+  const programName = catalog.nameFor(reg.registration_type);
   // Absolute logo URL - emails can't use relative paths. Falls back to
   // the canonical domain if the caller didn't pass a request base.
   const logoBase = baseUrl || "https://bdmso.org";
@@ -366,8 +366,9 @@ export async function assignMemberIdAndSendReceipt(env, tranId, baseUrl) {
 
   // Receipts go to the account's current (verified) email - the guardian
   // may have changed it since this registration row was first created.
-  const optionLabels = programHasOptions(row.registration_type)
-    ? getOptionLabels(row.registration_type, safeParseIds(row.program_options))
+  const catalog = await loadCatalog(env);
+  const optionLabels = catalog.programHasOptions(row.registration_type)
+    ? catalog.getOptionLabels(row.registration_type, safeParseIds(row.program_options))
     : [];
   await sendReceiptEmail(
     env,
@@ -428,8 +429,9 @@ export async function sendUpdatedReceiptForRegistration(env, registrationId, bas
   const cumulativeAmount = rows.reduce((sum, p) => sum + Number(p.amount || 0), 0);
   const latest = rows[0];
 
-  const optionLabels = programHasOptions(row.registration_type)
-    ? getOptionLabels(row.registration_type, safeParseIds(row.program_options))
+  const catalog = await loadCatalog(env);
+  const optionLabels = catalog.programHasOptions(row.registration_type)
+    ? catalog.getOptionLabels(row.registration_type, safeParseIds(row.program_options))
     : [];
 
   await sendReceiptEmail(

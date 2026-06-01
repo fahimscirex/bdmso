@@ -88,7 +88,7 @@ async function renderGuide() {
   // collection). Legacy pages ship empty lists and render client-side.
   const g = document.getElementById('guide-beginner');
   if (g && g.children.length) return;
-  const details = await load('programs-detail.json');
+  const details = await fetch('/api/catalog', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : [])).catch(() => []);
   const titleBySlug = new Map(details.map((d) => [d.slug, d.title]));
   for (const [tier, slugs] of Object.entries(GUIDE)) {
     set(`guide-${tier}`, slugs.map((slug) => {
@@ -106,7 +106,7 @@ async function renderPrograms() {
   // them from the programs .md collection). Legacy pages ship an empty grid.
   const grid = document.getElementById('prog-grid');
   if (grid && grid.children.length) return;
-  const details = await load('programs-detail.json');
+  const details = await fetch('/api/catalog', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : [])).catch(() => []);
   const items = details
     .filter((p) => p.home_order && !p.hidden)
     .sort((a, b) => a.home_order.localeCompare(b.home_order));

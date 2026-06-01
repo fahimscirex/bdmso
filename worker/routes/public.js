@@ -9,40 +9,12 @@ import { createSession, extractToken, requireAuth } from "../lib/sessions.js";
 import { checkLoginRateLimit, recordLoginAttempt, checkActionRateLimit, recordActionAttempt, clientIpFor } from "../lib/rate-limit.js";
 import { createVerificationToken, sendVerificationEmail, sendSponsorshipNotification, assignMemberIdAndSendReceipt, createPasswordResetToken, sendPasswordResetEmail, sendUpdatedReceiptForRegistration } from "../lib/email.js";
 import { recordAudit } from "../lib/audit-log.js";
-import { PROGRAM_PRICES, PROGRAM_NAMES } from "../lib/programs.js";
-import { programHasOptions, validateAndPriceOptions, getProgramOptions, withinEditWindow, computeOptionDiff } from "../lib/program-options.js";
-import CATALOG from "../../public/data/programs-detail.json";
-
-// Catalog lookup by slug - for the registration on/off + hidden flags.
-const CATALOG_BY_SLUG = Object.fromEntries(CATALOG.map((p) => [p.slug, p]));
-
-// A program accepts new registrations only when it exists, isn't
-// hidden, isn't explicitly closed (registration: false), and today
-// falls inside its registration window (registrationStarts/Ends).
-// An "upcoming" program with a future start date is not enrollable.
-function registrationOpenFor(slug) {
-  const p = CATALOG_BY_SLUG[slug];
-  if (!p) return false;
-  if (p.hidden) return false;
-  if (p.registration === false) return false;
-  const today = new Date().toISOString().slice(0, 10);
-  if (p.registrationStarts && today < p.registrationStarts) return false;
-  if (p.registrationEnds && today > p.registrationEnds) return false;
-  return true;
-}
-
-// Effective fee for a registration row. Option-priced programs (Mock
-// Test, Prep Course) derive their fee from the stored options; the
-// rest use the flat catalog price. Returns null for "on enquiry".
-function effectiveProgramPrice(reg) {
-  if (programHasOptions(reg.registration_type)) {
-    let opts = [];
-    try { opts = JSON.parse(reg.program_options || "[]"); } catch { /* ignore */ }
-    const priced = validateAndPriceOptions(reg.registration_type, opts);
-    return priced.ok ? (priced.price ?? null) : null;
-  }
-  return PROGRAM_PRICES[reg.registration_type] ?? null;
-}
+import { loadCatalog } from "../lib/programs.js";
+// Program catalog now comes from D1 via loadCatalog(env). registrationOpenFor,
+// effectiveProgramPrice, names/prices and the option logic are catalog methods
+// (see lib/programs.js) - each handler does `const catalog = await loadCatalog(env)`
+// once. Keeping the call sites on the catalog API insulates them from future
+// schema/vocabulary changes.
 import { getShurjopayConfig, shurjopayGetToken, shurjopayCreatePayment, shurjopayVerify } from "../lib/shurjopay.js";
 import { canonicalDistrict } from "../lib/districts.js";
 
@@ -69,14 +41,6 @@ async function getTakenOptionIds(env, accountId, registrationType, exceptRegistr
   return taken;
 }
 
-// Map option ids back to human labels using the catalog. Best-effort -
-// unknown ids fall through as the raw id. Used to build helpful error
-// messages without forcing callers to plumb the catalog through.
-function labelOptionIds(slug, ids) {
-  const cfg = getProgramOptions(slug);
-  if (!cfg) return ids;
-  return ids.map((id) => cfg.items.find((it) => it.id === id)?.label || id);
-}
 
 export async function handleLogin(request, env) {
   const payload = await parseJson(request);
@@ -204,41 +168,31 @@ export async function handleMe(request, env) {
     `).bind(account.account_id).all(),
   ]);
 
-  // Enrich each registration with the program's display label + fee,
-  // derived from the catalog (programs-detail.json). This way the
-  // dashboard/SPAs never hard-code program names or prices.
+  // Enrich each registration with the program's display label + fee, from the
+  // D1 catalog. The SPA never hard-codes program names or prices.
+  const catalog = await loadCatalog(env);
   // option_labels resolves the chosen option ids (e.g. mock-test sessions,
   // prep-course subject) to human labels so cards/receipts can show which.
   const optionLabelsFor = (r) => {
-    const cfg = getProgramOptions(r.registration_type);
-    if (!cfg) return [];
     let ids = [];
     try { ids = JSON.parse(r.program_options || "[]"); } catch { return []; }
-    return (Array.isArray(ids) ? ids : [])
-      .map((id) => cfg.items.find((it) => it.id === id)?.label)
-      .filter(Boolean);
+    return catalog.getOptionLabels(r.registration_type, Array.isArray(ids) ? ids : []);
   };
   const registrations = (rows.results || []).map((r) => {
-    const optionsConfig = getProgramOptions(r.registration_type);
-    const program       = CATALOG_BY_SLUG[r.registration_type] || {};
     return {
       ...r,
-      program_label: PROGRAM_NAMES[r.registration_type] || r.registration_type,
-      program_price: effectiveProgramPrice(r),
+      program_label: catalog.nameFor(r.registration_type),
+      program_price: catalog.effectiveProgramPrice(r),
       option_labels: optionLabelsFor(r),
-      // The SPA renders the unified edit modal entirely from these
-      // fields, so it never needs to fetch the catalog. options_config
-      // is null for programs without options. edit_window_open gates
-      // every guardian-initiated change (options, subject, venue) and
-      // is true while today <= registrationEnds. A single deadline per
-      // program drives the whole flow now - no separate
-      // optionsEditableUntil field.
-      options_config: optionsConfig,
-      edit_window_open: withinEditWindow(r.registration_type),
-      // Date fields the dashboard's "Key dates" card derives from. ISO
-      // strings; absent fields stay null on the row.
-      registration_ends:       program.registrationEnds || null,
-      starts_on:               program.startsOn || null,
+      // The SPA renders the unified edit modal entirely from these fields, so it
+      // never fetches the catalog. options_config is the legacy client shape
+      // (kind/items) and is null for option-less programs. edit_window_open
+      // gates every guardian edit and is true while today <= registration_closes.
+      options_config: catalog.clientOptions(r.registration_type),
+      edit_window_open: catalog.withinEditWindow(r.registration_type),
+      // Date fields the dashboard's "Key dates" card derives from (ISO; null if absent).
+      registration_ends:       catalog.registrationClosesFor(r.registration_type),
+      starts_on:               catalog.startsOnFor(r.registration_type),
     };
   });
 
@@ -252,6 +206,69 @@ export async function handleMe(request, env) {
       memberId: acctRow?.member_id || null
     },
     registrations
+  });
+}
+
+// Public program catalogue, served from D1 (replaces the static
+// public/data/programs-detail.json). Returns a bare array in the legacy field
+// shape so consumers only swap their fetch URL. Rich per-program prose now
+// lives in each program's markdown body (rendered by Astro), so it is not here.
+export async function handleCatalog(request, env) {
+  const { results } = await env.DB.prepare(`
+    SELECT slug, title, category, eyebrow, image, audience, duration, format, outcome,
+           level, price_label, fee_amount, pricing_json, schedule_label, starts_on, ends_on,
+           registration_status, registration_opens, registration_closes, meta_description,
+           home_order, register_url, register_label, hidden, bespoke_page, repeatable
+    FROM programs
+    WHERE published = 1
+    ORDER BY COALESCE(home_order, '99'), title
+  `).all();
+
+  const programs = (results || []).map((r) => {
+    let options = null;
+    try {
+      const p = r.pricing_json ? JSON.parse(r.pricing_json) : null;
+      if (p && Array.isArray(p.choices) && p.choices.length) {
+        options = {
+          kind: p.selection === "single" ? "radio" : "checkbox",
+          items: p.choices.map((c) => ({ id: c.id, label: c.label, sub: c.note || "", price: c.price })),
+        };
+      }
+    } catch { /* ignore bad json */ }
+    return {
+      slug: r.slug,
+      title: r.title,
+      category: r.category || null,
+      eyebrow: r.eyebrow || null,
+      image: r.image || null,
+      audience: r.audience || null,
+      duration: r.duration || null,
+      format: r.format || null,
+      outcome: r.outcome || null,
+      level: r.level || null,
+      price: r.price_label || null,
+      feeAmount: r.fee_amount ?? null,
+      schedule: r.schedule_label || null,
+      startsOn: r.starts_on || null,
+      endsOn: r.ends_on || null,
+      registrationStatus: r.registration_status,
+      registrationStarts: r.registration_opens || null,
+      registrationEnds: r.registration_closes || null,
+      // legacy boolean: open/coming-soon count as "registration enabled"
+      registration: r.registration_status === "open" || r.registration_status === "coming_soon",
+      metaDescription: r.meta_description || null,
+      home_order: r.home_order || null,
+      register_url: r.register_url || null,
+      register_label: r.register_label || null,
+      hidden: r.hidden === 1,
+      bespokePage: r.bespoke_page === 1,
+      repeatable: r.repeatable === 1,
+      options,
+    };
+  });
+
+  return new Response(JSON.stringify(programs), {
+    headers: { "content-type": "application/json", "cache-control": "no-cache" },
   });
 }
 
@@ -285,10 +302,11 @@ export async function handleRegistration(request, env) {
   const guardianAddress    = requireField(guardian.address,   "Address");
   const password           = requireField(acct.password,      "Password");
   const registrationType   = normalizeString(payload.registrationType) || "national-olympiad";
-  if (!Object.prototype.hasOwnProperty.call(PROGRAM_PRICES, registrationType)) {
+  const catalog = await loadCatalog(env);
+  if (!catalog.has(registrationType)) {
     return badRequest("Invalid registration type.");
   }
-  if (!registrationOpenFor(registrationType)) {
+  if (!catalog.registrationOpenFor(registrationType)) {
     return badRequest("Registration for this program is currently closed.", 409);
   }
   // District must be one of the 64 Bangladesh districts. canonicalDistrict
@@ -304,8 +322,8 @@ export async function handleRegistration(request, env) {
   // the normalised id list.
   let programOptions = null;
   let normalizedOptions = [];
-  if (programHasOptions(registrationType)) {
-    const opt = validateAndPriceOptions(registrationType, payload.programOptions);
+  if (catalog.programHasOptions(registrationType)) {
+    const opt = catalog.validateAndPriceOptions(registrationType, payload.programOptions);
     if (!opt.ok) return badRequest(opt.error);
     normalizedOptions = opt.normalized;
     programOptions = JSON.stringify(opt.normalized);
@@ -652,20 +670,20 @@ export async function handleCreatePayment(request, env) {
   if (alreadyPaid) return badRequest("This registration has already been paid.");
 
   // Programs with selectable options (Mock Test sessions, Prep Course
-  // subjects) derive their price from the stored options list. The
-  // PROGRAM_PRICES value is just the base/unit; the options config
-  // computes the actual total.
+  // subjects) derive their price from the stored options list; the rest use the
+  // flat catalog fee. null fee = "on enquiry".
+  const catalog = await loadCatalog(env);
   let baseAmount;
-  if (programHasOptions(reg.registration_type)) {
+  if (catalog.programHasOptions(reg.registration_type)) {
     let stored = [];
     try { stored = JSON.parse(reg.program_options || "[]"); } catch {}
-    const opt = validateAndPriceOptions(reg.registration_type, stored);
+    const opt = catalog.validateAndPriceOptions(reg.registration_type, stored);
     if (!opt.ok || opt.price == null) {
       return badRequest("This registration is missing its options selection. Please re-register or contact support.");
     }
     baseAmount = opt.price;
   } else {
-    baseAmount = PROGRAM_PRICES[reg.registration_type];
+    baseAmount = catalog.priceFor(reg.registration_type);
     if (baseAmount == null) {
       return badRequest("This program is by enquiry. Please email support@bdmso.org to confirm the fee.");
     }
@@ -883,7 +901,8 @@ export async function handlePaymentCallback(request, env, url) {
         ).bind(payment.registration_id).first();
         regType = r?.registration_type || null;
       } catch {}
-      const diff = regType ? computeOptionDiff(regType, fromIds, toIds) : null;
+      const catalog = await loadCatalog(env);
+      const diff = regType ? catalog.computeOptionDiff(regType, fromIds, toIds) : null;
 
       const ops = [
         env.DB.prepare("UPDATE registrations SET program_options = ? WHERE id = ?")
@@ -944,10 +963,11 @@ export async function handleAddEnrollment(request, env) {
 
   const payload          = await parseJson(request);
   const registrationType = normalizeString(payload.registrationType) || "national-olympiad";
-  if (!Object.prototype.hasOwnProperty.call(PROGRAM_PRICES, registrationType)) {
+  const catalog = await loadCatalog(env);
+  if (!catalog.has(registrationType)) {
     return badRequest("Invalid registration type.");
   }
-  if (!registrationOpenFor(registrationType)) {
+  if (!catalog.registrationOpenFor(registrationType)) {
     return badRequest("Registration for this program is currently closed.", 409);
   }
 
@@ -959,7 +979,7 @@ export async function handleAddEnrollment(request, env) {
   // Repeatable programs (e.g. the BdMSO Mock Test) allow more than one
   // enrollment - a guardian can come back later and book additional
   // sessions. Other programs stay one-enrollment-per-student.
-  const repeatable = CATALOG_BY_SLUG[registrationType]?.repeatable === true;
+  const repeatable = catalog.repeatable(registrationType);
   if (!repeatable) {
     const duplicate = await env.DB.prepare(
       "SELECT id FROM registrations WHERE guardian_account_id = ? AND registration_type = ? AND status != 'cancelled' LIMIT 1"
@@ -982,8 +1002,8 @@ export async function handleAddEnrollment(request, env) {
   // option would charge ৳0 at checkout, so we enforce the same
   // validation as the full submit-registration flow.
   let programOptions = null;
-  if (programHasOptions(registrationType)) {
-    const opt = validateAndPriceOptions(registrationType, payload.programOptions);
+  if (catalog.programHasOptions(registrationType)) {
+    const opt = catalog.validateAndPriceOptions(registrationType, payload.programOptions);
     if (!opt.ok) return badRequest(opt.error);
     // Duplicate guard: if any of the proposed ids are already held by
     // another non-cancelled registration on this account for the same
@@ -993,7 +1013,7 @@ export async function handleAddEnrollment(request, env) {
     const taken = await getTakenOptionIds(env, account.account_id, registrationType);
     const overlap = opt.normalized.filter((id) => taken.has(id));
     if (overlap.length) {
-      const labels = labelOptionIds(registrationType, overlap).join(", ");
+      const labels = catalog.getOptionLabels(registrationType, overlap).join(", ");
       return badRequest(`Already enrolled in: ${labels}. Pick a different selection or edit the existing registration instead.`, 409);
     }
     programOptions = JSON.stringify(opt.normalized);

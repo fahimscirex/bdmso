@@ -438,7 +438,7 @@ body.modal-open { overflow: hidden; }
   if (!cardEls.length) {
     let catalog = [];
     try {
-      const res = await fetch('/data/programs-detail.json', { cache: 'no-cache' });
+      const res = await fetch('/api/catalog', { cache: 'no-cache' });
       catalog = res.ok ? await res.json() : [];
     } catch { catalog = []; }
     const list = catalog.filter((p) => p && p.slug && !p.hidden);

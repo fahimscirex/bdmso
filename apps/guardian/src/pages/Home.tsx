@@ -746,7 +746,7 @@ function ExploreOtherPrograms({ registered }: { registered: Set<string> }) {
   const [programs, setPrograms] = useState<ProgramDetail[] | null>(null);
 
   useEffect(() => {
-    fetch('/data/programs-detail.json', { cache: 'no-cache' })
+    fetch('/api/catalog', { cache: 'no-cache' })
       .then((r) => (r.ok ? r.json() : []))
       .then(setPrograms)
       .catch(() => setPrograms([]));
