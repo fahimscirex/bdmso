@@ -14,6 +14,7 @@ type Row = {
   id: string;
   registration_type: string;
   program_label: string;
+  bdmso_id: string | null;
   student_full_name: string;
   student_class_name: string;
   student_gender: string;
@@ -227,9 +228,9 @@ export function Registrations() {
         </div>
       )}
 
-      {/* Toolbar row 1: search + filter chips + reset + export */}
+      {/* Toolbar row 1: half-width search + date range, export pinned right */}
       <div class="toolbar">
-        <label style="flex:1;min-width:240px;">
+        <label style="flex:0 1 50%;min-width:240px;">
           <span>Search</span>
           <input
             type="search"
@@ -239,7 +240,8 @@ export function Registrations() {
             style="min-width:100%;"
           />
         </label>
-        <button type="button" class="btn-secondary" disabled={exporting || !data} onClick={exportCsv}>
+        <DateRange from={from} to={to} onFrom={(v) => { setFrom(v); setOffset(0); }} onTo={(v) => { setTo(v); setOffset(0); }} />
+        <button type="button" class="btn-secondary" style="margin-left:auto;" disabled={exporting || !data} onClick={exportCsv}>
           <Icon name="download" size={14} /> {exporting ? 'Exporting…' : 'Export CSV'}
         </button>
         {activeFilterCount > 0 && (
@@ -275,7 +277,6 @@ export function Registrations() {
             options={[['', 'All'], ...data.facets.districts.map<[string,string]>((d) => [d, d])]}
           />
         )}
-        <DateRange from={from} to={to} onFrom={(v) => { setFrom(v); setOffset(0); }} onTo={(v) => { setTo(v); setOffset(0); }} />
       </div>
 
       {/* Bulk action bar - only shows when something is selected */}
@@ -367,7 +368,9 @@ export function Registrations() {
                           </span>
                         )}
                       </div>
-                      <div class="cell-sub">{r.student_gender}</div>
+                      {r.bdmso_id
+                        ? <div class="cell-sub cell-id">{r.bdmso_id}</div>
+                        : <div class="cell-sub">No BdMSO ID yet</div>}
                     </td>
                     <td>{r.student_class_name}</td>
                     <td>

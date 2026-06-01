@@ -10,7 +10,7 @@
 // HTML pass-through. We additionally strip <script>/<iframe> from the
 // rendered HTML defensively before innerHTML-ing it in the preview.
 
-import { useEffect, useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { api, ApiError } from '../api';
 import { navigate, href } from '../router';
 import { Icon } from '../components/Icon';
@@ -79,6 +79,15 @@ export function PostEditor({ slug }: { slug: string }) {
   const [error, setError]     = useState<string | null>(null);
   const [saving, setSaving]   = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
+  // Brief "Saved" confirmation on the button that was clicked (edits only;
+  // a create navigates to the edit page, which is its own confirmation).
+  const [savedKind, setSavedKind] = useState<null | 'draft' | 'publish'>(null);
+  const savedTimer = useRef<number | undefined>(undefined);
+  function flashSaved(kind: 'draft' | 'publish') {
+    setSavedKind(kind);
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    savedTimer.current = window.setTimeout(() => setSavedKind(null), 1600);
+  }
 
   // Load existing post.
   useEffect(() => {
@@ -147,6 +156,7 @@ export function PostEditor({ slug }: { slug: string }) {
       } else {
         await api.patch<{ ok: true }>(`/api/admin/posts/${encodeURIComponent(slug)}`, payload);
         if (publish !== undefined) set('published', publish);
+        flashSaved(publish ? 'publish' : 'draft');
       }
     } catch (err) {
       setError((err as Error).message);
@@ -201,11 +211,11 @@ export function PostEditor({ slug }: { slug: string }) {
               <Icon name="trash" size={14} /> Delete
             </button>
           )}
-          <button type="button" class="btn-secondary" onClick={() => save(false)} disabled={saving}>
-            Save as draft
+          <button type="button" class={`btn-secondary${savedKind === 'draft' ? ' is-saved' : ''}`} onClick={() => save(false)} disabled={saving}>
+            {savedKind === 'draft' ? <><Icon name="check" size={14} /> Saved</> : (form.published ? 'Unpublish' : 'Save as draft')}
           </button>
-          <button type="button" class="btn-primary" onClick={() => save(true)} disabled={saving}>
-            {saving ? 'Saving…' : (form.published ? 'Save changes' : 'Publish')}
+          <button type="button" class={`btn-primary${savedKind === 'publish' ? ' is-saved' : ''}`} onClick={() => save(true)} disabled={saving}>
+            {saving ? 'Saving…' : savedKind === 'publish' ? <><Icon name="check" size={14} /> Saved</> : (form.published ? 'Save changes' : 'Publish')}
           </button>
         </div>
       </div>

@@ -8,7 +8,6 @@ import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { navigate } from '../router';
 import { Icon, type IconName } from './Icon';
-import { NotificationBell } from './NotificationBell';
 
 type Section = { label: string; href: string; icon: IconName; soon?: boolean };
 
@@ -30,7 +29,6 @@ const NAV: Section[] = [
 
 type Props = {
   currentRoute: string;
-  userEmail: string;
   onSignOut: () => void;
   children: ComponentChildren;
 };
@@ -50,7 +48,7 @@ function applyTheme(t: 'light' | 'dark' | 'system') {
   document.documentElement.setAttribute('data-theme', resolved);
 }
 
-export function NavShell({ currentRoute, userEmail, onSignOut, children }: Props) {
+export function NavShell({ currentRoute, onSignOut, children }: Props) {
   const [theme, setTheme] = useState(readTheme);
 
   // Apply on mount + whenever the choice changes. Listen to OS changes
@@ -108,45 +106,24 @@ export function NavShell({ currentRoute, userEmail, onSignOut, children }: Props
           })}
         </nav>
         <div class="sidebar-footer">
-          <button
-            type="button"
-            class="theme-toggle"
-            onClick={cycleTheme}
-            title={`Theme: ${theme} (click to cycle)`}
-          >
-            <Icon name={theme === 'dark' ? 'moon' : 'sun'} size={15} />
-            <span class="theme-toggle-label">{theme === 'system' ? 'auto' : theme}</span>
-          </button>
+          <div class="sidebar-actions">
+            <button
+              type="button"
+              class="theme-toggle"
+              onClick={cycleTheme}
+              title={`Theme: ${theme} (click to cycle)`}
+            >
+              <Icon name={theme === 'dark' ? 'moon' : 'sun'} size={15} />
+              <span class="theme-toggle-label">{theme === 'system' ? 'auto' : theme}</span>
+            </button>
+            <button type="button" class="topbar-iconbtn" onClick={onSignOut} title="Sign out" aria-label="Sign out">
+              <Icon name="log-out" size={15} />
+            </button>
+          </div>
         </div>
       </aside>
 
       <div class="main">
-        <header class="topbar">
-          <button
-            type="button" class="topbar-search"
-            onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
-            aria-label="Open command palette"
-          >
-            <Icon name="search" size={15} />
-            <span class="topbar-search-text">Search registrations, posts, actions…</span>
-            <kbd>⌘K</kbd>
-          </button>
-          <div class="topbar-right">
-            <NotificationBell />
-            <button type="button" class="topbar-iconbtn" onClick={onSignOut} title="Sign out" aria-label="Sign out">
-              <Icon name="log-out" size={15} />
-            </button>
-            <div class="topbar-user" title={userEmail}>
-              <div class="topbar-avatar" aria-hidden="true">
-                {(userEmail[0] || 'A').toUpperCase()}
-              </div>
-              <div class="topbar-user-text">
-                <span class="topbar-email">{userEmail}</span>
-                <span class="topbar-role">Admin</span>
-              </div>
-            </div>
-          </div>
-        </header>
         <div class="content">
           {children}
         </div>

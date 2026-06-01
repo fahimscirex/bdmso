@@ -98,7 +98,7 @@ export function App() {
 
   return (
     <>
-      <NavShell currentRoute={route} userEmail={identity.email} onSignOut={signOut}>
+      <NavShell currentRoute={route} onSignOut={signOut}>
         {renderPage(route)}
       </NavShell>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />

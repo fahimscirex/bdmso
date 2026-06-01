@@ -50,17 +50,14 @@
   --shadow-md: 0 6px 20px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
   --radius:    14px;
   --radius-sm: 10px;
-  /* Space Grotesk - geometric sans with distinctive character. The
-     stems are slightly mechanical (derived from Space Mono), which
-     reads as "designed" rather than neutral default. Pairs with
-     Space Mono for the code/tabular bits. */
-  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-feature-settings: 'ss01', 'tnum';
+  /* Onest - matches the marketing site + guardian dashboard. Pairs with
+     JetBrains Mono for the code/tabular bits. */
+  font-family: 'Onest', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: 'tnum';
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Space Grotesk's default tracking is slightly wide, so no further
-     negative letter-spacing needed at body sizes. Headings get -0.02em
+  /* No global letter-spacing tweak at body sizes; headings get -0.02em
      applied directly via .page-header h1. */
   font-size: 14px;
   color: var(--navy-900);
@@ -109,7 +106,7 @@
 * { box-sizing: border-box; }
 html, body, #app { height: 100%; margin: 0; }
 a { color: inherit; text-decoration: none; }
-code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-size: 0.88em; font-family: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-size: 0.88em; font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
 
 /* ─── Auth shell (login + bare states) ──────────────────────────────────── */
 
@@ -128,7 +125,7 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 /* ─── Layout (sidebar + main) ───────────────────────────────────────────── */
 
 .layout {
-  display: grid; grid-template-columns: 244px 1fr;
+  display: grid; grid-template-columns: 208px 1fr;
   min-height: 100vh;
   background: var(--bg);
 }
@@ -200,13 +197,23 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
   letter-spacing: 0.06em; text-transform: uppercase; font-weight: 700;
 }
 
-/* Sidebar footer: theme toggle stays here but compact and quiet. */
+/* Sidebar footer: a quiet row of actions (theme toggle, sign out).
+   Replaces the old top header. */
 .sidebar-footer {
   border-top: 1px solid var(--line);
-  padding-top: 10px;
-  margin-top: 10px;
-  display: flex; flex-direction: column; gap: 4px;
+  padding-top: 8px;
+  margin-top: 8px;
+  display: flex; flex-direction: column; gap: 2px;
 }
+/* One compact, left-aligned cluster - no stretching, so nothing drifts off
+   into an awkward gap. */
+.sidebar-actions { display: flex; align-items: center; gap: 2px; padding: 0 2px; }
+/* Quiet the bell + sign-out to match the sidebar (no surface chip / border). */
+.sidebar-actions .topbar-iconbtn {
+  width: 32px; height: 32px;
+  background: transparent; border: 0; border-radius: 8px;
+}
+.sidebar-actions .topbar-iconbtn:hover { background: var(--sidebar-hover); color: var(--ink); }
 .theme-toggle {
   display: flex; align-items: center; gap: 9px;
   padding: 7px 11px; border-radius: 8px;
@@ -221,39 +228,6 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 
 .main { display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
 
-.topbar {
-  display: flex; align-items: center; gap: 14px;
-  padding: 14px 28px;
-  background: var(--bg);
-  border-bottom: 1px solid var(--line);
-  position: sticky; top: 0; z-index: 5;
-  min-height: 64px;
-}
-
-/* Full-width search bar with rounded-pill style and ⌘K hint, mirroring
-   the reference. Clicking it triggers the command palette. */
-.topbar-search {
-  flex: 1; max-width: 520px;
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 14px;
-  background: var(--surface);
-  border: 1px solid var(--line); border-radius: 999px;
-  color: var(--ink-3); font-size: 13px;
-  cursor: pointer;
-  transition: border-color 0.12s, box-shadow 0.12s;
-}
-.topbar-search:hover { border-color: var(--ink-3); }
-.topbar-search > svg { flex-shrink: 0; }
-.topbar-search-text { flex: 1; }
-.topbar-search kbd {
-  font-family: 'Space Mono', ui-monospace, Menlo, monospace; font-size: 10.5px;
-  background: var(--muted-bg); color: var(--ink-3);
-  padding: 1px 6px; border-radius: 4px;
-  border: 1px solid var(--line);
-}
-
-.topbar-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-
 .topbar-iconbtn {
   width: 36px; height: 36px;
   display: grid; place-items: center;
@@ -263,28 +237,6 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 }
 .topbar-iconbtn:hover { background: var(--bg-alt); color: var(--ink); }
 
-.topbar-user {
-  display: flex; align-items: center; gap: 10px;
-  padding: 4px 14px 4px 4px;
-  background: var(--surface);
-  border: 1px solid var(--line); border-radius: 999px;
-}
-.topbar-avatar {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: linear-gradient(135deg, #10b981, #34d399);
-  color: white; display: grid; place-items: center;
-  font-size: 12px; font-weight: 700;
-}
-.topbar-user-text { display: flex; flex-direction: column; line-height: 1.2; }
-.topbar-email {
-  font-weight: 600; font-size: 12.5px; color: var(--ink);
-  max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.topbar-role {
-  font-size: 10.5px; color: var(--ink-3);
-  font-weight: 500; letter-spacing: 0;
-  background: transparent; padding: 0; text-transform: none;
-}
 .link {
   display: inline-flex; align-items: center; gap: 6px;
   background: none; border: 0; padding: 6px 10px; border-radius: 7px;
@@ -334,10 +286,11 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
 .stat {
   background: var(--surface); border: 1px solid var(--line);
-  border-radius: var(--radius); padding: 20px 22px;
+  border-radius: var(--radius); padding: 16px 22px;
   box-shadow: var(--shadow-sm);
   transition: border-color 0.15s, box-shadow 0.15s;
-  display: flex; flex-direction: column; gap: 6px;
+  /* Value + label on one baseline-aligned line so the card stays short. */
+  display: flex; flex-direction: row; align-items: baseline; gap: 10px;
 }
 .stat-value {
   font-size: 1.85rem; font-weight: 700; line-height: 1;
@@ -370,6 +323,11 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
   background: white; color: var(--navy-900); min-width: 220px;
 }
 .toolbar select:focus, .toolbar input:focus { outline: 2px solid var(--ring); outline-offset: 1px; border-color: var(--ring); }
+/* The date-range chip sits in the toolbar beside the search. Keep it rendering
+   as an inline pill - the generic `.toolbar label`/`.toolbar input` rules above
+   would otherwise stack it and force its date inputs to min-width:220px. */
+.toolbar .chip { flex-direction: row; }
+.toolbar .chip input[type="date"] { min-width: 0; }
 
 /* ─── Tables ────────────────────────────────────────────────────────────── */
 
@@ -393,6 +351,12 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 .data-table tbody tr:hover td { background: var(--bg-alt); }
 .cell-strong { font-weight: 600; color: var(--ink); }
 .cell-sub    { font-size: 12.5px; color: var(--ink-3); margin-top: 2px; }
+/* Application ID under the student name - monospace so the hex reads cleanly. */
+.cell-id     { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; letter-spacing: -0.02em; }
+/* Payments table: bold tabular amount, truncated mono tran-id, discount tag. */
+.cell-amount { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cell-tran   { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: var(--ink-2); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.coupon-tag  { display: inline-flex; align-items: center; gap: 4px; color: var(--accent-fg); }
 
 /* ─── Badges ────────────────────────────────────────────────────────────── */
 
@@ -435,6 +399,31 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 }
 .btn-primary:hover:not(:disabled) { opacity: 0.85; }
 .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Press feedback (the button visibly "hears" the click) + a clear, brief
+   "Saved" confirmation that the write actually landed. Strong ease-out curve;
+   the green holds ~1.6s (set in JS) then transitions back. */
+.btn-primary, .btn-secondary {
+  transition: opacity 0.16s, transform 0.16s cubic-bezier(0.23, 1, 0.32, 1),
+    background-color 0.2s cubic-bezier(0.23, 1, 0.32, 1),
+    border-color 0.2s cubic-bezier(0.23, 1, 0.32, 1),
+    color 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.btn-primary:active:not(:disabled),
+.btn-secondary:active:not(:disabled) { transform: scale(0.97); }
+.btn-primary.is-saved, .btn-primary.is-saved:hover,
+.btn-secondary.is-saved, .btn-secondary.is-saved:hover {
+  background: var(--green); border-color: var(--green); color: #fff; opacity: 1;
+  animation: btn-saved-pop 380ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+@keyframes btn-saved-pop {
+  0%   { transform: scale(0.97); }
+  45%  { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary.is-saved, .btn-secondary.is-saved { animation: none; }
+}
 
 .btn-danger {
   font: inherit; font-weight: 500; font-size: 13px;
@@ -494,7 +483,6 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
    get truncated by a narrow column. */
 .stat-kpi {
   display: flex; flex-direction: column; gap: 6px;
-  min-height: 116px;
   padding: 18px 22px;
   position: relative;
   text-align: left;
@@ -593,115 +581,6 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .attention-item > svg { opacity: 0.35; color: var(--ink-3); flex-shrink: 0; }
-
-/* ─── Notification bell + popover (topbar) ────────────────────────────
-   Replaces the larger "Needs your attention" card. The bell is a
-   topbar-iconbtn with a small red badge overlay. Clicking opens a
-   floating popover anchored under the bell. */
-.notif-wrap { position: relative; display: inline-block; }
-.notif-trigger { position: relative; }
-.notif-trigger.notif-has-items svg { color: var(--ink); }
-
-.notif-badge {
-  position: absolute; top: -3px; right: -3px;
-  min-width: 16px; height: 16px;
-  display: grid; place-items: center;
-  padding: 0 4px; border-radius: 999px;
-  background: var(--red); color: white;
-  font-size: 10px; font-weight: 700; line-height: 1;
-  border: 2px solid var(--surface);
-  font-variant-numeric: tabular-nums;
-}
-
-.notif-popover {
-  position: absolute; top: calc(100% + 8px); right: 0;
-  width: 360px; max-width: calc(100vw - 32px);
-  background: var(--surface); border: 1px solid var(--line);
-  border-radius: 12px; box-shadow: var(--shadow-md);
-  z-index: 100;
-  display: flex; flex-direction: column;
-  animation: notif-pop 140ms ease-out;
-}
-@keyframes notif-pop {
-  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
-  to   { opacity: 1; transform: none; }
-}
-
-.notif-head {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--line-2);
-}
-.notif-head h3 {
-  margin: 0; font-size: 13.5px; font-weight: 600; color: var(--ink);
-}
-.notif-head .link { padding: 4px 6px; }
-
-.notif-list {
-  list-style: none; padding: 6px;
-  margin: 0;
-  display: flex; flex-direction: column; gap: 2px;
-  max-height: 50vh; overflow-y: auto;
-}
-.notif-list li { list-style: none; }
-
-.notif-item {
-  width: 100%;
-  display: flex; align-items: center; gap: 12px;
-  background: transparent; border: 0; cursor: pointer;
-  padding: 10px 10px;
-  border-radius: 8px;
-  font: inherit; text-align: left;
-  transition: background 0.12s;
-}
-.notif-item:hover { background: var(--bg-alt); }
-.notif-red   { --tone: var(--red); }
-.notif-amber { --tone: var(--amber); }
-.notif-navy  { --tone: var(--accent); }
-
-.notif-item-count {
-  flex-shrink: 0;
-  min-width: 30px; height: 30px;
-  display: grid; place-items: center;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--tone) 12%, transparent);
-  color: var(--tone);
-  font-weight: 700; font-size: 14px;
-  font-variant-numeric: tabular-nums;
-}
-.notif-item-body {
-  flex: 1; min-width: 0;
-  display: flex; flex-direction: column; gap: 2px;
-}
-.notif-item-label {
-  font-size: 13px; font-weight: 600; color: var(--ink);
-  line-height: 1.3;
-}
-.notif-item-hint {
-  font-size: 11.5px; color: var(--ink-3);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.notif-item > svg {
-  color: var(--ink-3); opacity: 0.5; flex-shrink: 0;
-}
-
-.notif-empty {
-  padding: 28px 16px; text-align: center;
-  display: flex; flex-direction: column; align-items: center; gap: 8px;
-  color: var(--ink-3);
-}
-.notif-empty > svg { color: var(--green); }
-.notif-empty p { margin: 0; font-size: 13px; }
-
-.notif-footer {
-  padding: 8px 12px;
-  border-top: 1px solid var(--line-2);
-  display: flex; justify-content: flex-end;
-}
-.notif-footer .link {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: 12px;
-}
 
 /* ─── Filter chips (Registrations + Triage + Payments) ─────────────────── */
 .chip-row {
@@ -844,7 +723,7 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
   border: 0; outline: 0; background: transparent; color: var(--navy-900);
 }
 .cmdk-kbd {
-  font-family: 'Space Mono', ui-monospace, Menlo, monospace; font-size: 10.5px;
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 10.5px;
   background: var(--bg-alt); border: 1px solid var(--line);
   padding: 1px 6px; border-radius: 4px;
   color: var(--ink-3);
@@ -885,7 +764,7 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
   font-size: 11.5px; color: var(--ink-3);
 }
 .cmdk-footer kbd {
-  font-family: 'Space Mono', ui-monospace, Menlo, monospace; font-size: 10.5px;
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 10.5px;
   background: var(--bg-alt); border: 1px solid var(--line);
   padding: 0 5px; border-radius: 3px;
   color: var(--ink-2);
@@ -961,11 +840,10 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
   .layout { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
   .main { padding-bottom: 64px; /* clear the bottom nav */ }
   .content { padding: 18px; }
-  .topbar { padding: 12px 18px; }
 
   /* Bottom-nav mode: sidebar slides to the bottom of the viewport and
-     becomes a compact icon strip. Brand + footer (theme toggle) hide;
-     the topbar handles signout. */
+     becomes a compact icon strip. The brand hides; the footer's action
+     icons (theme, sign out) tuck in at the right edge. */
   .sidebar {
     position: fixed; bottom: 0; left: 0; right: 0;
     height: auto; flex-direction: row; align-items: center;
@@ -974,7 +852,13 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
     border-top: 1px solid var(--line);
     background: var(--sidebar-bg);
   }
-  .brand, .sidebar-footer { display: none; }
+  .brand { display: none; }
+  .sidebar-footer {
+    flex-direction: row; gap: 2px;
+    border-top: 0; margin-top: 0; padding-top: 0;
+    border-left: 1px solid var(--line); margin-left: 4px; padding-left: 6px;
+  }
+  .sidebar-actions .theme-toggle-label { display: none; }
   .sidebar nav { flex-direction: row; flex: 1; overflow-x: auto; gap: 0; }
   .nav-item {
     flex-direction: column; gap: 2px;

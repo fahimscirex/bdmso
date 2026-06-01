@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'preact/hooks';
 import { api, ApiError } from '../api';
-import { navigate, href } from '../router';
+import { navigate } from '../router';
 import { toCsv, downloadCsv } from '../csv';
 import { SkRoot, SkStatRow, SkTable } from '../components/Skeleton';
 import { Icon } from '../components/Icon';
@@ -21,9 +21,13 @@ type Row = {
   updated_at: string;
   registration_id: string | null;
   registration_type: string | null;
+  preferred_subject: string | null;
+  program_options: string | null;
   student_full_name: string | null;
   guardian_full_name: string | null;
   guardian_email: string | null;
+  bdmso_id: string | null;
+  program_label: string | null;
 };
 
 type Summary = { total: number; paid: number; pending: number; failed: number; revenue: number };
@@ -44,6 +48,39 @@ function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('en-GB', {
     day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
+}
+
+// What subject the payment was for. Olympiad rows carry preferred_subject;
+// option-based programs (Prep Course, Mock Test) carry program_options ids
+// like "mt1-math"/"science"/"both". Distil both into a clean Math/Science
+// label so finance can see at a glance what was bought.
+function subjectOf(p: Row): string {
+  const tokens = new Set<string>();
+  const classify = (raw: string) => {
+    const v = raw.toLowerCase();
+    if (v.includes('both')) { tokens.add('math'); tokens.add('science'); }
+    else if (v.includes('math')) tokens.add('math');
+    else if (v.includes('sci')) tokens.add('science');
+  };
+  if (p.preferred_subject) classify(p.preferred_subject);
+  if (p.program_options) {
+    try {
+      const arr = JSON.parse(p.program_options);
+      if (Array.isArray(arr)) arr.forEach((id) => classify(String(id)));
+    } catch { /* ignore malformed json */ }
+  }
+  if (tokens.has('math') && tokens.has('science')) return 'Math & Science';
+  if (tokens.has('math')) return 'Math';
+  if (tokens.has('science')) return 'Science';
+  return '';
+}
+
+// Number of priced selections (Mock Test sessions / Prep subjects), shown as a
+// quiet hint so a ৳2,000 / 4-session row reads clearly.
+function optionCount(p: Row): number {
+  if (!p.program_options) return 0;
+  try { const a = JSON.parse(p.program_options); return Array.isArray(a) ? a.length : 0; }
+  catch { return 0; }
 }
 
 export function Payments() {
@@ -76,22 +113,6 @@ export function Payments() {
     }
   }
 
-  async function refund(id: string) {
-    const note = prompt('Optional internal note for this refund (visible in audit log only):', '');
-    if (note === null) return; // cancelled
-    if (!confirm('Mark this payment as refunded internally? The actual money refund must be initiated from the shurjoPay merchant dashboard.')) return;
-    setBusyId(id);
-    try {
-      const r = await api.post<{ message?: string }>(`/api/admin/payments/${id}/refund`, { note });
-      if (r.message) alert(r.message);
-      load();
-    } catch (err) {
-      alert((err as Error).message);
-    } finally {
-      setBusyId(null);
-    }
-  }
-
   useEffect(load, [statusFilter]);
 
   // Export the current filtered view (up to the API's 1000-row cap) to CSV.
@@ -102,11 +123,12 @@ export function Payments() {
       if (statusFilter) qs.push(`status=${encodeURIComponent(statusFilter)}`);
       const res = await api.get<Response>(`/api/admin/payments?${qs.join('&')}`);
       const headers = [
-        'Status', 'Amount (BDT)', 'Currency', 'Student', 'Program', 'Guardian',
-        'Guardian email', 'Tran ID', 'Gateway status', 'Coupon', 'Created', 'Updated',
+        'Status', 'Amount (BDT)', 'Currency', 'BdMSO ID', 'Student', 'Program', 'Subject',
+        'Guardian', 'Guardian email', 'Tran ID', 'Gateway status', 'Coupon', 'Created', 'Updated',
       ];
       const rows = res.rows.map((p) => [
-        p.status, p.amount, p.currency, p.student_full_name || '', p.registration_type || '',
+        p.status, p.amount, p.currency, p.bdmso_id || '', p.student_full_name || '',
+        p.program_label || p.registration_type || '', subjectOf(p),
         p.guardian_full_name || '', p.guardian_email || '', p.tran_id,
         p.gateway_status || '', p.coupon_code || '', p.created_at, p.updated_at,
       ]);
@@ -159,7 +181,7 @@ export function Payments() {
           onClick={exportCsv}
           style="margin-left:auto;align-self:flex-end;"
         >
-          {exporting ? 'Exporting…' : 'Export CSV'}
+          <Icon name="download" size={14} /> {exporting ? 'Exporting…' : 'Export CSV'}
         </button>
       </div>
 
@@ -167,7 +189,7 @@ export function Payments() {
       {!data && !error && (
         <SkRoot>
           <SkStatRow />
-          <SkTable headers={['Status', 'Amount', 'Student', 'Guardian', 'Tran ID', 'Gateway', 'Coupon', 'Updated']} rows={6} />
+          <SkTable headers={['Status', 'Amount', 'Student', 'Program / subject', 'Guardian', 'Transaction', 'Updated', '']} rows={6} />
         </SkRoot>
       )}
 
@@ -179,23 +201,24 @@ export function Payments() {
 
       {data && data.rows.length > 0 && (
         <div class="table-wrap">
-          <table class="data-table">
+          <table class="data-table pay-table">
             <thead>
               <tr>
                 <th>Status</th>
                 <th>Amount</th>
                 <th>Student</th>
+                <th>Program / subject</th>
                 <th>Guardian</th>
-                <th>Tran ID</th>
-                <th>Gateway</th>
-                <th>Coupon</th>
+                <th>Transaction</th>
                 <th>Updated</th>
-                <th>Actions</th>
+                <th aria-label="Actions"></th>
               </tr>
             </thead>
             <tbody>
               {data.rows.map((p) => {
                 const linkable = !!p.registration_id;
+                const subject = subjectOf(p);
+                const count = optionCount(p);
                 return (
                   <tr
                     key={p.id}
@@ -207,30 +230,38 @@ export function Payments() {
                         {p.status}
                       </span>
                     </td>
-                    <td><strong>{formatBdt(p.amount)}</strong></td>
                     <td>
-                      {p.student_full_name ? (
-                        linkable ? (
-                          <a
-                            class="cell-strong"
-                            href={href(`/registrations/${p.registration_id}`)}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {p.student_full_name}
-                          </a>
-                        ) : (
-                          <span class="cell-strong">{p.student_full_name}</span>
-                        )
-                      ) : <span class="muted">-</span>}
-                      <div class="cell-sub">{p.registration_type || ''}</div>
+                      <div class="cell-amount">{formatBdt(p.amount)}</div>
+                      {p.coupon_code && (
+                        <div class="cell-sub coupon-tag" title={`Coupon: ${p.coupon_code}`}>
+                          <Icon name="tag" size={10} /> {p.coupon_code}
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      {p.student_full_name
+                        ? <div class="cell-strong">{p.student_full_name}</div>
+                        : <span class="muted">-</span>}
+                      {p.bdmso_id
+                        ? <div class="cell-sub cell-id">{p.bdmso_id}</div>
+                        : <div class="cell-sub muted">No BdMSO ID yet</div>}
+                    </td>
+                    <td>
+                      <div class="cell-strong">{p.program_label || p.registration_type || '-'}</div>
+                      {subject && (
+                        <div class="cell-sub">
+                          {subject}{count > 1 ? ` · ${count} sessions` : ''}
+                        </div>
+                      )}
                     </td>
                     <td>
                       <div class="cell-strong">{p.guardian_full_name || '-'}</div>
                       <div class="cell-sub">{p.guardian_email || ''}</div>
                     </td>
-                    <td><code>{p.tran_id}</code></td>
-                    <td>{p.gateway_status || '-'}</td>
-                    <td>{p.coupon_code ? <code>{p.coupon_code}</code> : <span class="muted">-</span>}</td>
+                    <td>
+                      <div class="cell-tran" title={p.tran_id}>{p.tran_id}</div>
+                      <div class="cell-sub">{p.gateway_status || 'no gateway reply'}</div>
+                    </td>
                     <td class="cell-sub">{formatDateTime(p.updated_at)}</td>
                     <td onClick={(e) => e.stopPropagation()} style="white-space:nowrap;">
                       {(p.status === 'pending' || p.status === 'failed') && (
@@ -239,19 +270,9 @@ export function Payments() {
                           disabled={busyId === p.id || !p.val_id}
                           title={p.val_id ? 'Ask shurjoPay for the current status' : 'No sp_order_id stored'}
                           onClick={() => reverify(p.id)}
-                          style="padding:5px 9px;font-size:11.5px;margin-right:4px;"
-                        >
-                          <Icon name="refresh" size={11} /> Re-verify
-                        </button>
-                      )}
-                      {p.status === 'paid' && (
-                        <button
-                          type="button" class="btn-danger"
-                          disabled={busyId === p.id}
-                          onClick={() => refund(p.id)}
                           style="padding:5px 9px;font-size:11.5px;"
                         >
-                          Refund
+                          <Icon name="refresh" size={11} /> Re-verify
                         </button>
                       )}
                     </td>

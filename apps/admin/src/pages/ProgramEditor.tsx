@@ -27,6 +27,7 @@ type Program = {
   price_label: string;
   fee_amount: number | null;
   pricing: Pricing | null;
+  tagline: string;
   eyebrow: string;
   image: string;
   audience: string;
@@ -41,13 +42,13 @@ type Program = {
   body_md: string;
   hidden: boolean;
   repeatable: boolean;
+  always_open: boolean;
   published: boolean;
 };
 
 type FormState = Omit<Program, 'fee_amount'> & { fee_amount: string };
 
 const CATEGORIES = ['competition', 'beginner', 'advanced', 'residential'];
-const STATUSES = ['open', 'closed', 'coming_soon', 'on_enquiry'];
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,80}[a-z0-9])?$/;
 
 const EMPTY: FormState = {
@@ -55,9 +56,9 @@ const EMPTY: FormState = {
   registration_opens: null, registration_closes: null,
   schedule_label: '', starts_on: null, ends_on: null,
   price_label: '', fee_amount: '', pricing: null,
-  eyebrow: '', image: '', audience: '', duration: '', format: '', outcome: '',
+  tagline: '', eyebrow: '', image: '', audience: '', duration: '', format: '', outcome: '',
   level: '', meta_description: '', home_order: '', register_url: '', register_label: '',
-  body_md: '', hidden: false, repeatable: false, published: false,
+  body_md: '', hidden: false, repeatable: false, always_open: false, published: false,
 };
 
 function slugify(t: string): string {
@@ -79,6 +80,15 @@ export function ProgramEditor({ slug }: { slug: string }) {
   const [error, setError]     = useState<string | null>(null);
   const [saving, setSaving]   = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
+  // Brief "Saved" confirmation on the button that was clicked (edits only;
+  // a create navigates to the edit page, which is its own confirmation).
+  const [savedKind, setSavedKind] = useState<null | 'draft' | 'publish'>(null);
+  const savedTimer = useRef<number | undefined>(undefined);
+  function flashSaved(kind: 'draft' | 'publish') {
+    setSavedKind(kind);
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    savedTimer.current = window.setTimeout(() => setSavedKind(null), 1600);
+  }
 
   useEffect(() => {
     if (isNew) return;
@@ -98,10 +108,6 @@ export function ProgramEditor({ slug }: { slug: string }) {
     try { return sanitisePreview(markdownToHtml(form.body_md || '')); }
     catch { return '<p><em>Preview error.</em></p>'; }
   }, [form.body_md]);
-
-  // Render the sanitised preview imperatively (avoids dangerouslySetInnerHTML).
-  const previewRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { if (previewRef.current) previewRef.current.innerHTML = previewHtml; }, [previewHtml]);
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -138,18 +144,18 @@ export function ProgramEditor({ slug }: { slug: string }) {
     const payload: Record<string, unknown> = {
       ...(isNew ? { slug: form.slug } : {}),
       title: form.title, category: form.category || null,
-      registration_status: form.registration_status,
       registration_opens: form.registration_opens || null,
       registration_closes: form.registration_closes || null,
       schedule_label: form.schedule_label, starts_on: form.starts_on || null, ends_on: form.ends_on || null,
       price_label: form.price_label,
       fee_amount: form.fee_amount === '' ? null : Number(form.fee_amount),
       pricing: form.pricing,
+      tagline: form.tagline,
       eyebrow: form.eyebrow, image: form.image, audience: form.audience, duration: form.duration,
       format: form.format, outcome: form.outcome, level: form.level, meta_description: form.meta_description,
       home_order: form.home_order, register_url: form.register_url, register_label: form.register_label,
       body_md: form.body_md,
-      hidden: form.hidden, repeatable: form.repeatable,
+      hidden: form.hidden, repeatable: form.repeatable, always_open: form.always_open,
       published: publish ?? form.published,
     };
     try {
@@ -159,6 +165,7 @@ export function ProgramEditor({ slug }: { slug: string }) {
       } else {
         await api.patch<{ ok: true }>(`/api/admin/programs/${encodeURIComponent(slug)}`, payload);
         if (publish !== undefined) set('published', publish);
+        flashSaved(publish ? 'publish' : 'draft');
       }
     } catch (err) {
       setError((err as Error).message);
@@ -201,9 +208,11 @@ export function ProgramEditor({ slug }: { slug: string }) {
         </div>
         <div class="action-row">
           {!isNew && <button type="button" class="btn-danger" onClick={deleteProgram} disabled={saving}><Icon name="trash" size={14} /> Delete</button>}
-          <button type="button" class="btn-secondary" onClick={() => save(false)} disabled={saving}>Save as draft</button>
-          <button type="button" class="btn-primary" onClick={() => save(true)} disabled={saving}>
-            {saving ? 'Saving…' : (form.published ? 'Save changes' : 'Publish')}
+          <button type="button" class={`btn-secondary${savedKind === 'draft' ? ' is-saved' : ''}`} onClick={() => save(false)} disabled={saving}>
+            {savedKind === 'draft' ? <><Icon name="check" size={14} /> Saved</> : (form.published ? 'Unpublish' : 'Save as draft')}
+          </button>
+          <button type="button" class={`btn-primary${savedKind === 'publish' ? ' is-saved' : ''}`} onClick={() => save(true)} disabled={saving}>
+            {saving ? 'Saving…' : savedKind === 'publish' ? <><Icon name="check" size={14} /> Saved</> : (form.published ? 'Save changes' : 'Publish')}
           </button>
         </div>
       </div>
@@ -215,6 +224,7 @@ export function ProgramEditor({ slug }: { slug: string }) {
           <label>Title</label>
           <input type="text" value={form.title} onInput={(e) => set('title', (e.target as HTMLInputElement).value)} placeholder="e.g. BdMSO National Olympiad" />
         </div>
+        <div class="field"><label>Tagline</label><input type="text" value={form.tagline} onInput={(e) => set('tagline', (e.target as HTMLInputElement).value)} placeholder="e.g. A one-line lede for the program" /></div>
         <div class="field">
           <label>Slug</label>
           <input type="text" value={form.slug} disabled={!isNew}
@@ -231,13 +241,6 @@ export function ProgramEditor({ slug }: { slug: string }) {
           </select>
         </div>
         <div class="field">
-          <label>Registration status</label>
-          <select value={form.registration_status} onChange={(e) => set('registration_status', (e.target as HTMLSelectElement).value)}>
-            {STATUSES.map((s) => <option value={s}>{s.replace('_', ' ')}</option>)}
-          </select>
-        </div>
-
-        <div class="field">
           <label>Registration opens</label>
           <input type="date" value={form.registration_opens || ''} onInput={(e) => set('registration_opens', (e.target as HTMLInputElement).value || null)} />
         </div>
@@ -245,6 +248,10 @@ export function ProgramEditor({ slug }: { slug: string }) {
           <label>Registration closes</label>
           <input type="date" value={form.registration_closes || ''} onInput={(e) => set('registration_closes', (e.target as HTMLInputElement).value || null)} />
           <p class="field-hint">Also drives the guardian edit window.</p>
+        </div>
+        <div class="field">
+          <label class="checkbox-inline"><input type="checkbox" checked={form.always_open} onChange={(e) => set('always_open', (e.target as HTMLInputElement).checked)} /> Always open (year-round)</label>
+          <p class="field-hint">Registration stays open and the dates above are ignored.</p>
         </div>
 
         <div class="field">
@@ -277,11 +284,27 @@ export function ProgramEditor({ slug }: { slug: string }) {
 
         <div class="field"><label>Eyebrow</label><input type="text" value={form.eyebrow} onInput={(e) => set('eyebrow', (e.target as HTMLInputElement).value)} placeholder="e.g. National · Olympiad" /></div>
         <div class="field"><label>Audience</label><input type="text" value={form.audience} onInput={(e) => set('audience', (e.target as HTMLInputElement).value)} placeholder="e.g. Class 6 or below" /></div>
-        <div class="field"><label>Duration</label><input type="text" value={form.duration} onInput={(e) => set('duration', (e.target as HTMLInputElement).value)} /></div>
-        <div class="field"><label>Format</label><input type="text" value={form.format} onInput={(e) => set('format', (e.target as HTMLInputElement).value)} /></div>
-        <div class="field"><label>Outcome</label><input type="text" value={form.outcome} onInput={(e) => set('outcome', (e.target as HTMLInputElement).value)} /></div>
-        <div class="field"><label>Level</label><input type="text" value={form.level} onInput={(e) => set('level', (e.target as HTMLInputElement).value)} /></div>
-        <div class="field"><label>Register URL (external, optional)</label><input type="text" value={form.register_url} onInput={(e) => set('register_url', (e.target as HTMLInputElement).value)} /></div>
+        <div class="field"><label>Duration</label><input type="text" value={form.duration} onInput={(e) => set('duration', (e.target as HTMLInputElement).value)} placeholder="e.g. 3 days · 10.5 hrs per subject" /></div>
+        <div class="field">
+          <label>Format</label>
+          <input type="text" value={form.format} onInput={(e) => set('format', (e.target as HTMLInputElement).value)} placeholder="e.g. On-site · MASLab, Dhanmondi" />
+          <p class="field-hint">How and where it runs (delivery mode and venue).</p>
+        </div>
+        <div class="field">
+          <label>Outcome</label>
+          <input type="text" value={form.outcome} onInput={(e) => set('outcome', (e.target as HTMLInputElement).value)} placeholder="e.g. Foundational Math & Science skills" />
+          <p class="field-hint">What a student walks away with.</p>
+        </div>
+        <div class="field">
+          <label>Level</label>
+          <input type="text" value={form.level} onInput={(e) => set('level', (e.target as HTMLInputElement).value)} placeholder="e.g. Beginner" />
+          <p class="field-hint">Optional difficulty tag shown on the card, separate from Category.</p>
+        </div>
+        <div class="field">
+          <label>Register URL (external, optional)</label>
+          <input type="text" value={form.register_url} onInput={(e) => set('register_url', (e.target as HTMLInputElement).value)} placeholder="https://..." />
+          <p class="field-hint">Send registrations to an external link. Blank uses the built-in form.</p>
+        </div>
         <div class="field"><label>Register label</label><input type="text" value={form.register_label} onInput={(e) => set('register_label', (e.target as HTMLInputElement).value)} placeholder="e.g. Register now" /></div>
 
         <div class="field field-full">
@@ -346,7 +369,9 @@ export function ProgramEditor({ slug }: { slug: string }) {
           </div>
           <div style="padding:18px;background:var(--bg-alt);overflow-x:auto;">
             <h2 style="margin:0 0 12px;font-size:13px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.08em;display:flex;align-items:center;gap:6px;"><Icon name="eye" size={13} /> Preview</h2>
-            <div class="prose post-preview" ref={previewRef} />
+            {/* Safe-to-innerHTML: md.js escapes inline HTML and sanitisePreview
+                strips script/iframe + on* handlers. Same path as PostEditor. */}
+            <div class="prose post-preview" dangerouslySetInnerHTML={{ __html: previewHtml }} />
           </div>
         </div>
       </div>
