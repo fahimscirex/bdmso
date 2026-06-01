@@ -111,6 +111,13 @@ CREATE TABLE IF NOT EXISTS member_id_class_seq (
 CREATE INDEX IF NOT EXISTS idx_registrations_guardian_email
 ON registrations (guardian_email);
 
+-- Guardian dashboard reads registrations by account (and status); without these
+-- it table-scans on every load.
+CREATE INDEX IF NOT EXISTS idx_registrations_guardian_account
+ON registrations (guardian_account_id);
+CREATE INDEX IF NOT EXISTS idx_registrations_guardian_account_status
+ON registrations (guardian_account_id, status);
+
 CREATE TABLE IF NOT EXISTS sponsorship_enquiries (
   id TEXT PRIMARY KEY,
   organization TEXT NOT NULL,
@@ -261,6 +268,7 @@ ON registration_option_changes (registration_id, created_at DESC);
 CREATE TABLE IF NOT EXISTS programs (
   slug TEXT PRIMARY KEY,
   title TEXT NOT NULL,
+  tagline TEXT,                                        -- hero lede on the detail page
   category TEXT,                                       -- competition | beginner | advanced | residential
   registration_status TEXT NOT NULL DEFAULT 'closed',  -- open | closed | coming_soon | on_enquiry
   registration_opens TEXT,
@@ -285,6 +293,7 @@ CREATE TABLE IF NOT EXISTS programs (
   body_md TEXT NOT NULL DEFAULT '',
   hidden INTEGER NOT NULL DEFAULT 0,
   repeatable INTEGER NOT NULL DEFAULT 0,
+  always_open INTEGER NOT NULL DEFAULT 0,              -- 1 = year-round, registration always open (ignore dates)
   published INTEGER NOT NULL DEFAULT 0,
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_by TEXT,
