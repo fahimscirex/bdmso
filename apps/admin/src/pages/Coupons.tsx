@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from 'preact/hooks';
 import { api, ApiError } from '../api';
+import { SkRoot, SkTable } from '../components/Skeleton';
 
 type Row = {
   code: string;
@@ -99,6 +100,50 @@ export function Coupons() {
     } finally { setBusy(false); }
   }
 
+  // Bulk-mint N codes of shape `<PREFIX>-XXXXX` with the same discount.
+  // Prompt-driven because the form would dwarf the rest of the page; the
+  // generated CSV is downloaded immediately so the admin can hand it to a
+  // partner without touching the database.
+  async function bulkGenerate() {
+    const prefix = prompt('Prefix for the batch (uppercase letters/digits, e.g. PARTNER):', 'PARTNER');
+    if (!prefix) return;
+    const count = Number(prompt('How many codes? (max 500)', '50') || '0');
+    if (!Number.isFinite(count) || count <= 0) return;
+    const type = prompt('Discount type — "percent" or "fixed":', 'percent');
+    if (type !== 'percent' && type !== 'fixed') { alert('Type must be "percent" or "fixed".'); return; }
+    const value = Number(prompt(`Discount ${type === 'percent' ? 'percent (1-100)' : 'amount (BDT)'}:`, type === 'percent' ? '20' : '500') || '0');
+    if (!Number.isFinite(value) || value <= 0) return;
+    const maxUsesRaw = prompt('Max uses per code (blank for unlimited):', '1');
+    const max_uses_per_code = maxUsesRaw == null || maxUsesRaw.trim() === '' ? null : Math.max(1, Math.floor(Number(maxUsesRaw)));
+    const expires = prompt('Expires YYYY-MM-DD (blank for no expiry):', '');
+    const applies_to = prompt('Applies to (comma-separated program slugs, blank for all):', '');
+
+    setBusy(true);
+    try {
+      const r = await api.post<{ codes: string[]; generated: number; requested: number }>(
+        '/api/admin/coupons/bulk-generate',
+        { prefix, count, discount_type: type, discount_value: value,
+          max_uses_per_code, expires_at: expires?.trim() || null,
+          applies_to: applies_to?.trim() || null,
+        },
+      );
+      // Download CSV with the generated codes.
+      const blob = new Blob([
+        ['Code', 'Discount', 'Max uses'].join(',') + '\n' +
+        r.codes.map((c) => [c, `${value} ${type}`, max_uses_per_code ?? 'unlimited'].join(',')).join('\n'),
+      ], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `bdmso-coupons-${prefix}-${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      alert(`Generated ${r.generated} of ${r.requested} codes. CSV downloaded.`);
+      load();
+    } catch (err) {
+      alert((err as Error).message);
+    } finally { setBusy(false); }
+  }
+
   return (
     <>
       <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;">
@@ -106,9 +151,14 @@ export function Coupons() {
           <h1>Coupons</h1>
           <p class="sub">Partner discounts and scholarship codes. Codes are case-insensitive.</p>
         </div>
-        <button type="button" class="btn-primary" onClick={() => { setCreating(true); setEditing(null); }}>
-          New coupon
-        </button>
+        <div style="display:flex;gap:6px;">
+          <button type="button" class="btn-secondary" onClick={bulkGenerate}>
+            Bulk generate…
+          </button>
+          <button type="button" class="btn-primary" onClick={() => { setCreating(true); setEditing(null); }}>
+            New coupon
+          </button>
+        </div>
       </div>
 
       {data && (
@@ -142,7 +192,11 @@ export function Coupons() {
       )}
 
       {error && <div class="error">{error}</div>}
-      {!data && !error && <div class="muted">Loading…</div>}
+      {!data && !error && (
+        <SkRoot>
+          <SkTable headers={['Code', 'Discount', 'Used', 'Applies to', 'Expires', 'Status']} rows={5} />
+        </SkRoot>
+      )}
 
       {data && data.rows.length === 0 && (
         <div class="empty">

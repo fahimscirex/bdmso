@@ -1,9 +1,10 @@
-// Account settings. Two actions: change password (PBKDF2-rehashed at
-// current iteration count), and revoke all other sessions (any device
-// signed in as this account is bounced; this device stays in).
+// Account settings + system health. Password changes are PBKDF2-rehashed
+// at the current iteration count, and "revoke all other sessions" bounces
+// every signed-in device for this account (this device stays in).
 
 import { useEffect, useState } from 'preact/hooks';
 import { api, ApiError } from '../api';
+import { Icon } from '../components/Icon';
 
 type Profile = {
   accountId: string;
@@ -15,21 +16,34 @@ type Profile = {
   memberId: string | null;
 };
 
+type Service = { ok: boolean; hint: string };
+type SystemHealth = {
+  services: {
+    d1: Service; r2: Service; shurjopay: Service; brevo: Service; email_from: Service;
+  };
+  environment: string;
+  timestamps: {
+    last_paid_payment: string | null;
+    last_registration: string | null;
+    last_broadcast: string | null;
+  };
+};
+
 export function Settings() {
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [health, setHealth]   = useState<SystemHealth | null>(null);
   const [error, setError]     = useState<string | null>(null);
 
   useEffect(() => {
-    api.get<Profile>('/api/me/profile')
-      .then(setProfile)
-      .catch((err: ApiError) => setError(err.message));
+    api.get<Profile>('/api/me/profile').then(setProfile).catch((err: ApiError) => setError(err.message));
+    api.get<SystemHealth>('/api/admin/system').then(setHealth).catch(() => {});
   }, []);
 
   return (
     <>
       <div class="page-header">
         <h1>Settings</h1>
-        <p class="sub">Your account. Password changes are audited.</p>
+        <p class="sub">Your account + system health. Password changes are audited.</p>
       </div>
 
       {error && <div class="error">{error}</div>}
@@ -61,7 +75,54 @@ export function Settings() {
       )}
 
       {profile && <PasswordCard />}
+      {health && <SystemHealthCard data={health} />}
     </>
+  );
+}
+
+function SystemHealthCard({ data }: { data: SystemHealth }) {
+  const services = [
+    { key: 'd1',         label: 'D1 database',    svc: data.services.d1 },
+    { key: 'r2',         label: 'R2 (uploads)',   svc: data.services.r2 },
+    { key: 'shurjopay',  label: 'shurjoPay',      svc: data.services.shurjopay },
+    { key: 'brevo',      label: 'Brevo email',    svc: data.services.brevo },
+    { key: 'email_from', label: 'Sender address', svc: data.services.email_from },
+  ];
+  function fmt(iso: string | null): string {
+    if (!iso) return '-';
+    const d = new Date(iso);
+    const mins = Math.round((Date.now() - d.getTime()) / 60_000);
+    if (mins < 1)   return 'just now';
+    if (mins < 60)  return `${mins} min ago`;
+    if (mins < 60*24) return `${Math.round(mins/60)} h ago`;
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  }
+  return (
+    <section class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;">
+        <h2 style="margin:0;">System health</h2>
+        <span class="badge badge-plain" style="background:var(--navy-100);color:var(--navy-700);">env: {data.environment}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;">
+        {services.map((s) => (
+          <div key={s.key} style="display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg-alt);">
+            <span style={`width:9px;height:9px;border-radius:50%;flex-shrink:0;background:${s.svc.ok ? 'var(--green)' : 'var(--red)'};`} />
+            <div style="min-width:0;flex:1;">
+              <div class="cell-strong" style="font-size:13px;">{s.label}</div>
+              <div class="cell-sub" style="font-size:11.5px;">{s.svc.hint}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <dl class="kv" style="margin-top:14px;">
+        <dt>Last paid payment</dt><dd>{fmt(data.timestamps.last_paid_payment)}</dd>
+        <dt>Last registration</dt><dd>{fmt(data.timestamps.last_registration)}</dd>
+        <dt>Last broadcast</dt><dd>{fmt(data.timestamps.last_broadcast)}</dd>
+      </dl>
+      <p class="muted" style="margin:10px 0 0;font-size:11.5px;">
+        <Icon name="alert" size={11} /> Service rows reflect config presence only; "ShurjoPay" being green doesn't guarantee the gateway is reachable. Run a test purchase from the public site to verify end-to-end.
+      </p>
+    </section>
   );
 }
 

@@ -19,6 +19,7 @@ import {
 } from "./routes/public.js";
 import guardianRoutes from "./routes/guardian.js";
 import adminRoutes from "./routes/admin.js";
+import { markdownToHtml, escHtml } from "../public/js/md.js";
 
 // ─── API (Hono) ───────────────────────────────────────────────────────────────
 //
@@ -250,6 +251,20 @@ export default {
       if (redirect) return withSecurityHeaders(redirect, url);
     }
 
+    // D1-backed posts CMS: any /posts/<slug> request first checks the
+    // `posts` table. On hit (and published), render the markdown + frame
+    // it in the existing post template and return. On miss, fall through
+    // to the static-asset path (file-based markdown posts).
+    if ((request.method === "GET" || request.method === "HEAD") &&
+        url.pathname.startsWith("/posts/") &&
+        !url.pathname.endsWith(".json") && !url.pathname.endsWith(".md")) {
+      const slug = url.pathname.slice("/posts/".length).replace(/\.html?$/i, "");
+      if (slug && /^[a-z0-9](?:[a-z0-9-]{0,80}[a-z0-9])?$/.test(slug)) {
+        const d1Response = await serveD1Post(env, slug, url);
+        if (d1Response) return withSecurityHeaders(applyCacheHeaders(d1Response, url.pathname), url);
+      }
+    }
+
     // Map extensionless URL → underlying .html asset (no redirect; transparent rewrite).
     const assetPath = rewriteForAsset(url.pathname);
     let assetRequest = request;
@@ -264,3 +279,90 @@ export default {
     return withSecurityHeaders(cached, url);
   }
 };
+
+// ─── D1-backed posts CMS ─────────────────────────────────────────────────
+//
+// Renders a single post from the `posts` table. Returns a complete HTML
+// response with the same shell as public/post.html so the visual
+// presentation matches file-based posts (header, footer, typography).
+// Returns null if no row exists or the post isn't published - the caller
+// falls back to static-file lookup.
+async function serveD1Post(env, slug, url) {
+  let row;
+  try {
+    row = await env.DB.prepare(
+      "SELECT slug, title, excerpt, category, author, image, body_md, published, published_at, updated_at FROM posts WHERE slug = ? LIMIT 1"
+    ).bind(slug).first();
+  } catch {
+    return null;
+  }
+  if (!row || (row.published !== 1 && row.published !== true)) return null;
+
+  const title    = String(row.title || "");
+  const excerpt  = String(row.excerpt || "").trim();
+  const category = String(row.category || "").trim();
+  const author   = String(row.author   || "").trim();
+  const image    = String(row.image    || "").trim();
+  const dateIso  = String(row.published_at || row.updated_at || "");
+  const bodyHtml = markdownToHtml(String(row.body_md || ""));
+  const canonical = `${url.origin}/posts/${escHtml(slug)}`;
+  const ogImage   = image && /^https?:\/\//i.test(image) ? image
+                  : image ? `${url.origin}${image.startsWith("/") ? "" : "/"}${image}`
+                  : `${url.origin}/images/logo.webp`;
+
+  const displayDate = dateIso ? (() => {
+    try { return new Date(dateIso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }); }
+    catch { return dateIso.slice(0, 10); }
+  })() : "";
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escHtml(title)} - BdMSO</title>
+<meta name="description" content="${escHtml(excerpt)}">
+<link rel="canonical" href="${escHtml(canonical)}">
+<meta property="og:type" content="article">
+<meta property="og:url" content="${escHtml(canonical)}">
+<meta property="og:title" content="${escHtml(title)}">
+<meta property="og:description" content="${escHtml(excerpt)}">
+<meta property="og:image" content="${escHtml(ogImage)}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${escHtml(title)}">
+<meta name="twitter:description" content="${escHtml(excerpt)}">
+<meta name="twitter:image" content="${escHtml(ogImage)}">
+<meta name="theme-color" content="#0b1b3f">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body data-page="post">
+<div id="site-header"></div>
+<main>
+  <article class="post-wrap">
+    <div class="container container-narrow">
+      <a class="post-back" href="/blog">← Back to blog</a>
+      ${category ? `<div class="post-cat eyebrow">${escHtml(category)}</div>` : ""}
+      <h1 class="post-title">${escHtml(title)}</h1>
+      <div class="post-meta">
+        ${displayDate ? `<span>${escHtml(displayDate)}</span>` : ""}
+        ${author ? `<span>· ${escHtml(author)}</span>` : ""}
+      </div>
+      ${image ? `<figure class="post-hero"><img src="${escHtml(image)}" alt="${escHtml(title)}"></figure>` : ""}
+      <div class="post-body prose">${bodyHtml}</div>
+    </div>
+  </article>
+</main>
+<div id="site-footer"></div>
+<script type="module" src="/js/site.js"></script>
+</body>
+</html>`;
+
+  return new Response(html, {
+    status: 200,
+    headers: { "content-type": "text/html; charset=utf-8" },
+  });
+}

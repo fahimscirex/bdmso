@@ -4,6 +4,8 @@
 
 import { useEffect, useState } from 'preact/hooks';
 import { api, ApiError } from '../api';
+import { SkRoot, SkStatRow, SkTable } from '../components/Skeleton';
+import { Icon } from '../components/Icon';
 
 type Row = {
   id: string;
@@ -114,7 +116,12 @@ export function Users() {
       </div>
 
       {error && <div class="error">{error}</div>}
-      {!data && !error && <div class="muted">Loading…</div>}
+      {!data && !error && (
+        <SkRoot>
+          <SkStatRow />
+          <SkTable headers={['Name', 'Email', 'BdMSO ID', 'Phone', 'Regs', 'Role', 'Joined']} rows={6} />
+        </SkRoot>
+      )}
 
       {data && data.rows.length === 0 && (
         <div class="empty"><p>No users match the current filter.</p></div>
@@ -132,11 +139,12 @@ export function Users() {
                 <th>Regs</th>
                 <th>Role</th>
                 <th>Joined</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {data.rows.map((u) => (
-                <tr>
+                <tr key={u.id}>
                   <td><div class="cell-strong">{u.full_name}</div></td>
                   <td>
                     {u.email}{' '}
@@ -164,6 +172,34 @@ export function Users() {
                     </select>
                   </td>
                   <td class="cell-sub">{formatDate(u.created_at)}</td>
+                  <td style="white-space:nowrap;">
+                    <button
+                      type="button" class="btn-secondary"
+                      title="Email a password-reset link"
+                      onClick={async () => {
+                        if (!confirm(`Email a password-reset link to ${u.email}?`)) return;
+                        try { await api.post(`/api/admin/users/${u.id}/send-password-reset`, {}); alert('Sent.'); }
+                        catch (err) { alert((err as Error).message); }
+                      }}
+                      style="padding:5px 9px;font-size:11.5px;margin-right:4px;"
+                    >
+                      <Icon name="mail" size={11} /> Reset
+                    </button>
+                    {u.email_verified && (
+                      <button
+                        type="button" class="btn-secondary"
+                        title="Force email re-verification"
+                        onClick={async () => {
+                          if (!confirm(`Force ${u.email} to re-verify their email? Their access is unchanged until they fail the check.`)) return;
+                          try { await api.post(`/api/admin/users/${u.id}/force-reverify-email`, {}); alert('Verification email sent.'); load(); }
+                          catch (err) { alert((err as Error).message); }
+                        }}
+                        style="padding:5px 9px;font-size:11.5px;"
+                      >
+                        <Icon name="alert" size={11} /> Re-verify
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

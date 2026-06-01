@@ -300,3 +300,107 @@ ON posts (published, published_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_posts_category
 ON posts (category) WHERE published = 1;
+
+-- ─── Admin notes on registrations ────────────────────────────────────────
+-- Append-only thread of internal notes per registration. Used by admins to
+-- track follow-ups, flags, and conversation history without polluting the
+-- registration row itself.
+CREATE TABLE IF NOT EXISTS registration_notes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  registration_id TEXT NOT NULL,
+  author_account_id TEXT NOT NULL,
+  body TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (registration_id) REFERENCES registrations (id),
+  FOREIGN KEY (author_account_id) REFERENCES guardian_accounts (id)
+);
+CREATE INDEX IF NOT EXISTS idx_registration_notes_reg
+ON registration_notes (registration_id, created_at DESC);
+
+-- ─── Triage queue ────────────────────────────────────────────────────────
+-- Persisted snooze/dismiss state per (admin, target). Allows admins to
+-- temporarily hide an attention item ("snooze 24h") without losing it.
+-- target_kind is one of 'stuck_reg' | 'failed_payment' | 'sponsorship'
+-- | 'expiring_coupon'; target_id is the related entity's PK.
+CREATE TABLE IF NOT EXISTS triage_state (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  admin_account_id TEXT NOT NULL,
+  target_kind TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  snoozed_until TEXT,                          -- NULL = dismissed permanently
+  resolved_at TEXT,                            -- set when marked resolved
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (admin_account_id) REFERENCES guardian_accounts (id),
+  UNIQUE (admin_account_id, target_kind, target_id)
+);
+
+-- ─── Email templates ─────────────────────────────────────────────────────
+-- Saved bodies for broadcast. Subject and body support {{vars}}.
+CREATE TABLE IF NOT EXISTS email_templates (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  subject TEXT NOT NULL,
+  body TEXT NOT NULL,
+  category TEXT,                               -- e.g. 'reminder' | 'event' | 'announcement'
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_by TEXT,
+  FOREIGN KEY (updated_by) REFERENCES guardian_accounts (id)
+);
+
+-- ─── Broadcast send log ──────────────────────────────────────────────────
+-- One row per broadcast send, with sent/failed counts so the admin
+-- "history" tab can list past sends.
+CREATE TABLE IF NOT EXISTS broadcast_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  subject TEXT NOT NULL,
+  body TEXT NOT NULL,
+  filters_json TEXT,                           -- the {program, venue, status} used
+  recipient_count INTEGER NOT NULL DEFAULT 0,
+  sent_count INTEGER NOT NULL DEFAULT 0,
+  failed_count INTEGER NOT NULL DEFAULT 0,
+  channel TEXT NOT NULL DEFAULT 'email',       -- 'email' | 'sms'
+  sent_by TEXT,
+  sent_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (sent_by) REFERENCES guardian_accounts (id)
+);
+CREATE INDEX IF NOT EXISTS idx_broadcast_log_time
+ON broadcast_log (sent_at DESC);
+
+-- ─── Event-day flows: attendance + scores ────────────────────────────────
+-- Per-registration attendance state for the National Round and other
+-- in-person events. Free-form `event_key` so multiple events can coexist
+-- (e.g. 'national-round-2026', 'tst-2026', 'camp-2026').
+CREATE TABLE IF NOT EXISTS attendance (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  registration_id TEXT NOT NULL,
+  event_key TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'absent',       -- 'absent' | 'present' | 'late' | 'no_show'
+  checked_in_at TEXT,
+  checked_in_by TEXT,
+  notes TEXT,
+  FOREIGN KEY (registration_id) REFERENCES registrations (id),
+  FOREIGN KEY (checked_in_by) REFERENCES guardian_accounts (id),
+  UNIQUE (registration_id, event_key)
+);
+CREATE INDEX IF NOT EXISTS idx_attendance_event
+ON attendance (event_key, status);
+
+-- Per-registration scores. One row per (registration, event, section)
+-- so Math + Science live separately and totals are derived.
+CREATE TABLE IF NOT EXISTS scores (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  registration_id TEXT NOT NULL,
+  event_key TEXT NOT NULL,
+  section TEXT NOT NULL,                       -- 'math' | 'science' | 'tst-math' | 'tst-science'
+  score REAL NOT NULL,
+  max_score REAL NOT NULL,
+  rank INTEGER,                                -- nullable; computed when results are finalised
+  tier TEXT,                                   -- 'champion' | 'all-round' | 'math' | 'science' | NULL
+  entered_at TEXT NOT NULL DEFAULT (datetime('now')),
+  entered_by TEXT,
+  FOREIGN KEY (registration_id) REFERENCES registrations (id),
+  FOREIGN KEY (entered_by) REFERENCES guardian_accounts (id),
+  UNIQUE (registration_id, event_key, section)
+);
+CREATE INDEX IF NOT EXISTS idx_scores_event_section
+ON scores (event_key, section, score DESC);
