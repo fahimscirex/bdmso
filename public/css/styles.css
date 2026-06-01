@@ -98,8 +98,8 @@
   --status-open-text2: oklch(0.35 0.14 145);
 
   /* Type */
-  --font-sans: "Plus Jakarta Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --font-display: "Outfit", "Plus Jakarta Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-sans: "Onest", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display: "Onest", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
 
   /* Spacing + radius */

@@ -12,6 +12,7 @@ The Submit-registration subsystem handles **1 routes** and touches: auth, db, ca
 ## Related Models
 
 - **registration_option_changes** (5 fields) → [database.md](./database.md)
+- **registration_notes** (4 fields) → [database.md](./database.md)
 
 ## Source Files
 

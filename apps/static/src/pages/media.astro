@@ -1,0 +1,128 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const title = "Media and Press Coverage - BdMSO in the News";
+const description =
+  "BdMSO in the news - press coverage of Bangladesh's Math and Science Olympiad from The Business Standard, Prothom Alo, Daily ICT News and Bigganchinta.";
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  page="media"
+  canonical="https://bdmso.org/media"
+  image="https://bdmso.org/images/press.webp"
+>
+  <style is:global slot="head">
+    .page-head { background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-page-dark) 100%); color: white; padding: 80px 0 100px; position: relative; overflow: hidden; }
+    .page-head::before { content:""; position:absolute; inset:0; background: radial-gradient(600px 300px at 50% 100%, var(--glow-gold-sm), transparent 60%); }
+    .page-head .eyebrow { background: var(--navy-surface-dk); color: var(--gold-on-dark); border-color: var(--navy-border-dk); margin-bottom: 18px; }
+    .page-head h1 { color: white; margin: 0 0 12px; }
+    .page-head p { color: var(--on-dark-2); max-width: 640px; margin: 0; font-size: 1.05rem; }
+
+    .wrap { margin-top: -56px; position: relative; z-index: 2; padding-top: 72px; padding-bottom: 96px; display: flex; flex-direction: column; gap: 48px; }
+
+    .block h2 { margin-bottom: 8px; }
+    .block .lede { margin-bottom: 28px; color: var(--ink-2); max-width: 600px; }
+
+    .online-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    @media (max-width: 900px) { .online-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 560px) { .online-grid { grid-template-columns: 1fr; } }
+    .article-card {
+      background: white; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden;
+      display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .article-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+    .article-card .cover { aspect-ratio: 16/10; position: relative; overflow: hidden; background: var(--navy-900); }
+    .article-card .cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .article-card .cover .ph { position: absolute; inset: 0; border-radius: 0; border: none; }
+    .article-card .body { padding: 20px 22px 22px; display: flex; flex-direction: column; gap: 8px; flex-grow: 1; }
+    .outlet { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--navy-700); }
+    .article-card h3 { font-size: 1.1rem; line-height: 1.3; margin: 0; }
+    .article-card .date { font-size: 12px; color: var(--ink-3); font-family: var(--font-mono); }
+    .article-card .link { margin-top: auto; padding-top: 10px; font-size: 13.5px; font-weight: 600; color: var(--navy-800); display: inline-flex; gap: 6px; align-items: center; }
+    .article-card .link::after { content: "↗"; }
+
+    .clippings { display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 220px; gap: 14px; }
+    .clip { border-radius: var(--r); overflow: hidden; position: relative; background: var(--navy-900); }
+    .clip img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.85; transition: opacity 0.3s; }
+    .clip:hover img { opacity: 0.65; }
+    .clip:nth-child(1) { grid-column: span 2; grid-row: span 2; }
+    .clip:nth-child(4) { grid-column: span 2; }
+    @media (max-width: 700px) { .clippings { grid-template-columns: 1fr 1fr; } .clip:nth-child(1), .clip:nth-child(4) { grid-column: span 2; } .clip:nth-child(1) { grid-row: auto; } }
+  </style>
+
+  <main>
+    <section class="page-head"><div class="container">
+      <span class="eyebrow">Media &amp; Press</span>
+      <h1>BdMSO in the news.</h1>
+      <p>Online coverage, newspaper clippings, TV segments, and press releases - how the country sees us.</p>
+    </div></section>
+
+    <section class="container wrap">
+
+      <div class="block">
+        <h2>Online Coverage</h2>
+        <p class="lede">Articles and features from online publications across Bangladesh.</p>
+        <div class="online-grid">
+          <a class="article-card" href="https://www.tbsnews.net/economy/corporates/bangladesh-wins-two-silver-ten-bronze-imso-2025-1256606" target="_blank" rel="noopener">
+            <div class="cover"><img loading="lazy" src="/images/press/tbs-imso-2025.webp" alt="Bangladesh team with medals at IMSO 2025" width="800" height="450"></div>
+            <div class="body"><span class="outlet">The Business Standard</span><h3>Bangladesh wins two silver, ten bronze at IMSO 2025 - every team member medals on debut.</h3><span class="date">9 OCT 2025</span><span class="link">Read article</span></div>
+          </a>
+          <a class="article-card" href="https://www.tbsnews.net/economy/corporates/bangladesh-hosts-first-ever-maths-and-science-olympiad-primary-students-1218016" target="_blank" rel="noopener">
+            <div class="cover"><img loading="lazy" src="/images/press/tbs-bdmso-national.webp" alt="BdMSO 2025 National Round - first primary maths and science olympiad in Bangladesh" width="800" height="450"></div>
+            <div class="body"><span class="outlet">The Business Standard</span><h3>Bangladesh hosts its first-ever maths and science olympiad for primary students.</h3><span class="date">6 AUG 2025</span><span class="link">Read article</span></div>
+          </a>
+          <a class="article-card" href="https://www.prothomalo.com/bangladesh/6tjkpvb864" target="_blank" rel="noopener">
+            <div class="cover"><img loading="lazy" src="/images/press/prothomalo-saint-joseph.webp" alt="BdMSO 2025 National Round at St. Joseph Higher Secondary School" width="800" height="450"></div>
+            <div class="body"><span class="outlet">Prothom Alo</span><h3>BdMSO 2025 national round: a talent show for primary students at St. Joseph.</h3><span class="date">22 AUG 2025</span><span class="link">Read article</span></div>
+          </a>
+          <a class="article-card" href="https://www.prothomalo.com/technology/science/s94ky51q9o" target="_blank" rel="noopener">
+            <div class="cover"><img loading="lazy" src="/images/press/prothomalo-imso-malaysia.webp" alt="12-member Bangladesh primary student team departing for IMSO 2025 in Malaysia" width="800" height="450"></div>
+            <div class="body"><span class="outlet">Prothom Alo</span><h3>12-member Bangladesh team heading to Malaysia to participate in IMSO.</h3><span class="date">30 SEP 2025</span><span class="link">Read article</span></div>
+          </a>
+          <a class="article-card" href="https://www.dailyictnews.com/14778" target="_blank" rel="noopener">
+            <div class="cover"><img loading="lazy" src="/images/press/dailyictnews-registration.webp" alt="BdMSO 2025 registration opens for Bangladesh primary students" width="800" height="450"></div>
+            <div class="body"><span class="outlet">Daily ICT News</span><h3>Registration opens for Bangladesh's first-ever primary maths and science olympiad.</h3><span class="date">JUL 2025</span><span class="link">Read article</span></div>
+          </a>
+          <a class="article-card" href="https://www.bigganchinta.com/events/xtdnb55d2j" target="_blank" rel="noopener">
+            <div class="cover"><img loading="lazy" src="/images/press/bigganchinta-launch.webp" alt="BdMSO launches first-ever maths and science olympiad for primary students in Bangladesh" width="800" height="450"></div>
+            <div class="body"><span class="outlet">Bigganchinta</span><h3>BdMSO being organized for the first time in Bangladesh - registration now open.</h3><span class="date">JUL 2025</span><span class="link">Read article</span></div>
+          </a>
+          <a class="article-card" href="https://computerbichitra.com/%E0%A6%86%E0%A6%87%E0%A6%8F%E0%A6%AE%E0%A6%8F%E0%A6%B8%E0%A6%93-%E0%A6%8F%E0%A6%B0-%E0%A7%A8%E0%A7%A8%E0%A6%A4%E0%A6%AE-%E0%A6%86%E0%A6%B8%E0%A6%B0%E0%A7%87-%E0%A6%85%E0%A6%82%E0%A6%B6%E0%A6%97/" target="_blank" rel="noopener">
+            <div class="cover"><img loading="lazy" src="/images/group-pre-international.webp" alt="Bangladesh's 12 primary students at IMSO 2025 (22nd edition, Malaysia)"></div>
+            <div class="body"><span class="outlet">Computer Bichitra</span><h3>12 students from Bangladesh participating in IMSO's 22nd edition in Malaysia.</h3><span class="date">OCT 2025</span><span class="link">Read article</span></div>
+          </a>
+          <a class="article-card" href="https://digibanglatech.news/156729" target="_blank" rel="noopener">
+            <div class="cover"><img loading="lazy" src="/images/imso-inaugaration-2025.webp" alt="Bangladesh primary student team at IMSO 2025 inauguration in Malaysia"></div>
+            <div class="body"><span class="outlet">Digi Bangla</span><h3>12 primary students' Bangladesh team heading to Malaysia for IMSO on October 4.</h3><span class="date">4 OCT 2025</span><span class="link">Read article</span></div>
+          </a>
+          <a class="article-card" href="https://digibanglatech.news/157925" target="_blank" rel="noopener">
+            <div class="cover"><img loading="lazy" src="/images/national-round-winners.webp" alt="BdMSO 2025 National Round winners group photo"></div>
+            <div class="body"><span class="outlet">Digi Bangla</span><h3>First national Mathematics and Science Olympiad held with primary school students.</h3><span class="date">AUG 2025</span><span class="link">Read article</span></div>
+          </a>
+        </div>
+      </div>
+
+      <div class="block">
+        <h2>Photo Gallery</h2>
+        <p class="lede">Moments from the BdMSO's journey.</p>
+        <div class="clippings">
+          <div class="clip"><img loading="lazy" src="/images/group-winner.webp" alt="IMSO 2025 winners group photo"></div>
+          <div class="clip"><img loading="lazy" src="/images/imso-inaugaration-2025.webp" alt="IMSO 2025 inauguration · Malaysia"></div>
+          <div class="clip"><img loading="lazy" src="/images/national-round-winners.webp" alt="National Round winners 2025"></div>
+          <div class="clip"><img loading="lazy" src="/images/group-pre-international.webp" alt="Bangladesh delegation · pre-international camp"></div>
+          <div class="clip"><img loading="lazy" src="/images/student_mentors.webp" alt="Students with mentors"></div>
+          <div class="clip"><img loading="lazy" src="/images/exam.webp" alt="National Round exam day"></div>
+          <div class="clip"><img loading="lazy" src="/images/lab.webp" alt="Lab Day workshop"></div>
+          <div class="clip"><img loading="lazy" src="/images/lab-day-primary.webp" alt="Lab Day for primary kids"></div>
+          <div class="clip"><img loading="lazy" src="/images/aci-medhabi-carnival.webp" alt="ACI Medhabi Carnival"></div>
+          <div class="clip"><img loading="lazy" src="/images/robotics.webp" alt="Robotics workshop"></div>
+          <div class="clip"><img loading="lazy" src="/images/press.webp" alt="Press conference"></div>
+          <div class="clip"><img loading="lazy" src="/images/team/team-orientation.webp" alt="Team Orientation"></div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+</BaseLayout>

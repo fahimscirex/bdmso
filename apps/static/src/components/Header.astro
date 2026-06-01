@@ -1,0 +1,116 @@
+---
+// Server-rendered header. The static shell (brand, nav, anonymous CTA) is
+// emitted at build time so crawlers and no-JS users get a real nav - an
+// improvement over the old site.js which rendered the whole header client-side.
+// The client script below handles the interactive + session-aware parts:
+// swapping the CTA for logged-in users, the mobile menu, and logout.
+interface Props {
+  page?: string;
+}
+const { page = "" } = Astro.props;
+
+const NAV_LINKS = [
+  { href: "/", label: "Home", key: "home" },
+  { href: "/about", label: "About", key: "about" },
+  { href: "/programs", label: "Programs", key: "programs" },
+  { href: "/resources", label: "Resources", key: "resources" },
+  { href: "/results", label: "Results", key: "results" },
+  { href: "/team", label: "Team", key: "team" },
+  { href: "/blog", label: "Blog", key: "blog" },
+  { href: "/media", label: "Media", key: "media" },
+];
+---
+
+<header class="site-header">
+  <div class="container">
+    <nav class="nav" aria-label="Primary">
+      <a class="brand" href="/" aria-label="BdMSO home">
+        <img class="brand-logo" src="/images/logo.webp" alt="BdMSO 2026 logo" width="120" height="84" />
+      </a>
+      <a class="mobile-login" href="/login">Log in</a>
+      <button class="menu-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="nav-menu">
+        <span class="menu-bars" aria-hidden="true">
+          <span class="bar bar-top"></span>
+          <span class="bar bar-mid"></span>
+          <span class="bar bar-bot"></span>
+        </span>
+      </button>
+      <div class="nav-drawer" id="nav-drawer">
+        <div class="nav-menu" id="nav-menu">
+          {NAV_LINKS.map((l) => <a href={l.href} class={l.key === page ? "active" : undefined}>{l.label}</a>)}
+        </div>
+        <div class="nav-cta" id="nav-cta">
+          <a class="login" href="/login">Log in</a>
+          <a class="btn btn-primary" href="/registration">Register Now</a>
+        </div>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<script>
+  const getSession = () => {
+    try { return JSON.parse(localStorage.getItem("bdmso_user") || "null"); } catch { return null; }
+  };
+
+  // Swap the anonymous CTA for the logged-in state using safe DOM construction
+  // (textContent escapes the name; no innerHTML). Anonymous users get correct
+  // markup server-side with no flash.
+  const session = getSession();
+  if (session) {
+    const first = ((session.studentName || session.fullName) || "").split(" ")[0];
+    const cta = document.getElementById("nav-cta");
+    if (cta) {
+      const userSpan = document.createElement("span");
+      userSpan.className = "nav-user";
+      userSpan.textContent = first;
+
+      const dash = document.createElement("a");
+      dash.className = "btn btn-ghost";
+      dash.href = "/dashboard";
+      dash.textContent = "Dashboard";
+
+      const logout = document.createElement("button");
+      logout.className = "btn btn-ghost nav-logout";
+      logout.textContent = "Log out";
+
+      cta.replaceChildren(userSpan, dash, logout);
+
+      logout.addEventListener("click", async () => {
+        const s = getSession();
+        if (s?.token) {
+          try { await fetch("/api/logout", { method: "POST", headers: { Authorization: `Bearer ${s.token}` } }); } catch {}
+        }
+        localStorage.removeItem("bdmso_user");
+        window.location.href = "/login";
+      });
+    }
+    document.querySelector(".site-header .mobile-login")?.remove();
+  }
+
+  // Mobile menu toggle, escape-to-close, click-outside-to-close.
+  const tog = document.querySelector(".site-header .menu-toggle");
+  const drawer = document.getElementById("nav-drawer");
+  if (tog && drawer) {
+    const setMenu = (open: boolean) => {
+      drawer.classList.toggle("open", open);
+      tog.classList.toggle("is-open", open);
+      tog.setAttribute("aria-expanded", String(open));
+      tog.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+    };
+    tog.addEventListener("click", (e) => {
+      e.stopPropagation();
+      setMenu(!drawer.classList.contains("open"));
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && drawer.classList.contains("open")) setMenu(false);
+    });
+    document.addEventListener("click", (e) => {
+      if (!drawer.classList.contains("open")) return;
+      const t = e.target as HTMLElement;
+      const inHeader = t.closest?.(".site-header");
+      const isLink = t.closest?.(".nav-menu a, .nav-cta a, .nav-cta .nav-logout");
+      if (!inHeader || isLink) setMenu(false);
+    });
+  }
+</script>

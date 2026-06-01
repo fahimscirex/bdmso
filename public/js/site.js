@@ -126,8 +126,8 @@
               <h4>Quick Links</h4>
               <ul>
                 <li><a href="/registration">Registration</a></li>
-                <li><a href="/resources">Syllabus</a></li>
-                <li><a href="/resources">Regulations</a></li>
+                <li><a href="/resources#syllabus">Syllabus</a></li>
+                <li><a href="/resources#regulations">Regulations</a></li>
                 <li><a href="/resources#faq">FAQ</a></li>
                 <li><a href="/terms">Terms &amp; Conditions</a></li>
                 <li><a href="/media">Media</a></li>

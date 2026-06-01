@@ -1,0 +1,187 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { getCollection } from "astro:content";
+
+const title = "Blog - BdMSO News, Workshops and Olympiad Updates";
+const description =
+  "News and updates from BdMSO - team orientation, lab-day workshops, the ACI Medhabi Carnival, STEM foundation courses and Bangladesh's Olympiad journey.";
+
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    name: "BdMSO Blog",
+    description,
+    url: "https://bdmso.org/blog",
+    about: {
+      "@type": "EducationalOrganization",
+      name: "Bangladesh Mathematics and Science Olympiad",
+      url: "https://bdmso.org",
+      description:
+        "A platform dedicated to identifying and nurturing early age STEM talent across Bangladesh.",
+    },
+  },
+];
+
+const posts = (await getCollection("blog")).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+);
+
+const categories = ["all", ...new Set(posts.map((p) => p.data.category).filter(Boolean))];
+
+const featured = posts.find((p) => p.data.featured);
+const rest = posts.filter((p) => !p.data.featured);
+
+function formatDate(d: Date) {
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+---
+
+<BaseLayout title={title} description={description} page="blog" canonical="https://bdmso.org/blog" image="https://bdmso.org/images/aci-medhabi-carnival.webp" jsonLd={jsonLd}>
+  <style is:global slot="head">
+    .page-head { background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-page-dark) 100%); color: white; padding: 80px 0 100px; position: relative; overflow: hidden; }
+    .page-head::before { content:""; position:absolute; inset:0; background: radial-gradient(600px 300px at 50% 100%, var(--glow-gold-sm), transparent 60%); }
+    .page-head .eyebrow { background: var(--navy-surface-dk); color: var(--gold-on-dark); border-color: var(--navy-border-dk); margin-bottom: 18px; }
+    .page-head h1 { color: white; margin: 0 0 12px; }
+    .page-head p { color: var(--on-dark-2); max-width: 640px; margin: 0; font-size: 1.05rem; }
+
+    .wrap { margin-top: -56px; position: relative; z-index: 2; padding-bottom: 96px; }
+
+    .cats { display: flex; gap: 6px; padding: 10px; background: white; border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow-sm); margin-bottom: 28px; overflow-x: auto; max-width: 100%; }
+    .cats button { padding: 9px 16px; font-weight: 600; font-size: 14px; color: var(--ink-2); border-radius: 10px; white-space: nowrap; flex-shrink: 0; }
+    .cats button.active { background: var(--navy-900); color: white; }
+
+    .feature {
+      background: white; border: 1px solid var(--line); border-radius: var(--r-xl); overflow: hidden;
+      display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 32px;
+      transition: transform 0.2s, box-shadow 0.2s; text-decoration: none; color: inherit;
+    }
+    .feature:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+    .feature .cover { position: relative; aspect-ratio: 16/10; }
+    .feature .cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .feature .cover .ph { position: absolute; inset: 0; border: none; border-radius: 0; }
+    .feature .body { padding: 40px; display: flex; flex-direction: column; gap: 14px; justify-content: center; }
+    .feature .meta { display: flex; gap: 12px; font-size: 12px; color: var(--ink-3); }
+    .feature .cat { font-weight: 700; color: var(--navy-700); text-transform: uppercase; letter-spacing: 0.1em; }
+    .feature h2 { font-size: 1.8rem; line-height: 1.15; }
+    .feature p { color: var(--ink-2); font-size: 14.5px; line-height: 1.6; margin: 0; }
+    .feature .read { font-size: 13px; font-weight: 600; color: var(--navy-800); }
+    @media (max-width: 900px) { .feature { grid-template-columns: 1fr; } .feature .body { padding: 28px; } }
+
+    .posts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    @media (max-width: 900px) { .posts { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 560px) { .posts { grid-template-columns: 1fr; } }
+    .post {
+      background: white; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden;
+      display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s;
+      text-decoration: none; color: inherit;
+    }
+    .post:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+    .post .cover { aspect-ratio: 16/10; position: relative; }
+    .post .cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .post .cover .ph { position: absolute; inset: 0; border: none; border-radius: 0; }
+    .post .body { padding: 22px; display: flex; flex-direction: column; gap: 10px; flex-grow: 1; }
+    .post .meta { display: flex; gap: 10px; font-size: 12px; color: var(--ink-3); }
+    .post .cat { font-weight: 700; color: var(--navy-700); text-transform: uppercase; letter-spacing: 0.1em; }
+    .post h3 { font-size: 1.1rem; line-height: 1.3; }
+    .post p { font-size: 13.5px; color: var(--ink-3); margin: 0; }
+    .post .read { font-size: 13px; font-weight: 600; color: var(--navy-800); margin-top: auto; padding-top: 10px; }
+
+    .posts-loading { text-align: center; padding: 48px; color: var(--ink-3); }
+  </style>
+
+  <main>
+    <section class="page-head"><div class="container">
+      <span class="eyebrow">News &amp; Announcements</span>
+      <h1>What's happening at BdMSO.</h1>
+      <p>Deadlines, venues, press releases, and camp updates - straight from the BdMSO editorial desk.</p>
+    </div></section>
+
+    <section class="container wrap">
+      <div class="cats" id="cats-bar">
+        {categories.map((c) => (
+          <button data-cat={c} class={c === "all" ? "active" : ""}>{c === "all" ? "All" : c}</button>
+        ))}
+      </div>
+
+      <div id="feature-post">
+        {featured && (
+          <a class="feature" href={`/posts/${featured.data.slug}`} data-cat={featured.data.category}>
+            <div class="cover">
+              {featured.data.image
+                ? <img loading="lazy" src={featured.data.image} alt={featured.data.title} />
+                : <div class="ph">[cover]</div>}
+            </div>
+            <div class="body">
+              <div class="meta"><span class="cat">{featured.data.category}</span><span>{formatDate(featured.data.date)}</span></div>
+              <h2>{featured.data.title}</h2>
+              <p>{featured.data.excerpt}</p>
+              <span class="read">Read more →</span>
+            </div>
+          </a>
+        )}
+      </div>
+
+      <div class="posts" id="posts-grid">
+        {rest.map((p) => (
+          <a class="post" href={`/posts/${p.data.slug}`} data-cat={p.data.category}>
+            <div class="cover">
+              {p.data.image
+                ? <img loading="lazy" src={p.data.image} alt={p.data.title} />
+                : <div class="ph">[{p.data.category}]</div>}
+            </div>
+            <div class="body">
+              <div class="meta"><span class="cat">{p.data.category}</span><span>{formatDate(p.data.date)}</span></div>
+              <h3>{p.data.title}</h3>
+              <p>{p.data.excerpt}</p>
+              <span class="read">Read →</span>
+            </div>
+          </a>
+        ))}
+      </div>
+    </section>
+  </main>
+
+  <script is:inline>
+    (() => {
+      const catsBar = document.getElementById("cats-bar");
+      const featureWrap = document.getElementById("feature-post");
+      const grid = document.getElementById("posts-grid");
+      const featureCard = featureWrap.querySelector(".feature");
+      const postCards = Array.from(grid.querySelectorAll(".post"));
+      let emptyMsg = null;
+
+      function render(activeCat) {
+        if (featureCard) {
+          const show = activeCat === "all" || featureCard.dataset.cat === activeCat;
+          featureCard.style.display = show ? "" : "none";
+        }
+        let visible = 0;
+        postCards.forEach((card) => {
+          const show = activeCat === "all" || card.dataset.cat === activeCat;
+          card.style.display = show ? "" : "none";
+          if (show) visible++;
+        });
+        if (!visible) {
+          if (!emptyMsg) {
+            emptyMsg = document.createElement("p");
+            emptyMsg.style.cssText = "color:var(--ink-3);padding:32px 0;";
+            emptyMsg.textContent = "No posts in this category yet.";
+            grid.appendChild(emptyMsg);
+          }
+          emptyMsg.style.display = "";
+        } else if (emptyMsg) {
+          emptyMsg.style.display = "none";
+        }
+      }
+
+      catsBar.addEventListener("click", (e) => {
+        const btn = e.target.closest("button");
+        if (!btn) return;
+        catsBar.querySelectorAll("button").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        render(btn.dataset.cat);
+      });
+    })();
+  </script>
+</BaseLayout>

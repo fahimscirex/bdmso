@@ -1,0 +1,140 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const title = "About BdMSO - Bangladesh's Official IMSO Qualifying Olympiad";
+const description =
+  "BdMSO is the official qualifying platform that selects primary-school students from Bangladesh to compete at the International Mathematics and Science Olympiad.";
+
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "AboutPage",
+    name: "About BdMSO",
+    description:
+      "BdMSO is the official qualifying platform that selects primary-school students from Bangladesh to compete at the International Mathematics and Science Olympiad.",
+    url: "https://bdmso.org/about",
+    about: {
+      "@type": "EducationalOrganization",
+      name: "Bangladesh Mathematics and Science Olympiad",
+      alternateName: "BdMSO",
+      url: "https://bdmso.org",
+      description:
+        "A platform dedicated to identifying and nurturing early age STEM talent across Bangladesh.",
+      parentOrganization: [
+        { "@type": "Organization", name: "Bangladesh Open Source Network", url: "https://bdosn.org" },
+        { "@type": "Organization", name: "Society for the Popularization of Science, Bangladesh", url: "https://spsb.org" },
+      ],
+    },
+  },
+];
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  page="about"
+  canonical="https://bdmso.org/about"
+  image="https://bdmso.org/images/exchange.webp"
+  jsonLd={jsonLd}
+>
+  <style is:global slot="head">
+    .page-head { background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-page-dark) 100%); color: white; padding: 80px 0 100px; position: relative; overflow: hidden; }
+    .page-head::before { content:""; position:absolute; inset:0; background: radial-gradient(600px 300px at 50% 100%, var(--glow-gold-sm), transparent 60%); }
+    .page-head .eyebrow { background: var(--navy-surface-dk); color: var(--gold-on-dark); border-color: var(--navy-border-dk); margin-bottom: 18px; }
+    .page-head h1 { color: white; max-width:760px; margin: 0 0 12px; }
+    .page-head p { color: var(--on-dark-2); max-width: 640px; margin: 0; font-size: 1.05rem; }
+
+    .wrap { margin-top: -56px; position: relative; z-index: 2; padding-bottom: 96px; display: flex; flex-direction: column; gap: 36px; }
+    .panel { background: white; border: 1px solid var(--line); border-radius: var(--r-lg); padding: 32px; }
+
+    .story { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; align-items: center; }
+    .story .img { aspect-ratio: 4/3; border-radius: var(--r-lg); position: relative; }
+    .story .img .ph { position: absolute; inset: 0; border-radius: var(--r-lg); }
+    @media (max-width: 800px) { .story { grid-template-columns: 1fr; } }
+
+    .values { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .values .v { padding: 22px; background: var(--bg-alt); border-radius: var(--r); border: 1px solid var(--line); }
+    .values .v h4 { margin-bottom: 6px; font-family: var(--font-sans); }
+    .values .v p { margin: 0; font-size: 14px; }
+    @media (max-width: 800px) { .values { grid-template-columns: 1fr; } }
+
+    .orgs { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .org { padding: 28px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--bg-alt); display: flex; gap: 20px; align-items: flex-start; }
+    .org .logo { width: 72px; height: 72px; border-radius: 14px; background: white; display: grid; place-items: center; font-weight: 800; color: var(--navy-800); border: 1px solid var(--line); flex-shrink: 0; }
+    .org h3 { margin-bottom: 6px; }
+    .org p { margin: 0; font-size: 14px; }
+    @media (max-width: 800px) { .orgs { grid-template-columns: 1fr; } }
+
+    .timeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .milestone { padding: 18px; border-left: 3px solid var(--gold-500); background: var(--bg-alt); border-radius: 0 var(--r) var(--r) 0; }
+    .milestone .yr { font-family: var(--font-display); font-size: 1.3rem; font-weight: 700; color: var(--navy-900); line-height: 1; }
+    .milestone .t { font-size: 13px; color: var(--ink-2); margin-top: 8px; }
+    @media (max-width: 800px) { .timeline { grid-template-columns: 1fr 1fr; } }
+  </style>
+
+  <main>
+    <section class="page-head"><div class="container">
+      <span class="eyebrow">About BdMSO</span>
+      <h1>Bangladesh Mathematics and Science Olympiad.</h1>
+      <p>Organised by BdOSN and SPSB.</p>
+    </div></section>
+
+    <section class="container wrap">
+
+      <div class="panel">
+        <div class="story">
+          <div class="img"><img loading="lazy" src="/images/team/parliament-2025.webp" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:var(--r-lg);" alt="Pre-international photograph - students and mentors"></div>
+          <div>
+            <span class="eyebrow">Our Story</span>
+            <h2 style="margin: 14px 0 16px;">Nurturing Early-Age STEM Talent Across Bangladesh</h2>
+            <p>BdMSO exists to give every curious child in Bangladesh a real pathway to the international stage. We start with a nationwide qualifying round open for primary student and from there, we train, mentor, and travel together until a small team stands with our country's flag at IMSO.</p>
+            <p>Along the way, we build year-round programs, preparatory courses, lab workshops, summer camps, and masterclasses because the journey matters as much as the destination.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <span class="eyebrow">What we stand for</span>
+        <h2 style="margin: 10px 0 24px;">Three commitments that shape everything we do.</h2>
+        <div class="values">
+          <div class="v"><h4>Access, not gatekeeping</h4><p>The Olympiad is open to every eligible student in Bangladesh - curriculum, school type, and location regardless.</p></div>
+          <div class="v"><h4>Fairness &amp; privacy</h4><p>Numerical scores stay private.</p></div>
+          <div class="v"><h4>Year-round learning</h4><p>The olympiad is one week a year. The habits of curiosity and problem-solving are for life.</p></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <span class="eyebrow">Organising Bodies</span>
+        <h2 style="margin: 10px 0 24px;">BdOSN &amp; SPSB.</h2>
+        <div class="orgs">
+          <div class="org">
+            <div class="logo"><img loading="lazy" src="/images/logos/bdosn-logo.webp" alt="BdOSN" style="width:56px;height:56px;object-fit:contain;"></div>
+            <div>
+              <h3><a href="https://bdosn.org" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;border-bottom:1px solid var(--gold-500);">Bangladesh Open Source Network</a></h3>
+              <p>BdOSN champions open knowledge, computing, and science education across Bangladesh - from the National Digital Innovation Awards to nationwide olympiads.</p>
+            </div>
+          </div>
+          <div class="org">
+            <div class="logo"><img loading="lazy" src="/images/logos/spsb.png" alt="SPSB" style="width:56px;height:56px;object-fit:contain;"></div>
+            <div>
+              <h3><a href="https://spsb.org" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;border-bottom:1px solid var(--gold-500);">Society for the Popularization of Science, Bangladesh</a></h3>
+              <p>SPSB has been making science accessible to Bangladeshi students since its founding through summer camps, publications, and research mentorship.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    <!--  <div class="panel">
+        <span class="eyebrow">Milestones</span>
+        <h2 style="margin: 10px 0 24px;">A short history.</h2>
+        <div class="timeline">
+          <div class="milestone"><div class="yr">2017</div><div class="t">BdMSO founded; first Bangladesh delegation at IMSO.</div></div>
+          <div class="milestone"><div class="yr">2019</div><div class="t">First residential camp for Class 5–6 students.</div></div>
+          <div class="milestone"><div class="yr">2022</div><div class="t">Regional centres open in Chattogram and Sylhet.</div></div>
+          <div class="milestone"><div class="yr">2025</div><div class="t">12/12 medal run at IMSO Malaysia.</div></div>
+        </div>
+      </div>  -->
+
+    </section>
+  </main>
+</BaseLayout>

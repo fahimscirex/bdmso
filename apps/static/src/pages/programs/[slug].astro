@@ -1,0 +1,140 @@
+---
+import { getCollection, render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const SITE = "https://bdmso.org";
+
+export async function getStaticPaths() {
+  const programs = await getCollection("programs");
+  return programs
+    // hidden: no page at all. bespokePage: a hand-authored static page owns
+    // this slug (e.g. Maryam Mirzakhani School) - don't generate over it.
+    .filter((p) => !p.data.hidden && !p.data.bespokePage)
+    .map((program) => ({ params: { slug: program.id }, props: { program } }));
+}
+
+const { program } = Astro.props;
+const p = program.data;
+const slug = program.id;
+const { Content } = await render(program);
+
+const url = `${SITE}/programs/${slug}`;
+const image = p.image
+  ? (p.image.startsWith("http") ? p.image : `${SITE}${p.image.startsWith("/") ? p.image : `/${p.image}`}`)
+  : `${SITE}/images/logo.webp`;
+const metaDesc = p.metaDescription || p.tagline || "";
+// Avoid "BdMSO X - BdMSO" double-branding when the title already leads "BdMSO".
+const pageTitle = /^BdMSO\b/i.test(p.title) ? p.title : `${p.title} - BdMSO`;
+
+const isExternal = /^https?:/.test(p.register_url || "");
+const regOpen = p.registration !== false;
+const closedBoxStyle =
+  "text-align:center;padding:14px;border-radius:12px;background:var(--bg-alt,#f1f3f7);color:var(--ink-3);font-weight:700;font-size:14px;";
+
+// Course schema; add hasCourseInstance when concrete dates exist.
+const fmt = (p.format || "").toLowerCase();
+const mode = /online/.test(fmt) && !/on-site|onsite|offline/.test(fmt)
+  ? "Online"
+  : (/on-site|onsite|offline|maslab|residential/.test(fmt) ? "Onsite" : "Blended");
+let courseInstance: Record<string, unknown> | null = null;
+if (p.startsOn || p.endsOn) {
+  courseInstance = { "@type": "CourseInstance", courseMode: mode };
+  if (p.startsOn) courseInstance.startDate = p.startsOn;
+  if (p.endsOn) courseInstance.endDate = p.endsOn;
+  if (mode !== "Online") {
+    courseInstance.location = { "@type": "Place", name: "MASLab, Dhaka", address: { "@type": "PostalAddress", addressCountry: "BD" } };
+  }
+  if (typeof p.feeAmount === "number") {
+    courseInstance.offers = { "@type": "Offer", price: String(p.feeAmount), priceCurrency: "BDT", url, availability: "https://schema.org/InStock", category: "Paid" };
+  }
+}
+const courseSchema: Record<string, unknown> = {
+  "@context": "https://schema.org",
+  "@type": "Course",
+  name: p.title,
+  description: metaDesc,
+  url,
+  image,
+  provider: { "@type": "EducationalOrganization", name: "Bangladesh Mathematics & Science Olympiad", url: SITE },
+};
+if (courseInstance) courseSchema.hasCourseInstance = courseInstance;
+---
+
+<BaseLayout title={pageTitle} description={metaDesc} page="programs" canonical={url} image={image} jsonLd={[courseSchema]}>
+  <main>
+    <section class="pd-hero"><div class="container">
+      <div class="pd-topbar">
+        <a class="pd-back" href="/programs">All programs</a>
+        <span class="eyebrow">{p.eyebrow || "Program"}</span>
+      </div>
+      <h1>{p.title}</h1>
+      <p class="lede">{p.tagline}</p>
+    </div></section>
+
+    <section class="container pd-wrap">
+      <div class="pd-grid">
+        <article class="pd-main">
+          {p.image && <img class="cover" loading="lazy" src={p.image} alt={p.title} />}
+
+          {/* Main content is the markdown body - edit programs/<slug>.md, not JSON blocks. */}
+          <Content />
+        </article>
+
+        <aside class="pd-side">
+          <div class="pd-card">
+            <div class="pd-price">{p.price || (typeof p.feeAmount === "number" ? `৳ ${p.feeAmount.toLocaleString("en-BD")}` : "")}</div>
+            {p.schedule && <p class="pd-schedule">{p.schedule}</p>}
+            {regOpen ? (
+              <a
+                class="btn btn-primary btn-lg pd-cta"
+                id="pd-cta"
+                href={p.register_url || `/registration?program=${slug}`}
+                {...(isExternal ? { target: "_blank", rel: "noopener" } : {})}
+                data-reg-starts={p.registrationStarts}
+                data-reg-ends={p.registrationEnds}
+              >{p.register_label || "Register"} →</a>
+            ) : (
+              <div class="pd-cta" style={closedBoxStyle}>Registration closed</div>
+            )}
+            <div class="pd-facts">
+              {p.audience && <div class="pd-fact"><div class="k">Who it's for</div><div class="v">{p.audience}</div></div>}
+              {p.duration && <div class="pd-fact"><div class="k">Duration</div><div class="v">{p.duration}</div></div>}
+              {p.format && <div class="pd-fact"><div class="k">Format</div><div class="v">{p.format}</div></div>}
+              {p.outcome && <div class="pd-fact"><div class="k">Outcome</div><div class="v">{p.outcome}</div></div>}
+            </div>
+          </div>
+
+          {regOpen && (
+            <div class="pd-card pd-warning">
+              <div class="t">⚠ Registration isn't complete until payment is confirmed</div>
+              <div class="b">Submitting the registration form alone does not enroll your child. You'll need to complete payment from your dashboard to receive a BdMSO ID and access program resources.</div>
+            </div>
+          )}
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <script is:inline>
+    // Downgrade the CTA to "opens on…/closed" based on the registration window.
+    // Kept client-side so static pages never go stale.
+    (function () {
+      var c = document.getElementById("pd-cta");
+      if (!c) return;
+      var t = new Date().toISOString().slice(0, 10);
+      var s = c.dataset.regStarts, e = c.dataset.regEnds, m = "";
+      if (s && t < s) {
+        m = "Registration opens " + new Date(s).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      } else if (e && t > e) {
+        m = "Registration closed";
+      }
+      if (m) {
+        var b = document.createElement("div");
+        b.className = "pd-cta";
+        b.style.cssText = "text-align:center;padding:14px;border-radius:12px;background:var(--bg-alt,#f1f3f7);color:var(--ink-3);font-weight:700;font-size:14px;";
+        b.textContent = m;
+        c.replaceWith(b);
+      }
+    })();
+  </script>
+</BaseLayout>

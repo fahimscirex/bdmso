@@ -3,9 +3,9 @@
 > **Stack:** hono | none | react | typescript
 > **Monorepo:** @bdmso/admin, @bdmso/guardian, dash
 
-> 43 routes | 16 models | 27 components | 25 lib files | 4 env vars | 25 middleware
-> **Token savings:** this file is ~4,900 tokens. Without it, AI exploration would cost ~60,000 tokens. **Saves ~55,100 tokens per conversation.**
-> **Last scanned:** 2026-05-27 10:25 — re-run after significant changes
+> 74 routes | 22 models | 37 components | 25 lib files | 3 env vars | 25 middleware
+> **Token savings:** this file is ~6,200 tokens. Without it, AI exploration would cost ~81,600 tokens. **Saves ~75,400 tokens per conversation.**
+> **Last scanned:** 2026-05-28 12:35 — re-run after significant changes
 
 ---
 
@@ -14,6 +14,9 @@
 ## CRUD Resources
 
 - **`/admin/coupons`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Coupon
+- **`/admin/registrations/:id/notes`** GET | POST | GET/:id | DELETE/:id → Note
+- **`/admin/templates`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Template
+- **`/admin/posts`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Post
 
 ## Other Routes
 
@@ -31,22 +34,41 @@
 - `POST` `/forgot-password` params() [auth, db, cache, email, upload]
 - `POST` `/forgot-email` params() [auth, db, cache, email, upload]
 - `POST` `/reset-password` params() [auth, db, cache, email, upload]
-- `GET` `/admin/health` params() [auth, db, email, upload]
-- `GET` `/admin/registrations` params() [auth, db, email, upload]
-- `GET` `/admin/registrations/:id` params(id) [auth, db, email, upload]
-- `PATCH` `/admin/registrations/:id/status` params(id) [auth, db, email, upload]
-- `POST` `/admin/registrations/:id/resend-verification` params(id) [auth, db, email, upload]
-- `POST` `/admin/registrations/:id/resend-receipt` params(id) [auth, db, email, upload]
-- `GET` `/admin/payments` params() [auth, db, email, upload]
-- `GET` `/admin/sponsorships` params() [auth, db, email, upload]
-- `PATCH` `/admin/sponsorships/:id/status` params(id) [auth, db, email, upload]
-- `GET` `/admin/users` params() [auth, db, email, upload]
-- `PATCH` `/admin/users/:id/role` params(id) [auth, db, email, upload]
-- `POST` `/admin/uploads` params() [auth, db, email, upload]
-- `GET` `/admin/audit` params() [auth, db, email, upload]
-- `GET` `/admin/analytics` params() [auth, db, email, upload]
-- `GET` `/admin/broadcast/recipients` params() [auth, db, email, upload]
-- `POST` `/admin/broadcast` params() [auth, db, email, upload]
+- `GET` `/admin/health` params() [auth, db, queue, email, upload]
+- `GET` `/admin/registrations` params() [auth, db, queue, email, upload]
+- `GET` `/admin/registrations/:id` params(id) [auth, db, queue, email, upload]
+- `PATCH` `/admin/registrations/:id/status` params(id) [auth, db, queue, email, upload]
+- `POST` `/admin/registrations/:id/resend-verification` params(id) [auth, db, queue, email, upload]
+- `POST` `/admin/registrations/:id/resend-receipt` params(id) [auth, db, queue, email, upload]
+- `GET` `/admin/payments` params() [auth, db, queue, email, upload]
+- `POST` `/admin/payments/:id/reverify` params(id) [auth, db, queue, email, upload]
+- `POST` `/admin/payments/:id/refund` params(id) [auth, db, queue, email, upload]
+- `GET` `/admin/payments/reports` params() [auth, db, queue, email, upload]
+- `GET` `/admin/sponsorships` params() [auth, db, queue, email, upload]
+- `PATCH` `/admin/sponsorships/:id/status` params(id) [auth, db, queue, email, upload]
+- `GET` `/admin/users` params() [auth, db, queue, email, upload]
+- `PATCH` `/admin/users/:id/role` params(id) [auth, db, queue, email, upload]
+- `POST` `/admin/uploads` params() [auth, db, queue, email, upload]
+- `GET` `/admin/audit` params() [auth, db, queue, email, upload]
+- `GET` `/admin/analytics` params() [auth, db, queue, email, upload]
+- `GET` `/admin/broadcast/recipients` params() [auth, db, queue, email, upload]
+- `POST` `/admin/broadcast` params() [auth, db, queue, email, upload]
+- `POST` `/admin/registrations/bulk/remind` params() [auth, db, queue, email, upload]
+- `POST` `/admin/registrations/bulk/cancel` params() [auth, db, queue, email, upload]
+- `GET` `/admin/triage` params() [auth, db, queue, email, upload]
+- `POST` `/admin/triage/snooze` params() [auth, db, queue, email, upload]
+- `POST` `/admin/triage/dismiss` params() [auth, db, queue, email, upload]
+- `GET` `/admin/system` params() [auth, db, queue, email, upload]
+- `POST` `/admin/users/:id/send-password-reset` params(id) [auth, db, queue, email, upload]
+- `POST` `/admin/users/:id/force-reverify-email` params(id) [auth, db, queue, email, upload]
+- `POST` `/admin/coupons/bulk-generate` params() [auth, db, queue, email, upload]
+- `GET` `/admin/broadcast/log` params() [auth, db, queue, email, upload]
+- `GET` `/admin/events` params() [auth, db, queue, email, upload]
+- `GET` `/admin/events/:event/roster` params(event) [auth, db, queue, email, upload]
+- `POST` `/admin/events/:event/checkin` params(event) [auth, db, queue, email, upload]
+- `GET` `/admin/events/:event/scores` params(event) [auth, db, queue, email, upload]
+- `POST` `/admin/events/:event/scores` params(event) [auth, db, queue, email, upload]
+- `POST` `/admin/events/:event/scores/finalize` params(event) [auth, db, queue, email, upload]
 - `GET` `/me/profile` params() [auth, payment]
 - `PATCH` `/me/profile` params() [auth, payment]
 - `PATCH` `/me/registrations` params() [auth, payment]
@@ -196,23 +218,84 @@
 - featured: integer (required)
 - published_at: text
 
+### registration_notes
+- id: integer (pk)
+- registration_id: text (required, fk)
+- author_account_id: text (required, fk)
+- body: text (required)
+- _relations_: registration_id -> registrations.id
+
+### triage_state
+- id: integer (pk)
+- admin_account_id: text (required, fk)
+- target_kind: text (required)
+- target_id: text (required, fk)
+- snoozed_until: text
+- _relations_: admin_account_id -> guardian_accounts.id
+
+### email_templates
+- id: integer (pk)
+- name: text (required)
+- subject: text (required)
+- body: text (required)
+- category: text
+- updated_by: text
+
+### broadcast_log
+- id: integer (pk)
+- subject: text (required)
+- body: text (required)
+- filters_json: text
+- sent_count: integer (required)
+- failed_count: integer (required)
+- channel: text (required)
+- sent_at: text (required)
+
+### attendance
+- id: integer (pk)
+- registration_id: text (required, fk)
+- event_key: text (required)
+- status: text (required)
+- notes: text
+- _relations_: registration_id -> registrations.id, checked_in_by -> guardian_accounts.id
+
+### scores
+- id: integer (pk)
+- registration_id: text (required, fk)
+- event_key: text (required)
+- section: text (required)
+- max_score: real (required)
+- rank: integer
+- entered_by: text
+- _relations_: registration_id -> registrations.id, entered_by -> guardian_accounts.id
+
 ---
 
 # Components
 
 - **App** — `apps/admin/src/App.tsx`
+- **CommandPalette** — props: open, onClose — `apps/admin/src/components/CommandPalette.tsx`
+- **Icon** — props: name, size, cls — `apps/admin/src/components/Icon.tsx`
 - **ImageField** — props: label, hint, prefix, value, onChange — `apps/admin/src/components/ImageField.tsx`
 - **NavShell** — props: currentRoute, userEmail, onSignOut — `apps/admin/src/components/NavShell.tsx`
+- **NeedsAttention** — props: data — `apps/admin/src/components/NeedsAttention.tsx`
+- **NotificationBell** — `apps/admin/src/components/NotificationBell.tsx`
+- **Sparkline** — props: data, tone, height, showArea — `apps/admin/src/components/Sparkline.tsx`
 - **AuditLog** — `apps/admin/src/pages/AuditLog.tsx`
 - **Broadcast** — `apps/admin/src/pages/Broadcast.tsx`
 - **Coupons** — `apps/admin/src/pages/Coupons.tsx`
 - **Dashboard** — `apps/admin/src/pages/Dashboard.tsx`
+- **Events** — `apps/admin/src/pages/Events.tsx`
 - **Login** — props: onSignedIn — `apps/admin/src/pages/Login.tsx`
+- **PaymentReports** — `apps/admin/src/pages/PaymentReports.tsx`
 - **Payments** — `apps/admin/src/pages/Payments.tsx`
+- **PostEditor** — props: slug — `apps/admin/src/pages/PostEditor.tsx`
+- **Posts** — `apps/admin/src/pages/Posts.tsx`
 - **RegistrationDetail** — props: id — `apps/admin/src/pages/RegistrationDetail.tsx`
 - **Registrations** — `apps/admin/src/pages/Registrations.tsx`
 - **Settings** — `apps/admin/src/pages/Settings.tsx`
 - **Sponsorships** — `apps/admin/src/pages/Sponsorships.tsx`
+- **Triage** — `apps/admin/src/pages/Triage.tsx`
 - **Users** — `apps/admin/src/pages/Users.tsx`
 - **App** — `apps/guardian/src/App.tsx`
 - **ChangeSelectionModal** — props: registrationId, programLabel, paid, config, currentIds, unavailableIds, showSubject, showVenue, currentSubject, currentVenue — `apps/guardian/src/components/ChangeSelectionModal.tsx`
@@ -327,7 +410,6 @@
 
 ## Environment Variables
 
-- `GA_ID` **required** — .env.example
 - `SITE_URL` (has default) — .env.example
 - `VITE_PORT` **required** — apps/admin/vite.config.ts
 - `WRANGLER_PORT` **required** — apps/admin/vite.config.ts
@@ -387,39 +469,39 @@
 
 ## Most Imported Files (change these carefully)
 
-- `apps/admin/src/api.ts` — imported by **11** files
-- `apps/admin/src/router.ts` — imported by **7** files
+- `apps/admin/src/api.ts` — imported by **18** files
+- `apps/admin/src/components/Icon.tsx` — imported by **16** files
+- `apps/admin/src/router.ts` — imported by **14** files
+- `apps/admin/src/components/Skeleton.tsx` — imported by **12** files
+- `apps/admin/src/csv.ts` — imported by **5** files
 - `apps/guardian/src/auth.ts` — imported by **5** files
 - `apps/guardian/src/api.ts` — imported by **5** files
 - `worker/lib/crypto.js` — imported by **5** files
 - `worker/lib/util.js` — imported by **5** files
 - `apps/admin/src/auth.ts` — imported by **4** files
+- `public/js/md.js` — imported by **3** files
 - `apps/guardian/src/router.ts` — imported by **3** files
 - `worker/lib/programs.js` — imported by **3** files
 - `worker/lib/audit-log.js` — imported by **3** files
 - `worker/lib/email.js` — imported by **3** files
-- `apps/admin/src/csv.ts` — imported by **2** files
+- `apps/admin/src/components/Sparkline.tsx` — imported by **2** files
 - `apps/guardian/src/components/NotificationTicker.tsx` — imported by **2** files
 - `apps/guardian/src/components/ChangeSelectionModal.tsx` — imported by **2** files
 - `public/js/api.js` — imported by **2** files
 - `worker/lib/validation.js` — imported by **2** files
-- `worker/lib/program-options.js` — imported by **2** files
-- `worker/lib/sessions.js` — imported by **2** files
-- `worker/middleware/session.js` — imported by **2** files
-- `worker/lib/rate-limit.js` — imported by **2** files
 
 ## Import Map (who imports what)
 
-- `apps/admin/src/api.ts` ← `apps/admin/src/App.tsx`, `apps/admin/src/pages/AuditLog.tsx`, `apps/admin/src/pages/Broadcast.tsx`, `apps/admin/src/pages/Coupons.tsx`, `apps/admin/src/pages/Dashboard.tsx` +6 more
-- `apps/admin/src/router.ts` ← `apps/admin/src/App.tsx`, `apps/admin/src/components/NavShell.tsx`, `apps/admin/src/pages/AuditLog.tsx`, `apps/admin/src/pages/Dashboard.tsx`, `apps/admin/src/pages/Payments.tsx` +2 more
+- `apps/admin/src/api.ts` ← `apps/admin/src/App.tsx`, `apps/admin/src/components/CommandPalette.tsx`, `apps/admin/src/components/NotificationBell.tsx`, `apps/admin/src/pages/AuditLog.tsx`, `apps/admin/src/pages/Broadcast.tsx` +13 more
+- `apps/admin/src/components/Icon.tsx` ← `apps/admin/src/components/CommandPalette.tsx`, `apps/admin/src/components/NavShell.tsx`, `apps/admin/src/components/NeedsAttention.tsx`, `apps/admin/src/components/NotificationBell.tsx`, `apps/admin/src/pages/AuditLog.tsx` +11 more
+- `apps/admin/src/router.ts` ← `apps/admin/src/App.tsx`, `apps/admin/src/components/CommandPalette.tsx`, `apps/admin/src/components/NavShell.tsx`, `apps/admin/src/components/NeedsAttention.tsx`, `apps/admin/src/components/NotificationBell.tsx` +9 more
+- `apps/admin/src/components/Skeleton.tsx` ← `apps/admin/src/pages/AuditLog.tsx`, `apps/admin/src/pages/Broadcast.tsx`, `apps/admin/src/pages/Coupons.tsx`, `apps/admin/src/pages/Dashboard.tsx`, `apps/admin/src/pages/Events.tsx` +7 more
+- `apps/admin/src/csv.ts` ← `apps/admin/src/pages/AuditLog.tsx`, `apps/admin/src/pages/Events.tsx`, `apps/admin/src/pages/PaymentReports.tsx`, `apps/admin/src/pages/Payments.tsx`, `apps/admin/src/pages/Registrations.tsx`
 - `apps/guardian/src/auth.ts` ← `apps/guardian/src/App.tsx`, `apps/guardian/src/api.ts`, `apps/guardian/src/pages/Home.tsx`, `apps/guardian/src/pages/Login.tsx`, `apps/guardian/src/pages/Profile.tsx`
 - `apps/guardian/src/api.ts` ← `apps/guardian/src/App.tsx`, `apps/guardian/src/components/ChangeSelectionModal.tsx`, `apps/guardian/src/pages/Home.tsx`, `apps/guardian/src/pages/Login.tsx`, `apps/guardian/src/pages/Profile.tsx`
 - `worker/lib/crypto.js` ← `scripts/create-admin.mjs`, `scripts/create-demo-user.mjs`, `scripts/seed-registrations.mjs`, `worker/routes/guardian.js`, `worker/routes/public.js`
 - `worker/lib/util.js` ← `worker/lib/audit-log.js`, `worker/lib/email.js`, `worker/routes/admin.js`, `worker/routes/guardian.js`, `worker/routes/public.js`
 - `apps/admin/src/auth.ts` ← `apps/admin/src/App.tsx`, `apps/admin/src/api.ts`, `apps/admin/src/components/ImageField.tsx`, `apps/admin/src/pages/Login.tsx`
-- `apps/guardian/src/router.ts` ← `apps/guardian/src/App.tsx`, `apps/guardian/src/components/PaymentBanner.tsx`, `apps/guardian/src/components/Shell.tsx`
-- `worker/lib/programs.js` ← `worker/lib/email.js`, `worker/routes/admin.js`, `worker/routes/public.js`
-- `worker/lib/audit-log.js` ← `worker/routes/admin.js`, `worker/routes/guardian.js`, `worker/routes/public.js`
 
 ---
 

@@ -6,3 +6,12 @@ packages:
 # downloads the platform binary - required for Vite to work.
 allowBuilds:
   esbuild: true
+  # Astro's default image optimizer. Allowed so the install gate clears and
+  # Astro's <Image>/<Picture> work if we adopt them; existing pages reference
+  # pre-optimized /images/*.webp directly and don't require it.
+  sharp: true
+
+minimumReleaseAgeExclude:
+  - '@astrojs/internal-helpers@0.10.0'
+  - '@astrojs/markdown-remark@7.2.0'
+  - astro@6.4.2

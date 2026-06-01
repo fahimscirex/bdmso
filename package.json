@@ -13,6 +13,8 @@
     "dev:worker": "node scripts/dev.mjs",
     "dev:admin": "node scripts/dev-admin.mjs",
     "dev:guardian": "node scripts/dev-guardian.mjs",
+    "dev:static": "pnpm --filter @bdmso/static dev",
+    "build:static": "pnpm --filter @bdmso/static build",
     "preview": "npm run build:all && wrangler dev --env production",
     "cf:deploy": "npm run build:all && wrangler deploy --env production",
     "cf:d1:init": "wrangler d1 execute bdmso --local --file=./db/schema.sql",

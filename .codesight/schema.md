@@ -134,3 +134,54 @@
   published integer (required)
 - featured: integer (required)
 - published_at: text
+
+### registration_notes
+- id: integer (pk)
+- registration_id: text (required, fk)
+- author_account_id: text (required, fk)
+- body: text (required)
+- _relations_: registration_id -> registrations.id
+
+### triage_state
+- id: integer (pk)
+- admin_account_id: text (required, fk)
+- target_kind: text (required)
+- target_id: text (required, fk)
+- snoozed_until: text
+- _relations_: admin_account_id -> guardian_accounts.id
+
+### email_templates
+- id: integer (pk)
+- name: text (required)
+- subject: text (required)
+- body: text (required)
+- category: text
+- updated_by: text
+
+### broadcast_log
+- id: integer (pk)
+- subject: text (required)
+- body: text (required)
+- filters_json: text
+- sent_count: integer (required)
+- failed_count: integer (required)
+- channel: text (required)
+- sent_at: text (required)
+
+### attendance
+- id: integer (pk)
+- registration_id: text (required, fk)
+- event_key: text (required)
+- status: text (required)
+- notes: text
+- _relations_: registration_id -> registrations.id, checked_in_by -> guardian_accounts.id
+
+### scores
+- id: integer (pk)
+- registration_id: text (required, fk)
+- event_key: text (required)
+- section: text (required)
+- max_score: real (required)
+- rank: integer
+- entered_by: text
+- _relations_: registration_id -> registrations.id, entered_by -> guardian_accounts.id

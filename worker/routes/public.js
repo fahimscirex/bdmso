@@ -298,23 +298,39 @@ export async function handleRegistration(request, env) {
     return badRequest("District must be one of the 64 Bangladesh districts. Please pick from the list.");
   }
   const preferredVenue     = (registrationType.startsWith("national-olympiad") || registrationType === "national-quiz-competition") ? normalizeString(student.preferredVenue) : null;
-  // Preferred subject is only meaningful for the National Olympiad
-  // ('math' | 'science' | 'both'). Anything else is rejected.
-  const VALID_SUBJECTS     = ["math", "science", "both"];
-  const subjectRaw         = registrationType === "national-olympiad" ? (normalizeString(student.preferredSubject) || "").toLowerCase() : "";
-  if (registrationType === "national-olympiad" && !VALID_SUBJECTS.includes(subjectRaw)) {
-    return badRequest("Please select a preferred subject (Math, Science, or Both).");
-  }
-  const preferredSubject   = subjectRaw || null;
-
-  // Program options (Mock Test sessions, Prep Course subjects). These
-  // drive the actual price at checkout, so we validate against the
-  // shared options config and only store the normalised id list.
+  // Program options (Mock Test sessions, Prep Course subjects, and the
+  // Olympiad's Math/Science/Both subject pick). These drive the actual price
+  // at checkout, so we validate against the shared options config and store
+  // the normalised id list.
   let programOptions = null;
+  let normalizedOptions = [];
   if (programHasOptions(registrationType)) {
     const opt = validateAndPriceOptions(registrationType, payload.programOptions);
     if (!opt.ok) return badRequest(opt.error);
+    normalizedOptions = opt.normalized;
     programOptions = JSON.stringify(opt.normalized);
+  }
+
+  // Preferred subject for the National Olympiad. The subject IS the radio
+  // option the guardian picked: math-only / science-only already declare it,
+  // so the client hides the field and the server derives it here. Only when
+  // BOTH subjects are taken does the "Preferred Subject" field appear (asking
+  // which to prioritise: math | science | both).
+  const VALID_SUBJECTS     = ["math", "science", "both"];
+  let preferredSubject     = null;
+  if (registrationType === "national-olympiad") {
+    const choice = normalizedOptions[0];
+    if (choice === "both") {
+      const explicit = (normalizeString(student.preferredSubject) || "").toLowerCase();
+      if (!VALID_SUBJECTS.includes(explicit)) {
+        return badRequest("Please select a preferred subject (Math, Science, or Both).");
+      }
+      preferredSubject = explicit;
+    } else if (choice === "math" || choice === "science") {
+      preferredSubject = choice;
+    } else {
+      return badRequest("Please select a subject for the Olympiad.");
+    }
   }
 
   const sourcePage         = normalizeString(payload.sourcePage);
@@ -802,9 +818,13 @@ export async function handlePaymentCallback(request, env, url) {
     const now       = new Date().toISOString();
     const status    = result.transaction_status || result.sp_message || "Unknown";
 
-    // shurjoPay returns "Success" on a confirmed paid txn. Anything else
-    // (Cancel / Failed / Initiated / Pending) is treated as not-yet-paid.
-    if (status !== "Success") {
+    // shurjoPay returns "Success" on a confirmed paid txn for wallet rails
+    // (bKash, Nagad). Card rails settle via the issuer bank and come back
+    // with ISO 8583 "00" (Approved) in transaction_status instead, so accept
+    // both. Anything else (Cancel / Failed / Initiated / Pending) is treated
+    // as not-yet-paid.
+    const isSuccess = status === "Success" || status === "00";
+    if (!isSuccess) {
       await env.DB.prepare(
         "UPDATE payments SET status = 'failed', gateway_status = ?, updated_at = ? WHERE val_id = ? AND status != 'paid'"
       ).bind(status, now, spOrderId).run();

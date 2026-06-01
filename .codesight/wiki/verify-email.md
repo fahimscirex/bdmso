@@ -12,6 +12,7 @@ The Verify-email subsystem handles **1 routes** and touches: auth, db, cache, em
 ## Related Models
 
 - **email_verification_tokens** (3 fields) → [database.md](./database.md)
+- **email_templates** (6 fields) → [database.md](./database.md)
 
 ## Source Files
 

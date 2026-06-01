@@ -1,18 +1,28 @@
 # Components
 
 - **App** — `apps/admin/src/App.tsx`
+- **CommandPalette** — props: open, onClose — `apps/admin/src/components/CommandPalette.tsx`
+- **Icon** — props: name, size, cls — `apps/admin/src/components/Icon.tsx`
 - **ImageField** — props: label, hint, prefix, value, onChange — `apps/admin/src/components/ImageField.tsx`
 - **NavShell** — props: currentRoute, userEmail, onSignOut — `apps/admin/src/components/NavShell.tsx`
+- **NeedsAttention** — props: data — `apps/admin/src/components/NeedsAttention.tsx`
+- **NotificationBell** — `apps/admin/src/components/NotificationBell.tsx`
+- **Sparkline** — props: data, tone, height, showArea — `apps/admin/src/components/Sparkline.tsx`
 - **AuditLog** — `apps/admin/src/pages/AuditLog.tsx`
 - **Broadcast** — `apps/admin/src/pages/Broadcast.tsx`
 - **Coupons** — `apps/admin/src/pages/Coupons.tsx`
 - **Dashboard** — `apps/admin/src/pages/Dashboard.tsx`
+- **Events** — `apps/admin/src/pages/Events.tsx`
 - **Login** — props: onSignedIn — `apps/admin/src/pages/Login.tsx`
+- **PaymentReports** — `apps/admin/src/pages/PaymentReports.tsx`
 - **Payments** — `apps/admin/src/pages/Payments.tsx`
+- **PostEditor** — props: slug — `apps/admin/src/pages/PostEditor.tsx`
+- **Posts** — `apps/admin/src/pages/Posts.tsx`
 - **RegistrationDetail** — props: id — `apps/admin/src/pages/RegistrationDetail.tsx`
 - **Registrations** — `apps/admin/src/pages/Registrations.tsx`
 - **Settings** — `apps/admin/src/pages/Settings.tsx`
 - **Sponsorships** — `apps/admin/src/pages/Sponsorships.tsx`
+- **Triage** — `apps/admin/src/pages/Triage.tsx`
 - **Users** — `apps/admin/src/pages/Users.tsx`
 - **App** — `apps/guardian/src/App.tsx`
 - **ChangeSelectionModal** — props: registrationId, programLabel, paid, config, currentIds, unavailableIds, showSubject, showVenue, currentSubject, currentVenue — `apps/guardian/src/components/ChangeSelectionModal.tsx`

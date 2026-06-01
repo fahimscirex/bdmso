@@ -1,0 +1,104 @@
+---
+// Shared shell for every static page. Replaces the per-page <head> boilerplate
+// and the build.mjs SEO/FONTS injection: SEO is now prop-driven and rendered
+// here directly. Header/Footer are server-rendered Astro components; their
+// interactive + session-aware bits live in Header.astro's client script. The
+// page-visibility toggle and dropdown-enhancer loader (previously in site.js)
+// are inlined at the end of <body>.
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+
+interface Props {
+  title: string;
+  description?: string;
+  page?: string;
+  canonical?: string;
+  image?: string;
+  ogType?: string;
+  articlePublished?: string;
+  articleAuthor?: string;
+  jsonLd?: Record<string, unknown>[];
+  robots?: string;
+}
+const {
+  title,
+  description = "",
+  page = "",
+  canonical = Astro.url.href,
+  image = "https://bdmso.org/images/logo.webp",
+  ogType = "website",
+  articlePublished,
+  articleAuthor,
+  jsonLd = [],
+  robots,
+} = Astro.props;
+
+const FONT_HREF =
+  "https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap";
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    {robots && <meta name="robots" content={robots} />}
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content="BdMSO" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:title" content={title} />
+    {description && <meta property="og:description" content={description} />}
+    <meta property="og:image" content={image} />
+    {articlePublished && <meta property="article:published_time" content={articlePublished} />}
+    {articleAuthor && <meta property="article:author" content={articleAuthor} />}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    {description && <meta name="twitter:description" content={description} />}
+    <meta name="twitter:image" content={image} />
+    <meta name="theme-color" content="#0b1b3f" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      as="style"
+      href={FONT_HREF}
+      onload="this.onload=null;this.rel='stylesheet'"
+    />
+    <noscript><link rel="stylesheet" href={FONT_HREF} /></noscript>
+    <link rel="stylesheet" href="/css/styles.css" />
+    {jsonLd.map((schema) => (
+      <script type="application/ld+json" set:html={JSON.stringify(schema)} />
+    ))}
+    <slot name="head" />
+  </head>
+  <body data-page={page}>
+    <Header page={page} />
+    <slot />
+    <Footer />
+    <script>
+      // Pause decorative ambient animations while the tab is backgrounded.
+      const syncVisibility = () =>
+        document.documentElement.toggleAttribute("data-page-hidden", document.visibilityState === "hidden");
+      document.addEventListener("visibilitychange", syncVisibility);
+      syncVisibility();
+
+      // Lazy-load the custom-dropdown enhancer (self-skips if nothing to enhance).
+      if (!document.querySelector("script[data-bdsel-loader]")) {
+        const s = document.createElement("script");
+        s.src = "/js/select-enhance.js";
+        s.defer = true;
+        s.setAttribute("data-bdsel-loader", "1");
+        document.head.appendChild(s);
+      }
+    </script>
+  </body>
+</html>

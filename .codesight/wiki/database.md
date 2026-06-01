@@ -2,7 +2,7 @@
 
 > **Navigation aid.** Schema shapes and field types extracted via AST. Read the actual schema source files before writing migrations or query logic.
 
-**unknown** — 16 models
+**unknown** — 22 models
 
 ### guardian_accounts
 
@@ -184,6 +184,75 @@ pk: `slug` (text)
   published integer _(required)_
 - `featured`: integer _(required)_
 - `published_at`: text
+
+### registration_notes
+
+pk: `id` (integer) · fk: registration_id, author_account_id
+
+- `id`: integer _(pk)_
+- `registration_id`: text _(required, fk)_
+- `author_account_id`: text _(required, fk)_
+- `body`: text _(required)_
+- _relations_: registration_id -> registrations.id
+
+### triage_state
+
+pk: `id` (integer) · fk: admin_account_id, target_id
+
+- `id`: integer _(pk)_
+- `admin_account_id`: text _(required, fk)_
+- `target_kind`: text _(required)_
+- `target_id`: text _(required, fk)_
+- `snoozed_until`: text
+- _relations_: admin_account_id -> guardian_accounts.id
+
+### email_templates
+
+pk: `id` (integer)
+
+- `id`: integer _(pk)_
+- `name`: text _(required)_
+- `subject`: text _(required)_
+- `body`: text _(required)_
+- `category`: text
+- `updated_by`: text
+
+### broadcast_log
+
+pk: `id` (integer)
+
+- `id`: integer _(pk)_
+- `subject`: text _(required)_
+- `body`: text _(required)_
+- `filters_json`: text
+- `sent_count`: integer _(required)_
+- `failed_count`: integer _(required)_
+- `channel`: text _(required)_
+- `sent_at`: text _(required)_
+
+### attendance
+
+pk: `id` (integer) · fk: registration_id
+
+- `id`: integer _(pk)_
+- `registration_id`: text _(required, fk)_
+- `event_key`: text _(required)_
+- `status`: text _(required)_
+- `notes`: text
+- _relations_: registration_id -> registrations.id, checked_in_by -> guardian_accounts.id
+
+### scores
+
+pk: `id` (integer) · fk: registration_id
+
+- `id`: integer _(pk)_
+- `registration_id`: text _(required, fk)_
+- `event_key`: text _(required)_
+- `section`: text _(required)_
+- `max_score`: real _(required)_
+- `rank`: integer
+- `entered_by`: text
+- _relations_: registration_id -> registrations.id, entered_by -> guardian_accounts.id
 
 ## Schema Source Files
 

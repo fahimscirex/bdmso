@@ -84,6 +84,10 @@ const GUIDE = {
 };
 
 async function renderGuide() {
+  // Skip when server-rendered (Astro fills these from the programs .md
+  // collection). Legacy pages ship empty lists and render client-side.
+  const g = document.getElementById('guide-beginner');
+  if (g && g.children.length) return;
   const details = await load('programs-detail.json');
   const titleBySlug = new Map(details.map((d) => [d.slug, d.title]));
   for (const [tier, slugs] of Object.entries(GUIDE)) {
@@ -98,6 +102,10 @@ async function renderPrograms() {
   // Single source of truth: programs-detail.json drives both the
   // per-program detail pages AND this home-page grid. Programs with a
   // `home_order` field appear here; the field also dictates the order.
+  // Skip when the cards are already server-rendered (Astro index.astro renders
+  // them from the programs .md collection). Legacy pages ship an empty grid.
+  const grid = document.getElementById('prog-grid');
+  if (grid && grid.children.length) return;
   const details = await load('programs-detail.json');
   const items = details
     .filter((p) => p.home_order && !p.hidden)
@@ -129,6 +137,11 @@ async function renderPrograms() {
 }
 
 async function renderNews() {
+  // Skip when the cards are already server-rendered (Astro index.astro renders
+  // them from the blog collection). Legacy pages ship an empty grid, so this is
+  // a no-op there and they render client-side as before.
+  const grid = document.getElementById('updates-grid');
+  if (grid && grid.children.length) return;
   const items = await load('../posts/index.json');
   set('updates-grid', items.slice(0, 4).map(({ slug, category, date, title, excerpt, featured, image }) => {
     const url = `/posts/${slug}`;
