@@ -1,13 +1,12 @@
 // Landing page after sign-in. Pulls summaries from the existing list
 // endpoints in parallel - no extra API surface area - and renders a
-// KPI grid, a "needs attention" widget, 30-day sparklines, conversion
-// funnel, and a short "latest activity" feed from the audit log.
+// KPI grid, a conversion funnel, a short "latest activity" feed from
+// the audit log, and per-venue / per-program breakdowns.
 
 import { useEffect, useState } from 'preact/hooks';
 import { api, ApiError } from '../api';
 import { navigate, href } from '../router';
 import { SkRoot, SkStatRow, SkCard } from '../components/Skeleton';
-import { Sparkline, padDailySeries } from '../components/Sparkline';
 import { Icon } from '../components/Icon';
 
 type RegSummary = { total: number; paid: number; pending: number; cancelled: number };
@@ -76,47 +75,6 @@ function summarizePayload(json: string | null): string {
   } catch { return ''; }
 }
 
-// Compact delta line under a KPI value. Returns a "muted info" line when
-// today is 0, an "up" arrow when today > yesterday, "down" when less.
-// Special-cased so we never read "▼ 0 today · 100% vs yesterday" - that
-// negative spin reads worse than just saying "no activity today."
-function DeltaLine({ today, yesterday }: { today: number; yesterday: number; currency?: boolean }) {
-  if (today === 0 && yesterday === 0) return null;
-  if (today === 0) {
-    return (
-      <div class="kpi-delta-row">
-        <span class="kpi-delta kpi-delta-flat">— 0%</span>
-        <span class="kpi-delta-caption">no activity today</span>
-      </div>
-    );
-  }
-  if (yesterday === 0) {
-    return (
-      <div class="kpi-delta-row">
-        <span class="kpi-delta kpi-delta-up">↗ new</span>
-        <span class="kpi-delta-caption">from yesterday</span>
-      </div>
-    );
-  }
-  const diff = today - yesterday;
-  if (diff === 0) {
-    return (
-      <div class="kpi-delta-row">
-        <span class="kpi-delta kpi-delta-flat">— 0%</span>
-        <span class="kpi-delta-caption">vs yesterday</span>
-      </div>
-    );
-  }
-  const pct = Math.round(Math.abs(diff) / yesterday * 100);
-  const cls = diff > 0 ? 'kpi-delta-up' : 'kpi-delta-down';
-  const arrow = diff > 0 ? '↗' : '↘';
-  return (
-    <div class="kpi-delta-row">
-      <span class={`kpi-delta ${cls}`}>{arrow} {pct}%</span>
-      <span class="kpi-delta-caption">from yesterday</span>
-    </div>
-  );
-}
 
 export function Dashboard() {
   const [data,  setData]  = useState<Bundle | null>(null);
@@ -160,44 +118,21 @@ export function Dashboard() {
 
       {data && (
         <>
-          {/* Primary KPIs: registrations, paid, pending, revenue.
-              Each tile carries a 30-day sparkline + today-vs-yesterday delta.
-              (The previous "Needs attention" card moved to the topbar bell.) */}
+          {/* Primary KPIs - compact tiles matching the secondary row, with
+              semantic value colours (paid green, pending amber). */}
           <div class="stat-row">
-            <KpiTile
-              label="Registrations" value={data.reg.total}
-              onClick={() => navigate('/registrations')}
-              spark={padDailySeries(data.an.series.registrations, 30, (r) => r.total)}
-              delta={<DeltaLine today={data.an.deltas.reg_today} yesterday={data.an.deltas.reg_yesterday} />}
-            />
-            <KpiTile
-              label="Paid" value={data.reg.paid} tone="ok"
-              onClick={() => navigate('/registrations')}
-              spark={padDailySeries(data.an.series.registrations, 30, (r) => r.paid)}
-              sparkTone="green"
-              delta={<DeltaLine today={data.an.deltas.paid_today} yesterday={data.an.deltas.paid_yesterday} />}
-            />
-            <KpiTile
-              label="Pending pay" value={data.reg.pending} tone="warn"
-              onClick={() => navigate('/registrations')}
-              spark={padDailySeries(data.an.series.registrations, 30, (r) => r.total - r.paid)}
-              sparkTone="amber"
-            />
-            <KpiTile
-              label="Revenue" value={formatBdt(data.pay.revenue)} tone="ok"
-              onClick={() => navigate('/payments')}
-              spark={padDailySeries(data.an.series.payments, 30, (r) => r.revenue)}
-              sparkTone="green"
-              delta={<DeltaLine today={data.an.deltas.rev_today} yesterday={data.an.deltas.rev_yesterday} currency />}
-            />
+            <Tile label="Registrations" value={data.reg.total} onClick={() => navigate('/registrations')} />
+            <Tile label="Paid" value={data.reg.paid} tone="ok" onClick={() => navigate('/registrations?status=paid')} />
+            <Tile label="Pending pay" value={data.reg.pending} tone="warn" onClick={() => navigate('/registrations?status=submitted')} />
+            <Tile label="Revenue" value={formatBdt(data.pay.revenue)} tone="ok" onClick={() => navigate('/payments?status=paid')} />
           </div>
 
           {/* Secondary row: items + segments. No sparklines (less central). */}
           <div class="stat-row">
-            <Tile label="New sponsorships" value={data.spo.unread} tone={data.spo.unread > 0 ? 'warn' : 'muted'} onClick={() => navigate('/sponsorships')} />
-            <Tile label="Failed payments"  value={data.pay.failed} tone={data.pay.failed > 0 ? 'bad' : 'muted'} onClick={() => navigate('/payments')} />
+            <Tile label="New sponsorships" value={data.spo.unread} tone={data.spo.unread > 0 ? 'warn' : 'muted'} onClick={() => navigate('/sponsorships?status=new')} />
+            <Tile label="Failed payments"  value={data.pay.failed} tone={data.pay.failed > 0 ? 'bad' : 'muted'} onClick={() => navigate('/payments?status=failed')} />
             <Tile label="Users"            value={data.usr.total} onClick={() => navigate('/users')} />
-            <Tile label="Admins"           value={data.usr.admins} tone="ok" onClick={() => navigate('/users')} />
+            <Tile label="Admins"           value={data.usr.admins} tone="ok" onClick={() => navigate('/users?role=admin')} />
           </div>
 
           <section class="card">
@@ -230,11 +165,15 @@ export function Dashboard() {
                     : null;
                   return (
                     <li key={a.id}>
-                      <span class="cell-sub">{formatDateTime(a.created_at)}</span>{' '}
-                      <strong>{a.account_email || 'system'}</strong>{' '}
-                      <code>{a.action}</code>
-                      {change && <> · {change}</>}
-                      {targetHref && <> · <a href={targetHref}>open</a></>}
+                      <div class="activity-body">
+                        <span class="activity-actor">{a.account_email || 'system'}</span>
+                        <code class="activity-action">{a.action}</code>
+                        {change && <span class="activity-change">{change}</span>}
+                      </div>
+                      <div class="activity-meta">
+                        <time>{formatDateTime(a.created_at)}</time>
+                        {targetHref && <a href={targetHref}>open</a>}
+                      </div>
                     </li>
                   );
                 })}
@@ -273,7 +212,7 @@ function Breakdown({ rows }: { rows: { label: string; total: number; paid: numbe
     <div>
       {rows.map((r) => (
         <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line-2,#ebeff6);">
-          <div class="cell-strong" style="flex:0 0 40%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{r.label}</div>
+          <div style="flex:0 0 40%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);">{r.label}</div>
           <div style="flex:1;background:var(--line,#dbe1ec);border-radius:999px;height:8px;">
             <div style={`background:var(--navy-700,#4252ab);height:8px;border-radius:999px;width:${Math.round((r.total / max) * 100)}%;`} />
           </div>
@@ -301,27 +240,3 @@ function Tile({ label, value, tone, onClick }: {
   );
 }
 
-// Primary KPI tile - label + value + delta on the left, sparkline on
-// the right (Salce-style layout).
-function KpiTile({ label, value, tone, sparkTone = 'navy', spark, delta, onClick }: {
-  label: string;
-  value: number | string;
-  tone?: 'ok' | 'warn' | 'bad' | 'muted';
-  sparkTone?: 'navy' | 'green' | 'amber' | 'red';
-  spark?: number[];
-  delta?: preact.JSX.Element | null;
-  onClick: () => void;
-}) {
-  return (
-    <button type="button" class={`stat stat-tile stat-kpi${tone ? ` stat-${tone}` : ''}`} onClick={onClick}>
-      <div class="stat-kpi-top">
-        <div class="stat-kpi-left">
-          <div class="stat-label">{label}</div>
-          <div class="stat-value">{value}</div>
-        </div>
-        {spark && spark.length > 1 && <Sparkline data={spark} tone={sparkTone} height={38} />}
-      </div>
-      {delta}
-    </button>
-  );
-}

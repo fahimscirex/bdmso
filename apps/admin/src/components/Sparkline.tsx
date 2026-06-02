@@ -94,24 +94,3 @@ export function Sparkline({ data, tone = 'navy', height = 36, showArea = true }:
     </svg>
   );
 }
-
-/** Pad a server-returned daily series so missing days become 0. Takes
- *  rows shaped `{ day: 'YYYY-MM-DD', total: N }` and returns an array
- *  of values for the last `days` days, oldest-first. */
-export function padDailySeries<T extends { day: string }>(
-  rows: T[],
-  days: number,
-  pick: (r: T) => number,
-): number[] {
-  const byDay = new Map(rows.map((r) => [r.day, pick(r)]));
-  const out: number[] = [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const iso = d.toISOString().slice(0, 10);
-    out.push(byDay.get(iso) ?? 0);
-  }
-  return out;
-}

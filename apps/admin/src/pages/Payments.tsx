@@ -86,7 +86,7 @@ function optionCount(p: Row): number {
 export function Payments() {
   const [data,  setData]  = useState<Response | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>(() => new URLSearchParams(location.search).get('status') ?? '');
   const [exporting, setExporting] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 

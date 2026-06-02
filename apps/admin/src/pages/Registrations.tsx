@@ -62,7 +62,7 @@ function formatBdt(n: number | null): string {
 export function Registrations() {
   const [data,  setData]  = useState<Response | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<string>('');
+  const [status, setStatus] = useState<string>(() => new URLSearchParams(location.search).get('status') ?? '');
   const [stuckOnly, setStuckOnly] = useState(false);
   const [hasCoupon, setHasCoupon] = useState(false);
   const [venue, setVenue] = useState('');

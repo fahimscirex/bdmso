@@ -36,7 +36,7 @@ function formatDate(iso: string): string {
 export function Users() {
   const [data,  setData]  = useState<Response | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [roleFilter, setRoleFilter] = useState<string>('');
+  const [roleFilter, setRoleFilter] = useState<string>(() => new URLSearchParams(location.search).get('role') ?? '');
   const [query, setQuery] = useState<string>('');
   const [busyId, setBusyId] = useState<string | null>(null);
 
