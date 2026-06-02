@@ -62,7 +62,7 @@ export function Broadcast() {
 
 function TabBtn({ label, icon, active, onClick }: { label: string; icon: any; active: boolean; onClick: () => void }) {
   return (
-    <button type="button" class={`btn-secondary${active ? ' btn-primary' : ''}`} onClick={onClick}>
+    <button type="button" class={active ? 'btn-primary' : 'btn-secondary'} onClick={onClick}>
       <Icon name={icon} size={13} /> {label}
     </button>
   );
@@ -145,7 +145,7 @@ function SendTab() {
     <>
       {error && !busy && <div class="error">{error}</div>}
 
-      <section class="card" style="max-width:760px;">
+      <section class="card" style="max-width:760px;margin:0 auto;">
         <div class="form-grid" style="grid-template-columns:1fr;border:none;padding:0;gap:14px;">
           {templates.length > 0 && (
             <div class="field">

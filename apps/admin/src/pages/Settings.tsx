@@ -19,7 +19,7 @@ type Profile = {
 type Service = { ok: boolean; hint: string };
 type SystemHealth = {
   services: {
-    d1: Service; r2: Service; shurjopay: Service; brevo: Service; email_from: Service;
+    d1: Service; assets: Service; shurjopay: Service; brevo: Service; email_from: Service;
   };
   environment: string;
   timestamps: {
@@ -83,7 +83,7 @@ export function Settings() {
 function SystemHealthCard({ data }: { data: SystemHealth }) {
   const services = [
     { key: 'd1',         label: 'D1 database',    svc: data.services.d1 },
-    { key: 'r2',         label: 'R2 (uploads)',   svc: data.services.r2 },
+    { key: 'assets',     label: 'Repo assets',    svc: data.services.assets },
     { key: 'shurjopay',  label: 'shurjoPay',      svc: data.services.shurjopay },
     { key: 'brevo',      label: 'Brevo email',    svc: data.services.brevo },
     { key: 'email_from', label: 'Sender address', svc: data.services.email_from },
@@ -106,10 +106,10 @@ function SystemHealthCard({ data }: { data: SystemHealth }) {
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;">
         {services.map((s) => (
           <div key={s.key} style="display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg-alt);">
-            <span style={`width:9px;height:9px;border-radius:50%;flex-shrink:0;background:${s.svc.ok ? 'var(--green)' : 'var(--red)'};`} />
+            <span style={`width:9px;height:9px;border-radius:50%;flex-shrink:0;background:${s.svc?.ok ? 'var(--green)' : 'var(--red)'};`} />
             <div style="min-width:0;flex:1;">
               <div class="cell-strong" style="font-size:13px;">{s.label}</div>
-              <div class="cell-sub" style="font-size:11.5px;">{s.svc.hint}</div>
+              <div class="cell-sub" style="font-size:11.5px;">{s.svc?.hint ?? '—'}</div>
             </div>
           </div>
         ))}

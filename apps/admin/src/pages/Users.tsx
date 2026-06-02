@@ -145,12 +145,14 @@ export function Users() {
             <tbody>
               {data.rows.map((u) => (
                 <tr key={u.id}>
-                  <td><div class="cell-strong">{u.full_name}</div></td>
+                  <td style="white-space:nowrap;"><div class="cell-strong">{u.full_name}</div></td>
                   <td>
-                    {u.email}{' '}
-                    {u.email_verified
-                      ? <span class="badge badge-ok">verified</span>
-                      : <span class="badge badge-muted">unverified</span>}
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                      <span>{u.email}</span>
+                      {u.email_verified
+                        ? <span class="badge badge-ok">verified</span>
+                        : <span class="badge badge-muted">unverified</span>}
+                    </div>
                   </td>
                   <td>{u.member_id ? <code>{u.member_id}</code> : <span class="muted">-</span>}</td>
                   <td>{u.phone || <span class="muted">-</span>}</td>
@@ -171,7 +173,7 @@ export function Users() {
                       <option value="mentor">mentor</option>
                     </select>
                   </td>
-                  <td class="cell-sub">{formatDate(u.created_at)}</td>
+                  <td class="cell-sub" style="white-space:nowrap;">{formatDate(u.created_at)}</td>
                   <td style="white-space:nowrap;">
                     <button
                       type="button" class="btn-secondary"

@@ -4,6 +4,7 @@
 // hard cap server-side is replaced with offset/limit pagination here.
 
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { DateField } from '../components/DateField';
 import { api, ApiError } from '../api';
 import { navigate } from '../router';
 import { toCsv, downloadCsv } from '../csv';
@@ -360,7 +361,6 @@ export function Registrations() {
                     </td>
                     <td>
                       <div class="cell-strong">
-                        {r.stuck && <span class="stuck-dot" title="Submitted >72h ago, never paid">●</span>}
                         {r.student_full_name}
                         {r.notes_count > 0 && (
                           <span class="notes-badge" title={`${r.notes_count} note${r.notes_count === 1 ? '' : 's'}`}>
@@ -460,9 +460,9 @@ function DateRange({ from, to, onFrom, onTo }: { from: string; to: string; onFro
     <label class={`chip${from || to ? ' chip-active' : ''}`}>
       <span class="chip-label">Date</span>
       <span style="display:flex;gap:4px;align-items:center;">
-        <input type="date" value={from} onChange={(e) => onFrom((e.target as HTMLInputElement).value)} aria-label="From" />
+        <DateField value={from} onChange={onFrom} ariaLabel="From" />
         <span class="muted">→</span>
-        <input type="date" value={to} onChange={(e) => onTo((e.target as HTMLInputElement).value)} aria-label="To" />
+        <DateField value={to} onChange={onTo} ariaLabel="To" />
       </span>
     </label>
   );

@@ -11,6 +11,7 @@
 // rendered HTML defensively before innerHTML-ing it in the preview.
 
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { DateField } from '../components/DateField';
 import { api, ApiError } from '../api';
 import { navigate, href } from '../router';
 import { Icon } from '../components/Icon';
@@ -277,10 +278,9 @@ export function PostEditor({ slug }: { slug: string }) {
 
         <div class="field">
           <label>Publish date</label>
-          <input
-            type="date"
+          <DateField
             value={form.published_at ? form.published_at.slice(0, 10) : ''}
-            onInput={(e) => set('published_at', (e.target as HTMLInputElement).value || null)}
+            onChange={(v) => set('published_at', v || null)}
           />
           <p class="field-hint">Shown to readers; defaults to today if blank.</p>
         </div>

@@ -3,6 +3,7 @@
 // of each table for finance ops.
 
 import { useEffect, useMemo, useState } from 'preact/hooks';
+import { DateField } from '../components/DateField';
 import { api, ApiError } from '../api';
 import { navigate, href } from '../router';
 import { SkRoot, SkCard } from '../components/Skeleton';
@@ -81,9 +82,9 @@ export function PaymentReports() {
         <label class={`chip${from || to ? ' chip-active' : ''}`}>
           <span class="chip-label">Range</span>
           <span style="display:flex;gap:4px;align-items:center;">
-            <input type="date" value={from} onChange={(e) => setFrom((e.target as HTMLInputElement).value)} />
+            <DateField value={from} onChange={setFrom} ariaLabel="From" />
             <span class="muted">→</span>
-            <input type="date" value={to} onChange={(e) => setTo((e.target as HTMLInputElement).value)} />
+            <DateField value={to} onChange={setTo} ariaLabel="To" />
           </span>
         </label>
         <button type="button" class="btn-secondary" disabled={!data} onClick={exportBuckets}>

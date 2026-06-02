@@ -828,10 +828,6 @@ a.notif-row:hover { background: var(--bg-alt); }
   background: white; color: var(--navy-900); width: 100%;
 }
 .student-edit-grid select:focus { outline: 2px solid var(--navy-700); outline-offset: 1px; border-color: var(--navy-700); }
-/* Date of birth: three selects (Day / Month / Year) so the order is
-   always dd/mm/yyyy, independent of the browser locale. */
-.dob-row { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 8px; }
-
 /* ─── Explore-programs section on Home ──────────────────────────────────── */
 
 .explore-grid {

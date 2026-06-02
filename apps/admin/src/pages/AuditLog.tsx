@@ -3,6 +3,7 @@
 // via recordAudit() - this screen surfaces those rows.
 
 import { useEffect, useState } from 'preact/hooks';
+import { DateField } from '../components/DateField';
 import { api, ApiError } from '../api';
 import { href } from '../router';
 import { SkRoot, SkTable } from '../components/Skeleton';
@@ -126,9 +127,9 @@ export function AuditLog() {
         <label class={`chip${from || to ? ' chip-active' : ''}`}>
           <span class="chip-label">Date</span>
           <span style="display:flex;gap:4px;align-items:center;">
-            <input type="date" value={from} onChange={(e) => setFrom((e.target as HTMLInputElement).value)} />
+            <DateField value={from} onChange={setFrom} ariaLabel="From" />
             <span class="muted">→</span>
-            <input type="date" value={to} onChange={(e) => setTo((e.target as HTMLInputElement).value)} />
+            <DateField value={to} onChange={setTo} ariaLabel="To" />
           </span>
         </label>
         {activeCount > 0 && (

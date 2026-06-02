@@ -3,6 +3,7 @@
 // confirm-delete, and the shared ImageField (optional upload or pasted URL).
 
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { DateField } from '../components/DateField';
 import { api, ApiError } from '../api';
 import { navigate, href } from '../router';
 import { Icon } from '../components/Icon';
@@ -159,7 +160,7 @@ export function PressMentionEditor({ id }: { id: string }) {
         </div>
         <div class="field">
           <label>Publication date</label>
-          <input type="date" value={form.published_on.length === 10 ? form.published_on : ''} onInput={(e) => set('published_on', (e.target as HTMLInputElement).value)} />
+          <DateField value={form.published_on.length === 10 ? form.published_on : ''} onChange={(v) => set('published_on', v)} />
           <p class="field-hint">Shown on the card. Some legacy items only have a month.</p>
         </div>
 

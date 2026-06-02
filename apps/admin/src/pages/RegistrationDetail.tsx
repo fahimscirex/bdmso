@@ -36,10 +36,14 @@ type Payment = {
   tran_id: string;
   val_id: string | null;
   gateway_status: string | null;
-  status: 'pending' | 'paid' | 'failed';
+  status: 'pending' | 'paid' | 'failed' | 'cancelled';
   coupon_code: string | null;
   created_at: string;
   updated_at: string;
+  registration_id: string;
+  program: string;
+  class_name: string;
+  reg_status: string;
 };
 
 type Response = { ok: true; registration: Registration; payments: Payment[] };
@@ -59,6 +63,7 @@ export function RegistrationDetail({ id }: { id: string }) {
   const [data,  setData]  = useState<Response | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy,  setBusy]  = useState(false);
+  const [selPayId, setSelPayId] = useState<string>('');  // which payment row the actions target
 
   useEffect(() => {
     api.get<Response>(`/api/admin/registrations/${id}`)
@@ -66,12 +71,11 @@ export function RegistrationDetail({ id }: { id: string }) {
       .catch((err: ApiError) => setError(err.message));
   }, [id]);
 
-  async function changeStatus(next: Registration['status']) {
-    if (!data) return;
-    if (!confirm(`Change status from "${data.registration.status}" to "${next}"?`)) return;
+  async function changeStatus(next: Registration['status'], regId: string, curStatus: string) {
+    if (!confirm(`Change status from "${curStatus}" to "${next}"?`)) return;
     setBusy(true);
     try {
-      await api.patch<{ ok: true }>(`/api/admin/registrations/${id}/status`, { status: next });
+      await api.patch<{ ok: true }>(`/api/admin/registrations/${regId}/status`, { status: next });
       const refreshed = await api.get<Response>(`/api/admin/registrations/${id}`);
       setData(refreshed);
     } catch (err) {
@@ -97,10 +101,37 @@ export function RegistrationDetail({ id }: { id: string }) {
     }
   }
 
-  async function resendReceipt() {
+  // ── Per-payment actions (operate on the selected row) ──────────────────────
+  async function markPaymentPaid(payId: string) {
+    if (!confirm('Manually mark this payment PAID? This also marks its registration paid. Use only for verified offline/reconciled payments - it overrides the gateway record.')) return;
     setBusy(true);
     try {
-      await api.post<{ ok: true }>(`/api/admin/registrations/${id}/resend-receipt`, {});
+      await api.patch<{ ok: true }>(`/api/admin/payments/${payId}/status`, { status: 'paid' });
+      setData(await api.get<Response>(`/api/admin/registrations/${id}`));
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function reverifyPayment(payId: string) {
+    setBusy(true);
+    try {
+      const res = await api.post<{ status?: string; message?: string }>(`/api/admin/payments/${payId}/reverify`, {});
+      alert(res.message || `Gateway status: ${res.status ?? 'unchanged'}.`);
+      setData(await api.get<Response>(`/api/admin/registrations/${id}`));
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resendPaymentReceipt(payId: string) {
+    setBusy(true);
+    try {
+      await api.post<{ ok: true }>(`/api/admin/payments/${payId}/resend-receipt`, {});
       alert('Payment receipt re-sent.');
     } catch (err) {
       alert((err as Error).message);
@@ -113,7 +144,14 @@ export function RegistrationDetail({ id }: { id: string }) {
   if (!data) return <div class="muted">Loading…</div>;
 
   const r = data.registration;
-  const hasPaidPayment = data.payments.some((p) => p.status === 'paid');
+  // The user picks a payment row; the status + receipt actions then target THAT
+  // row's registration. Default selection = this page's own registration.
+  const sel = data.payments.find((p) => p.id === selPayId)
+    ?? data.payments.find((p) => String(p.registration_id) === String(id))
+    ?? data.payments[0]
+    ?? null;
+  const selRegId  = sel ? sel.registration_id : id;
+  const selStatus = sel ? sel.reg_status : r.status;
 
   return (
     <>
@@ -122,12 +160,6 @@ export function RegistrationDetail({ id }: { id: string }) {
           ← Back to Registrations
         </a>
         <h1 style="margin-top:8px;">{r.student_full_name}</h1>
-        <p class="sub">
-          {r.student_class_name} · {r.registration_type} ·{' '}
-          <span class={`badge badge-${r.status === 'paid' ? 'ok' : r.status === 'cancelled' ? 'muted' : 'warn'}`}>
-            {r.status}
-          </span>
-        </p>
       </div>
 
       <div class="detail-grid">
@@ -164,6 +196,7 @@ export function RegistrationDetail({ id }: { id: string }) {
 
       <section class="card">
         <h2>Payments ({data.payments.length})</h2>
+        <p class="cell-sub" style="margin:-4px 0 10px;">All payments for this guardian, across their registrations.</p>
         {data.payments.length === 0 ? (
           <p class="muted">No payment attempts yet.</p>
         ) : (
@@ -171,13 +204,18 @@ export function RegistrationDetail({ id }: { id: string }) {
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Status</th><th>Amount</th><th>Tran ID</th><th>Gateway</th><th>Coupon</th><th>Updated</th>
+                  <th aria-label="Select"></th><th>Status</th><th>For</th><th>Amount</th><th>Tran ID</th><th>Gateway</th><th>Coupon</th><th>Updated</th>
                 </tr>
               </thead>
               <tbody>
                 {data.payments.map((p) => (
-                  <tr>
-                    <td><span class={`badge badge-${p.status === 'paid' ? 'ok' : p.status === 'failed' ? 'bad' : 'warn'}`}>{p.status}</span></td>
+                  <tr class={String(p.registration_id) === String(selRegId) ? 'is-current' : undefined}>
+                    <td style="text-align:center;">
+                      <input type="radio" name="paysel" checked={p.id === (sel ? sel.id : '')}
+                        onChange={() => setSelPayId(p.id)} aria-label={`Act on ${p.program} registration`} />
+                    </td>
+                    <td><span class={`badge badge-${p.status === 'paid' ? 'ok' : p.status === 'failed' ? 'bad' : p.status === 'cancelled' ? 'muted' : 'warn'}`}>{p.status}</span></td>
+                    <td class="cell-sub" style="white-space:nowrap;">{p.program} · {p.class_name}</td>
                     <td><strong>{formatBdt(p.amount)}</strong></td>
                     <td><code>{p.tran_id}</code></td>
                     <td>{p.gateway_status || '-'}</td>
@@ -193,33 +231,38 @@ export function RegistrationDetail({ id }: { id: string }) {
 
       <section class="card">
         <h2>Actions</h2>
-        <p class="muted" style="margin-top:0;">All status changes are recorded in the audit log.</p>
         <div class="action-row">
-          {(['submitted', 'paid', 'cancelled'] as const).map((s) => (
+          {sel && sel.status !== 'paid' && (
+            <button type="button" class="btn-secondary" disabled={busy} onClick={() => markPaymentPaid(sel.id)}>
+              Mark paid
+            </button>
+          )}
+          {sel && (
+            <button type="button" class="btn-secondary" disabled={busy} onClick={() => reverifyPayment(sel.id)}>
+              Re-verify
+            </button>
+          )}
+          {sel && sel.status === 'paid' && (
+            <button type="button" class="btn-secondary" disabled={busy} onClick={() => resendPaymentReceipt(sel.id)}>
+              Resend receipt
+            </button>
+          )}
+          {(['submitted', 'cancelled'] as const).map((s) => (
             <button
               type="button"
               class="btn-secondary"
-              disabled={busy || r.status === s}
-              onClick={() => changeStatus(s)}
+              disabled={busy || selStatus === s}
+              onClick={() => changeStatus(s, selRegId, selStatus)}
             >
               Mark {s}
             </button>
           ))}
+          {!r.guardian_email_verified && (
+            <button type="button" class="btn-secondary" disabled={busy} onClick={resendVerification}>
+              Resend verification
+            </button>
+          )}
         </div>
-        {(!r.guardian_email_verified || hasPaidPayment) && (
-          <div class="action-row" style="margin-top:10px;">
-            {!r.guardian_email_verified && (
-              <button type="button" class="btn-secondary" disabled={busy} onClick={resendVerification}>
-                Resend verification email
-              </button>
-            )}
-            {hasPaidPayment && (
-              <button type="button" class="btn-secondary" disabled={busy} onClick={resendReceipt}>
-                Resend receipt
-              </button>
-            )}
-          </div>
-        )}
         <p class="cell-sub" style="margin-top:14px;">Created {formatDateTime(r.created_at)} via {r.source_page || 'unknown source'}.</p>
       </section>
     </>

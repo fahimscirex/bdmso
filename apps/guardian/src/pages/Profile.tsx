@@ -9,6 +9,7 @@ import { api, ApiError } from '../api';
 import { BD_DISTRICTS } from '../districts';
 import { syncSessionName, syncHeaderName } from '../auth';
 import { Dropdown } from '../components/Dropdown';
+import { DateField } from '../components/DateField';
 import ProfileSkeleton, { StudentsCardSkeleton } from '../components/ProfileSkeleton';
 
 type ProfileRow = {
@@ -385,70 +386,6 @@ type EditForm = {
   student_district:      string;
 };
 
-const DOB_MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-
-function daysInMonth(year: number, month: number): number {
-  if (!month) return 31;
-  if (month === 2) return year ? new Date(year, 2, 0).getDate() : 29;
-  return [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
-}
-
-// Date of birth: Day number input / Month select / Year number input.
-// A native <input type="date"> renders mm/dd/yyyy on US-locale
-// browsers; this guarantees dd/mm/yyyy order. Number inputs avoid the
-// very tall native dropdown a 31-option day <select> produces. Holds
-// its own day/month/year state and reports an ISO yyyy-mm-dd string
-// (or '' while incomplete/invalid) upward.
-function DobSelect({ value, onChange }: { value: string; onChange: (iso: string) => void }) {
-  const [iy, im, id] = value ? value.split('-').map(Number) : [0, 0, 0];
-  const [day, setDay]     = useState<string>(id ? String(id) : '');
-  const [month, setMonth] = useState<number>(im || 0);
-  const [year, setYear]   = useState<string>(iy ? String(iy) : '');
-
-  const thisYear = new Date().getFullYear();
-  const maxDay = daysInMonth(Number(year), month);
-
-  function emit(d: string, m: number, y: string) {
-    const dn = Number(d);
-    const yn = Number(y);
-    const valid = dn >= 1 && m >= 1 && m <= 12 && yn >= 1900 && dn <= daysInMonth(yn, m);
-    onChange(valid
-      ? `${yn}-${String(m).padStart(2, '0')}-${String(dn).padStart(2, '0')}`
-      : '');
-  }
-
-  return (
-    <div class="dob-row">
-      <input
-        type="number" required aria-label="Day of birth" placeholder="DD"
-        min="1" max={String(maxDay)} inputmode="numeric" value={day}
-        onInput={(e) => {
-          const v = (e.target as HTMLInputElement).value;
-          setDay(v); emit(v, month, year);
-        }}
-      />
-      <Dropdown
-        ariaLabel="Month of birth"
-        placeholder="Month"
-        value={month ? String(month) : ''}
-        options={DOB_MONTHS.map((name, i) => ({ value: String(i + 1), label: name }))}
-        onChange={(v) => { const m = Number(v); setMonth(m); emit(day, m, year); }}
-      />
-      <input
-        type="number" required aria-label="Year of birth" placeholder="YYYY"
-        min={String(thisYear - 20)} max={String(thisYear - 3)} inputmode="numeric" value={year}
-        onInput={(e) => {
-          const v = (e.target as HTMLInputElement).value;
-          setYear(v); emit(day, month, v);
-        }}
-      />
-    </div>
-  );
-}
-
 function StudentEditForm({ regs, onCancel, onSaved }: {
   regs: Registration[];
   onCancel: () => void;
@@ -500,9 +437,11 @@ function StudentEditForm({ regs, onCancel, onSaved }: {
             onInput={(e) => patch('student_full_name', (e.target as HTMLInputElement).value)} />
         </Field>
         <Field label="Date of birth">
-          <DobSelect
+          <DateField
             value={form.student_date_of_birth}
             onChange={(iso) => patch('student_date_of_birth', iso)}
+            min={`${new Date().getFullYear() - 20}-01-01`}
+            max={`${new Date().getFullYear() - 3}-12-31`}
           />
         </Field>
         <Field label="Class">

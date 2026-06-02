@@ -107,16 +107,36 @@
 html, body, #app { height: 100%; margin: 0; }
 a { color: inherit; text-decoration: none; }
 code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-size: 0.88em; font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+/* Every input/textarea placeholder renders in the mono face. */
+input::placeholder, textarea::placeholder { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 400; opacity: 0.55; }
+/* Base for text controls so unscoped inputs (inline editors: medalists, choice
+   tables, etc.) aren't square browser defaults. Low specificity + placed early
+   so the .field/.toolbar/.chip/.shell rules still override. Theme tokens keep
+   it correct in dark mode. */
+input[type="text"], input[type="number"], input[type="search"], input[type="email"],
+input[type="tel"], input[type="password"], input[type="url"], textarea, select {
+  font: inherit;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 7px 10px;
+  background: var(--surface);
+  color: var(--navy-900);
+}
+input[type="text"]:focus, input[type="number"]:focus, input[type="search"]:focus,
+input[type="email"]:focus, input[type="tel"]:focus, input[type="password"]:focus,
+input[type="url"]:focus, textarea:focus, select:focus {
+  outline: 2px solid var(--ring); outline-offset: 1px; border-color: var(--ring);
+}
 
 /* ─── Auth shell (login + bare states) ──────────────────────────────────── */
 
 .shell { min-height: 100%; display: grid; place-items: center; padding: 32px; }
-.shell .card { max-width: 420px; width: 100%; background: white; border: 1px solid var(--line); border-radius: 14px; padding: 32px; display: flex; flex-direction: column; gap: 14px; }
+.shell .card { max-width: 420px; width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 32px; display: flex; flex-direction: column; gap: 14px; }
 .shell .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--navy-700); }
 .shell h1 { margin: 0; font-size: 1.6rem; }
 .shell .sub { color: var(--ink-2); font-size: 14px; line-height: 1.5; margin: 0 0 6px; }
 .shell label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
-.shell input { font: inherit; padding: 11px 13px; border: 1px solid var(--line); border-radius: 9px; background: white; color: var(--navy-900); font-weight: 400; }
+.shell input { font: inherit; padding: 11px 13px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--navy-900); font-weight: 400; }
 .shell input:focus { outline: 2px solid var(--ring); outline-offset: 1px; border-color: var(--ring); }
 .shell button { font: inherit; padding: 11px 18px; border: 0; border-radius: 9px; background: var(--navy-900); color: white; font-weight: 600; cursor: pointer; margin-top: 4px; }
 .shell button:hover { background: var(--navy-700); }
@@ -298,7 +318,7 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 
 .muted { color: var(--ink-3); font-size: 13.5px; }
 .error { background: var(--red-bg); border: 1px solid #fecaca; color: var(--red); padding: 10px 14px; border-radius: 9px; font-size: 13px; }
-.empty { background: white; border: 1px dashed var(--line); border-radius: 12px; padding: 28px; text-align: center; color: var(--ink-2); }
+.empty { background: var(--surface); border: 1px dashed var(--line); border-radius: 12px; padding: 28px; text-align: center; color: var(--ink-2); }
 .empty p { margin: 4px 0; }
 .empty code { background: var(--navy-100); }
 
@@ -340,15 +360,15 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 .toolbar { display: flex; gap: 16px; align-items: end; margin-bottom: 14px; flex-wrap: wrap; }
 .toolbar label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
 .toolbar select, .toolbar input {
-  font: inherit; padding: 7px 11px; border: 1px solid var(--line); border-radius: 8px;
-  background: white; color: var(--navy-900); min-width: 220px;
+  font: inherit; padding: 7px 11px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); color: var(--navy-900); min-width: 220px;
 }
 .toolbar select:focus, .toolbar input:focus { outline: 2px solid var(--ring); outline-offset: 1px; border-color: var(--ring); }
 /* The date-range chip sits in the toolbar beside the search. Keep it rendering
    as an inline pill - the generic `.toolbar label`/`.toolbar input` rules above
    would otherwise stack it and force its date inputs to min-width:220px. */
 .toolbar .chip { flex-direction: row; }
-.toolbar .chip input[type="date"] { min-width: 0; }
+.toolbar .chip input[type="date"], .toolbar .chip .date-input { min-width: 0; }
 
 /* ─── Tables ────────────────────────────────────────────────────────────── */
 
@@ -370,6 +390,9 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 .data-table tbody tr:last-child td { border-bottom: none; }
 /* Drop zebra rows in favour of clean hover-only highlight - matches the reference. */
 .data-table tbody tr:hover td { background: var(--bg-alt); }
+/* Rows belonging to the registration this page is about (the one the Actions
+   panel acts on), in the guardian-wide payment list. */
+.data-table tbody tr.is-current td { background: var(--bg-alt); }
 .cell-strong { font-weight: 600; color: var(--ink); }
 .cell-sub    { font-size: 12.5px; color: var(--ink-3); margin-top: 2px; }
 /* Application ID under the student name - monospace so the hex reads cleanly. */
@@ -460,7 +483,7 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 
 .form-grid {
   display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px;
-  background: white; border: 1px solid var(--line); border-radius: 12px; padding: 20px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px;
 }
 .field { display: flex; flex-direction: column; gap: 5px; }
 .field-full { grid-column: 1 / -1; }
@@ -469,9 +492,9 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
   color: var(--ink-3);
 }
 .field input[type="text"], .field input[type="date"], .field input[type="search"],
-.field textarea, .field select {
-  font: inherit; padding: 8px 11px; border: 1px solid var(--line); border-radius: 8px;
-  background: white; color: var(--navy-900); width: 100%;
+.field .date-input, .field textarea, .field select {
+  font: inherit; padding: 8px 11px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); color: var(--navy-900); width: 100%;
 }
 .field input:focus, .field textarea:focus, .field select:focus {
   outline: 2px solid var(--ring); outline-offset: 1px; border-color: var(--ring);
@@ -619,11 +642,14 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 .chip-active { background: var(--navy-100); border-color: var(--navy-700); color: var(--navy-700); }
 .chip-label { font-weight: 600; color: var(--ink-3); text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.06em; }
 .chip-active .chip-label { color: var(--navy-700); }
-.chip select, .chip input[type="date"] {
+.chip select, .chip input[type="date"], .chip .date-input {
   font: inherit; font-size: 12.5px; padding: 1px 4px;
   border: 0; background: transparent; color: var(--navy-900);
   cursor: pointer; outline: none;
 }
+/* Compact width so the date-range chip doesn't stretch (text inputs default
+   to ~20 chars, which the native date input never did). */
+.chip .date-input { width: 88px; cursor: text; }
 .chip-toggle { border: 1px dashed var(--line); padding: 6px 12px; }
 .chip-toggle.chip-active { border-style: solid; }
 
@@ -660,10 +686,6 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 .row-selected td { background: var(--navy-50) !important; }
 [data-theme="dark"] .row-selected td { background: var(--navy-100) !important; }
 
-.stuck-dot {
-  color: var(--amber); font-size: 9px; margin-right: 6px;
-  vertical-align: middle;
-}
 .notes-badge {
   display: inline-flex; align-items: center; gap: 3px;
   background: var(--navy-100); color: var(--navy-700);
@@ -795,7 +817,7 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 /* Inline status dropdown used in Sponsorships list. */
 .inline-select {
   font: inherit; font-size: 12px; padding: 4px 6px;
-  border: 1px solid var(--line); border-radius: 6px; background: white; color: var(--navy-900);
+  border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--navy-900);
 }
 
 /* Make rows feel clickable in lists that link to a detail view. */
@@ -866,7 +888,7 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
      becomes a compact icon strip. The brand hides; the footer's action
      icons (theme, sign out) tuck in at the right edge. */
   .sidebar {
-    position: fixed; bottom: 0; left: 0; right: 0;
+    position: fixed; top: auto; bottom: 0; left: 0; right: 0;
     height: auto; flex-direction: row; align-items: center;
     padding: 6px 8px; gap: 0;
     z-index: 50;
@@ -880,17 +902,18 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
     border-left: 1px solid var(--line); margin-left: 4px; padding-left: 6px;
   }
   .sidebar-actions .theme-toggle-label { display: none; }
-  .sidebar nav { flex-direction: row; flex: 1; overflow-x: auto; gap: 0; }
+  .sidebar nav { flex-direction: row; flex: 1; overflow-x: auto; gap: 8px; }
   /* Flatten groups into the horizontal strip: drop the group boxes + headers,
      and ignore desktop fold state so every item stays reachable on mobile. */
   .nav-group { display: contents; }
   .nav-group-header { display: none; }
   .nav-item[hidden] { display: flex !important; }
   .nav-item {
-    flex-direction: column; gap: 2px;
-    padding: 7px 10px; font-size: 10.5px;
-    min-width: 60px; text-align: center;
+    flex-direction: column; gap: 3px;
+    padding: 7px 12px; font-size: 10.5px;
+    text-align: center;
     border-radius: 7px;
+    white-space: nowrap; flex: 0 0 auto;
   }
   .nav-item.active::before { display: none; }
   .nav-item .badge { display: none; }
@@ -904,6 +927,11 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
    this width since they break the new layout. */
 @media (max-width: 700px) {
   .stat-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+  /* KPI tiles carry a fixed-width sparkline; at 2-up on a phone it crushes the
+     value (which then ellipsis-clips). Give those rows a full-width column;
+     plain stat rows stay 2-up. */
+  .stat-row:has(.stat-kpi) { grid-template-columns: 1fr; }
+  .stat-kpi { padding: 15px 16px; }
   .content { padding: 14px; }
   .page-header h1 { font-size: 1.4rem; }
 

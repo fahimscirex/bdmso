@@ -4,6 +4,7 @@
 // (id/label/note/price) are the money inputs.
 
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { DateField } from '../components/DateField';
 import { api, ApiError } from '../api';
 import { navigate, href } from '../router';
 import { Icon } from '../components/Icon';
@@ -242,11 +243,11 @@ export function ProgramEditor({ slug }: { slug: string }) {
         </div>
         <div class="field">
           <label>Registration opens</label>
-          <input type="date" value={form.registration_opens || ''} onInput={(e) => set('registration_opens', (e.target as HTMLInputElement).value || null)} />
+          <DateField value={form.registration_opens || ''} onChange={(v) => set('registration_opens', v || null)} />
         </div>
         <div class="field">
           <label>Registration closes</label>
-          <input type="date" value={form.registration_closes || ''} onInput={(e) => set('registration_closes', (e.target as HTMLInputElement).value || null)} />
+          <DateField value={form.registration_closes || ''} onChange={(v) => set('registration_closes', v || null)} />
           <p class="field-hint">Also drives the guardian edit window.</p>
         </div>
         <div class="field">
@@ -256,11 +257,11 @@ export function ProgramEditor({ slug }: { slug: string }) {
 
         <div class="field">
           <label>Starts on</label>
-          <input type="date" value={form.starts_on || ''} onInput={(e) => set('starts_on', (e.target as HTMLInputElement).value || null)} />
+          <DateField value={form.starts_on || ''} onChange={(v) => set('starts_on', v || null)} />
         </div>
         <div class="field">
           <label>Ends on</label>
-          <input type="date" value={form.ends_on || ''} onInput={(e) => set('ends_on', (e.target as HTMLInputElement).value || null)} />
+          <DateField value={form.ends_on || ''} onChange={(v) => set('ends_on', v || null)} />
         </div>
 
         <div class="field">

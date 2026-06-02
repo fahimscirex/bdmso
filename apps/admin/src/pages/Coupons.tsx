@@ -3,6 +3,7 @@
 // expire them instead by setting expires_at to a past date.
 
 import { useEffect, useState } from 'preact/hooks';
+import { DateField } from '../components/DateField';
 import { api, ApiError } from '../api';
 import { SkRoot, SkTable } from '../components/Skeleton';
 
@@ -342,8 +343,7 @@ function CouponForm({ coupon, onCancel, onSaved }: {
                  onInput={(e) => setAppliesTo((e.target as HTMLInputElement).value)} />
         </Field>
         <Field label="Expires" hint="Blank = never. Otherwise the coupon stops working at end of this day.">
-          <input type="date" value={expiresAt}
-                 onInput={(e) => setExpiresAt((e.target as HTMLInputElement).value)} />
+          <DateField value={expiresAt} onChange={setExpiresAt} />
         </Field>
       </div>
 
