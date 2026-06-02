@@ -10,22 +10,47 @@ import { navigate } from '../router';
 import { Icon, type IconName } from './Icon';
 
 type Section = { label: string; href: string; icon: IconName; soon?: boolean };
+type Group = { title?: string; items: Section[] };
 
-const NAV: Section[] = [
-  { label: 'Dashboard',     href: '/',              icon: 'dashboard' },
-  { label: 'Triage',        href: '/triage',        icon: 'inbox' },
-  { label: 'Registrations', href: '/registrations', icon: 'list-checks' },
-  { label: 'Payments',      href: '/payments',      icon: 'wallet' },
-  { label: 'Sponsorships',  href: '/sponsorships',  icon: 'megaphone' },
-  { label: 'Broadcast',     href: '/broadcast',     icon: 'send' },
-  { label: 'Events',        href: '/events',        icon: 'sparkle' },
-  { label: 'Posts',         href: '/posts',         icon: 'file-text' },
-  { label: 'Programs',      href: '/programs',      icon: 'book' },
-  { label: 'Coupons',       href: '/coupons',       icon: 'tag' },
-  { label: 'Users',         href: '/users',         icon: 'users' },
-  { label: 'Audit log',     href: '/audit',         icon: 'history' },
-  { label: 'Settings',      href: '/settings',      icon: 'settings' },
+// Grouped nav. The Content group (the growing set of site editors) is what was
+// pushing the list past a single screen; groups are collapsible so unused
+// sections fold away. The first group has no title and never collapses.
+const GROUPS: Group[] = [
+  { items: [
+    { label: 'Dashboard',     href: '/',              icon: 'dashboard' },
+    { label: 'Triage',        href: '/triage',        icon: 'inbox' },
+  ] },
+  { title: 'Operations', items: [
+    { label: 'Registrations', href: '/registrations', icon: 'list-checks' },
+    { label: 'Payments',      href: '/payments',      icon: 'wallet' },
+    { label: 'Events',        href: '/events',        icon: 'sparkle' },
+    { label: 'Coupons',       href: '/coupons',       icon: 'tag' },
+  ] },
+  { title: 'Content', items: [
+    { label: 'Posts',         href: '/posts',         icon: 'file-text' },
+    { label: 'Programs',      href: '/programs',      icon: 'book' },
+    { label: 'Press',         href: '/press',         icon: 'megaphone' },
+    { label: 'Hall of Fame',  href: '/hall-of-fame',  icon: 'sparkle' },
+    { label: 'Medalists',     href: '/medalists',     icon: 'users' },
+    { label: 'Team',          href: '/team',          icon: 'users' },
+  ] },
+  { title: 'Outreach', items: [
+    { label: 'Sponsorships',  href: '/sponsorships',  icon: 'megaphone' },
+    { label: 'Broadcast',     href: '/broadcast',     icon: 'send' },
+  ] },
+  { title: 'System', items: [
+    { label: 'Users',         href: '/users',         icon: 'users' },
+    { label: 'Audit log',     href: '/audit',         icon: 'history' },
+    { label: 'Settings',      href: '/settings',      icon: 'settings' },
+  ] },
 ];
+
+const COLLAPSE_KEY = 'bdmso-admin-nav-collapsed';
+function readCollapsed(): Set<string> {
+  if (typeof localStorage === 'undefined') return new Set();
+  try { return new Set(JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '[]')); }
+  catch { return new Set(); }
+}
 
 type Props = {
   currentRoute: string;
@@ -50,6 +75,19 @@ function applyTheme(t: 'light' | 'dark' | 'system') {
 
 export function NavShell({ currentRoute, onSignOut, children }: Props) {
   const [theme, setTheme] = useState(readTheme);
+  const [collapsed, setCollapsed] = useState<Set<string>>(readCollapsed);
+
+  const isItemActive = (href: string) =>
+    href === '/' ? currentRoute === '/' : currentRoute === href || currentRoute.startsWith(`${href}/`);
+
+  function toggleGroup(title: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(title)) next.delete(title); else next.add(title);
+      try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  }
 
   // Apply on mount + whenever the choice changes. Listen to OS changes
   // only while in "system" mode so toggling between light/dark in the
@@ -87,21 +125,38 @@ export function NavShell({ currentRoute, onSignOut, children }: Props) {
           </div>
         </div>
         <nav>
-          {NAV.map((s) => {
-            const active = s.href === '/'
-              ? currentRoute === '/'
-              : currentRoute === s.href || currentRoute.startsWith(`${s.href}/`);
+          {GROUPS.map((g) => {
+            const hasActive = g.items.some((it) => isItemActive(it.href));
+            // A titled group folds when collapsed - unless it holds the active
+            // route, so the current page is never hidden. Untitled = always open.
+            const folded = !!g.title && collapsed.has(g.title) && !hasActive;
             return (
-              <a
-                key={s.href}
-                href={`/admin${s.href === '/' ? '' : s.href}`}
-                class={`nav-item${active ? ' active' : ''}${s.soon ? ' soon' : ''}`}
-                onClick={(e) => go(e, s.href, s.soon)}
-              >
-                <Icon name={s.icon} size={17} />
-                <span>{s.label}</span>
-                {s.soon && <span class="badge">soon</span>}
-              </a>
+              <div class="nav-group" key={g.title || 'top'}>
+                {g.title && (
+                  <button
+                    type="button"
+                    class="nav-group-header"
+                    aria-expanded={!folded}
+                    onClick={() => toggleGroup(g.title!)}
+                  >
+                    <span>{g.title}</span>
+                    <Icon name="chevron-down" size={13} />
+                  </button>
+                )}
+                {g.items.map((s) => (
+                  <a
+                    key={s.href}
+                    href={`/admin${s.href === '/' ? '' : s.href}`}
+                    class={`nav-item${isItemActive(s.href) ? ' active' : ''}${s.soon ? ' soon' : ''}`}
+                    onClick={(e) => go(e, s.href, s.soon)}
+                    hidden={folded}
+                  >
+                    <Icon name={s.icon} size={17} />
+                    <span>{s.label}</span>
+                    {s.soon && <span class="badge">soon</span>}
+                  </a>
+                ))}
+              </div>
             );
           })}
         </nav>

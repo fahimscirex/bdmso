@@ -45,7 +45,11 @@ function readContentHash() {
   // tables, so this never fires on unrelated activity.
   const sql =
     'SELECT * FROM programs ORDER BY slug; ' +
-    'SELECT * FROM posts ORDER BY slug;';
+    'SELECT * FROM posts ORDER BY slug; ' +
+    'SELECT * FROM press_mentions ORDER BY id; ' +
+    'SELECT * FROM hall_of_fame_photos ORDER BY id; ' +
+    'SELECT * FROM medalists ORDER BY id; ' +
+    'SELECT * FROM team_members ORDER BY id;';
   ignoreEventsUntil = Date.now() + 1500;
   try {
     const stdout = execFileSync(

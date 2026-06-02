@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { getCollection } from "astro:content";
+import Img from "../components/Img.astro";
 
 const title = "Blog - BdMSO News, Workshops and Olympiad Updates";
 const description =
@@ -109,7 +110,7 @@ function formatDate(d: Date) {
           <a class="feature" href={`/posts/${featured.data.slug}`} data-cat={featured.data.category}>
             <div class="cover">
               {featured.data.image
-                ? <img loading="lazy" src={featured.data.image} alt={featured.data.title} />
+                ? <Img src={featured.data.image} alt={featured.data.title} widths={[400, 800]} sizes="(max-width: 700px) 100vw, 700px" />
                 : <div class="ph">[cover]</div>}
             </div>
             <div class="body">
@@ -127,7 +128,7 @@ function formatDate(d: Date) {
           <a class="post" href={`/posts/${p.data.slug}`} data-cat={p.data.category}>
             <div class="cover">
               {p.data.image
-                ? <img loading="lazy" src={p.data.image} alt={p.data.title} />
+                ? <Img src={p.data.image} alt={p.data.title} widths={[300, 600]} sizes="(max-width: 600px) 100vw, 380px" />
                 : <div class="ph">[{p.data.category}]</div>}
             </div>
             <div class="body">

@@ -157,8 +157,29 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
 .sidebar nav {
   display: flex; flex-direction: column; gap: 2px;
   flex: 1; min-height: 0; overflow-y: auto;
+  scrollbar-width: none;           /* Firefox */
+  -ms-overflow-style: none;        /* old Edge/IE */
 }
-.sidebar nav::-webkit-scrollbar { width: 0; }
+.sidebar nav::-webkit-scrollbar { width: 0; height: 0; }  /* WebKit/Blink */
+
+/* Collapsible nav groups. Header is a quiet uppercase label with a chevron
+   that points down when open, right when folded. */
+.nav-group { display: flex; flex-direction: column; gap: 2px; }
+.nav-group + .nav-group { margin-top: 10px; }
+.nav-group-header {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; padding: 5px 11px 3px;
+  background: none; border: none; cursor: pointer;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.nav-group-header:hover { color: var(--ink-2); }
+.nav-group-header svg { opacity: 0.55; transition: transform 0.15s; }
+.nav-group-header[aria-expanded="false"] svg { transform: rotate(-90deg); }
+/* The `hidden` attribute alone is display:none in the UA sheet, but our
+   `.nav-item { display:flex }` rule outranks it - so fold needs an explicit
+   author rule. (Mobile re-shows these; see the media query below.) */
+.nav-item[hidden] { display: none; }
 
 /* Pill-style nav items. Quiet by default, hover lifts to surface-alt,
    active gets a soft background tint with bolder text + accent icon. */
@@ -860,6 +881,11 @@ code { background: var(--navy-100); padding: 2px 6px; border-radius: 4px; font-s
   }
   .sidebar-actions .theme-toggle-label { display: none; }
   .sidebar nav { flex-direction: row; flex: 1; overflow-x: auto; gap: 0; }
+  /* Flatten groups into the horizontal strip: drop the group boxes + headers,
+     and ignore desktop fold state so every item stays reachable on mobile. */
+  .nav-group { display: contents; }
+  .nav-group-header { display: none; }
+  .nav-item[hidden] { display: flex !important; }
   .nav-item {
     flex-direction: column; gap: 2px;
     padding: 7px 10px; font-size: 10.5px;

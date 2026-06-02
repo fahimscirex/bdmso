@@ -26,10 +26,13 @@ const procs = [
       '--env', 'production',
       '--var', 'SHURJOPAY_SANDBOX:true',
       '--var', 'ENVIRONMENT:development',
+      // Route admin image read/write through the local sidecar (not GitHub) in dev.
+      '--var', 'ASSET_REPO_BASE:http://127.0.0.1:8799',
       '--port', '8787',
       '--live-reload',
     ],
   },
+  { name: 'asset-sink', cmd: 'node', args: ['scripts/dev-asset-sink.mjs'] },
   { name: 'rebuild', cmd: 'node', args: ['scripts/dev-rebuild.mjs'] },
 ];
 

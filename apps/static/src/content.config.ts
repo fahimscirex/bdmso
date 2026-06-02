@@ -1,5 +1,5 @@
 import { defineCollection, z } from "astro:content";
-import { glob } from "astro/loaders";
+import { glob, file } from "astro/loaders";
 
 // Blog posts now live alongside programs under src/content/. NOTE: during
 // coexistence these are COPIES - the legacy build.mjs still reads the originals
@@ -12,6 +12,7 @@ const blog = defineCollection({
     slug: z.string(),
     category: z.string().optional(),
     date: z.coerce.date(),
+    updated: z.coerce.date().optional(),
     author: z.string().optional(),
     excerpt: z.string().optional().default(""),
     description: z.string().optional(),
@@ -62,4 +63,56 @@ const programs = defineCollection({
     .passthrough(),
 });
 
-export const collections = { blog, programs };
+// List datasets materialized from D1 (see scripts/materialize.mjs). One JSON
+// array file each, read via the file() loader. Edited in the admin dashboard;
+// these files are generated, not hand-edited.
+const press = defineCollection({
+  loader: file("src/content/data/press.json"),
+  schema: z.object({
+    id: z.string(),
+    outlet: z.string(),
+    title: z.string(),
+    url: z.string(),
+    publishedOn: z.string().optional().default(""),
+    image: z.string().optional().default(""),
+    featured: z.boolean().optional().default(false),
+  }),
+});
+
+const halloffame = defineCollection({
+  loader: file("src/content/data/halloffame.json"),
+  schema: z.object({
+    id: z.string(),
+    image: z.string(),
+    caption: z.string().optional().default(""),
+    year: z.string().optional().default(""),
+  }),
+});
+
+const medalists = defineCollection({
+  loader: file("src/content/data/medalists.json"),
+  schema: z.object({
+    id: z.string(),
+    year: z.string(),
+    category: z.string(),
+    medal: z.string(),
+    name: z.string(),
+    school: z.string().optional().default(""),
+  }),
+});
+
+const team = defineCollection({
+  loader: file("src/content/data/team.json"),
+  schema: z.object({
+    id: z.string(),
+    section: z.string(),
+    subgroup: z.string().optional().default(""),
+    year: z.string().optional().default(""),
+    name: z.string(),
+    role: z.string().optional().default(""),
+    affiliation: z.string().optional().default(""),
+    image: z.string().optional().default(""),
+  }),
+});
+
+export const collections = { blog, programs, press, halloffame, medalists, team };

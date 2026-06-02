@@ -1,0 +1,342 @@
+[
+  {
+    "id": "17",
+    "section": "advisor",
+    "subgroup": "",
+    "year": "",
+    "name": "Munir Hasan",
+    "role": "",
+    "affiliation": "President, SPSB & BdOSN",
+    "image": "/images/team/munir-hasan.webp"
+  },
+  {
+    "id": "18",
+    "section": "advisor",
+    "subgroup": "",
+    "year": "",
+    "name": "Dr. Farseem Mannan",
+    "role": "",
+    "affiliation": "GS, SPSB",
+    "image": "/images/team/farseem_mannan.webp"
+  },
+  {
+    "id": "19",
+    "section": "advisor",
+    "subgroup": "",
+    "year": "",
+    "name": "Zahidul Amin",
+    "role": "",
+    "affiliation": "CTO, Kona SL",
+    "image": "/images/team/zahidul_amin.webp"
+  },
+  {
+    "id": "34",
+    "section": "alumni",
+    "subgroup": "",
+    "year": "",
+    "name": "Juty Singha",
+    "role": "Lecturer, DIU",
+    "affiliation": "",
+    "image": "/images/team/juty-singha.webp"
+  },
+  {
+    "id": "1",
+    "section": "delegation",
+    "subgroup": "Mathematics",
+    "year": "2025",
+    "name": "Arijit Saha",
+    "role": "🥈 Silver",
+    "affiliation": "",
+    "image": "/images/team/arijit-saha.webp"
+  },
+  {
+    "id": "7",
+    "section": "delegation",
+    "subgroup": "Science",
+    "year": "2025",
+    "name": "Aaqib Fattah Mustofi",
+    "role": "🥉 Bronze",
+    "affiliation": "",
+    "image": "/images/team/aaqib-mustofi.webp"
+  },
+  {
+    "id": "13",
+    "section": "delegation",
+    "subgroup": "Leadership",
+    "year": "2025",
+    "name": "Md Tanvirul Islam",
+    "role": "Team Leader",
+    "affiliation": "Program Lead, BdMSO",
+    "image": "/images/team/tanvirul-islam.webp"
+  },
+  {
+    "id": "2",
+    "section": "delegation",
+    "subgroup": "Mathematics",
+    "year": "2025",
+    "name": "Ehan Abrad Rahman",
+    "role": "🥉 Bronze",
+    "affiliation": "",
+    "image": "/images/team/ehan-rahman.webp"
+  },
+  {
+    "id": "8",
+    "section": "delegation",
+    "subgroup": "Science",
+    "year": "2025",
+    "name": "Avigyan Roy Golpo",
+    "role": "🥉 Bronze",
+    "affiliation": "",
+    "image": "/images/team/avigyan-golpo.webp"
+  },
+  {
+    "id": "14",
+    "section": "delegation",
+    "subgroup": "Leadership",
+    "year": "2025",
+    "name": "Hasan Muhammed Zahidul Amin",
+    "role": "Team Leader",
+    "affiliation": "VP · Society for Popularization of Science, Bangladesh",
+    "image": "/images/team/zahidul-amin.webp"
+  },
+  {
+    "id": "3",
+    "section": "delegation",
+    "subgroup": "Mathematics",
+    "year": "2025",
+    "name": "Labiba Binte Fazlay Rabbee",
+    "role": "🥉 Bronze",
+    "affiliation": "",
+    "image": "/images/team/labiba-rabbee.webp"
+  },
+  {
+    "id": "9",
+    "section": "delegation",
+    "subgroup": "Science",
+    "year": "2025",
+    "name": "Md Miftahul Islam",
+    "role": "🥉 Bronze",
+    "affiliation": "",
+    "image": "/images/team/miftahul-islam.webp"
+  },
+  {
+    "id": "15",
+    "section": "delegation",
+    "subgroup": "Leadership",
+    "year": "2025",
+    "name": "Juty Singha",
+    "role": "Math Tutor",
+    "affiliation": "",
+    "image": "/images/team/juty-singha.webp"
+  },
+  {
+    "id": "4",
+    "section": "delegation",
+    "subgroup": "Mathematics",
+    "year": "2025",
+    "name": "Md Nabeeh Hossain",
+    "role": "🥉 Bronze",
+    "affiliation": "",
+    "image": "/images/team/nabeeh-hossain.webp"
+  },
+  {
+    "id": "10",
+    "section": "delegation",
+    "subgroup": "Science",
+    "year": "2025",
+    "name": "Shahabi Ibn Kabbo",
+    "role": "🥉 Bronze",
+    "affiliation": "",
+    "image": "/images/team/shahabi-kabbo.webp"
+  },
+  {
+    "id": "16",
+    "section": "delegation",
+    "subgroup": "Leadership",
+    "year": "2025",
+    "name": "Mim Naz Rahman",
+    "role": "Science Tutor",
+    "affiliation": "",
+    "image": "/images/team/mim-naz-rahman.webp"
+  },
+  {
+    "id": "5",
+    "section": "delegation",
+    "subgroup": "Mathematics",
+    "year": "2025",
+    "name": "Rafsan Shafiq Talukder",
+    "role": "🥉 Bronze",
+    "affiliation": "",
+    "image": "/images/team/rafsan-talukder.webp"
+  },
+  {
+    "id": "11",
+    "section": "delegation",
+    "subgroup": "Science",
+    "year": "2025",
+    "name": "Syed Ayaan Isa",
+    "role": "🥉 Bronze",
+    "affiliation": "",
+    "image": "/images/team/ayaan-isa.webp"
+  },
+  {
+    "id": "6",
+    "section": "delegation",
+    "subgroup": "Mathematics",
+    "year": "2025",
+    "name": "Wafia Hasan Othoi",
+    "role": "🥉 Bronze",
+    "affiliation": "",
+    "image": "/images/team/wafia-othoi.webp"
+  },
+  {
+    "id": "12",
+    "section": "delegation",
+    "subgroup": "Science",
+    "year": "2025",
+    "name": "Tahmid Hasan",
+    "role": "🥈 Silver",
+    "affiliation": "",
+    "image": "/images/team/tahmid-hasan.webp"
+  },
+  {
+    "id": "24",
+    "section": "mentor",
+    "subgroup": "",
+    "year": "",
+    "name": "Morsheda Akter Mim",
+    "role": "Pharmacy, DU",
+    "affiliation": "",
+    "image": "/images/team/morsheda_mim.webp"
+  },
+  {
+    "id": "25",
+    "section": "mentor",
+    "subgroup": "",
+    "year": "",
+    "name": "Ovejan Paul Rudra",
+    "role": "RA, DOB",
+    "affiliation": "",
+    "image": "/images/team/ovejan_paul.webp"
+  },
+  {
+    "id": "26",
+    "section": "mentor",
+    "subgroup": "",
+    "year": "",
+    "name": "Farzana Akter Lima",
+    "role": "PM, CASSA",
+    "affiliation": "",
+    "image": "/images/team/farzana_lima.webp"
+  },
+  {
+    "id": "27",
+    "section": "mentor",
+    "subgroup": "",
+    "year": "",
+    "name": "Samira Sumaia",
+    "role": "Arch, BUET",
+    "affiliation": "",
+    "image": "/images/team/samira_sumaia.webp"
+  },
+  {
+    "id": "28",
+    "section": "mentor",
+    "subgroup": "",
+    "year": "",
+    "name": "Parag Kumar Kabiraj",
+    "role": "EEE, BUET",
+    "affiliation": "",
+    "image": "/images/team/parag_kumar.webp"
+  },
+  {
+    "id": "29",
+    "section": "mentor",
+    "subgroup": "",
+    "year": "",
+    "name": "Ariba Jahin",
+    "role": "MBBS Student, ShSMC",
+    "affiliation": "",
+    "image": "/images/team/ariba_jahan.webp"
+  },
+  {
+    "id": "30",
+    "section": "mentor",
+    "subgroup": "",
+    "year": "",
+    "name": "Nahar Authoy",
+    "role": "EEE, AUST",
+    "affiliation": "",
+    "image": "/images/team/nahar_authoy.webp"
+  },
+  {
+    "id": "31",
+    "section": "mentor",
+    "subgroup": "",
+    "year": "",
+    "name": "Samin Yasar Ahmed",
+    "role": "CSE, NSU",
+    "affiliation": "",
+    "image": "/images/team/samin_yasar.webp"
+  },
+  {
+    "id": "32",
+    "section": "mentor",
+    "subgroup": "",
+    "year": "",
+    "name": "MD. Rahad Hasan",
+    "role": "Physics, GBC",
+    "affiliation": "",
+    "image": "/images/team/rahad_hasan.webp"
+  },
+  {
+    "id": "33",
+    "section": "mentor",
+    "subgroup": "",
+    "year": "",
+    "name": "Shamim Ara Islam",
+    "role": "A Levels, MLIS",
+    "affiliation": "",
+    "image": "/images/team/matra.webp"
+  },
+  {
+    "id": "20",
+    "section": "organizing",
+    "subgroup": "",
+    "year": "",
+    "name": "Tanvir Rivnat",
+    "role": "Program Lead",
+    "affiliation": "",
+    "image": "/images/team/tanvirul-islam.webp"
+  },
+  {
+    "id": "21",
+    "section": "organizing",
+    "subgroup": "",
+    "year": "",
+    "name": "Rezaul Islam",
+    "role": "Outreach Activity",
+    "affiliation": "",
+    "image": "/images/team/rezaul_islam.webp"
+  },
+  {
+    "id": "22",
+    "section": "organizing",
+    "subgroup": "",
+    "year": "",
+    "name": "Mim Naz Rahman",
+    "role": "Academics",
+    "affiliation": "",
+    "image": "/images/team/mim-naz-rahman.webp"
+  },
+  {
+    "id": "23",
+    "section": "organizing",
+    "subgroup": "",
+    "year": "",
+    "name": "Fahim Montasir",
+    "role": "Digital & Social Media",
+    "affiliation": "",
+    "image": "/images/team/fahim_montasir.webp"
+  }
+]

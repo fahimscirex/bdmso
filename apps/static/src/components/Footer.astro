@@ -1,6 +1,7 @@
 ---
 // Server-rendered footer. Ported verbatim from site.js renderFooter(); fully
 // static, no client JS.
+import Img from "./Img.astro";
 ---
 
 <footer class="site-footer">
@@ -8,7 +9,7 @@
     <div class="footer-grid">
       <div>
         <div class="footer-brand">
-          <img class="footer-logo" src="/images/logo.webp" alt="BdMSO 2026 logo" width="160" height="112" loading="lazy" />
+          <Img class="footer-logo" src="/images/logo.webp" alt="BdMSO 2026 logo" />
         </div>
         <p>A platform dedicated to identifying and nurturing early age STEM talent across Bangladesh.</p>
         <div class="partner-logos">

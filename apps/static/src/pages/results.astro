@@ -1,9 +1,30 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { getCollection } from "astro:content";
 
 const title = "BdMSO Results 2026 and 2025 - Olympiad Medal Winners";
 const description =
   "BdMSO Olympiad results - gold, silver, and bronze medalists in Mathematics and Science across the National Round (2026 and 2025 archives).";
+
+// Medalists come from D1 (edited in the admin dashboard), materialized to the
+// medalists content collection. We always show the current year's tab (even
+// before its results are announced) plus every year that has published winners.
+const all = await getCollection("medalists");
+const currentYear = String(new Date().getFullYear());
+const years = [...new Set([currentYear, ...all.map((m) => m.data.year)])].sort((a, b) => b.localeCompare(a));
+
+const CATEGORY_ORDER = ["Mathematics", "Science"];
+const MEDAL_ORDER = ["gold", "silver", "bronze"] as const;
+const MEDAL_LABEL: Record<string, string> = { gold: "Gold Medal", silver: "Silver Medal", bronze: "Bronze Medal" };
+const MEDAL_DISC: Record<string, string> = { gold: "G", silver: "S", bronze: "B" };
+
+const categoriesFor = (year: string) =>
+  [...new Set(all.filter((m) => m.data.year === year).map((m) => m.data.category))].sort((a, b) => {
+    const rank = (c: string) => (CATEGORY_ORDER.indexOf(c) === -1 ? 99 : CATEGORY_ORDER.indexOf(c));
+    return rank(a) - rank(b) || a.localeCompare(b);
+  });
+const winnersFor = (year: string, category: string, medal: string) =>
+  all.filter((m) => m.data.year === year && m.data.category === category && m.data.medal === medal);
 ---
 
 <BaseLayout
@@ -100,8 +121,9 @@ const description =
 
     <section class="container results-wrap">
       <div class="years" role="tablist">
-        <button class="active" data-year="2026">2026</button>
-        <button data-year="2025">2025</button>
+        {years.map((y, i) => (
+          <button class={i === 0 ? "active" : ""} data-year={y}>{y}</button>
+        ))}
       </div>
 
       <div class="notice">
@@ -109,136 +131,51 @@ const description =
         <span>To protect our students, <strong>numerical scores are hidden</strong>. Medalists are listed in order of BdMSO ID.</span>
       </div>
 
-      <!-- ── 2026 ─────────────────────────────────────────────────── -->
-      <div class="year-panel" data-year="2026">
-        <div class="accordion">
-          <details class="acc" open>
-            <summary>
-              <div class="title-wrap"><span class="kind">Olympiad</span><h2>Olympiad Results · 2026</h2></div>
-              <span class="chev">⌄</span>
-            </summary>
-            <div class="body">
-              <div style="padding:36px 20px; text-align:center; background:var(--bg-alt); border-radius:var(--r); border:1px dashed var(--line);">
-                <div style="font-size:40px; margin-bottom:10px;">🕒</div>
-                <h4 style="font-family:var(--font-display); color:var(--navy-900); margin-bottom:8px;">Results not yet announced</h4>
-                <p style="margin:0; color:var(--ink-2); font-size:14px; max-width:480px; margin:0 auto;">The 2026 Olympiad is scheduled for June. Winners will be published here within one week of the competition day.</p>
-              </div>
+      {years.map((y, i) => {
+        const cats = categoriesFor(y);
+        return (
+          <div class="year-panel" data-year={y} hidden={i !== 0}>
+            <div class="accordion">
+              {cats.length === 0 ? (
+                <details class="acc" open>
+                  <summary>
+                    <div class="title-wrap"><span class="kind">Olympiad</span><h2>Olympiad Results · {y}</h2></div>
+                    <span class="chev">⌄</span>
+                  </summary>
+                  <div class="body">
+                    <div style="padding:36px 20px; text-align:center; background:var(--bg-alt); border-radius:var(--r); border:1px dashed var(--line);">
+                      <div style="font-size:40px; margin-bottom:10px;">🕒</div>
+                      <h4 style="font-family:var(--font-display); color:var(--navy-900); margin-bottom:8px;">Results not yet announced</h4>
+                      <p style="margin:0 auto; color:var(--ink-2); font-size:14px; max-width:480px;">Winners are published here within one week of the competition day.</p>
+                    </div>
+                  </div>
+                </details>
+              ) : cats.map((cat, ci) => (
+                <details class="acc" open={ci === 0}>
+                  <summary>
+                    <div class="title-wrap"><span class="kind">Olympiad · {cat}</span><h2>BdMSO {y} · {cat} Winners</h2></div>
+                    <span class="chev">⌄</span>
+                  </summary>
+                  <div class="body">
+                    <div class="medal-block">
+                      {MEDAL_ORDER.map((medal) => (
+                        <div class={`medal-col ${medal}`}>
+                          <h4><span class="disc">{MEDAL_DISC[medal]}</span>{MEDAL_LABEL[medal]}</h4>
+                          <ul>
+                            {winnersFor(y, cat, medal).map((w) => (
+                              <li>{w.data.name} <span class="school">{w.data.school}</span></li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </details>
+              ))}
             </div>
-          </details>
-
-          <!-- Final Delegation accordion disabled - kept in source for re-enable. -->
-          <details class="acc" hidden>
-            <summary><div class="title-wrap"><span class="kind">Final Delegation</span><h2>IMSO 2026 Delegation · Indonesia</h2></div><span class="chev">⌄</span></summary>
-            <div class="body">
-              <p style="font-size:14px; color:var(--ink-3); margin-bottom:16px;">Published once airfare and logistics are fully confirmed.</p>
-              <div class="delegation"></div>
-            </div>
-          </details>
-        </div>
-      </div>
-
-      <!-- ── 2025 ─────────────────────────────────────────────────── -->
-      <div class="year-panel" data-year="2025" hidden>
-        <div class="accordion">
-          <details class="acc" open>
-            <summary>
-              <div class="title-wrap"><span class="kind">Olympiad · Mathematics</span><h2>BdMSO 2025 · Mathematics Winners</h2></div>
-              <span class="chev">⌄</span>
-            </summary>
-            <div class="body">
-              <div class="medal-block">
-                <div class="medal-col gold"><h4><span class="disc">G</span>Gold Medal</h4>
-                  <ul>
-                    <li>Ali Omar <span class="school">St. Joseph HSS · 5</span></li>
-                    <li>Arijit Saha <span class="school">St. Joseph HSS · 5</span></li>
-                    <li>Md. Nabeeh Hossain <span class="school">St. Joseph HSS · 5</span></li>
-                    <li>Nowshin Saiyara Sahrin <span class="school">BAF Shaheen Kurmitola · 5</span></li>
-                  </ul>
-                </div>
-                <div class="medal-col silver"><h4><span class="disc">S</span>Silver Medal</h4>
-                  <ul>
-                    <li>Abdul Muhaimin Afif <span class="school">St. Joseph HSS · 4</span></li>
-                    <li>Ahanaf Adib <span class="school">St. Joseph Int'l · 5</span></li>
-                    <li>Ehan Abrad Rahman <span class="school">St. Joseph HSS · 5</span></li>
-                    <li>Labiba Binte Fazlay Rabbee <span class="school">Mastermind · 5</span></li>
-                    <li>Md. Shahid Morsalin <span class="school">St. Joseph HSS · 5</span></li>
-                    <li>Md. Tahsin Ul Islam <span class="school">St. Joseph Int'l · 5</span></li>
-                    <li>Rafsan Shafiq Talukder <span class="school">Bonwary Lal Govt. HS · 5</span></li>
-                    <li>Rushan Mahmud <span class="school">St. Joseph HSS · 4</span></li>
-                    <li>Wafia Hasan Othoi <span class="school">SFX Greenherald · 5</span></li>
-                  </ul>
-                </div>
-                <div class="medal-col bronze"><h4><span class="disc">B</span>Bronze Medal</h4>
-                  <ul>
-                    <li>Abdullah Abrar Wasi <span class="school">Dhaka Residential · 5</span></li>
-                    <li>Abdullah Al Mueed Ahnaf <span class="school">St. Joseph HSS · 5</span></li>
-                    <li>Abrar Jahin <span class="school">St. Joseph HSS · 4</span></li>
-                    <li>Mahjabeen Binte Reza <span class="school">Excel Academy · 5</span></li>
-                    <li>Md. Faiyaz Awsaf <span class="school">St. Francis Xavier · 4</span></li>
-                    <li>Md. Samin Saif <span class="school">St. Joseph HSS · 5</span></li>
-                    <li>Mohammad Ismail <span class="school">St. Joseph HSS · 4</span></li>
-                    <li>Noyon Mondal <span class="school">St. Joseph HSS · 5</span></li>
-                    <li>Priyangshu Riddhi Roy <span class="school">SFX Greenherald · 5</span></li>
-                    <li>Ramiza Hasan <span class="school">SFX Greenherald · 5</span></li>
-                    <li>Ratul Saha <span class="school">St. Joseph HSS · 5</span></li>
-                    <li>Uddipto Biswas <span class="school">St. Joseph HSS · 4</span></li>
-                    <li>Zarif Wahed <span class="school">St. Joseph HSS · 5</span></li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </details>
-
-          <details class="acc">
-            <summary>
-              <div class="title-wrap"><span class="kind">Olympiad · Science</span><h2>BdMSO 2025 · Science Winners</h2></div>
-              <span class="chev">⌄</span>
-            </summary>
-            <div class="body">
-              <div class="medal-block">
-                <div class="medal-col gold"><h4><span class="disc">G</span>Gold Medal</h4>
-                  <ul>
-                    <li>Aaqib Fattah Mustofi <span class="school">St. Joseph Int'l · 5</span></li>
-                    <li>Ali Omar <span class="school">St. Joseph HSS · 5</span></li>
-                    <li>Avigyan Roy Golpo <span class="school">SFX Greenherald · 5</span></li>
-                    <li>Md. Miftahul Islam <span class="school">Mymensingh Int'l · 4</span></li>
-                    <li>Syed Ayaan Isa <span class="school">Lighthouse Int'l · 5</span></li>
-                  </ul>
-                </div>
-                <div class="medal-col silver"><h4><span class="disc">S</span>Silver Medal</h4>
-                  <ul>
-                    <li>Ahanaf Adib <span class="school">St. Joseph Int'l · 5</span></li>
-                    <li>Arham Abid <span class="school">Baseerah Int'l · 5</span></li>
-                    <li>Fariq Sahel Mustofi <span class="school">St. Joseph Int'l · 4</span></li>
-                    <li>Md. Mahamudur Rahman <span class="school">St. Joseph HSS · 4</span></li>
-                    <li>Md. Tahsin Ul Islam <span class="school">St. Joseph Int'l · 5</span></li>
-                    <li>Noyon Mondal <span class="school">St. Joseph HSS · 5</span></li>
-                    <li>Shahabi Ibn Kabbo <span class="school">St. Joseph HSS · 5</span></li>
-                    <li>Taaseen Mahmud Farhan <span class="school">St. Joseph HSS · 5</span></li>
-                    <li>Wafia Hasan Othoi <span class="school">SFX Greenherald · 5</span></li>
-                  </ul>
-                </div>
-                <div class="medal-col bronze"><h4><span class="disc">B</span>Bronze Medal</h4>
-                  <ul>
-                    <li>Ahnaf Adel Helali Foiz <span class="school">Wheaton Int'l · 4</span></li>
-                    <li>Arijit Saha <span class="school">St. Joseph HSS · 5</span></li>
-                    <li>Haris Al Fihri Aaban <span class="school">St. Joseph HSS · 5</span></li>
-                    <li>Mahbub Alam Khan Tahan <span class="school">Daffodil Int'l · 5</span></li>
-                    <li>Mahjabeen Binte Reza <span class="school">Excel Academy · 5</span></li>
-                    <li>Mohammad Jawad Khan <span class="school">Daffodil Int'l · 5</span></li>
-                    <li>Nuwaib Ashraf Samawat <span class="school">Daffodil Int'l Uttara · 5</span></li>
-                    <li>Priyangshu Riddhi Roy <span class="school">SFX Greenherald · 5</span></li>
-                    <li>Raihanur Emu <span class="school">Daffodil Int'l · 5</span></li>
-                    <li>Ratul Saha <span class="school">St. Joseph HSS · 5</span></li>
-                    <li>Shayan Murad Sarker <span class="school">Glenrich Int'l · 4</span></li>
-                    <li>Tahmid Hasan <span class="school">Manarat Dhaka Int'l · 5</span></li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </details>
-        </div>
-      </div>
+          </div>
+        );
+      })}
     </section>
   </main>
 

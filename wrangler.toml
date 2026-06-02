@@ -32,17 +32,16 @@ run_worker_first = true
 [vars]
 SHURJOPAY_SANDBOX = "true"
 ENVIRONMENT = "development"
+# Local asset sidecar (scripts/dev-asset-sink.mjs): the worker reads/writes
+# repo image assets (admin previews + uploads) through it in dev, instead of
+# committing to GitHub. dev:one / dev:admin start it on this port.
+ASSET_REPO_BASE = "http://127.0.0.1:8799"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "bdmso"
 database_id = "650eb353-3ecb-4710-87b6-4d72aea2cd71"
 preview_database_id = "650eb353-3ecb-4710-87b6-4d72aea2cd71"
-
-[[r2_buckets]]
-binding = "ASSETS_R2"
-bucket_name = "bdmso-assets"
-preview_bucket_name = "bdmso-assets"
 
 # ===== Production =====================================================
 # Used by Cloudflare's Git integration and manual prod deploys.
@@ -67,15 +66,17 @@ ENVIRONMENT = "production"
 # is safe-by-default; the dashboard's "Variables and Secrets" panel can
 # override per-environment without touching this file.
 SHURJOPAY_SANDBOX = "false"
+# Admin image uploads + previews are repo-backed (no R2): uploads commit to the
+# repo via the GitHub Contents API, previews read via raw.githubusercontent.
+# GITHUB_TOKEN is a SECRET - set it via `wrangler secret put GITHUB_TOKEN
+# --env production` (a fine-grained PAT with contents:write on this repo).
+GITHUB_REPO = "fahimscirex/bdmso"
+GITHUB_BRANCH = "main"
 
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "bdmso"
 database_id = "650eb353-3ecb-4710-87b6-4d72aea2cd71"
-
-[[env.production.r2_buckets]]
-binding = "ASSETS_R2"
-bucket_name = "bdmso-assets"
 
 # Workers logs (console + per-invocation) and traces in the CF dashboard.
 [env.production.observability.logs]

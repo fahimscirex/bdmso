@@ -1,0 +1,418 @@
+[
+  {
+    "id": "53",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "gold",
+    "name": "Ali Omar",
+    "school": "St. Joseph HSS · 5"
+  },
+  {
+    "id": "54",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "gold",
+    "name": "Arijit Saha",
+    "school": "St. Joseph HSS · 5"
+  },
+  {
+    "id": "55",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "gold",
+    "name": "Md. Nabeeh Hossain",
+    "school": "St. Joseph HSS · 5"
+  },
+  {
+    "id": "56",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "gold",
+    "name": "Nowshin Saiyara Sahrin",
+    "school": "BAF Shaheen Kurmitola · 5"
+  },
+  {
+    "id": "57",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "silver",
+    "name": "Abdul Muhaimin Afif",
+    "school": "St. Joseph HSS · 4"
+  },
+  {
+    "id": "58",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "silver",
+    "name": "Ahanaf Adib",
+    "school": "St. Joseph Int'l · 5"
+  },
+  {
+    "id": "59",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "silver",
+    "name": "Ehan Abrad Rahman",
+    "school": "St. Joseph HSS · 5"
+  },
+  {
+    "id": "60",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "silver",
+    "name": "Labiba Binte Fazlay Rabbee",
+    "school": "Mastermind · 5"
+  },
+  {
+    "id": "61",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "silver",
+    "name": "Md. Shahid Morsalin",
+    "school": "St. Joseph HSS · 5"
+  },
+  {
+    "id": "62",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "silver",
+    "name": "Md. Tahsin Ul Islam",
+    "school": "St. Joseph Int'l · 5"
+  },
+  {
+    "id": "63",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "silver",
+    "name": "Rafsan Shafiq Talukder",
+    "school": "Bonwary Lal Govt. HS · 5"
+  },
+  {
+    "id": "64",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "silver",
+    "name": "Rushan Mahmud",
+    "school": "St. Joseph HSS · 4"
+  },
+  {
+    "id": "65",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "silver",
+    "name": "Wafia Hasan Othoi",
+    "school": "SFX Greenherald · 5"
+  },
+  {
+    "id": "66",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "bronze",
+    "name": "Abdullah Abrar Wasi",
+    "school": "Dhaka Residential · 5"
+  },
+  {
+    "id": "67",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "bronze",
+    "name": "Abdullah Al Mueed Ahnaf",
+    "school": "St. Joseph HSS · 5"
+  },
+  {
+    "id": "68",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "bronze",
+    "name": "Abrar Jahin",
+    "school": "St. Joseph HSS · 4"
+  },
+  {
+    "id": "69",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "bronze",
+    "name": "Mahjabeen Binte Reza",
+    "school": "Excel Academy · 5"
+  },
+  {
+    "id": "70",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "bronze",
+    "name": "Md. Faiyaz Awsaf",
+    "school": "St. Francis Xavier · 4"
+  },
+  {
+    "id": "71",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "bronze",
+    "name": "Md. Samin Saif",
+    "school": "St. Joseph HSS · 5"
+  },
+  {
+    "id": "72",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "bronze",
+    "name": "Mohammad Ismail",
+    "school": "St. Joseph HSS · 4"
+  },
+  {
+    "id": "73",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "bronze",
+    "name": "Noyon Mondal",
+    "school": "St. Joseph HSS · 5"
+  },
+  {
+    "id": "74",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "bronze",
+    "name": "Priyangshu Riddhi Roy",
+    "school": "SFX Greenherald · 5"
+  },
+  {
+    "id": "75",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "bronze",
+    "name": "Ramiza Hasan",
+    "school": "SFX Greenherald · 5"
+  },
+  {
+    "id": "76",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "bronze",
+    "name": "Ratul Saha",
+    "school": "St. Joseph HSS · 5"
+  },
+  {
+    "id": "77",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "bronze",
+    "name": "Uddipto Biswas",
+    "school": "St. Joseph HSS · 4"
+  },
+  {
+    "id": "78",
+    "year": "2025",
+    "category": "Mathematics",
+    "medal": "bronze",
+    "name": "Zarif Wahed",
+    "school": "St. Joseph HSS · 5"
+  },
+  {
+    "id": "79",
+    "year": "2025",
+    "category": "Science",
+    "medal": "gold",
+    "name": "Aaqib Fattah Mustofi",
+    "school": "St. Joseph Int'l · 5"
+  },
+  {
+    "id": "80",
+    "year": "2025",
+    "category": "Science",
+    "medal": "gold",
+    "name": "Ali Omar",
+    "school": "St. Joseph HSS · 5"
+  },
+  {
+    "id": "81",
+    "year": "2025",
+    "category": "Science",
+    "medal": "gold",
+    "name": "Avigyan Roy Golpo",
+    "school": "SFX Greenherald · 5"
+  },
+  {
+    "id": "82",
+    "year": "2025",
+    "category": "Science",
+    "medal": "gold",
+    "name": "Md. Miftahul Islam",
+    "school": "Mymensingh Int'l · 4"
+  },
+  {
+    "id": "83",
+    "year": "2025",
+    "category": "Science",
+    "medal": "gold",
+    "name": "Syed Ayaan Isa",
+    "school": "Lighthouse Int'l · 5"
+  },
+  {
+    "id": "84",
+    "year": "2025",
+    "category": "Science",
+    "medal": "silver",
+    "name": "Ahanaf Adib",
+    "school": "St. Joseph Int'l · 5"
+  },
+  {
+    "id": "85",
+    "year": "2025",
+    "category": "Science",
+    "medal": "silver",
+    "name": "Arham Abid",
+    "school": "Baseerah Int'l · 5"
+  },
+  {
+    "id": "86",
+    "year": "2025",
+    "category": "Science",
+    "medal": "silver",
+    "name": "Fariq Sahel Mustofi",
+    "school": "St. Joseph Int'l · 4"
+  },
+  {
+    "id": "87",
+    "year": "2025",
+    "category": "Science",
+    "medal": "silver",
+    "name": "Md. Mahamudur Rahman",
+    "school": "St. Joseph HSS · 4"
+  },
+  {
+    "id": "88",
+    "year": "2025",
+    "category": "Science",
+    "medal": "silver",
+    "name": "Md. Tahsin Ul Islam",
+    "school": "St. Joseph Int'l · 5"
+  },
+  {
+    "id": "89",
+    "year": "2025",
+    "category": "Science",
+    "medal": "silver",
+    "name": "Noyon Mondal",
+    "school": "St. Joseph HSS · 5"
+  },
+  {
+    "id": "90",
+    "year": "2025",
+    "category": "Science",
+    "medal": "silver",
+    "name": "Shahabi Ibn Kabbo",
+    "school": "St. Joseph HSS · 5"
+  },
+  {
+    "id": "91",
+    "year": "2025",
+    "category": "Science",
+    "medal": "silver",
+    "name": "Taaseen Mahmud Farhan",
+    "school": "St. Joseph HSS · 5"
+  },
+  {
+    "id": "92",
+    "year": "2025",
+    "category": "Science",
+    "medal": "silver",
+    "name": "Wafia Hasan Othoi",
+    "school": "SFX Greenherald · 5"
+  },
+  {
+    "id": "93",
+    "year": "2025",
+    "category": "Science",
+    "medal": "bronze",
+    "name": "Ahnaf Adel Helali Foiz",
+    "school": "Wheaton Int'l · 4"
+  },
+  {
+    "id": "94",
+    "year": "2025",
+    "category": "Science",
+    "medal": "bronze",
+    "name": "Arijit Saha",
+    "school": "St. Joseph HSS · 5"
+  },
+  {
+    "id": "95",
+    "year": "2025",
+    "category": "Science",
+    "medal": "bronze",
+    "name": "Haris Al Fihri Aaban",
+    "school": "St. Joseph HSS · 5"
+  },
+  {
+    "id": "96",
+    "year": "2025",
+    "category": "Science",
+    "medal": "bronze",
+    "name": "Mahbub Alam Khan Tahan",
+    "school": "Daffodil Int'l · 5"
+  },
+  {
+    "id": "97",
+    "year": "2025",
+    "category": "Science",
+    "medal": "bronze",
+    "name": "Mahjabeen Binte Reza",
+    "school": "Excel Academy · 5"
+  },
+  {
+    "id": "98",
+    "year": "2025",
+    "category": "Science",
+    "medal": "bronze",
+    "name": "Mohammad Jawad Khan",
+    "school": "Daffodil Int'l · 5"
+  },
+  {
+    "id": "99",
+    "year": "2025",
+    "category": "Science",
+    "medal": "bronze",
+    "name": "Nuwaib Ashraf Samawat",
+    "school": "Daffodil Int'l Uttara · 5"
+  },
+  {
+    "id": "100",
+    "year": "2025",
+    "category": "Science",
+    "medal": "bronze",
+    "name": "Priyangshu Riddhi Roy",
+    "school": "SFX Greenherald · 5"
+  },
+  {
+    "id": "101",
+    "year": "2025",
+    "category": "Science",
+    "medal": "bronze",
+    "name": "Raihanur Emu",
+    "school": "Daffodil Int'l · 5"
+  },
+  {
+    "id": "102",
+    "year": "2025",
+    "category": "Science",
+    "medal": "bronze",
+    "name": "Ratul Saha",
+    "school": "St. Joseph HSS · 5"
+  },
+  {
+    "id": "103",
+    "year": "2025",
+    "category": "Science",
+    "medal": "bronze",
+    "name": "Shayan Murad Sarker",
+    "school": "Glenrich Int'l · 4"
+  },
+  {
+    "id": "104",
+    "year": "2025",
+    "category": "Science",
+    "medal": "bronze",
+    "name": "Tahmid Hasan",
+    "school": "Manarat Dhaka Int'l · 5"
+  }
+]

@@ -1,0 +1,66 @@
+---
+// Single image wrapper so every image goes through Astro's optimizer without
+// per-file imports. Callers keep passing a string path (incl. dynamic collection
+// data) - this resolves it against the build-input assets under src/assets/ via
+// an eager glob and renders an optimized <Picture> (AVIF+WebP). Anything that
+// can't be resolved (remote URL, SVG/GIF, or a missing file) falls back to a
+// plain <img> so nothing breaks.
+//
+// Path mapping (stored path -> asset on disk):
+//   /images/x.webp        -> /src/assets/images/x.webp
+//   /assets/uploads/x.webp-> /src/assets/uploads/x.webp   (new uploads)
+//   /r2/x.webp            -> /src/assets/uploads/x.webp    (legacy upload path)
+import { Picture } from "astro:assets";
+import type { ImageMetadata } from "astro";
+
+interface Props {
+  src: string;
+  alt: string;
+  widths?: number[];
+  sizes?: string;
+  class?: string;
+  style?: string;
+  loading?: "lazy" | "eager";
+  [key: string]: unknown;
+}
+
+const { src, alt, widths, sizes, class: className, style, loading = "lazy", ...rest } = Astro.props;
+
+// Lazy glob: only the images actually rendered get imported + emitted (eager
+// would emit all 90+ assets). Keys are resolved + awaited per call.
+const ASSETS = import.meta.glob<{ default: ImageMetadata }>(
+  "/src/assets/**/*.{webp,png,jpg,jpeg,avif}",
+);
+
+function assetKey(p: string): string | null {
+  if (!p || /^https?:\/\//.test(p)) return null;          // remote - fall back
+  if (/\.(svg|gif)$/i.test(p)) return null;               // not raster-optimizable
+  let r = p.replace(/^\//, "");
+  if (r.startsWith("r2/")) r = `uploads/${r.slice("r2/".length)}`;
+  else if (r.startsWith("assets/")) r = r.slice("assets/".length);
+  return `/src/assets/${r}`;
+}
+
+const key = assetKey(src);
+const loader = key ? ASSETS[key] : undefined;
+const meta = loader ? (await loader()).default : undefined;
+// Cap requested widths to the source width so sharp never upscales.
+const w = meta ? (widths ?? [meta.width]).filter((x) => x <= meta.width) : [];
+const finalWidths = w.length ? w : meta ? [meta.width] : [];
+---
+
+{meta ? (
+  <Picture
+    src={meta}
+    formats={["avif", "webp"]}
+    widths={finalWidths}
+    sizes={sizes ?? `${meta.width}px`}
+    alt={alt}
+    class={className}
+    style={style}
+    loading={loading}
+    {...rest}
+  />
+) : (
+  <img src={src} alt={alt} class={className} style={style} loading={loading} {...rest} />
+)}

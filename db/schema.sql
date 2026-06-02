@@ -460,3 +460,106 @@ WHEN NEW.updated_at IS OLD.updated_at
 BEGIN
   UPDATE sponsorship_enquiries SET updated_at = datetime('now') WHERE rowid = NEW.rowid;
 END;
+
+-- ─── Homepage / marketing datasets (editable from the admin dashboard) ───────
+-- Press mentions, Hall of Fame slider photos, and Olympiad medalists. These were
+-- previously hand-edited JSON (public/data/*.json) and hardcoded HTML; they now
+-- live in D1 (source of truth) and materialize to src/content/data/*.json that
+-- Astro server-renders. See scripts/materialize.mjs. (Migrations 0007-0009.)
+
+CREATE TABLE IF NOT EXISTS press_mentions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  outlet TEXT NOT NULL,                                -- publication name
+  title TEXT NOT NULL,
+  url TEXT NOT NULL,                                   -- link to the article
+  published_on TEXT,                                   -- ISO yyyy-mm-dd (or yyyy-mm when day unknown)
+  image TEXT,                                          -- uploaded /r2 path or /images/ path; optional
+  featured INTEGER NOT NULL DEFAULT 0,                 -- 1 = large lead card in the homepage collage
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  published INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_by TEXT,
+  FOREIGN KEY (updated_by) REFERENCES guardian_accounts (id)
+);
+CREATE INDEX IF NOT EXISTS idx_press_mentions_published
+ON press_mentions (published, featured, published_on DESC);
+
+CREATE TABLE IF NOT EXISTS hall_of_fame_photos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  image TEXT NOT NULL,                                 -- uploaded /r2 path or /images/ path
+  caption TEXT,
+  year TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  published INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_by TEXT,
+  FOREIGN KEY (updated_by) REFERENCES guardian_accounts (id)
+);
+CREATE INDEX IF NOT EXISTS idx_hall_of_fame_published
+ON hall_of_fame_photos (published, sort_order);
+
+CREATE TABLE IF NOT EXISTS medalists (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  year TEXT NOT NULL,                                  -- "2025"
+  category TEXT NOT NULL,                              -- "Mathematics" | "Science" (accordion section)
+  medal TEXT NOT NULL,                                 -- "gold" | "silver" | "bronze"
+  name TEXT NOT NULL,
+  school TEXT,                                         -- free-form detail, e.g. "St. Joseph HSS · 5"
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  published INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_by TEXT,
+  FOREIGN KEY (updated_by) REFERENCES guardian_accounts (id)
+);
+CREATE INDEX IF NOT EXISTS idx_medalists_published
+ON medalists (published, year, category, medal, sort_order);
+
+CREATE TRIGGER IF NOT EXISTS trg_press_mentions_updated_at
+AFTER UPDATE ON press_mentions FOR EACH ROW
+WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE press_mentions SET updated_at = datetime('now') WHERE rowid = NEW.rowid;
+END;
+CREATE TRIGGER IF NOT EXISTS trg_hall_of_fame_photos_updated_at
+AFTER UPDATE ON hall_of_fame_photos FOR EACH ROW
+WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE hall_of_fame_photos SET updated_at = datetime('now') WHERE rowid = NEW.rowid;
+END;
+CREATE TRIGGER IF NOT EXISTS trg_medalists_updated_at
+AFTER UPDATE ON medalists FOR EACH ROW
+WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE medalists SET updated_at = datetime('now') WHERE rowid = NEW.rowid;
+END;
+
+-- Team / delegation page (/team). One row per person across all sections.
+-- Was hardcoded in team.astro. (Migration 0010.)
+CREATE TABLE IF NOT EXISTS team_members (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  section TEXT NOT NULL,                               -- delegation | advisor | organizing | mentor | alumni
+  subgroup TEXT,                                       -- delegation only: Mathematics | Science | Leadership
+  year TEXT,                                           -- delegation only
+  name TEXT NOT NULL,
+  role TEXT,                                           -- small line: medal, job title, or tutor role
+  affiliation TEXT,                                    -- secondary line (advisors / leadership)
+  image TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  published INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_by TEXT,
+  FOREIGN KEY (updated_by) REFERENCES guardian_accounts (id)
+);
+CREATE INDEX IF NOT EXISTS idx_team_members_published
+ON team_members (published, section, sort_order);
+
+CREATE TRIGGER IF NOT EXISTS trg_team_members_updated_at
+AFTER UPDATE ON team_members FOR EACH ROW
+WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE team_members SET updated_at = datetime('now') WHERE rowid = NEW.rowid;
+END;

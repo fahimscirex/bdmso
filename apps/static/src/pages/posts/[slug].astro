@@ -1,6 +1,10 @@
 ---
 import { getCollection, render } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import RelatedContent from "../../components/RelatedContent.astro";
+import Img from "../../components/Img.astro";
+import { relatedTo } from "../../lib/related.js";
+import { optimizedAbsolute } from "../../lib/ogImage";
 
 export async function getStaticPaths() {
   const posts = await getCollection("blog");
@@ -17,24 +21,50 @@ const image = data.image
   : "https://bdmso.org/images/group-winner.webp";
 const metaDesc = data.description || data.excerpt;
 const published = data.date.toISOString().slice(0, 10);
+// dateModified falls back to datePublished until a post is actually revised
+// (the optional `updated` frontmatter field, absent on most posts).
+const modified = data.updated ? data.updated.toISOString().slice(0, 10) : published;
 const dateFmt = data.date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+// Crawler-facing JSON-LD images point at the optimized build assets.
+const imageAbs = await optimizedAbsolute(image);
+const logoAbs = await optimizedAbsolute("https://bdmso.org/images/logo.webp");
 
-const jsonLd = [{
-  "@context": "https://schema.org",
-  "@type": "BlogPosting",
-  headline: data.title,
-  description: metaDesc,
-  datePublished: published,
-  dateModified: published,
-  author: { "@type": "Person", name: data.author },
-  image,
-  publisher: {
-    "@type": "Organization",
-    name: "BdMSO",
-    logo: { "@type": "ImageObject", url: "https://bdmso.org/images/logo.webp" },
+// Related programs: keyword overlap between this post and the program catalogue
+// (neither has explicit tags). Only strong matches link - see lib/related.js.
+const relatedPrograms = relatedTo(
+  { title: data.title, slug: data.slug },
+  (await getCollection("programs"))
+    .filter((pr) => !pr.data.hidden)
+    .map((pr) => ({ title: pr.data.title, slug: pr.id, url: `/programs/${pr.id}`, desc: pr.data.tagline })),
+);
+
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: data.title,
+    description: metaDesc,
+    datePublished: published,
+    dateModified: modified,
+    author: { "@type": "Person", name: data.author },
+    image: imageAbs,
+    publisher: {
+      "@type": "Organization",
+      name: "BdMSO",
+      logo: { "@type": "ImageObject", url: logoAbs },
+    },
+    mainEntityOfPage: url,
   },
-  mainEntityOfPage: url,
-}];
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "https://bdmso.org/" },
+      { "@type": "ListItem", position: 2, name: "Blog", item: "https://bdmso.org/blog" },
+      { "@type": "ListItem", position: 3, name: data.title, item: url },
+    ],
+  },
+];
 ---
 
 <BaseLayout
@@ -107,7 +137,7 @@ const jsonLd = [{
       </div>
       {data.image && (
         <div class="post-cover">
-          <img loading="lazy" src={`/${data.image.replace(/^\//, "")}`} alt={data.title} />
+          <Img src={`/${data.image.replace(/^\//, "")}`} alt={data.title} widths={[400, 900]} sizes="(max-width: 900px) 100vw, 900px" />
         </div>
       )}
     </section>
@@ -115,5 +145,10 @@ const jsonLd = [{
     <div class="post-body">
       <Content />
     </div>
+
+    <RelatedContent
+      heading="Related programs"
+      items={relatedPrograms.map((r) => ({ kicker: "Program", title: r.title, desc: r.desc, url: r.url }))}
+    />
   </main>
 </BaseLayout>

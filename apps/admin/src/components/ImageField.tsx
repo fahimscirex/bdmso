@@ -5,6 +5,7 @@
 
 import { useState } from 'preact/hooks';
 import { getToken } from '../auth';
+import { previewSrc } from '../img';
 
 type Props = {
   label: string;
@@ -54,7 +55,7 @@ export function ImageField({ label, hint, prefix, value, onChange }: Props) {
         <input
           type="text"
           value={value}
-          placeholder="/r2/posts/2026/05/abc.webp  or  https://…"
+          placeholder="/assets/uploads/posts/2026/05/abc.webp  or  https://…"
           onInput={(e) => onChange((e.target as HTMLInputElement).value)}
           style="flex:1;"
         />
@@ -72,7 +73,7 @@ export function ImageField({ label, hint, prefix, value, onChange }: Props) {
       {hint && !error && <p class="field-hint">{hint}</p>}
       {value && (
         <div class="image-field-preview">
-          <img src={value} alt="" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          <img src={previewSrc(value)} alt="" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
         </div>
       )}
     </div>

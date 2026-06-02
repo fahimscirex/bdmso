@@ -126,19 +126,16 @@ After editing, run `pnpm run build` so `dist/` and the generated `/programs/*` p
 
 ### Hall of Fame / Results
 
-**`public/data/results.json`** - two arrays:
+Edited in the admin dashboard (D1 source of truth), not JSON files:
 
-- `featured` - medal-winner profile cards: `name`, `medal`, `medalLabel`, `subject`, `class`, `event`, `quote`, `photoClass`.
-- `photos` - the "Faces of Bangladesh" slideshow on the home page: `src`, `caption`, `year`.
-
-`medal` controls badge colour: `"gold"`, `"silver"`, or `"bronze"`.
-`photoClass`: `""`, `"ph-gold"`, or `"ph-navy"`.
+- **Hall of Fame** (the "Faces of Bangladesh" home-page slider) - `hall_of_fame_photos` table, materialized to `apps/static/src/content/data/halloffame.json`.
+- **Medalists** (the `/results` page) - `medalists` table (`year`, `category`, `medal`, `name`, `school`), materialized to `apps/static/src/content/data/medalists.json`.
 
 ---
 
 ### In the news
 
-**`public/data/media.json`** - the press-mentions strip: `date`, `title`, `src`, `url`, `outlet`, `favicon`.
+Press mentions (home-page collage + `/media`) are edited in the admin dashboard: the `press_mentions` table, materialized to `apps/static/src/content/data/press.json`.
 
 ---
 

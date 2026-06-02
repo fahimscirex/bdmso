@@ -4,6 +4,7 @@
 // improvement over the old site.js which rendered the whole header client-side.
 // The client script below handles the interactive + session-aware parts:
 // swapping the CTA for logged-in users, the mobile menu, and logout.
+import Img from "./Img.astro";
 interface Props {
   page?: string;
 }
@@ -25,7 +26,7 @@ const NAV_LINKS = [
   <div class="container">
     <nav class="nav" aria-label="Primary">
       <a class="brand" href="/" aria-label="BdMSO home">
-        <img class="brand-logo" src="/images/logo.webp" alt="BdMSO 2026 logo" width="120" height="84" />
+        <Img class="brand-logo" src="/images/logo.webp" alt="BdMSO 2026 logo" loading="eager" />
       </a>
       <a class="mobile-login" href="/login">Log in</a>
       <button class="menu-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="nav-menu">

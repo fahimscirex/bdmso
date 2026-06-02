@@ -20,7 +20,7 @@ import {
 } from "./routes/public.js";
 import guardianRoutes from "./routes/guardian.js";
 import adminRoutes from "./routes/admin.js";
-import { markdownToHtml, escHtml } from "../public/js/md.js";
+import { readRepoAsset, repoRelForLogical } from "./lib/repoAssets.js";
 
 // ─── API (Hono) ───────────────────────────────────────────────────────────────
 //
@@ -66,35 +66,24 @@ api.onError((err, c) => {
 
 api.notFound((c) => c.json({ error: "Not found." }, 404));
 
-// ─── R2 read path (/r2/<key>) ─────────────────────────────────────────────────
+// ─── Admin image preview (/admin-img/<logical path>) ──────────────────────────
 //
-// Reads from env.ASSETS_R2 and streams. Used to serve admin-uploaded
-// images under our own domain (so the public CSP's img-src 'self' applies
-// and we don't need a separate R2 custom domain). Returns 404 for unknown
-// keys, 405 for non-GET/HEAD methods, 405 for path-traversal attempts.
+// Images live in the repo (apps/static/src/assets) and the public site serves
+// optimized _astro variants. The admin SPA, however, previews images by their
+// stored logical path (/images/..., /assets/uploads/...). This route serves
+// those originals straight from the repo source (GitHub raw in prod, the dev
+// sidecar locally) so dashboard thumbnails/previews work without R2 or a
+// duplicated public/images. See worker/lib/repoAssets.js.
 
-async function serveR2(request, env, url) {
+async function serveAdminImg(request, env, url) {
   if (request.method !== "GET" && request.method !== "HEAD") {
     return new Response("Method not allowed", { status: 405 });
   }
-  if (!env.ASSETS_R2) {
-    return new Response("R2 binding missing", { status: 500 });
-  }
-  const key = decodeURIComponent(url.pathname.slice("/r2/".length));
-  // Reject path-traversal attempts and leading slashes outright.
-  if (!key || key.includes("..") || key.startsWith("/")) {
-    return new Response("Bad key", { status: 400 });
-  }
-
-  const object = await env.ASSETS_R2.get(key);
-  if (!object) return new Response("Not found", { status: 404 });
-
-  const headers = new Headers();
-  object.writeHttpMetadata(headers);
-  headers.set("etag", object.httpEtag);
-  // Random keys → safe to cache aggressively. Content for a given key is immutable.
-  headers.set("Cache-Control", "public, max-age=31536000, immutable");
-  return new Response(request.method === "HEAD" ? null : object.body, { headers });
+  const logical = decodeURIComponent(url.pathname.slice("/admin-img/".length));
+  const repoRel = repoRelForLogical(logical);
+  if (!repoRel) return new Response("Bad path", { status: 400 });
+  const res = await readRepoAsset(env, repoRel);
+  return res || new Response("Not found", { status: 404 });
 }
 
 // ─── Security Headers ─────────────────────────────────────────────────────────
@@ -240,31 +229,16 @@ export default {
       return withSecurityHeaders(response, url);
     }
 
-    // R2-backed user uploads. Public, immutable - keys are random so the
-    // URL itself is unguessable enough for this content tier.
-    if (url.pathname.startsWith("/r2/")) {
-      const r2 = await serveR2(request, env, url);
-      return withSecurityHeaders(r2, url);
+    // Admin image previews: serve repo-source originals for the dashboard.
+    if (url.pathname.startsWith("/admin-img/")) {
+      const img = await serveAdminImg(request, env, url);
+      return withSecurityHeaders(img, url);
     }
 
     // Pretty-URL canonicalization with 301s (replaces the assets binding's default 307s).
     if (request.method === "GET" || request.method === "HEAD") {
       const redirect = tryPrettyRedirect(url);
       if (redirect) return withSecurityHeaders(redirect, url);
-    }
-
-    // D1-backed posts CMS: any /posts/<slug> request first checks the
-    // `posts` table. On hit (and published), render the markdown + frame
-    // it in the existing post template and return. On miss, fall through
-    // to the static-asset path (file-based markdown posts).
-    if ((request.method === "GET" || request.method === "HEAD") &&
-        url.pathname.startsWith("/posts/") &&
-        !url.pathname.endsWith(".json") && !url.pathname.endsWith(".md")) {
-      const slug = url.pathname.slice("/posts/".length).replace(/\.html?$/i, "");
-      if (slug && /^[a-z0-9](?:[a-z0-9-]{0,80}[a-z0-9])?$/.test(slug)) {
-        const d1Response = await serveD1Post(env, slug, url);
-        if (d1Response) return withSecurityHeaders(applyCacheHeaders(d1Response, url.pathname), url);
-      }
     }
 
     // Map extensionless URL → underlying .html asset (no redirect; transparent rewrite).
@@ -282,89 +256,7 @@ export default {
   }
 };
 
-// ─── D1-backed posts CMS ─────────────────────────────────────────────────
-//
-// Renders a single post from the `posts` table. Returns a complete HTML
-// response with the same shell as public/post.html so the visual
-// presentation matches file-based posts (header, footer, typography).
-// Returns null if no row exists or the post isn't published - the caller
-// falls back to static-file lookup.
-async function serveD1Post(env, slug, url) {
-  let row;
-  try {
-    row = await env.DB.prepare(
-      "SELECT slug, title, excerpt, category, author, image, body_md, published, published_at, updated_at FROM posts WHERE slug = ? LIMIT 1"
-    ).bind(slug).first();
-  } catch {
-    return null;
-  }
-  if (!row || (row.published !== 1 && row.published !== true)) return null;
-
-  const title    = String(row.title || "");
-  const excerpt  = String(row.excerpt || "").trim();
-  const category = String(row.category || "").trim();
-  const author   = String(row.author   || "").trim();
-  const image    = String(row.image    || "").trim();
-  const dateIso  = String(row.published_at || row.updated_at || "");
-  const bodyHtml = markdownToHtml(String(row.body_md || ""));
-  const canonical = `${url.origin}/posts/${escHtml(slug)}`;
-  const ogImage   = image && /^https?:\/\//i.test(image) ? image
-                  : image ? `${url.origin}${image.startsWith("/") ? "" : "/"}${image}`
-                  : `${url.origin}/images/logo.webp`;
-
-  const displayDate = dateIso ? (() => {
-    try { return new Date(dateIso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }); }
-    catch { return dateIso.slice(0, 10); }
-  })() : "";
-
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${escHtml(title)} - BdMSO</title>
-<meta name="description" content="${escHtml(excerpt)}">
-<link rel="canonical" href="${escHtml(canonical)}">
-<meta property="og:type" content="article">
-<meta property="og:url" content="${escHtml(canonical)}">
-<meta property="og:title" content="${escHtml(title)}">
-<meta property="og:description" content="${escHtml(excerpt)}">
-<meta property="og:image" content="${escHtml(ogImage)}">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="${escHtml(title)}">
-<meta name="twitter:description" content="${escHtml(excerpt)}">
-<meta name="twitter:image" content="${escHtml(ogImage)}">
-<meta name="theme-color" content="#0b1b3f">
-<link rel="icon" href="/favicon.ico" sizes="any">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="/css/styles.css">
-</head>
-<body data-page="post">
-<div id="site-header"></div>
-<main>
-  <article class="post-wrap">
-    <div class="container container-narrow">
-      <a class="post-back" href="/blog">← Back to blog</a>
-      ${category ? `<div class="post-cat eyebrow">${escHtml(category)}</div>` : ""}
-      <h1 class="post-title">${escHtml(title)}</h1>
-      <div class="post-meta">
-        ${displayDate ? `<span>${escHtml(displayDate)}</span>` : ""}
-        ${author ? `<span>· ${escHtml(author)}</span>` : ""}
-      </div>
-      ${image ? `<figure class="post-hero"><img src="${escHtml(image)}" alt="${escHtml(title)}"></figure>` : ""}
-      <div class="post-body prose">${bodyHtml}</div>
-    </div>
-  </article>
-</main>
-<div id="site-footer"></div>
-<script type="module" src="/js/site.js"></script>
-</body>
-</html>`;
-
-  return new Response(html, {
-    status: 200,
-    headers: { "content-type": "text/html; charset=utf-8" },
-  });
-}
+// Posts are served statically from the Astro build (dist/posts/<slug>.html),
+// materialized from the `posts` table - same model as programs/press/team. The
+// old runtime D1 renderer (serveD1Post) was removed so post images go through
+// Astro's image optimizer like every other page.

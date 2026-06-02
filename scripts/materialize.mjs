@@ -12,6 +12,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..');
 const programsDir = join(repoRoot, 'apps', 'static', 'src', 'content', 'programs');
 const blogDir = join(repoRoot, 'apps', 'static', 'src', 'content', 'blog');
+// List datasets (press, Hall of Fame, medalists) materialize to single JSON
+// array files consumed by Astro `file()` data collections - see content.config.ts.
+const dataDir = join(repoRoot, 'apps', 'static', 'src', 'content', 'data');
 
 // Run a SQL query against local D1 and return the rows (parsed[0].results).
 function queryD1(sql) {
@@ -181,6 +184,75 @@ function writeContentFile(filePath, frontmatterLines, body) {
   writeFileSync(filePath, content);
 }
 
+// Write a list dataset as a JSON array (one file per dataset). Each entry keeps
+// its `id` so Astro's file() loader can key the collection. The whole file is
+// rewritten each run, so unpublished/deleted rows drop out with no prune step.
+function writeDataFile(filePath, rows) {
+  writeFileSync(filePath, JSON.stringify(rows, null, 2) + '\n');
+}
+
+// Materialize the three marketing list datasets from D1 into content/data/*.json.
+// Returns { press, halloffame, medalists } counts.
+function materializeDatasets(written) {
+  if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
+
+  const press = queryD1(
+    'SELECT id, outlet, title, url, published_on, image, featured FROM press_mentions ' +
+    'WHERE published = 1 ORDER BY featured DESC, sort_order ASC, id ASC',
+  ).map((r) => ({
+    id: String(r.id),
+    outlet: r.outlet,
+    title: r.title,
+    url: r.url,
+    publishedOn: r.published_on || '',
+    image: r.image || '',
+    featured: r.featured === 1,
+  }));
+  writeDataFile(join(dataDir, 'press.json'), press);
+  written.push('apps/static/src/content/data/press.json');
+
+  const halloffame = queryD1(
+    'SELECT id, image, caption, year FROM hall_of_fame_photos ' +
+    'WHERE published = 1 ORDER BY sort_order ASC, id ASC',
+  ).map((r) => ({ id: String(r.id), image: r.image, caption: r.caption || '', year: r.year || '' }));
+  writeDataFile(join(dataDir, 'halloffame.json'), halloffame);
+  written.push('apps/static/src/content/data/halloffame.json');
+
+  const medalists = queryD1(
+    "SELECT id, year, category, medal, name, school FROM medalists WHERE published = 1 " +
+    "ORDER BY year DESC, category ASC, " +
+    "CASE medal WHEN 'gold' THEN 0 WHEN 'silver' THEN 1 WHEN 'bronze' THEN 2 ELSE 3 END, " +
+    "sort_order ASC, id ASC",
+  ).map((r) => ({
+    id: String(r.id),
+    year: r.year,
+    category: r.category,
+    medal: r.medal,
+    name: r.name,
+    school: r.school || '',
+  }));
+  writeDataFile(join(dataDir, 'medalists.json'), medalists);
+  written.push('apps/static/src/content/data/medalists.json');
+
+  const team = queryD1(
+    'SELECT id, section, subgroup, year, name, role, affiliation, image, sort_order FROM team_members ' +
+    'WHERE published = 1 ORDER BY section ASC, sort_order ASC, id ASC',
+  ).map((r) => ({
+    id: String(r.id),
+    section: r.section,
+    subgroup: r.subgroup || '',
+    year: r.year || '',
+    name: r.name,
+    role: r.role || '',
+    affiliation: r.affiliation || '',
+    image: r.image || '',
+  }));
+  writeDataFile(join(dataDir, 'team.json'), team);
+  written.push('apps/static/src/content/data/team.json');
+
+  return { press: press.length, halloffame: halloffame.length, medalists: medalists.length, team: team.length };
+}
+
 // Delete .md files whose slug is no longer in the published set (unpublished or
 // deleted in D1). D1 is the source of truth, so the .md set must mirror the
 // published rows exactly.
@@ -250,14 +322,23 @@ export async function materialize() {
   pruneOrphans(programsDir, new Set(programRows.map((r) => r.slug)), 'programs', removed);
   pruneOrphans(blogDir, new Set(postRows.map((r) => r.slug)), 'blog', removed);
 
-  return { programs, posts, written, removed };
+  // === LIST DATASETS (press, Hall of Fame, medalists) ===
+  const datasets = materializeDatasets(written);
+  for (const [name, n] of Object.entries(datasets)) {
+    console.log(`wrote apps/static/src/content/data/${name === 'halloffame' ? 'halloffame' : name}.json (${n} rows)`);
+  }
+
+  return { programs, posts, datasets, written, removed };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   materialize()
     .then((result) => {
       console.log(
-        `materialize done: ${result.programs} programs, ${result.posts} posts, ${result.written.length} files written`,
+        `materialize done: ${result.programs} programs, ${result.posts} posts, ` +
+        `${result.datasets.press} press, ${result.datasets.halloffame} HoF photos, ` +
+        `${result.datasets.medalists} medalists, ${result.datasets.team} team, ` +
+        `${result.written.length} files written`,
       );
     })
     .catch((err) => {

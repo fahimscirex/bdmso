@@ -1,7 +1,0 @@
-[
-  { "value": "20",   "unit": "+",   "label": "Mentors" },
-  { "value": "500",  "unit": "+",   "label": "Hours of Training" },
-  { "value": "12",   "unit": "/12", "label": "Medals in IMSO '25" },
-  { "value": "100",  "unit": "+",   "label": "Volunteers" },
-  { "value": "5000", "unit": "+",   "label": "Students Engaged" }
-]

@@ -7,8 +7,10 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import STYLES from "../_registration-styles.css?raw";
 import BODY from "../_registration-body.html?raw";
+import { optimizedAbsolute } from "../lib/ogImage";
 
-const jsonLd = [{"@context":"https://schema.org","@type":"Event","name":"BdMSO 2026 National Round","startDate":"2026-06-15","eventStatus":"https://schema.org/EventScheduled","eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode","location":{"@type":"Place","name":"Multiple regional venues, Bangladesh","address":{"@type":"PostalAddress","addressCountry":"BD"}},"image":"https://bdmso.org/images/group-winner.webp","description":"Register for the BdMSO 2026 National Round - the official qualifying olympiad for primary-school students competing for the Bangladesh team at IMSO 2026.","organizer":{"@type":"Organization","name":"BdMSO","url":"https://bdmso.org"},"offers":{"@type":"Offer","price":"1000","priceCurrency":"BDT","url":"https://bdmso.org/registration","availability":"https://schema.org/InStock"}}];
+const eventImage = await optimizedAbsolute("https://bdmso.org/images/group-winner.webp");
+const jsonLd = [{"@context":"https://schema.org","@type":"Event","name":"BdMSO 2026 National Round","startDate":"2026-06-15","eventStatus":"https://schema.org/EventScheduled","eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode","location":{"@type":"Place","name":"Multiple regional venues, Bangladesh","address":{"@type":"PostalAddress","addressCountry":"BD"}},"image":eventImage,"description":"Register for the BdMSO 2026 National Round - the official qualifying olympiad for primary-school students competing for the Bangladesh team at IMSO 2026.","organizer":{"@type":"Organization","name":"BdMSO","url":"https://bdmso.org"},"offers":{"@type":"Offer","price":"1000","priceCurrency":"BDT","url":"https://bdmso.org/registration","availability":"https://schema.org/InStock"}}];
 ---
 
 <BaseLayout

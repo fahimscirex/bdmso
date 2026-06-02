@@ -7,7 +7,7 @@
   "description": "BdMSO static marketing site prepared for Cloudflare Pages and Workers with D1.",
   "scripts": {
     "build": "echo 'Use pnpm run build:all (site + apps), or build:static / build:admin / build:guardian.' && exit 1",
-    "build:static": "pnpm --filter @bdmso/static build",
+    "build:static": "apps/static/node_modules/.bin/astro build --root apps/static",
     "build:admin": "pnpm --filter @bdmso/admin build",
     "build:guardian": "pnpm --filter @bdmso/guardian build",
     "build:apps": "pnpm --filter @bdmso/admin --filter @bdmso/guardian build",
@@ -32,5 +32,8 @@
   },
   "dependencies": {
     "hono": "^4.12.19"
+  },
+  "devDependencies": {
+    "sharp": "0.34.5"
   }
 }

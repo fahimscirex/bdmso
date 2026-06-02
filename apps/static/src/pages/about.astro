@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import Img from "../components/Img.astro";
 
 const title = "About BdMSO - Bangladesh's Official IMSO Qualifying Olympiad";
 const description =
@@ -83,7 +84,7 @@ const jsonLd = [
 
       <div class="panel">
         <div class="story">
-          <div class="img"><img loading="lazy" src="/images/team/parliament-2025.webp" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:var(--r-lg);" alt="Pre-international photograph - students and mentors"></div>
+          <div class="img"><Img src="/images/team/parliament-2025.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:var(--r-lg);" alt="Pre-international photograph - students and mentors" widths={[400, 800]} sizes="(max-width: 800px) 100vw, 520px" /></div>
           <div>
             <span class="eyebrow">Our Story</span>
             <h2 style="margin: 14px 0 16px;">Nurturing Early-Age STEM Talent Across Bangladesh</h2>
@@ -108,14 +109,14 @@ const jsonLd = [
         <h2 style="margin: 10px 0 24px;">BdOSN &amp; SPSB.</h2>
         <div class="orgs">
           <div class="org">
-            <div class="logo"><img loading="lazy" src="/images/logos/bdosn-logo.webp" alt="BdOSN" style="width:56px;height:56px;object-fit:contain;"></div>
+            <div class="logo"><Img src="/images/logos/bdosn-logo.webp" alt="BdOSN" style="width:56px;height:56px;object-fit:contain;" /></div>
             <div>
               <h3><a href="https://bdosn.org" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;border-bottom:1px solid var(--gold-500);">Bangladesh Open Source Network</a></h3>
               <p>BdOSN champions open knowledge, computing, and science education across Bangladesh - from the National Digital Innovation Awards to nationwide olympiads.</p>
             </div>
           </div>
           <div class="org">
-            <div class="logo"><img loading="lazy" src="/images/logos/spsb.png" alt="SPSB" style="width:56px;height:56px;object-fit:contain;"></div>
+            <div class="logo"><Img src="/images/logos/spsb.png" alt="SPSB" style="width:56px;height:56px;object-fit:contain;" /></div>
             <div>
               <h3><a href="https://spsb.org" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;border-bottom:1px solid var(--gold-500);">Society for the Popularization of Science, Bangladesh</a></h3>
               <p>SPSB has been making science accessible to Bangladeshi students since its founding through summer camps, publications, and research mentorship.</p>

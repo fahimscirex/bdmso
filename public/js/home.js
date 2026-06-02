@@ -11,60 +11,33 @@ function set(id, html) {
   if (el) el.innerHTML = html;
 }
 
-async function renderStats() {
-  const items = await load('stats.json');
-  set('stats-grid', items.map(({ value, unit, label }) =>
-    `<div class="trust-item">
-      <div class="big">${value}<span class="unit">${unit}</span></div>
-      <div class="lbl">${label}</div>
-    </div>`
-  ).join(''));
-}
-
-async function renderSteps() {
-  const steps = await load('steps.json');
-  set('steps-list', steps.map(({ name, date }, i) =>
-    `<div class="step">
-      <div class="step-num">${i + 1}</div>
-      <div class="step-name">${name}</div>
-      <div class="step-date">${date}</div>
-    </div>`
-  ).join(''));
-}
-
-async function renderResults() {
-  const { photos } = await load('results.json');
-  if (!photos || !photos.length) return;
-
+// Enhancement only: the slides + dots + first caption are server-rendered by
+// index.astro from the halloffame collection (crawlable). This just wires the
+// slider behaviour. Captions are read from each slide's <img alt>, so no fetch.
+function renderResults() {
   const track = document.getElementById('fame-slide-track');
   const dotsEl = document.getElementById('fame-dots');
   const captionEl = document.getElementById('fame-caption');
-  if (!track) return;
+  if (!track || !dotsEl) return;
 
-  track.innerHTML = photos.map((p, i) =>
-    `<div class="fame-slide${i === 0 ? ' active' : ''}">
-      <img src="${p.src}" alt="${p.caption}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">
-    </div>`
-  ).join('');
-
-  dotsEl.innerHTML = photos.map((_, i) =>
-    `<button class="fame-dot${i === 0 ? ' active' : ''}" data-i="${i}" aria-label="Slide ${i + 1}"></button>`
-  ).join('');
-
-  let cur = 0;
   const slides = track.querySelectorAll('.fame-slide');
   const dots = dotsEl.querySelectorAll('.fame-dot');
+  if (!slides.length || slides.length !== dots.length) return;
+  const captions = Array.from(slides).map((s) => {
+    const img = s.querySelector('img');
+    return img ? img.alt : '';
+  });
 
+  let cur = 0;
   function go(n) {
     slides[cur].classList.remove('active');
     dots[cur].classList.remove('active');
     cur = (n + slides.length) % slides.length;
     slides[cur].classList.add('active');
     dots[cur].classList.add('active');
-    captionEl.textContent = photos[cur].caption;
+    if (captionEl) captionEl.textContent = captions[cur];
   }
 
-  captionEl.textContent = photos[0].caption;
   document.getElementById('fame-prev').addEventListener('click', () => { clearInterval(autoTimer); go(cur - 1); });
   document.getElementById('fame-next').addEventListener('click', () => { clearInterval(autoTimer); go(cur + 1); });
   dots.forEach(d => d.addEventListener('click', () => { clearInterval(autoTimer); go(Number(d.dataset.i)); }));
@@ -165,30 +138,10 @@ async function renderNews() {
   }).join(''));
 }
 
-async function renderMedia() {
-  const items = await load('media.json');
-  set('media-grid', items.map(({ date, title, src, url, outlet, favicon }) =>
-    `<a class="collage-card" href="${url}" target="_blank" rel="noopener">
-      ${src ? `<img class="collage-img" src="${src}" alt="${title}">` : ''}
-      <div class="collage-source">
-        ${favicon ? `<img src="${favicon}" alt="">` : ''}
-        <span>${outlet}</span>
-      </div>
-      <div class="collage-body">
-        <div class="collage-date">${date}</div>
-        <div class="collage-headline">${title}</div>
-      </div>
-    </a>`
-  ).join(''));
-}
-
-renderStats().catch(() => {});
-renderSteps().catch(() => {});
-renderResults().catch(() => {});
+try { renderResults(); } catch {}
 renderPrograms().catch(() => {});
 renderGuide().catch(() => {});
 renderNews().catch(() => {});
-renderMedia().catch(() => {});
 
 async function adaptRegisterCta() {
   let session = null;

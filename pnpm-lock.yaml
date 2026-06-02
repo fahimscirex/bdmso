@@ -11,6 +11,10 @@ importers:
       hono:
         specifier: ^4.12.19
         version: 4.12.19
+    devDependencies:
+      sharp:
+        specifier: 0.34.5
+        version: 0.34.5
 
   apps/admin:
     dependencies:
@@ -58,6 +62,10 @@ importers:
       astro:
         specifier: ^6.4.2
         version: 6.4.2(@types/node@25.8.0)(rollup@4.60.4)
+    devDependencies:
+      sharp:
+        specifier: 0.34.5
+        version: 0.34.5
 
 packages:
 
@@ -2004,8 +2012,7 @@ snapshots:
   '@esbuild/win32-x64@0.27.7':
     optional: true
 
-  '@img/colour@1.1.0':
-    optional: true
+  '@img/colour@1.1.0': {}
 
   '@img/sharp-darwin-arm64@0.34.5':
     optionalDependencies:
@@ -2525,8 +2532,7 @@ snapshots:
 
   destr@2.0.5: {}
 
-  detect-libc@2.1.2:
-    optional: true
+  detect-libc@2.1.2: {}
 
   devalue@5.8.1: {}
 
@@ -3379,7 +3385,6 @@ snapshots:
       '@img/sharp-win32-arm64': 0.34.5
       '@img/sharp-win32-ia32': 0.34.5
       '@img/sharp-win32-x64': 0.34.5
-    optional: true
 
   shiki@4.1.0:
     dependencies:

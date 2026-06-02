@@ -9,6 +9,7 @@ import { sessionMiddleware } from "../middleware/session.js";
 import { requireRole } from "../middleware/requireRole.js";
 import { recordAudit } from "../lib/audit-log.js";
 import { getCatalog } from "../lib/programs.js";
+import { writeRepoAsset } from "../lib/repoAssets.js";
 import { getShurjopayConfig, shurjopayGetToken, shurjopayVerify } from "../lib/shurjopay.js";
 import { createVerificationToken, sendVerificationEmail, createPasswordResetToken, sendPasswordResetEmail, assignMemberIdAndSendReceipt, sendBroadcastEmail } from "../lib/email.js";
 import { getBaseUrl } from "../lib/util.js";
@@ -819,12 +820,12 @@ admin.delete("/coupons/:code", async (c) => {
 //   file:   the image File (jpeg | png | webp | gif | svg)
 //   prefix: optional folder ("posts" | "programs" | ...). Defaults to "misc".
 //
-// Returns { url, key, size, type }. `url` is the public path the
-// renderer can drop into an <img src>; it's served from the same origin
-// at /r2/<key> so it stays under our CSP.
-//
-// Orphan files (uploaded then never referenced) are tolerated for now -
-// cheap on R2, easy to sweep later if it ever matters.
+// The image is committed into the repo at apps/static/src/assets/uploads/<key>
+// (the single source Astro optimizes on the next build) - dev writes the working
+// tree via the asset sidecar, prod commits via the GitHub API. Returns
+// { url, key, size, type }; `url` is `/assets/uploads/<key>`, which the <Img>
+// component resolves to the optimized asset and the admin previews via
+// /admin-img. See worker/lib/repoAssets.js. (No R2.)
 
 const ALLOWED_IMAGE_TYPES = {
   "image/jpeg": "jpg",
@@ -836,10 +837,6 @@ const ALLOWED_IMAGE_TYPES = {
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;   // 10 MB - cover-image sized.
 
 admin.post("/uploads", async (c) => {
-  if (!c.env.ASSETS_R2) {
-    return c.json({ error: "R2 bucket binding ASSETS_R2 is not configured." }, 500);
-  }
-
   const form = await c.req.parseBody();
   const file = form.file;
   if (!file || typeof file === "string") {
@@ -864,10 +861,15 @@ admin.post("/uploads", async (c) => {
   const mm = String(now.getUTCMonth() + 1).padStart(2, "0");
   const id = crypto.randomUUID().replace(/-/g, "").slice(0, 16);
   const key = `${prefix}/${yyyy}/${mm}/${id}.${ext}`;
+  const repoRel = `apps/static/src/assets/uploads/${key}`;
 
-  await c.env.ASSETS_R2.put(key, file.stream(), {
-    httpMetadata: { contentType: file.type },
-  });
+  try {
+    const buf = await file.arrayBuffer();
+    await writeRepoAsset(c.env, repoRel, buf, file.type, `chore(upload): ${key}`);
+  } catch (err) {
+    console.error("upload failed:", err && err.message ? err.message : err);
+    return c.json({ error: "Upload failed - asset storage not configured or unreachable." }, 502);
+  }
 
   const session = c.get("session");
   await recordAudit(c.env, session.account_id, "upload.create", {
@@ -876,7 +878,7 @@ admin.post("/uploads", async (c) => {
 
   return c.json({
     ok: true,
-    url:  `/r2/${key}`,
+    url:  `/assets/uploads/${key}`,
     key,
     size: file.size,
     type: file.type,
@@ -1465,7 +1467,7 @@ admin.get("/system", async (c) => {
     ok: true,
     services: {
       d1:           { ok: d1Probe?.one === 1, hint: d1Probe?.one === 1 ? "responsive" : "no response" },
-      r2:           { ok: !!env.ASSETS_R2, hint: env.ASSETS_R2 ? "bucket bound" : "no binding" },
+      assets:       { ok: !!env.ASSET_REPO_BASE || (!!env.GITHUB_REPO && !!env.GITHUB_TOKEN), hint: env.ASSET_REPO_BASE ? "dev sidecar" : (env.GITHUB_REPO && env.GITHUB_TOKEN ? "github repo" : "not configured") },
       shurjopay:    {
         ok: !!env.SHURJOPAY_USERNAME && !!env.SHURJOPAY_PASSWORD && !!env.SHURJOPAY_PREFIX,
         hint: !!env.SHURJOPAY_USERNAME ? `endpoint=${env.SHURJOPAY_SANDBOX === "false" || env.ENVIRONMENT === "production" ? "engine" : "sandbox"} prefix=${env.SHURJOPAY_PREFIX || "?"}` : "missing credentials",
@@ -2256,5 +2258,549 @@ function sanitisePricing(pricing) {
   }
   return { json: JSON.stringify({ selection: pricing.selection, choices }) };
 }
+
+// ─── Press mentions (homepage collage + /media) ───────────────────────────
+// D1 is the source of truth; rows materialize to content/data/press.json.
+// Was the hand-edited public/data/media.json + hardcoded media.astro. Mirrors
+// the Programs routes; integer id (not slug) since press rows have no page.
+function normalisePressRow(r) {
+  return {
+    id: r.id,
+    outlet: r.outlet,
+    title: r.title,
+    url: r.url,
+    published_on: r.published_on || "",
+    image: r.image || "",
+    featured: r.featured === 1,
+    sort_order: r.sort_order ?? 0,
+    published: r.published === 1,
+    updated_at: r.updated_at,
+    updated_by: r.updated_by || null,
+  };
+}
+
+function sanitisePressInput(input, { partial = false } = {}) {
+  const v = {};
+  const has = (k) => (k in input) || !partial;
+  if (has("outlet")) v.outlet = trimOrNull(input.outlet);
+  if (has("title")) v.title = trimOrNull(input.title);
+  if (has("url")) v.url = trimOrNull(input.url);
+  if (has("published_on")) v.published_on = trimOrNull(input.published_on);
+  if (has("image")) v.image = trimOrNull(input.image);
+  if (has("sort_order")) {
+    const n = Number(input.sort_order);
+    v.sort_order = Number.isFinite(n) ? Math.trunc(n) : 0;
+  }
+  for (const k of ["featured", "published"]) if (has(k)) v[k] = input[k] ? 1 : 0;
+  return { values: v };
+}
+
+admin.get("/press-mentions", async (c) => {
+  const status = c.req.query("status");
+  const wheres = [];
+  if (status === "published") wheres.push("published = 1");
+  else if (status === "draft") wheres.push("published = 0");
+  const whereSql = wheres.length ? `WHERE ${wheres.join(" AND ")}` : "";
+
+  const list = await c.env.DB.prepare(`
+    SELECT * FROM press_mentions ${whereSql}
+    ORDER BY featured DESC, sort_order ASC, id ASC LIMIT 200
+  `).all();
+  const summary = await c.env.DB.prepare(`
+    SELECT COUNT(*) AS total,
+           SUM(CASE WHEN published = 1 THEN 1 ELSE 0 END) AS published,
+           SUM(CASE WHEN published = 0 THEN 1 ELSE 0 END) AS drafts
+    FROM press_mentions
+  `).first();
+
+  return c.json({
+    ok: true,
+    rows: (list.results || []).map(normalisePressRow),
+    summary: {
+      total: Number(summary?.total) || 0,
+      published: Number(summary?.published) || 0,
+      drafts: Number(summary?.drafts) || 0,
+    },
+  });
+});
+
+admin.get("/press-mentions/:id", async (c) => {
+  const row = await c.env.DB.prepare("SELECT * FROM press_mentions WHERE id = ? LIMIT 1")
+    .bind(c.req.param("id")).first();
+  if (!row) return c.json({ error: "Press mention not found." }, 404);
+  return c.json({ ok: true, item: normalisePressRow(row) });
+});
+
+admin.post("/press-mentions", async (c) => {
+  const sani = sanitisePressInput(await c.req.json());
+  if (sani.error) return c.json({ error: sani.error }, 400);
+  if (!sani.values.outlet || !sani.values.title || !sani.values.url) {
+    return c.json({ error: "Outlet, title, and URL are required." }, 400);
+  }
+  const session = c.get("session");
+  const keys = Object.keys(sani.values);
+  const cols = [...keys, "updated_by"];
+  const ph = [...keys.map(() => "?"), "?"];
+  const binds = [...keys.map((k) => sani.values[k]), session.account_id];
+
+  const res = await c.env.DB.prepare(`INSERT INTO press_mentions (${cols.join(", ")}) VALUES (${ph.join(", ")})`)
+    .bind(...binds).run();
+  const id = res.meta?.last_row_id;
+  await recordAudit(c.env, session.account_id, "press.create", {
+    type: "press_mention", id: String(id), payload: { title: sani.values.title },
+  });
+  return c.json({ ok: true, id });
+});
+
+admin.patch("/press-mentions/:id", async (c) => {
+  const id = c.req.param("id");
+  const before = await c.env.DB.prepare("SELECT id FROM press_mentions WHERE id = ? LIMIT 1").bind(id).first();
+  if (!before) return c.json({ error: "Press mention not found." }, 404);
+
+  const sani = sanitisePressInput(await c.req.json(), { partial: true });
+  if (sani.error) return c.json({ error: sani.error }, 400);
+  const keys = Object.keys(sani.values);
+  if (keys.length === 0) return c.json({ error: "No editable fields provided." }, 400);
+
+  const session = c.get("session");
+  const sets = [...keys.map((k) => `${k} = ?`), "updated_by = ?"];
+  const binds = [...keys.map((k) => sani.values[k]), session.account_id, id];
+  await c.env.DB.prepare(`UPDATE press_mentions SET ${sets.join(", ")} WHERE id = ?`).bind(...binds).run();
+
+  await recordAudit(c.env, session.account_id, "press.update", {
+    type: "press_mention", id: String(id), payload: Object.fromEntries(keys.map((k) => [k, sani.values[k]])),
+  });
+  return c.json({ ok: true });
+});
+
+admin.delete("/press-mentions/:id", async (c) => {
+  const id = c.req.param("id");
+  const before = await c.env.DB.prepare("SELECT title FROM press_mentions WHERE id = ?").bind(id).first();
+  if (!before) return c.json({ error: "Press mention not found." }, 404);
+  await c.env.DB.prepare("DELETE FROM press_mentions WHERE id = ?").bind(id).run();
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "press.delete", {
+    type: "press_mention", id: String(id), payload: { title: before.title },
+  });
+  return c.json({ ok: true });
+});
+
+// ─── Hall of Fame photos (homepage slider) ────────────────────────────────
+// Materializes to content/data/halloffame.json. Was public/data/results.json.
+function normaliseHofRow(r) {
+  return {
+    id: r.id,
+    image: r.image,
+    caption: r.caption || "",
+    year: r.year || "",
+    sort_order: r.sort_order ?? 0,
+    published: r.published === 1,
+    updated_at: r.updated_at,
+    updated_by: r.updated_by || null,
+  };
+}
+
+function sanitiseHofInput(input, { partial = false } = {}) {
+  const v = {};
+  const has = (k) => (k in input) || !partial;
+  if (has("image")) v.image = trimOrNull(input.image);
+  if (has("caption")) v.caption = trimOrNull(input.caption);
+  if (has("year")) v.year = trimOrNull(input.year);
+  if (has("sort_order")) {
+    const n = Number(input.sort_order);
+    v.sort_order = Number.isFinite(n) ? Math.trunc(n) : 0;
+  }
+  if (has("published")) v.published = input.published ? 1 : 0;
+  return { values: v };
+}
+
+admin.get("/hall-of-fame", async (c) => {
+  const status = c.req.query("status");
+  const wheres = [];
+  if (status === "published") wheres.push("published = 1");
+  else if (status === "draft") wheres.push("published = 0");
+  const whereSql = wheres.length ? `WHERE ${wheres.join(" AND ")}` : "";
+
+  const list = await c.env.DB.prepare(`
+    SELECT * FROM hall_of_fame_photos ${whereSql}
+    ORDER BY sort_order ASC, id ASC LIMIT 200
+  `).all();
+  const summary = await c.env.DB.prepare(`
+    SELECT COUNT(*) AS total,
+           SUM(CASE WHEN published = 1 THEN 1 ELSE 0 END) AS published,
+           SUM(CASE WHEN published = 0 THEN 1 ELSE 0 END) AS drafts
+    FROM hall_of_fame_photos
+  `).first();
+
+  return c.json({
+    ok: true,
+    rows: (list.results || []).map(normaliseHofRow),
+    summary: {
+      total: Number(summary?.total) || 0,
+      published: Number(summary?.published) || 0,
+      drafts: Number(summary?.drafts) || 0,
+    },
+  });
+});
+
+admin.get("/hall-of-fame/:id", async (c) => {
+  const row = await c.env.DB.prepare("SELECT * FROM hall_of_fame_photos WHERE id = ? LIMIT 1")
+    .bind(c.req.param("id")).first();
+  if (!row) return c.json({ error: "Photo not found." }, 404);
+  return c.json({ ok: true, item: normaliseHofRow(row) });
+});
+
+admin.post("/hall-of-fame", async (c) => {
+  const sani = sanitiseHofInput(await c.req.json());
+  if (sani.error) return c.json({ error: sani.error }, 400);
+  if (!sani.values.image) return c.json({ error: "An image is required." }, 400);
+  const session = c.get("session");
+  const keys = Object.keys(sani.values);
+  const cols = [...keys, "updated_by"];
+  const ph = [...keys.map(() => "?"), "?"];
+  const binds = [...keys.map((k) => sani.values[k]), session.account_id];
+
+  const res = await c.env.DB.prepare(`INSERT INTO hall_of_fame_photos (${cols.join(", ")}) VALUES (${ph.join(", ")})`)
+    .bind(...binds).run();
+  const id = res.meta?.last_row_id;
+  await recordAudit(c.env, session.account_id, "halloffame.create", {
+    type: "hall_of_fame_photo", id: String(id), payload: { caption: sani.values.caption },
+  });
+  return c.json({ ok: true, id });
+});
+
+admin.patch("/hall-of-fame/:id", async (c) => {
+  const id = c.req.param("id");
+  const before = await c.env.DB.prepare("SELECT id FROM hall_of_fame_photos WHERE id = ? LIMIT 1").bind(id).first();
+  if (!before) return c.json({ error: "Photo not found." }, 404);
+
+  const sani = sanitiseHofInput(await c.req.json(), { partial: true });
+  if (sani.error) return c.json({ error: sani.error }, 400);
+  const keys = Object.keys(sani.values);
+  if (keys.length === 0) return c.json({ error: "No editable fields provided." }, 400);
+
+  const session = c.get("session");
+  const sets = [...keys.map((k) => `${k} = ?`), "updated_by = ?"];
+  const binds = [...keys.map((k) => sani.values[k]), session.account_id, id];
+  await c.env.DB.prepare(`UPDATE hall_of_fame_photos SET ${sets.join(", ")} WHERE id = ?`).bind(...binds).run();
+
+  await recordAudit(c.env, session.account_id, "halloffame.update", {
+    type: "hall_of_fame_photo", id: String(id), payload: Object.fromEntries(keys.map((k) => [k, sani.values[k]])),
+  });
+  return c.json({ ok: true });
+});
+
+admin.delete("/hall-of-fame/:id", async (c) => {
+  const id = c.req.param("id");
+  const before = await c.env.DB.prepare("SELECT caption FROM hall_of_fame_photos WHERE id = ?").bind(id).first();
+  if (!before) return c.json({ error: "Photo not found." }, 404);
+  await c.env.DB.prepare("DELETE FROM hall_of_fame_photos WHERE id = ?").bind(id).run();
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "halloffame.delete", {
+    type: "hall_of_fame_photo", id: String(id), payload: { caption: before.caption },
+  });
+  return c.json({ ok: true });
+});
+
+// ─── Medalists (/results page) ─────────────────────────────────────────────
+// Materializes to content/data/medalists.json. Was hardcoded in results.astro.
+const MEDAL_TIERS = ["gold", "silver", "bronze"];
+
+function normaliseMedalistRow(r) {
+  return {
+    id: r.id,
+    year: r.year,
+    category: r.category,
+    medal: r.medal,
+    name: r.name,
+    school: r.school || "",
+    sort_order: r.sort_order ?? 0,
+    published: r.published === 1,
+    updated_at: r.updated_at,
+  };
+}
+
+function sanitiseMedalistInput(input, { partial = false } = {}) {
+  const v = {};
+  const has = (k) => (k in input) || !partial;
+  if (has("year")) v.year = trimOrNull(input.year);
+  if (has("category")) v.category = trimOrNull(input.category);
+  if (has("medal")) {
+    const m = (trimOrNull(input.medal) || "").toLowerCase();
+    if (m && !MEDAL_TIERS.includes(m)) return { error: `medal must be one of: ${MEDAL_TIERS.join(", ")}` };
+    v.medal = m || null;
+  }
+  if (has("name")) v.name = trimOrNull(input.name);
+  if (has("school")) v.school = trimOrNull(input.school);
+  if (has("sort_order")) {
+    const n = Number(input.sort_order);
+    v.sort_order = Number.isFinite(n) ? Math.trunc(n) : 0;
+  }
+  if (has("published")) v.published = input.published ? 1 : 0;
+  return { values: v };
+}
+
+admin.get("/medalists", async (c) => {
+  const year = c.req.query("year");
+  const category = c.req.query("category");
+  const wheres = [];
+  const binds = [];
+  if (year) { wheres.push("year = ?"); binds.push(year); }
+  if (category) { wheres.push("category = ?"); binds.push(category); }
+  const whereSql = wheres.length ? `WHERE ${wheres.join(" AND ")}` : "";
+
+  const list = await c.env.DB.prepare(`
+    SELECT * FROM medalists ${whereSql}
+    ORDER BY year DESC, category ASC,
+      CASE medal WHEN 'gold' THEN 0 WHEN 'silver' THEN 1 WHEN 'bronze' THEN 2 ELSE 3 END,
+      sort_order ASC, id ASC
+    LIMIT 1000
+  `).bind(...binds).all();
+
+  const summary = await c.env.DB.prepare(`
+    SELECT COUNT(*) AS total,
+           SUM(CASE WHEN published = 1 THEN 1 ELSE 0 END) AS published,
+           SUM(CASE WHEN published = 0 THEN 1 ELSE 0 END) AS drafts
+    FROM medalists
+  `).first();
+
+  // Distinct years for the filter dropdown.
+  const years = await c.env.DB.prepare("SELECT DISTINCT year FROM medalists ORDER BY year DESC").all();
+
+  return c.json({
+    ok: true,
+    rows: (list.results || []).map(normaliseMedalistRow),
+    years: (years.results || []).map((r) => r.year),
+    summary: {
+      total: Number(summary?.total) || 0,
+      published: Number(summary?.published) || 0,
+      drafts: Number(summary?.drafts) || 0,
+    },
+  });
+});
+
+admin.post("/medalists", async (c) => {
+  const sani = sanitiseMedalistInput(await c.req.json());
+  if (sani.error) return c.json({ error: sani.error }, 400);
+  if (!sani.values.year || !sani.values.category || !sani.values.medal || !sani.values.name) {
+    return c.json({ error: "Year, category, medal, and name are required." }, 400);
+  }
+  const session = c.get("session");
+  const keys = Object.keys(sani.values);
+  const cols = [...keys, "updated_by"];
+  const ph = [...keys.map(() => "?"), "?"];
+  const binds = [...keys.map((k) => sani.values[k]), session.account_id];
+
+  const res = await c.env.DB.prepare(`INSERT INTO medalists (${cols.join(", ")}) VALUES (${ph.join(", ")})`)
+    .bind(...binds).run();
+  const id = res.meta?.last_row_id;
+  await recordAudit(c.env, session.account_id, "medalist.create", {
+    type: "medalist", id: String(id), payload: { name: sani.values.name, year: sani.values.year },
+  });
+  return c.json({ ok: true, id });
+});
+
+admin.patch("/medalists/:id", async (c) => {
+  const id = c.req.param("id");
+  const before = await c.env.DB.prepare("SELECT id FROM medalists WHERE id = ? LIMIT 1").bind(id).first();
+  if (!before) return c.json({ error: "Medalist not found." }, 404);
+
+  const sani = sanitiseMedalistInput(await c.req.json(), { partial: true });
+  if (sani.error) return c.json({ error: sani.error }, 400);
+  const keys = Object.keys(sani.values);
+  if (keys.length === 0) return c.json({ error: "No editable fields provided." }, 400);
+
+  const session = c.get("session");
+  const sets = [...keys.map((k) => `${k} = ?`), "updated_by = ?"];
+  const binds = [...keys.map((k) => sani.values[k]), session.account_id, id];
+  await c.env.DB.prepare(`UPDATE medalists SET ${sets.join(", ")} WHERE id = ?`).bind(...binds).run();
+
+  await recordAudit(c.env, session.account_id, "medalist.update", {
+    type: "medalist", id: String(id), payload: Object.fromEntries(keys.map((k) => [k, sani.values[k]])),
+  });
+  return c.json({ ok: true });
+});
+
+admin.delete("/medalists/:id", async (c) => {
+  const id = c.req.param("id");
+  const before = await c.env.DB.prepare("SELECT name FROM medalists WHERE id = ?").bind(id).first();
+  if (!before) return c.json({ error: "Medalist not found." }, 404);
+  await c.env.DB.prepare("DELETE FROM medalists WHERE id = ?").bind(id).run();
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "medalist.delete", {
+    type: "medalist", id: String(id), payload: { name: before.name },
+  });
+  return c.json({ ok: true });
+});
+
+// Bulk import (CSV upload from the admin parses to rows). "Replace that year":
+// for every year present in the payload we clear existing medalists, then insert
+// the uploaded rows (published). Done in one batch so a year is never left empty
+// on a failed insert. Row order becomes sort_order within each medal column.
+admin.post("/medalists/import", async (c) => {
+  const body = await c.req.json();
+  const rows = Array.isArray(body.rows) ? body.rows : null;
+  if (!rows || rows.length === 0) return c.json({ error: "No rows to import." }, 400);
+  if (rows.length > 2000) return c.json({ error: "Too many rows (max 2000)." }, 400);
+
+  const clean = [];
+  for (let i = 0; i < rows.length; i++) {
+    const sani = sanitiseMedalistInput(rows[i]);
+    if (sani.error) return c.json({ error: `Row ${i + 1}: ${sani.error}` }, 400);
+    const v = sani.values;
+    if (!v.year || !v.category || !v.medal || !v.name) {
+      return c.json({ error: `Row ${i + 1}: year, category, medal, and name are required.` }, 400);
+    }
+    clean.push(v);
+  }
+
+  const years = [...new Set(clean.map((r) => r.year))];
+  const session = c.get("session");
+  const stmts = [];
+  for (const y of years) {
+    stmts.push(c.env.DB.prepare("DELETE FROM medalists WHERE year = ?").bind(y));
+  }
+  clean.forEach((v, i) => {
+    stmts.push(c.env.DB.prepare(
+      "INSERT INTO medalists (year, category, medal, name, school, sort_order, published, updated_by) " +
+      "VALUES (?, ?, ?, ?, ?, ?, 1, ?)",
+    ).bind(v.year, v.category, v.medal, v.name, v.school ?? null, i + 1, session.account_id));
+  });
+  await c.env.DB.batch(stmts);
+
+  await recordAudit(c.env, session.account_id, "medalist.import", {
+    type: "medalist", id: years.join(","), payload: { years, count: clean.length },
+  });
+  return c.json({ ok: true, imported: clean.length, years });
+});
+
+// ─── Team members (/team page) ─────────────────────────────────────────────
+// Materializes to content/data/team.json. Was hardcoded in team.astro.
+const TEAM_SECTIONS = ["delegation", "advisor", "organizing", "mentor", "alumni"];
+
+function normaliseTeamRow(r) {
+  return {
+    id: r.id,
+    section: r.section,
+    subgroup: r.subgroup || "",
+    year: r.year || "",
+    name: r.name,
+    role: r.role || "",
+    affiliation: r.affiliation || "",
+    image: r.image || "",
+    sort_order: r.sort_order ?? 0,
+    published: r.published === 1,
+    updated_at: r.updated_at,
+  };
+}
+
+function sanitiseTeamInput(input, { partial = false } = {}) {
+  const v = {};
+  const has = (k) => (k in input) || !partial;
+  if (has("section")) {
+    const s = trimOrNull(input.section);
+    if (s && !TEAM_SECTIONS.includes(s)) return { error: `section must be one of: ${TEAM_SECTIONS.join(", ")}` };
+    v.section = s;
+  }
+  for (const k of ["subgroup", "year", "name", "role", "affiliation", "image"]) {
+    if (has(k)) v[k] = trimOrNull(input[k]);
+  }
+  if (has("sort_order")) {
+    const n = Number(input.sort_order);
+    v.sort_order = Number.isFinite(n) ? Math.trunc(n) : 0;
+  }
+  if (has("published")) v.published = input.published ? 1 : 0;
+  return { values: v };
+}
+
+admin.get("/team", async (c) => {
+  const section = c.req.query("section");
+  const wheres = [];
+  const binds = [];
+  if (section) { wheres.push("section = ?"); binds.push(section); }
+  const whereSql = wheres.length ? `WHERE ${wheres.join(" AND ")}` : "";
+
+  const list = await c.env.DB.prepare(`
+    SELECT * FROM team_members ${whereSql}
+    ORDER BY section ASC, sort_order ASC, id ASC LIMIT 500
+  `).bind(...binds).all();
+  const summary = await c.env.DB.prepare(`
+    SELECT COUNT(*) AS total,
+           SUM(CASE WHEN published = 1 THEN 1 ELSE 0 END) AS published,
+           SUM(CASE WHEN published = 0 THEN 1 ELSE 0 END) AS drafts
+    FROM team_members
+  `).first();
+
+  return c.json({
+    ok: true,
+    rows: (list.results || []).map(normaliseTeamRow),
+    summary: {
+      total: Number(summary?.total) || 0,
+      published: Number(summary?.published) || 0,
+      drafts: Number(summary?.drafts) || 0,
+    },
+  });
+});
+
+admin.get("/team/:id", async (c) => {
+  const row = await c.env.DB.prepare("SELECT * FROM team_members WHERE id = ? LIMIT 1")
+    .bind(c.req.param("id")).first();
+  if (!row) return c.json({ error: "Team member not found." }, 404);
+  return c.json({ ok: true, item: normaliseTeamRow(row) });
+});
+
+admin.post("/team", async (c) => {
+  const sani = sanitiseTeamInput(await c.req.json());
+  if (sani.error) return c.json({ error: sani.error }, 400);
+  if (!sani.values.section || !sani.values.name) {
+    return c.json({ error: "Section and name are required." }, 400);
+  }
+  const session = c.get("session");
+  const keys = Object.keys(sani.values);
+  const cols = [...keys, "updated_by"];
+  const ph = [...keys.map(() => "?"), "?"];
+  const binds = [...keys.map((k) => sani.values[k]), session.account_id];
+
+  const res = await c.env.DB.prepare(`INSERT INTO team_members (${cols.join(", ")}) VALUES (${ph.join(", ")})`)
+    .bind(...binds).run();
+  const id = res.meta?.last_row_id;
+  await recordAudit(c.env, session.account_id, "team.create", {
+    type: "team_member", id: String(id), payload: { name: sani.values.name, section: sani.values.section },
+  });
+  return c.json({ ok: true, id });
+});
+
+admin.patch("/team/:id", async (c) => {
+  const id = c.req.param("id");
+  const before = await c.env.DB.prepare("SELECT id FROM team_members WHERE id = ? LIMIT 1").bind(id).first();
+  if (!before) return c.json({ error: "Team member not found." }, 404);
+
+  const sani = sanitiseTeamInput(await c.req.json(), { partial: true });
+  if (sani.error) return c.json({ error: sani.error }, 400);
+  const keys = Object.keys(sani.values);
+  if (keys.length === 0) return c.json({ error: "No editable fields provided." }, 400);
+
+  const session = c.get("session");
+  const sets = [...keys.map((k) => `${k} = ?`), "updated_by = ?"];
+  const binds = [...keys.map((k) => sani.values[k]), session.account_id, id];
+  await c.env.DB.prepare(`UPDATE team_members SET ${sets.join(", ")} WHERE id = ?`).bind(...binds).run();
+
+  await recordAudit(c.env, session.account_id, "team.update", {
+    type: "team_member", id: String(id), payload: Object.fromEntries(keys.map((k) => [k, sani.values[k]])),
+  });
+  return c.json({ ok: true });
+});
+
+admin.delete("/team/:id", async (c) => {
+  const id = c.req.param("id");
+  const before = await c.env.DB.prepare("SELECT name FROM team_members WHERE id = ?").bind(id).first();
+  if (!before) return c.json({ error: "Team member not found." }, 404);
+  await c.env.DB.prepare("DELETE FROM team_members WHERE id = ?").bind(id).run();
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "team.delete", {
+    type: "team_member", id: String(id), payload: { name: before.name },
+  });
+  return c.json({ ok: true });
+});
 
 export default admin;

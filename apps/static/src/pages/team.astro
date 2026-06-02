@@ -1,5 +1,31 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { getCollection } from "astro:content";
+import Img from "../components/Img.astro";
+import { optimizedAbsolute } from "../lib/ogImage";
+
+// Team members come from D1 (edited in the admin dashboard), materialized to the
+// team content collection. Already ordered by section + sort_order.
+const all = await getCollection("team");
+const inSection = (s: string) => all.filter((m) => m.data.section === s);
+const advisors = inSection("advisor");
+const organizing = inSection("organizing");
+const mentors = inSection("mentor");
+const alumni = inSection("alumni");
+const delegation = inSection("delegation");
+
+// Always show the current year's tab (placeholder until announced) plus every
+// year with a published delegation.
+const currentYear = String(new Date().getFullYear());
+const years = [...new Set([currentYear, ...delegation.map((m) => m.data.year).filter(Boolean)])]
+  .sort((a, b) => b.localeCompare(a));
+const delegFor = (year: string, subgroup: string) =>
+  delegation.filter((m) => m.data.year === year && m.data.subgroup === subgroup);
+// Per-year context line under the delegation heading (not editable - static copy).
+const BLURBS: Record<string, string> = {
+  "2026": "23rd IMSO · Indonesia, October 2026. The team will be selected after the National Round and Team Selection Test (TST).",
+  "2025": "22nd IMSO · Albukhary International University, Kedah, Malaysia · Oct 5–9, 2025.",
+};
 
 const title = "BdMSO Team - Organizers, Mentors and IMSO Delegation";
 const description =
@@ -14,7 +40,7 @@ const jsonLd = [
     url: "https://bdmso.org",
     description:
       "Meet the 2026 and 2025 Bangladesh IMSO delegations, advisors, organizing team, mentors, and volunteers behind BdMSO.",
-    logo: "https://bdmso.org/images/logo.webp",
+    logo: await optimizedAbsolute("https://bdmso.org/images/logo.webp"),
     member: [
       { "@type": "Person", name: "Munir Hasan", jobTitle: "Advisor, BdMSO and General Secretary, BdOSN" },
       { "@type": "Person", name: "Samin Yasar Ahmed", jobTitle: "Coordinator, BdMSO" },
@@ -94,73 +120,88 @@ const jsonLd = [
 
       <div class="panel">
         <div class="panel-head">
-          <div><span class="eyebrow">Section 1</span><h2 style="margin-top:10px;">Bangladesh Team Delegation</h2><p id="delegation-blurb" style="margin:6px 0 0; max-width:520px;">23rd IMSO · Indonesia, October 2026. The team will be selected after the National Round and Team Selection Test (TST).</p></div>
+          <div><span class="eyebrow">Section 1</span><h2 style="margin-top:10px;">Bangladesh Team Delegation</h2><p id="delegation-blurb" style="margin:6px 0 0; max-width:520px;">{BLURBS[years[0]] || ""}</p></div>
           <div class="years" role="tablist">
-            <button class="active" data-year="2026">2026</button>
-            <button data-year="2025">2025</button>
+            {years.map((y, i) => <button class={i === 0 ? "active" : ""} data-year={y}>{y}</button>)}
           </div>
         </div>
 
-        <!-- ── 2026 ─────────────────────────────────────────────────── -->
-        <div class="year-panel" data-year="2026" data-blurb="23rd IMSO · Indonesia, October 2026. The team will be selected after the National Round and Team Selection Test (TST).">
-          <div style="padding:48px 24px; text-align:center; background:var(--bg-alt); border:1px dashed var(--line); border-radius:var(--r-lg);">
-            <div style="font-size:11px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-3); margin-bottom:8px;">Not yet announced</div>
-            <h3 style="margin:0 0 8px; color:var(--navy-900);">Delegation will be published after TST</h3>
-            <p style="margin:0 auto; max-width:520px; color:var(--ink-2); font-size:14px;">The 2026 Bangladesh delegation - 6 Mathematics + 6 Science students, 2 Tutors, and 1 Team Leader - will be announced once the National Round, Camp, and Team Selection Test are complete.</p>
-          </div>
-        </div>
-
-        <!-- ── 2025 ─────────────────────────────────────────────────── -->
-        <div class="year-panel" data-year="2025" data-blurb="22nd IMSO · Albukhary International University, Kedah, Malaysia · Oct 5–9, 2025." hidden>
-          <h4 style="font-family:var(--font-sans); font-size:13px; text-transform:uppercase; letter-spacing:0.14em; color:var(--ink-3); margin:0 0 6px;">Mathematics Team · 6 Members</h4>
-          <p style="margin:0 0 14px; font-size:13px; color:var(--ink-2); font-style:italic;">Names are sorted alphabetically.</p>
-          <div class="grid-6">
-            <div class="person"><div class="pf"><img loading="lazy" src="/images/team/arijit-saha.webp" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" alt="Arijit Saha"></div><div class="nm">Arijit Saha</div><div class="rl">🥈 Silver</div></div>
-            <div class="person"><div class="pf"><img loading="lazy" src="/images/team/ehan-rahman.webp" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" alt="Ehan Abrad Rahman"></div><div class="nm">Ehan Abrad Rahman</div><div class="rl">🥉 Bronze</div></div>
-            <div class="person"><div class="pf"><img loading="lazy" src="/images/team/labiba-rabbee.webp" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" alt="Labiba Binte Fazlay Rabbee"></div><div class="nm">Labiba Binte Fazlay Rabbee</div><div class="rl">🥉 Bronze</div></div>
-            <div class="person"><div class="pf"><img loading="lazy" src="/images/team/nabeeh-hossain.webp" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" alt="Md Nabeeh Hossain"></div><div class="nm">Md Nabeeh Hossain</div><div class="rl">🥉 Bronze</div></div>
-            <div class="person"><div class="pf"><img loading="lazy" src="/images/team/rafsan-talukder.webp" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" alt="Rafsan Shafiq Talukder"></div><div class="nm">Rafsan Shafiq Talukder</div><div class="rl">🥉 Bronze</div></div>
-            <div class="person"><div class="pf"><img loading="lazy" src="/images/team/wafia-othoi.webp" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" alt="Wafia Hasan Othoi"></div><div class="nm">Wafia Hasan Othoi</div><div class="rl">🥉 Bronze</div></div>
-          </div>
-
-          <h4 style="font-family:var(--font-sans); font-size:13px; text-transform:uppercase; letter-spacing:0.14em; color:var(--ink-3); margin:28px 0 6px;">Science Team · 6 Members</h4>
-          <p style="margin:0 0 14px; font-size:13px; color:var(--ink-2); font-style:italic;">Names are sorted alphabetically.</p>
-          <div class="grid-6">
-            <div class="person"><div class="pf"><img loading="lazy" src="/images/team/aaqib-mustofi.webp" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" alt="Aaqib Fattah Mustofi"></div><div class="nm">Aaqib Fattah Mustofi</div><div class="rl">🥉 Bronze</div></div>
-            <div class="person"><div class="pf"><img loading="lazy" src="/images/team/avigyan-golpo.webp" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" alt="Avigyan Roy Golpo"></div><div class="nm">Avigyan Roy Golpo</div><div class="rl">🥉 Bronze</div></div>
-            <div class="person"><div class="pf"><img loading="lazy" src="/images/team/miftahul-islam.webp" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" alt="Md Miftahul Islam"></div><div class="nm">Md Miftahul Islam</div><div class="rl">🥉 Bronze</div></div>
-            <div class="person"><div class="pf"><img loading="lazy" src="/images/team/shahabi-kabbo.webp" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" alt="Shahabi Ibn Kabbo"></div><div class="nm">Shahabi Ibn Kabbo</div><div class="rl">🥉 Bronze</div></div>
-            <div class="person"><div class="pf"><img loading="lazy" src="/images/team/ayaan-isa.webp" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" alt="Syed Ayaan Isa"></div><div class="nm">Syed Ayaan Isa</div><div class="rl">🥉 Bronze</div></div>
-            <div class="person"><div class="pf"><img loading="lazy" src="/images/team/tahmid-hasan.webp" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" alt="Tahmid Hasan"></div><div class="nm">Tahmid Hasan</div><div class="rl">🥈 Silver</div></div>
-          </div>
-
-          <div class="lead-band" style="margin-top:28px;">
-            <div class="lead-card"><div class="pf" style="background:none;"><img loading="lazy" src="/images/team/tanvirul-islam.webp" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="Md Tanvirul Islam - Team Leader"></div><div><div class="role">Team Leader</div><div class="nm">Md Tanvirul Islam</div><div class="aff">Program Lead, BdMSO</div></div></div>
-            <div class="lead-card"><div class="pf" style="background:none;"><img loading="lazy" src="/images/team/zahidul-amin.webp" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="Hasan Muhammed Zahidul Amin - Team Leader"></div><div><div class="role">Team Leader</div><div class="nm">Hasan Muhammed Zahidul Amin</div><div class="aff">VP · Society for Popularization of Science, Bangladesh</div></div></div>
-            <div class="lead-card"><div class="pf" style="background:none;"><img loading="lazy" src="/images/team/juty-singha.webp" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="Juty Singha - Math Tutor"></div><div><div class="role">Math Tutor</div><div class="nm">Juty Singha</div></div></div>
-            <div class="lead-card"><div class="pf" style="background:none;"><img loading="lazy" src="/images/team/mim-naz-rahman.webp" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="Mim Naz Rahman - Science Tutor"></div><div><div class="role">Science Tutor</div><div class="nm">Mim Naz Rahman</div></div></div>
-          </div>
-        </div>
+        {years.map((y, i) => {
+          const math = delegFor(y, "Mathematics");
+          const science = delegFor(y, "Science");
+          const leadership = delegFor(y, "Leadership");
+          const has = math.length + science.length + leadership.length > 0;
+          return (
+            <div class="year-panel" data-year={y} data-blurb={BLURBS[y] || ""} hidden={i !== 0}>
+              {!has ? (
+                <div style="padding:48px 24px; text-align:center; background:var(--bg-alt); border:1px dashed var(--line); border-radius:var(--r-lg);">
+                  <div style="font-size:11px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-3); margin-bottom:8px;">Not yet announced</div>
+                  <h3 style="margin:0 0 8px; color:var(--navy-900);">Delegation will be published after TST</h3>
+                  <p style="margin:0 auto; max-width:520px; color:var(--ink-2); font-size:14px;">The {y} Bangladesh delegation - 6 Mathematics + 6 Science students, 2 Tutors, and 1 Team Leader - will be announced once the National Round, Camp, and Team Selection Test are complete.</p>
+                </div>
+              ) : (
+                <>
+                  {math.length > 0 && (
+                    <>
+                      <h4 style="font-family:var(--font-sans); font-size:13px; text-transform:uppercase; letter-spacing:0.14em; color:var(--ink-3); margin:0 0 6px;">Mathematics Team · {math.length} Members</h4>
+                      <p style="margin:0 0 14px; font-size:13px; color:var(--ink-2); font-style:italic;">Names are sorted alphabetically.</p>
+                      <div class="grid-6">
+                        {math.map((m) => (
+                          <div class="person"><div class="pf"><Img src={m.data.image} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" alt={m.data.name} widths={[200, 400]} sizes="200px" /></div><div class="nm">{m.data.name}</div>{m.data.role && <div class="rl">{m.data.role}</div>}</div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  {science.length > 0 && (
+                    <>
+                      <h4 style="font-family:var(--font-sans); font-size:13px; text-transform:uppercase; letter-spacing:0.14em; color:var(--ink-3); margin:28px 0 6px;">Science Team · {science.length} Members</h4>
+                      <p style="margin:0 0 14px; font-size:13px; color:var(--ink-2); font-style:italic;">Names are sorted alphabetically.</p>
+                      <div class="grid-6">
+                        {science.map((m) => (
+                          <div class="person"><div class="pf"><Img src={m.data.image} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" alt={m.data.name} widths={[200, 400]} sizes="200px" /></div><div class="nm">{m.data.name}</div>{m.data.role && <div class="rl">{m.data.role}</div>}</div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  {leadership.length > 0 && (
+                    <div class="lead-band" style="margin-top:28px;">
+                      {leadership.map((m) => (
+                        <div class="lead-card"><div class="pf" style="background:none;"><Img src={m.data.image} style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt={m.data.name} widths={[168]} sizes="84px" /></div><div>{m.data.role && <div class="role">{m.data.role}</div>}<div class="nm">{m.data.name}</div>{m.data.affiliation && <div class="aff">{m.data.affiliation}</div>}</div></div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <div class="panel advisor">
         <div class="panel-head"><div><span class="eyebrow">Section 2</span><h2 style="margin-top:10px;">Advisors</h2><p style="margin:6px 0 0;">Expert guidance to keep us on track toward international standards in STEM.</p></div></div>
         <div class="grid-6">
-          <div class="person"><div class="pf"><img loading="lazy" src="/images/team/munir-hasan.webp" alt="Munir Hasan" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div><div class="nm">Munir Hasan</div><div class="aff">President, SPSB & BdOSN</div></div>
-          <div class="person"><div class="pf"><img loading="lazy" src="/images/team/farseem_mannan.webp" alt="Dr. Farseem Mannan" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div><div class="nm">Dr. Farseem Mannan</div><div class="aff">GS, SPSB</div></div>
-          <div class="person"><div class="pf"><img loading="lazy" src="/images/team/zahidul_amin.webp" alt="Zahidul Amin" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div><div class="nm">Zahidul Amin</div><div class="aff">CTO, Kona SL</div></div>
+          {advisors.map((m) => (
+            <div class="person">
+              <div class="pf"><Img src={m.data.image} alt={m.data.name} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" widths={[200, 400]} sizes="200px" /></div>
+              <div class="nm">{m.data.name}</div>
+              {m.data.role && <div class="rl">{m.data.role}</div>}
+              {m.data.affiliation && <div class="aff">{m.data.affiliation}</div>}
+            </div>
+          ))}
         </div>
       </div>
 
       <div class="panel">
         <div class="panel-head"><div><span class="eyebrow">Section 3 · Our Team</span><h2 style="margin-top:10px;">Organizing Team</h2><p style="margin:6px 0 0;">The core team running BdMSO operations end-to-end.</p></div></div>
         <div class="grid-6">
-          <div class="person"><div class="pf"><img loading="lazy" src="/images/team/tanvirul-islam.webp" alt="Tanvir Rivnat" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div><div class="nm">Tanvir Rivnat</div><div class="rl">Program Lead</div></div>
-          <div class="person"><div class="pf"><img loading="lazy" src="/images/team/rezaul_islam.webp" alt="Rezaul Islam" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div><div class="nm">Rezaul Islam</div><div class="rl">Outreach Activity</div></div>
-          <div class="person"><div class="pf"><img loading="lazy" src="/images/team/mim-naz-rahman.webp" alt="Mim Naz Rahman" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div><div class="nm">Mim Naz Rahman</div><div class="rl">Academics</div></div>
-          <div class="person"><div class="pf"><img loading="lazy" src="/images/team/fahim_montasir.webp" alt="Fahim Montasir" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div><div class="nm">Fahim Montasir</div><div class="rl">Digital &amp; Social Media</div></div>
-          <!--<div class="person"><div class="pf"><img loading="lazy" src="/images/team/nazmul_hossain.webp" alt="Nazmul Hossain" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div><div class="nm">Nazmul Hossain</div><div class="rl">Graphic Design</div></div>
-          <div class="person"><div class="pf"><img loading="lazy" src="/images/team/mosaraf_hossain.webp" alt="Mosaraf Hossain" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div><div class="nm">Mosaraf Hossain</div><div class="rl">XXXXXXXXX</div></div>-->
+          {organizing.map((m) => (
+            <div class="person">
+              <div class="pf"><Img src={m.data.image} alt={m.data.name} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" widths={[200, 400]} sizes="200px" /></div>
+              <div class="nm">{m.data.name}</div>
+              {m.data.role && <div class="rl">{m.data.role}</div>}
+              {m.data.affiliation && <div class="aff">{m.data.affiliation}</div>}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -170,23 +211,28 @@ const jsonLd = [
           <button class="btn btn-ghost" id="mv-toggle" type="button">View all →</button>
         </div>
         <div class="grid-6" id="mv-grid">
-          <div class="person"><div class="pf"><img loading="lazy" src="/images/team/morsheda_mim.webp" alt="Morsheda Akter Mim" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div><div class="nm">Morsheda Akter Mim</div><div class="rl">Pharmacy, DU</div></div>
-          <div class="person"><div class="pf"><img loading="lazy" src="/images/team/ovejan_paul.webp" alt="Ovejan Paul Rudra" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div><div class="nm">Ovejan Paul Rudra</div><div class="rl">RA, DOB</div></div>
-          <div class="person"><div class="pf"><img loading="lazy" src="/images/team/farzana_lima.webp" alt="Farzana Akter Lima" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div><div class="nm">Farzana Akter Lima</div><div class="rl">PM, CASSA</div></div>
-          <div class="person"><div class="pf"><img loading="lazy" src="/images/team/samira_sumaia.webp" alt="Samira Sumaia" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div><div class="nm">Samira Sumaia</div><div class="rl">Arch, BUET</div></div>
-          <div class="person"><div class="pf"><img loading="lazy" src="/images/team/parag_kumar.webp" alt="Parag Kumar Kabiraj" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div><div class="nm">Parag Kumar Kabiraj</div><div class="rl">EEE, BUET</div></div>
-          <div class="person"><div class="pf"><img loading="lazy" src="/images/team/ariba_jahan.webp" alt="Ariba Jahin" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div><div class="nm">Ariba Jahin</div><div class="rl">MBBS Student, ShSMC</div></div>
-          <div class="person"><div class="pf"><img loading="lazy" src="/images/team/nahar_authoy.webp" alt="Nahar Authoy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div><div class="nm">Nahar Authoy</div><div class="rl">EEE, AUST</div></div>
-          <div class="person"><div class="pf"><img loading="lazy" src="/images/team/samin_yasar.webp" alt="Samin Yasar" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div><div class="nm">Samin Yasar Ahmed</div><div class="rl">CSE, NSU</div></div>
-          <div class="person"><div class="pf"><img loading="lazy" src="/images/team/rahad_hasan.webp" alt="MD. RAHAD HASAN" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div><div class="nm">MD. Rahad Hasan</div><div class="rl">Physics, GBC</div></div>
-          <div class="person"><div class="pf"><img loading="lazy" src="/images/team/matra.webp" alt="Shamim Ara Islam Matra" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div><div class="nm">Shamim Ara Islam</div><div class="rl">A Levels, MLIS</div></div>
+          {mentors.map((m) => (
+            <div class="person">
+              <div class="pf"><Img src={m.data.image} alt={m.data.name} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" widths={[200, 400]} sizes="200px" /></div>
+              <div class="nm">{m.data.name}</div>
+              {m.data.role && <div class="rl">{m.data.role}</div>}
+              {m.data.affiliation && <div class="aff">{m.data.affiliation}</div>}
+            </div>
+          ))}
         </div>
       </div>
 
       <div class="panel">
         <div class="panel-head"><div><span class="eyebrow">Section 5 · Our Team</span><h2 style="margin-top:10px;">Our Alumni</h2><p style="margin:6px 0 0;">Honoring the mentors, volunteers, delegates, and leaders who have inspired the BdMSO journey.</p></div></div>
         <div class="grid-6">
-          <div class="person"><div class="pf"><img loading="lazy" src="/images/team/juty-singha.webp" alt="Juty Singha" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></div><div class="nm">Juty Singha</div><div class="rl">Lecturer, DIU</div></div>
+          {alumni.map((m) => (
+            <div class="person">
+              <div class="pf"><Img src={m.data.image} alt={m.data.name} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" widths={[200, 400]} sizes="200px" /></div>
+              <div class="nm">{m.data.name}</div>
+              {m.data.role && <div class="rl">{m.data.role}</div>}
+              {m.data.affiliation && <div class="aff">{m.data.affiliation}</div>}
+            </div>
+          ))}
         </div>
       </div>
 

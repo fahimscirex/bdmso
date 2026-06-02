@@ -1,0 +1,83 @@
+[
+  {
+    "id": "1",
+    "outlet": "The Business Standard",
+    "title": "Bangladesh wins two silver, ten bronze at IMSO 2025 - every team member medals on debut.",
+    "url": "https://www.tbsnews.net/economy/corporates/bangladesh-wins-two-silver-ten-bronze-imso-2025-1256606",
+    "publishedOn": "2025-10-09",
+    "image": "/images/press/tbs-imso-2025.webp",
+    "featured": true
+  },
+  {
+    "id": "2",
+    "outlet": "Digi Bangla",
+    "title": "12 primary students' Bangladesh team heading to Malaysia for IMSO on October 4.",
+    "url": "https://digibanglatech.news/156729",
+    "publishedOn": "2025-10-04",
+    "image": "/images/imso-inaugaration-2025.webp",
+    "featured": false
+  },
+  {
+    "id": "3",
+    "outlet": "Computer Bichitra",
+    "title": "12 students from Bangladesh participating in IMSO's 22nd edition in Malaysia.",
+    "url": "https://computerbichitra.com/%E0%A6%86%E0%A6%87%E0%A6%8F%E0%A6%AE%E0%A6%8F%E0%A6%B8%E0%A6%93-%E0%A6%8F%E0%A6%B0-%E0%A7%A8%E0%A7%A8%E0%A6%A4%E0%A6%AE-%E0%A6%86%E0%A6%B8%E0%A6%B0%E0%A7%87-%E0%A6%85%E0%A6%82%E0%A6%B6%E0%A6%97/",
+    "publishedOn": "2025-10",
+    "image": "/images/group-pre-international.webp",
+    "featured": false
+  },
+  {
+    "id": "4",
+    "outlet": "Prothom Alo",
+    "title": "12-member Bangladesh team heading to Malaysia to participate in IMSO.",
+    "url": "https://www.prothomalo.com/technology/science/s94ky51q9o",
+    "publishedOn": "2025-09-30",
+    "image": "/images/press/prothomalo-imso-malaysia.webp",
+    "featured": false
+  },
+  {
+    "id": "5",
+    "outlet": "Prothom Alo",
+    "title": "BdMSO 2025 national round: a talent show for primary students at St. Joseph.",
+    "url": "https://www.prothomalo.com/bangladesh/6tjkpvb864",
+    "publishedOn": "2025-08-22",
+    "image": "/images/press/prothomalo-saint-joseph.webp",
+    "featured": false
+  },
+  {
+    "id": "6",
+    "outlet": "The Business Standard",
+    "title": "Bangladesh hosts its first-ever maths and science olympiad for primary students.",
+    "url": "https://www.tbsnews.net/economy/corporates/bangladesh-hosts-first-ever-maths-and-science-olympiad-primary-students-1218016",
+    "publishedOn": "2025-08-06",
+    "image": "/images/press/tbs-bdmso-national.webp",
+    "featured": false
+  },
+  {
+    "id": "7",
+    "outlet": "Digi Bangla",
+    "title": "First national Mathematics and Science Olympiad held with primary school students.",
+    "url": "https://digibanglatech.news/157925",
+    "publishedOn": "2025-08",
+    "image": "/images/national-round-winners.webp",
+    "featured": false
+  },
+  {
+    "id": "8",
+    "outlet": "Daily ICT News",
+    "title": "Registration opens for Bangladesh's first-ever primary maths and science olympiad.",
+    "url": "https://www.dailyictnews.com/14778",
+    "publishedOn": "2025-07",
+    "image": "/images/press/dailyictnews-registration.webp",
+    "featured": false
+  },
+  {
+    "id": "9",
+    "outlet": "Bigganchinta",
+    "title": "BdMSO being organized for the first time in Bangladesh - registration now open.",
+    "url": "https://www.bigganchinta.com/events/xtdnb55d2j",
+    "publishedOn": "2025-07",
+    "image": "/images/press/bigganchinta-launch.webp",
+    "featured": false
+  }
+]

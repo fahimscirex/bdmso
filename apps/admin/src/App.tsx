@@ -24,6 +24,13 @@ import { Posts } from './pages/Posts';
 import { PostEditor } from './pages/PostEditor';
 import { Programs } from './pages/Programs';
 import { ProgramEditor } from './pages/ProgramEditor';
+import { PressMentions } from './pages/PressMentions';
+import { PressMentionEditor } from './pages/PressMentionEditor';
+import { HallOfFame } from './pages/HallOfFame';
+import { HallOfFameEditor } from './pages/HallOfFameEditor';
+import { Medalists } from './pages/Medalists';
+import { Team } from './pages/Team';
+import { TeamEditor } from './pages/TeamEditor';
 import { Triage } from './pages/Triage';
 import { PaymentReports } from './pages/PaymentReports';
 import { Events } from './pages/Events';
@@ -121,6 +128,21 @@ function renderPage(route: string) {
   if (progEdit) return <ProgramEditor slug={progEdit[1]} />;
   if (route === '/programs/new') return <ProgramEditor slug="new" />;
 
+  // /press/new and /press/<id>/edit - press mentions (numeric ids).
+  const pressEdit = route.match(/^\/press\/(\d+)\/edit$/);
+  if (pressEdit) return <PressMentionEditor id={pressEdit[1]} />;
+  if (route === '/press/new') return <PressMentionEditor id="new" />;
+
+  // /hall-of-fame/new and /hall-of-fame/<id>/edit - HoF photos (numeric ids).
+  const hofEdit = route.match(/^\/hall-of-fame\/(\d+)\/edit$/);
+  if (hofEdit) return <HallOfFameEditor id={hofEdit[1]} />;
+  if (route === '/hall-of-fame/new') return <HallOfFameEditor id="new" />;
+
+  // /team/new and /team/<id>/edit - team members (numeric ids).
+  const teamEdit = route.match(/^\/team\/(\d+)\/edit$/);
+  if (teamEdit) return <TeamEditor id={teamEdit[1]} />;
+  if (route === '/team/new') return <TeamEditor id="new" />;
+
   switch (route) {
     case '/':              return <Dashboard />;
     case '/triage':        return <Triage />;
@@ -133,6 +155,10 @@ function renderPage(route: string) {
     case '/events':        return <Events />;
     case '/posts':         return <Posts />;
     case '/programs':      return <Programs />;
+    case '/press':         return <PressMentions />;
+    case '/hall-of-fame':  return <HallOfFame />;
+    case '/medalists':     return <Medalists />;
+    case '/team':          return <Team />;
     case '/users':         return <Users />;
     case '/audit':         return <AuditLog />;
     case '/settings':      return <Settings />;
