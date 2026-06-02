@@ -222,9 +222,16 @@ admin.get("/registrations/:id", async (c) => {
   `).bind(id).first();
   if (!reg) return c.json({ error: "Registration not found." }, 404);
 
+  // All payments for this guardian (across their registrations), each tagged
+  // with the program + class it paid for - so the detail page shows one
+  // consolidated payment history rather than per-registration silos.
   const payments = await c.env.DB.prepare(
-    "SELECT * FROM payments WHERE registration_id = ? ORDER BY created_at DESC"
-  ).bind(id).all();
+    `SELECT p.*, r2.registration_type AS program, r2.student_class_name AS class_name, r2.status AS reg_status
+     FROM payments p
+     JOIN registrations r2 ON r2.id = p.registration_id
+     WHERE r2.guardian_account_id = ?
+     ORDER BY p.created_at DESC`
+  ).bind(reg.guardian_account_id).all();
 
   return c.json({ ok: true, registration: reg, payments: payments.results });
 });
@@ -245,6 +252,13 @@ admin.patch("/registrations/:id/status", async (c) => {
   if (!before) return c.json({ error: "Registration not found." }, 404);
 
   await c.env.DB.prepare("UPDATE registrations SET status = ? WHERE id = ?").bind(status, id).run();
+  // Cancelling a registration cancels its still-pending payments too (matches the
+  // guardian cancel flow), so the payments list visibly reflects the change.
+  if (status === "cancelled") {
+    await c.env.DB.prepare(
+      "UPDATE payments SET status = 'cancelled', updated_at = datetime('now') WHERE registration_id = ? AND status = 'pending'"
+    ).bind(id).run();
+  }
 
   const session = c.get("session");
   await recordAudit(c.env, session.account_id, "registration.update_status", {
@@ -305,6 +319,55 @@ admin.post("/registrations/:id/resend-receipt", async (c) => {
   const session = c.get("session");
   await recordAudit(c.env, session.account_id, "registration.resend_receipt", {
     type: "registration", id, payload: { tran_id: payment.tran_id },
+  });
+  return c.json({ ok: true });
+});
+
+// PATCH /api/admin/payments/:id/status
+// Manual override of a single payment's status (offline/reconciled payments,
+// stuck gateway). Marking a payment paid cascades its registration to paid,
+// mirroring the live callback. Audited - this can diverge from the gateway.
+admin.patch("/payments/:id/status", async (c) => {
+  const id = c.req.param("id");
+  const { status } = await c.req.json().catch(() => ({}));
+  if (!["paid", "failed", "pending"].includes(status)) {
+    return c.json({ error: "status must be paid, failed, or pending." }, 400);
+  }
+  const row = await c.env.DB.prepare(
+    "SELECT id, status, registration_id FROM payments WHERE id = ? LIMIT 1"
+  ).bind(id).first();
+  if (!row) return c.json({ error: "Payment not found." }, 404);
+
+  await c.env.DB.prepare(
+    "UPDATE payments SET status = ?, gateway_status = 'Manual (admin)', updated_at = datetime('now') WHERE id = ?"
+  ).bind(status, id).run();
+  if (status === "paid" && row.registration_id) {
+    await c.env.DB.prepare("UPDATE registrations SET status = 'paid' WHERE id = ?")
+      .bind(row.registration_id).run();
+  }
+
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "payment.status_manual", {
+    type: "payment", id, payload: { from: row.status, to: status, manual: true },
+  });
+  return c.json({ ok: true, status });
+});
+
+// POST /api/admin/payments/:id/resend-receipt
+// Re-send the receipt for one specific (paid) payment.
+admin.post("/payments/:id/resend-receipt", async (c) => {
+  const id = c.req.param("id");
+  const payment = await c.env.DB.prepare(
+    "SELECT id, tran_id, status FROM payments WHERE id = ? LIMIT 1"
+  ).bind(id).first();
+  if (!payment) return c.json({ error: "Payment not found." }, 404);
+  if (payment.status !== "paid") return c.json({ error: "Only a paid payment has a receipt to send." }, 400);
+
+  await assignMemberIdAndSendReceipt(c.env, payment.tran_id, getBaseUrl(c.req.raw));
+
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "payment.resend_receipt", {
+    type: "payment", id, payload: { tran_id: payment.tran_id },
   });
   return c.json({ ok: true });
 });

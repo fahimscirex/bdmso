@@ -159,6 +159,12 @@ function applyCacheHeaders(response, pathname) {
 function tryPrettyRedirect(url) {
   let pathname = url.pathname;
 
+  // Legacy flat sitemap (the build.mjs era served /sitemap.xml) → the
+  // @astrojs/sitemap index, so previously-submitted /sitemap.xml keeps working.
+  if (pathname === "/sitemap.xml") {
+    return Response.redirect(new URL("/sitemap-index.xml", url).toString(), 301);
+  }
+
   // /post?slug=foo  →  /posts/foo  (and /post with no slug → /blog)
   if (pathname === "/post" || pathname === "/post.html") {
     const slug = url.searchParams.get("slug");
@@ -224,35 +230,61 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    if (url.pathname.startsWith("/api/")) {
-      const response = await api.fetch(request, env);
-      return withSecurityHeaders(response, url);
-    }
+    try {
+      if (url.pathname.startsWith("/api/")) {
+        const response = await api.fetch(request, env);
+        return withSecurityHeaders(response, url);
+      }
 
-    // Admin image previews: serve repo-source originals for the dashboard.
-    if (url.pathname.startsWith("/admin-img/")) {
-      const img = await serveAdminImg(request, env, url);
-      return withSecurityHeaders(img, url);
-    }
+      // Admin image previews: serve repo-source originals for the dashboard.
+      if (url.pathname.startsWith("/admin-img/")) {
+        const img = await serveAdminImg(request, env, url);
+        return withSecurityHeaders(img, url);
+      }
 
-    // Pretty-URL canonicalization with 301s (replaces the assets binding's default 307s).
-    if (request.method === "GET" || request.method === "HEAD") {
-      const redirect = tryPrettyRedirect(url);
-      if (redirect) return withSecurityHeaders(redirect, url);
-    }
+      // /.well-known/change-password -> the account area where a signed-in
+      // guardian manages their password. 302 per the W3C change-password URL
+      // spec; deliberately NOT the forgot-password reset flow.
+      if (url.pathname === "/.well-known/change-password") {
+        return withSecurityHeaders(
+          new Response(null, { status: 302, headers: { Location: "/dashboard" } }),
+          url,
+        );
+      }
 
-    // Map extensionless URL → underlying .html asset (no redirect; transparent rewrite).
-    const assetPath = rewriteForAsset(url.pathname);
-    let assetRequest = request;
-    if (assetPath !== url.pathname) {
-      const rewritten = new URL(request.url);
-      rewritten.pathname = assetPath;
-      assetRequest = new Request(rewritten.toString(), request);
-    }
+      // Pretty-URL canonicalization with 301s (replaces the assets binding's default 307s).
+      if (request.method === "GET" || request.method === "HEAD") {
+        const redirect = tryPrettyRedirect(url);
+        if (redirect) return withSecurityHeaders(redirect, url);
+      }
 
-    const response = await env.ASSETS.fetch(assetRequest);
-    const cached = applyCacheHeaders(response, url.pathname);
-    return withSecurityHeaders(cached, url);
+      // Map extensionless URL → underlying .html asset (no redirect; transparent rewrite).
+      const assetPath = rewriteForAsset(url.pathname);
+      let assetRequest = request;
+      if (assetPath !== url.pathname) {
+        const rewritten = new URL(request.url);
+        rewritten.pathname = assetPath;
+        assetRequest = new Request(rewritten.toString(), request);
+      }
+
+      const response = await env.ASSETS.fetch(assetRequest);
+      const cached = applyCacheHeaders(response, url.pathname);
+      return withSecurityHeaders(cached, url);
+    } catch (err) {
+      // Custom 500: serve the built /500.html with the correct status code so a
+      // crash never leaks a stack trace or a soft-200 error page.
+      console.error("worker error:", err && err.stack ? err.stack : err);
+      try {
+        const page = await env.ASSETS.fetch(new Request(new URL("/500.html", url.origin)));
+        const body = page.ok ? await page.text() : "<!doctype html><h1>500 - Something went wrong</h1>";
+        return withSecurityHeaders(
+          new Response(body, { status: 500, headers: { "content-type": "text/html; charset=utf-8" } }),
+          url,
+        );
+      } catch {
+        return withSecurityHeaders(new Response("Internal Server Error", { status: 500 }), url);
+      }
+    }
   }
 };
 
