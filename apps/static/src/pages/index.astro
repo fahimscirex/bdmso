@@ -636,9 +636,10 @@ const showBanner = bannerDesktop !== "";
     .fame-slider-ui { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 10px; }
     .fame-arrow { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: white; font-size: 18px; cursor: pointer; display: grid; place-items: center; transition: background 0.2s, border-color 0.2s; }
     .fame-arrow:hover { background: var(--navy-50); border-color: var(--navy-600); }
-    .fame-dots { display: flex; gap: 6px; align-items: center; }
-    .fame-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); cursor: pointer; border: none; padding: 0; transition: background 0.2s; }
-    .fame-dot.active { background: var(--navy-900); }
+    .fame-dots { display: flex; gap: 4px; align-items: center; }
+    .fame-dot { width: 24px; height: 24px; border-radius: 50%; background: transparent; cursor: pointer; border: none; padding: 0; display: grid; place-items: center; }
+    .fame-dot::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--line); transition: background 0.2s; }
+    .fame-dot.active::before { background: var(--navy-900); }
     .fame-caption { text-align: center; font-size: 14px; color: var(--ink-3); min-height: 20px; }
 
     /* RESOURCES */
@@ -672,7 +673,7 @@ const showBanner = bannerDesktop !== "";
     .res-card:nth-child(4) h4 { color: white; }
     .res-card:nth-child(4) p { color: var(--on-dark-3); }
     .res-card:nth-child(4) .icon { background: var(--gold-500); color: var(--navy-900); }
-    .res-card h4 { margin: 0; }
+    .res-card h3 { margin: 0; font-size: 1.05rem; line-height: 1.3; }
     .res-card p { margin: 0; font-size: 14px; flex-grow: 1; }
     .res-card .more {
       font-size: 13.5px; font-weight: 600;
@@ -707,6 +708,7 @@ const showBanner = bannerDesktop !== "";
       border-radius: var(--r);
       padding: 20px;
     }
+    .eligibility-copy .note h3 { font-size: 1.05rem; line-height: 1.3; margin: 0; }
     .eligibility-copy .note p,
     .eligibility-copy .note ul {
       font-size: 14px;
@@ -856,7 +858,7 @@ const showBanner = bannerDesktop !== "";
       font-size: 11px; font-weight: 500;
       color: var(--ink-3); letter-spacing: 0.05em;
     }
-    .prog-card h4 { font-size: 1.05rem; margin: 0; }
+    .prog-card h3 { font-size: 1.05rem; line-height: 1.3; margin: 0; }
     .prog-card p { font-size: 13.5px; color: var(--ink-3); margin: 0; }
     /* Highlight cards whose registration window is currently open. We
        keep the same outline as other cards (no thick green border) and
@@ -1228,14 +1230,18 @@ const showBanner = bannerDesktop !== "";
       position: relative; background: white; border-radius: 16px;
       padding: 18px 22px; max-width: min(92vw, 980px); max-height: 92vh;
       box-shadow: 0 24px 64px rgba(0,0,0,0.35);
-      display: flex; flex-direction: column;
+      display: flex; flex-direction: column; overflow: auto;
       transition: transform var(--dur-modal) var(--ease-out);
     }
     @starting-style {
       .ue-dialog { transform: scale(0.96); }
     }
     .ue-title { font-family: var(--font-display); color: var(--navy-900); margin: 0 0 10px; font-size: 1.25rem; flex: 0 0 auto; }
-    .ue-dialog img { display: block; width: auto; max-width: 100%; max-height: 100%; height: auto; border-radius: 10px; margin: 0 auto; object-fit: contain; flex: 1 1 auto; min-height: 0; }
+    /* picture{display:contents} (global) promotes the <img> to a direct flex
+       child here. Bound it to the viewport (92vh minus the dialog's title +
+       padding) so the whole poster fits; the dialog also scrolls as a safety
+       net on very short viewports. */
+    .ue-dialog img { display: block; width: auto; max-width: 100%; max-height: calc(92vh - 96px); height: auto; border-radius: 10px; margin: 0 auto; }
     .ue-close {
       position: absolute; top: 8px; right: 12px;
       width: 34px; height: 34px; display: grid; place-items: center;
@@ -1410,25 +1416,25 @@ const showBanner = bannerDesktop !== "";
         <div class="resource-grid">
           <a class="res-card" href="/resources#regulations">
             <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h12a4 4 0 0 1 4 4v12"></path><path d="M8 4v16a2 2 0 0 1-2 2H4"></path><path d="M9 10h7M9 14h7"></path></svg></div>
-            <h4>Regulations</h4>
+            <h3>Regulations</h3>
             <p>Official rules, eligibility, and code of conduct for the national olympiad.</p>
             <span class="more">Read rules</span>
           </a>
           <a class="res-card" href="/resources#syllabus">
             <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M8 9h8M8 13h8M8 17h5"></path></svg></div>
-            <h4>Syllabus</h4>
+            <h3>Syllabus</h3>
             <p>Math and Science topic summaries, with downloadable PDF.</p>
             <span class="more">Download PDF</span>
           </a>
           <a class="res-card" href="/resources#marks">
             <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></div>
-            <h4>Question Pattern</h4>
+            <h3>Question Pattern</h3>
             <p>How marks are allocated for the Olympiad</p>
             <span class="more">See pattern</span>
           </a>
           <a class="res-card" href="/registration">
             <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"></path></svg></div>
-            <h4>Register Now</h4>
+            <h3>Register Now</h3>
             <p>Create your BdMSO ID and begin the IMSO journey.</p>
             <span class="more">Start registration</span>
           </a>
@@ -1447,7 +1453,7 @@ const showBanner = bannerDesktop !== "";
               <p>BdMSO is open to students across Bangladesh who meet the age and grade requirements.</p>
             </div>
             <div class="note">
-              <h4>Important Note for Parents</h4>
+              <h3>Important Note for Parents</h3>
               <p>BdMSO national round registration opens in May, and eligibility is strictly governed by the cutoff date of <strong>October 1, 2026</strong>.</p>
               <ul>
                 <li><strong>National Curriculum:</strong> If your child is in Grade 6 during the registration period, they will still be in Grade 6 by October 1 and are eligible.</li>
@@ -1532,7 +1538,7 @@ const showBanner = bannerDesktop !== "";
                   {open && <span class="open-badge"><span class="open-dot"></span>Open</span>}
                   {upcoming && <span class="upcoming-badge">Upcoming</span>}
                 </div>
-                <h4>{p.data.title}</h4>
+                <h3>{p.data.title}</h3>
                 <p>{p.data.tagline}</p>
               </a>
             );

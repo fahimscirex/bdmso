@@ -110,7 +110,7 @@ function formatDate(d: Date) {
           <a class="feature" href={`/posts/${featured.data.slug}`} data-cat={featured.data.category}>
             <div class="cover">
               {featured.data.image
-                ? <Img src={featured.data.image} alt={featured.data.title} widths={[400, 800]} sizes="(max-width: 700px) 100vw, 700px" />
+                ? <Img src={featured.data.image} alt={featured.data.title} widths={[400, 800]} sizes="(max-width: 700px) 100vw, 700px" loading="eager" fetchpriority="high" />
                 : <div class="ph">[cover]</div>}
             </div>
             <div class="body">

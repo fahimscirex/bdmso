@@ -82,12 +82,16 @@ const jsonLd = [
     .post-hero { background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-page-dark) 100%); position: relative; overflow: hidden; padding: 72px 0 0; }
     .post-hero::before { content: ""; position: absolute; inset: 0; background: radial-gradient(600px 280px at 50% 100%, var(--glow-gold-sm), transparent 60%); }
     .post-hero .container { position: relative; z-index: 1; text-align: center; display: flex; flex-direction: column; align-items: center; }
-    .post-meta-bar { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .post-meta-bar { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
     .post-meta-bar .sep { display: none; }
     @media (min-width: 540px) { .post-meta-bar .sep { display: inline; } }
-    .post-meta-bar .eyebrow { margin: 0; }
-    .post-meta-bar .sep { color: rgba(255,255,255,0.25); }
-    .post-meta-bar .date, .post-meta-bar .author { font-size: 13px; color: rgba(255,255,255,0.55); }
+    /* Category as an editorial label (no pill) so it reads as a peer of the
+       date/author rather than a mismatched solid chip. Hierarchy comes from
+       the gold accent + weight + tracking, not a container. */
+    .post-meta-bar .eyebrow { margin: 0; padding: 0; background: none; border: none; border-radius: 0; color: var(--gold-on-dark); font-size: 12px; font-weight: 700; letter-spacing: 0.14em; }
+    .post-meta-bar .eyebrow::before { display: none; }
+    .post-meta-bar .sep { color: rgba(255,255,255,0.4); }
+    .post-meta-bar .date, .post-meta-bar .author { font-size: 13px; color: var(--on-dark-3); }
     .post-title { color: white; font-size: clamp(1.8rem, 4vw, 2.8rem); line-height: 1.15; margin: 0 0 20px; max-width: 760px; }
     .post-excerpt { color: rgba(255,255,255,0.65); font-size: 1.05rem; max-width: 640px; margin: 0 0 40px; }
     .post-cover { width: 100%; max-width: 900px; margin: 0 auto; border-radius: var(--r-xl) var(--r-xl) 0 0; overflow: hidden; aspect-ratio: 16/7; position: relative; }
@@ -116,9 +120,12 @@ const jsonLd = [
       .post-hero { padding: 40px 0 0; }
       .post-title { font-size: 1.55rem; margin-bottom: 24px; }
       .post-excerpt { display: none; }
-      .post-meta-bar { gap: 6px; margin-bottom: 16px; }
-      .post-meta-bar .author { display: none; }
-      .post-meta-bar .sep:last-of-type { display: none; }
+      /* Stack on mobile: category label on its own line, then a clean
+         "date · author" byline below (author stays visible). */
+      .post-meta-bar { gap: 6px 8px; margin-bottom: 16px; }
+      .post-meta-bar .eyebrow { flex-basis: 100%; justify-content: center; }
+      .post-meta-bar .sep { display: inline; }
+      .post-meta-bar .eyebrow + .sep { display: none; }
       .post-body { padding: 32px 20px 64px; }
     }
   </style>
@@ -137,7 +144,7 @@ const jsonLd = [
       </div>
       {data.image && (
         <div class="post-cover">
-          <Img src={`/${data.image.replace(/^\//, "")}`} alt={data.title} widths={[400, 900]} sizes="(max-width: 900px) 100vw, 900px" />
+          <Img src={`/${data.image.replace(/^\//, "")}`} alt={data.title} widths={[400, 900]} sizes="(max-width: 900px) 100vw, 900px" loading="eager" fetchpriority="high" />
         </div>
       )}
     </section>

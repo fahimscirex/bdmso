@@ -24,4 +24,38 @@ const jsonLd = [{"@context":"https://schema.org","@type":"Event","name":"BdMSO 2
   <Fragment slot="head" set:html={`<style>${STYLES}</style>`} />
   <Fragment set:html={BODY} />
   <script is:inline type="module" src="/js/registration-page.js"></script>
+  <script>
+    // Date of birth via flatpickr - always dd/mm/yyyy regardless of browser
+    // locale (a native date input follows the browser locale, which we can't
+    // control). Writes ISO yyyy-mm-dd into the hidden #f-dob the form reads.
+    import flatpickr from "flatpickr";
+    import "flatpickr/dist/flatpickr.css";
+    const display = document.getElementById("f-dob-display");
+    const hidden = document.getElementById("f-dob");
+    if (display && hidden) {
+      const yr = new Date().getFullYear();
+      const toIso = (d: Date) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const fp = flatpickr(display, {
+        dateFormat: "d/m/Y",
+        allowInput: true,
+        minDate: new Date(yr - 20, 0, 1),
+        maxDate: new Date(yr - 3, 11, 31),
+        onChange: (dates) => {
+          hidden.value = dates[0] ? toIso(dates[0]) : "";
+          hidden.dispatchEvent(new Event("input", { bubbles: true }));
+          hidden.dispatchEvent(new Event("change", { bubbles: true }));
+        },
+      });
+      // Commit a fully-typed dd/mm/yyyy as it's entered, so the value registers
+      // without the user having to press Enter or blur the field first.
+      display.addEventListener("input", () => {
+        const v = display.value.trim();
+        if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(v)) {
+          const d = fp.parseDate(v, "d/m/Y");
+          if (d) fp.setDate(d, true);
+        }
+      });
+    }
+  </script>
 </BaseLayout>

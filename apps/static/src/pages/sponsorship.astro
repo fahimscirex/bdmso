@@ -47,6 +47,9 @@ const jsonLd = [
     .reach .n { font-family: var(--font-display); font-size: 2rem; color: var(--navy-900); font-weight: 700; line-height: 1; margin-bottom: 6px; }
     .reach .t { font-size: 12.5px; color: var(--ink-3); }
     @media (max-width: 700px) { .reach { grid-template-columns: 1fr 1fr; } }
+    /* Below ~480px two columns can't hold the large stat numbers (e.g. "10,000+"
+       at 2rem) without overflowing the viewport, so stack to one column. */
+    @media (max-width: 480px) { .reach { grid-template-columns: 1fr; } .panel { padding: 22px; } }
 
     .tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
     .tier {
@@ -93,7 +96,7 @@ const jsonLd = [
 
   <main>
     <section class="page-head"><div class="container">
-      <span class="eyebrow">Sponsorship · Partnership · Collaboration</span>
+      <span class="eyebrow">Sponsorship</span>
       <h1>Collaborate with BdMSO</h1>
       <p>Join a movement that's building Bangladesh's next generation of mathematicians and scientists - starting at primary school.</p>
     </div></section>

@@ -25,6 +25,28 @@ const categoriesFor = (year: string) =>
   });
 const winnersFor = (year: string, category: string, medal: string) =>
   all.filter((m) => m.data.year === year && m.data.category === category && m.data.medal === medal);
+
+// Structured data: an ItemList of the most recent published medalists, each a
+// Person with their award - lets search engines surface the winners.
+const latestWithWinners = years.find((y) => all.some((m) => m.data.year === y));
+const medalistRows = latestWithWinners ? all.filter((m) => m.data.year === latestWithWinners) : [];
+const resultsSchema = medalistRows.length
+  ? [{
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      name: `BdMSO ${latestWithWinners} Medal Winners`,
+      itemListElement: medalistRows.map((m, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        item: {
+          "@type": "Person",
+          name: m.data.name,
+          ...(m.data.school ? { affiliation: { "@type": "Organization", name: m.data.school } } : {}),
+          award: `${MEDAL_LABEL[m.data.medal] ?? m.data.medal} · ${m.data.category} (BdMSO ${latestWithWinners})`,
+        },
+      })),
+    }]
+  : [];
 ---
 
 <BaseLayout
@@ -33,6 +55,7 @@ const winnersFor = (year: string, category: string, medal: string) =>
   page="results"
   canonical="https://bdmso.org/results"
   image="https://bdmso.org/images/group-winner.webp"
+  jsonLd={resultsSchema}
 >
   <style is:global slot="head">
     .page-head { background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-page-dark) 100%); color: white; padding: 80px 0 100px; position: relative; overflow: hidden; }

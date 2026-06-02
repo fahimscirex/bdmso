@@ -12,6 +12,9 @@
 
   function enhance(select) {
     if (select.dataset.bdsel || select.closest('.bdsel')) return;
+    // Leave flatpickr's internal month dropdown alone - wrapping it in a .bdsel
+    // breaks the calendar header layout (and hides the year input).
+    if (select.classList.contains('flatpickr-monthDropdown-months') || select.closest('.flatpickr-calendar')) return;
     select.dataset.bdsel = '1';
 
     const wrap = document.createElement('div');

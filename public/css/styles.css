@@ -29,7 +29,7 @@
   --ink:      #17284a;
   --ink-1:    #17284a;   /* alias for --ink - primary darkest text */
   --ink-2:    #49566f;
-  --ink-3:    #7a8497;
+  --ink-3:    #5f6b80;
   --line:     #dbe1ec;
   --line-2:   #ebeff6;
   --bg:       #fbfcfe;
@@ -151,6 +151,10 @@ body {
   padding-top: 70px;
 }
 img { max-width: 100%; display: block; }
+/* <Img> wraps images in <picture>; display:contents removes the picture's own
+   box so the inner <img> lays out as a direct child of the container, keeping
+   container-targeted img rules (fill, object-fit, aspect-ratio) working. */
+picture { display: contents; }
 a { color: inherit; text-decoration: none; }
 /* Normalize button typography. Without `font: inherit` a <button> falls
    back to UA defaults (Chrome: 13.333px, Helvetica-ish, line-height: normal),
@@ -254,7 +258,8 @@ select { color-scheme: light; }
   border-bottom: 1px solid var(--line-2);
 }
 .nav {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;  /* logo | centered menu | CTA */
   align-items: center;
   gap: 36px;
   padding: 14px 0;
@@ -262,6 +267,7 @@ select { color-scheme: light; }
 .brand {
   display: flex;
   align-items: center;
+  justify-self: start;
   color: var(--navy-900);
 }
 .brand-logo {
@@ -275,7 +281,6 @@ select { color-scheme: light; }
 .nav-menu {
   display: flex;
   gap: 2px;
-  margin-left: auto;
   align-items: center;
   flex-wrap: nowrap;
 }
@@ -291,7 +296,7 @@ select { color-scheme: light; }
 .nav-menu a:hover { color: var(--navy-800); background: var(--navy-50); }
 .nav-menu a.active { color: var(--navy-800); background: var(--navy-50); }
 
-.nav-cta { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
+.nav-cta { display: flex; gap: 10px; align-items: center; justify-self: end; flex-shrink: 0; }
 .nav-cta .login { font-size: 14px; font-weight: 600; color: var(--navy-800); padding: 9px 16px; white-space: nowrap; }
 .nav-user { font-size: 14px; font-weight: 600; color: var(--navy-800); padding: 9px 4px; white-space: nowrap; }
 .nav-cta .login:hover { text-decoration: underline; }
@@ -357,7 +362,7 @@ select { color-scheme: light; }
 .nav-drawer { display: contents; }
 
 @media (max-width: 1000px) {
-  .nav { position: relative; flex-wrap: nowrap; gap: 0; }
+  .nav { display: flex; position: relative; flex-wrap: nowrap; gap: 0; }
   .menu-toggle { display: inline-flex; margin-left: auto; }
   .brand-logo { height: 50px; max-width: min(52vw, 210px); }
   .mobile-login {
@@ -683,7 +688,7 @@ section[hidden] { display: none !important; }
     max-width: min(100%, 240px);
   }
 }
-.site-footer h4 {
+.site-footer h3 {
   color: white;
   font-family: var(--font-sans);
   font-size: 13px;
@@ -736,6 +741,10 @@ section[hidden] { display: none !important; }
   color: oklch(0.70 0.02 250); /* muted footer credit line */
   display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
 }
+/* Full-bleed white payment band: the ShurjoPay strip is designed for a white
+   background and spans the footer's full width. */
+.footer-payments { background: #fff; padding: 14px 24px; }
+.footer-payments-img { display: block; width: 100%; max-width: 1322px; height: auto; margin: 0 auto; }
 
 /* ---------- Motion ---------- */
 /* Translate distances are intentionally short. Long travels (16-24px) feel
@@ -893,7 +902,9 @@ body[data-page="home"] .prog-card:nth-child(8) { animation-delay: 390ms; }
 .pd-back { display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:rgba(255,255,255,0.6); text-decoration:none; }
 .pd-back:hover { color:white; }
 .pd-back::before { content:"←"; }
-.pd-hero .eyebrow { background: var(--navy-surface-dk); color: var(--gold-on-dark); border-color: var(--navy-border-dk); margin:0; }
+/* Editorial gold label (no pill) to match the post hero meta. */
+.pd-hero .eyebrow { background: none; border: none; padding: 0; border-radius: 0; color: var(--gold-on-dark); font-size: 12px; font-weight: 700; letter-spacing: 0.14em; margin: 0; }
+.pd-hero .eyebrow::before { display: none; }
 @media (max-width: 540px) { .pd-topbar { flex-wrap:wrap; } }
 .pd-hero h1 { color: white; font-size: clamp(1.8rem, 4vw, 2.6rem); line-height:1.18; margin:0 0 14px; max-width:780px; }
 .pd-hero p.lede { color: var(--on-dark-2); font-size:1.05rem; max-width:680px; margin:0; }

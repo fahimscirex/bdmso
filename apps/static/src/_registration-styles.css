@@ -122,10 +122,6 @@
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--navy-700); box-shadow: 0 0 0 4px var(--focus-ring); }
-/* Date of Birth: three selects (Day / Month / Year) so the order is
-   always dd/mm/yyyy regardless of the browser's locale - a native
-   <input type="date"> renders mm/dd/yyyy on US-locale browsers. */
-.dob-row { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 8px; }
 /* Phone-with-prefix composite: a single rounded box with "+880" baked
    in on the left. The whole box highlights on focus inside, so it
    reads as one input despite being a span + input. The actual <input>

@@ -1,0 +1,21 @@
+# BdMSO — Bangladesh Mathematics and Science Olympiad
+
+> BdMSO is the official qualifying platform that selects primary-school students (Grade 6 and under) from Bangladesh to represent the country at the International Mathematics and Science Olympiad (IMSO). It is organised by BdOSN and SPSB.
+
+## Key pages
+
+- [About](https://bdmso.org/about): What BdMSO is, its mission, and the organising bodies.
+- [Programs](https://bdmso.org/programs): The National Olympiad plus camps, courses, and workshops.
+- [Registration](https://bdmso.org/registration): How primary students enter the National Round.
+- [Results](https://bdmso.org/results): Gold/silver/bronze medalists by year and subject.
+- [Team](https://bdmso.org/team): Organisers, mentors, advisors, and the IMSO delegation.
+- [Resources](https://bdmso.org/resources): Syllabus, regulations, and question patterns.
+
+## Updates
+
+- [Blog](https://bdmso.org/blog): News, announcements, and workshop write-ups (feed: https://bdmso.org/rss.xml).
+- [Media](https://bdmso.org/media): Press coverage of BdMSO.
+
+## Eligibility
+
+Open to students 13 or younger (born after 1 October 2013) enrolled in Grade 6 or lower as of 1 October 2026.

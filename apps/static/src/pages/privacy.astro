@@ -1,0 +1,83 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const title = "Privacy Policy - BdMSO";
+const description =
+  "How BdMSO collects, uses, shares, and protects the personal data of students and guardians who register for the Olympiad.";
+const updated = "2 June 2026";
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  page="privacy"
+  canonical="https://bdmso.org/privacy"
+  image="https://bdmso.org/images/group-winner.webp"
+>
+  <style is:global slot="head">
+    .page-head { background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-page-dark) 100%); color: white; padding: 72px 0 88px; position: relative; overflow: hidden; }
+    .page-head::before { content:""; position:absolute; inset:0; background: radial-gradient(600px 280px at 50% 100%, var(--glow-gold-sm), transparent 60%); }
+    .page-head .eyebrow { background: var(--navy-surface-dk); color: var(--gold-on-dark); border-color: var(--navy-border-dk); margin-bottom: 16px; }
+    .page-head h1 { color: white; margin: 0 0 10px; }
+    .page-head p { color: var(--on-dark-2); margin: 0; font-size: 0.95rem; }
+    .legal { max-width: 760px; margin: -48px auto 0; position: relative; z-index: 2; background: white; border: 1px solid var(--line); border-radius: var(--r-lg); padding: 40px; }
+    .legal h2 { font-size: 1.25rem; margin: 28px 0 10px; color: var(--navy-900); }
+    .legal h2:first-of-type { margin-top: 0; }
+    .legal p, .legal li { color: var(--ink-1); line-height: 1.75; }
+    .legal ul { padding-left: 22px; margin: 0 0 14px; display: grid; gap: 6px; }
+    .legal a { color: var(--navy-700); }
+    @media (max-width: 700px) { .legal { padding: 24px 18px; } }
+  </style>
+
+  <main>
+    <section class="page-head"><div class="container">
+      <span class="eyebrow">Legal</span>
+      <h1>Privacy Policy</h1>
+      <p>Last updated: {updated}</p>
+    </div></section>
+
+    <section class="container">
+      <div class="legal">
+        <p>This policy explains how Bangladesh Mathematics and Science Olympiad ("BdMSO", "we") collects, uses, shares, and protects personal data when you visit this site or register a student for our programs. BdMSO is organised by Bangladesh Open Source Network (BdOSN) and the Society for the Popularization of Science, Bangladesh (SPSB).</p>
+
+        <h2>What we collect</h2>
+        <ul>
+          <li><strong>Registration details</strong> - the guardian's name, email, and phone number, and the student's name, school, grade, date of birth, and chosen subjects.</li>
+          <li><strong>Payment information</strong> - registration fees are processed by our payment provider, ShurjoPay. We receive a transaction reference and status; we do not store card or mobile-wallet credentials.</li>
+          <li><strong>Account data</strong> - a hashed password and a BdMSO ID for guardians who create an account.</li>
+          <li><strong>Technical data</strong> - basic, privacy-friendly analytics (aggregate page views) collected without tracking cookies.</li>
+        </ul>
+
+        <h2>Children's data</h2>
+        <p>BdMSO is for primary-school students. Student information is provided and consented to by a parent or guardian during registration. We collect only what is needed to run the Olympiad and contact the family.</p>
+
+        <h2>How we use it</h2>
+        <ul>
+          <li>To process registrations, confirm payments, and issue a BdMSO ID.</li>
+          <li>To contact guardians about their registration, schedules, results, and program updates.</li>
+          <li>To organise events, publish results (medalist names and schools, with numerical scores kept private), and improve our programs.</li>
+        </ul>
+
+        <h2>Who we share it with</h2>
+        <ul>
+          <li><strong>ShurjoPay</strong> - to process payments.</li>
+          <li><strong>Email delivery (Brevo)</strong> - to send transactional and announcement emails you would expect from us.</li>
+          <li><strong>BdOSN and SPSB</strong> - the organising bodies, for running the Olympiad.</li>
+        </ul>
+        <p>We do not sell personal data. We disclose data only as described here or where required by law.</p>
+
+        <h2>Retention</h2>
+        <p>We keep registration and result records for as long as needed to administer the Olympiad and our records of past events. You can ask us to delete data that we are not legally required to keep.</p>
+
+        <h2>Your rights</h2>
+        <p>You may request access to, correction of, or deletion of the personal data we hold about you or your child. Contact us and we will respond within a reasonable time.</p>
+
+        <h2>Cookies</h2>
+        <p>We use only essential storage required to keep you signed in. Our analytics are cookieless. We do not use advertising or cross-site tracking cookies.</p>
+
+        <h2>Contact</h2>
+        <p>Questions about this policy or your data? Email <a href="mailto:support@bdmso.org">support@bdmso.org</a>. For security disclosures, see <a href="/.well-known/security.txt">/.well-known/security.txt</a>.</p>
+      </div>
+    </section>
+  </main>
+</BaseLayout>

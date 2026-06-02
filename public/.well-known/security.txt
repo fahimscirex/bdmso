@@ -1,0 +1,4 @@
+Contact: mailto:support@bdmso.org
+Expires: 2027-06-01T00:00:00Z
+Preferred-Languages: en
+Canonical: https://bdmso.org/.well-known/security.txt

@@ -81,11 +81,7 @@
         <div class="field"><label>Student's Full Name</label><input id="f-name" placeholder="e.g. Tasneem Islam" /></div>
         <div class="field" id="field-dob">
           <label>Date of Birth</label>
-          <div class="dob-row">
-            <input type="number" id="f-dob-day" aria-label="Day of birth" placeholder="DD" min="1" max="31" inputmode="numeric" />
-            <select id="f-dob-month" aria-label="Month of birth"></select>
-            <input type="number" id="f-dob-year" aria-label="Year of birth" placeholder="YYYY" inputmode="numeric" />
-          </div>
+          <input type="text" id="f-dob-display" class="date-input" aria-label="Date of birth" placeholder="dd/mm/yyyy" autocomplete="off" />
           <input type="hidden" id="f-dob" />
         </div>
         <div class="field"><label>Curriculum</label>

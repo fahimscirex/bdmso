@@ -19,6 +19,28 @@ const fmtPress = (iso: string) => {
   const d = new Date(iso);
   return isNaN(+d) ? iso : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 };
+
+// Structured data: an ItemList of press coverage, each a NewsArticle about
+// BdMSO published by the outlet - helps search engines surface the coverage.
+const mediaSchema = press.length
+  ? [{
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      name: "BdMSO in the news",
+      itemListElement: press.map((m, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        item: {
+          "@type": "NewsArticle",
+          headline: m.data.title,
+          url: m.data.url,
+          ...(m.data.publishedOn ? { datePublished: m.data.publishedOn } : {}),
+          publisher: { "@type": "Organization", name: m.data.outlet },
+          about: { "@type": "Organization", name: "BdMSO" },
+        },
+      })),
+    }]
+  : [];
 ---
 
 <BaseLayout
@@ -27,6 +49,7 @@ const fmtPress = (iso: string) => {
   page="media"
   canonical="https://bdmso.org/media"
   image="https://bdmso.org/images/press.webp"
+  jsonLd={mediaSchema}
 >
   <style is:global slot="head">
     .page-head { background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-page-dark) 100%); color: white; padding: 80px 0 100px; position: relative; overflow: hidden; }

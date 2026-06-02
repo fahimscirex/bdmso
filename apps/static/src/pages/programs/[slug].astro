@@ -28,7 +28,12 @@ const image = p.image
   : `${SITE}/images/logo.webp`;
 const metaDesc = p.metaDescription || p.tagline || "";
 // Avoid "BdMSO X - BdMSO" double-branding when the title already leads "BdMSO".
-const pageTitle = /^BdMSO\b/i.test(p.title) ? p.title : `${p.title} - BdMSO`;
+const startsWithBrand = /^BdMSO\b/i.test(p.title);
+const baseTitle = startsWithBrand ? p.title : `${p.title} - BdMSO`;
+// Short brand-led titles ("BdMSO Mock Test") waste SERP space; append the
+// audience (class level) for a descriptive, keyword-bearing title. Titles that
+// already end "- BdMSO" keep their structure (brand stays last).
+const pageTitle = startsWithBrand && baseTitle.length < 32 && p.audience ? `${baseTitle} - ${p.audience}` : baseTitle;
 
 const isExternal = /^https?:/.test(p.register_url || "");
 const todayISO = new Date().toISOString().slice(0, 10);
@@ -99,7 +104,7 @@ const relatedPosts = relatedTo(
     <section class="container pd-wrap">
       <div class="pd-grid">
         <article class="pd-main">
-          {p.image && <Img class="cover" src={p.image} alt={p.title} widths={[400, 800, 1200]} sizes="(max-width: 800px) 100vw, 720px" />}
+          {p.image && <Img class="cover" src={p.image} alt={p.title} widths={[400, 800, 1200]} sizes="(max-width: 800px) 100vw, 720px" loading="eager" fetchpriority="high" />}
 
           {/* Main content is the markdown body - edit programs/<slug>.md, not JSON blocks. */}
           <Content />
