@@ -420,7 +420,7 @@
       "Hour 3 - The Microscopic World (Biology): prepare slides and use microscopes to observe plant/animal cells",
       "Hour 4 - Physical Forces (Physics): hands-on experiments with pulleys, levers and basic optics"
     ],
-    "registration": true,
+    "registration": false,
     "category": "beginner"
   },
 
