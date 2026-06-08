@@ -1,5 +1,4 @@
 [
-
   {
     "slug": "national-olympiad",
     "home_order": "01",
@@ -81,7 +80,6 @@
     ],
     "registration": true
   },
-
   {
     "slug": "national-quiz-competition",
     "home_order": "02",
@@ -129,7 +127,6 @@
     ],
     "registration": true
   },
-
   {
     "slug": "maryam-mirzakhani-school",
     "home_order": "05",
@@ -146,7 +143,6 @@
     "duration": "3 days - 23-25 May 2026",
     "outcome": "Foundational Math & Science skills"
   },
-
   {
     "slug": "stem-foundation",
     "home_order": "09",
@@ -188,7 +184,6 @@
     "registration": true,
     "category": "beginner"
   },
-
   {
     "slug": "bdmso-preparatory",
     "home_order": "03",
@@ -292,18 +287,17 @@
     },
     "category": "advanced"
   },
-
   {
     "slug": "bdmso-preparatory-camp",
     "home_order": "03b",
     "feeAmount": 4000,
     "title": "BdMSO Preparatory Camp",
     "tagline": "On-site advanced Olympiad prep camp at MASLab for Class 4-5-6.",
-    "metaDescription": "On-site advanced BdMSO Olympiad camp at MASLab in Dhaka - 10 afternoon sessions (4-7 PM, two per day) for Class 4 to 6, with 2 mock tests included. Runs 10 to 25 June 2026.",
+    "metaDescription": "On-site advanced BdMSO Olympiad camp at MASLab in Dhaka - 10 afternoon sessions (4-7 PM, two per day) for Class 4 to 6, with 2 mock tests included. Runs 18 to 30 June 2026.",
     "registrationStarts": "2026-04-15",
-    "registrationEnds": "2026-06-09",
-    "startsOn": "2026-06-10",
-    "endsOn": "2026-06-25",
+    "registrationEnds": "2026-06-17",
+    "startsOn": "2026-06-18",
+    "endsOn": "2026-06-30",
     "eyebrow": "Year-round · Preparation Camp",
     "image": "/images/lab-day-primary.webp",
     "level": "Advanced",
@@ -312,12 +306,12 @@
     "format": "On-site classes at MASLab",
     "outcome": "2 mock tests included",
     "price": "৳ 4,000",
-    "schedule": "10 - 25 June 2026",
+    "schedule": "18 - 30 June 2026",
     "register_url": "/registration?program=bdmso-preparatory-camp",
     "register_label": "Enroll now",
     "description": [
       "Take your Olympiad preparation onsite with the BdMSO Preparatory Camp. This advanced-level on-site camp is designed for students in Class 4, 5 and 6 who want hands-on, classroom-based training before the National Olympiad.",
-      "The camp runs across 10 offline sessions (two per day, twice a week) focused on advanced problem-solving and Olympiad-style question patterns, plus 2 mock tests (12 June and 19 June 2026) to evaluate readiness. Held from 10 to 25 June 2026 at MASLab."
+      "The camp runs across 10 offline sessions (two per day, twice a week) focused on advanced problem-solving and Olympiad-style question patterns, plus 2 mock tests (19 June and 26 June 2026) to evaluate readiness. Held from 18 to 30 June 2026 at MASLab."
     ],
     "related_programs": [
       {
@@ -332,30 +326,30 @@
       {
         "subject": "Science classes (two sessions per day)",
         "sessions": [
-          "Class 1 · Wed 10 Jun 2026 · 4-7 PM",
-          "Class 2 · Sun 14 Jun 2026 · 4-7 PM",
-          "Class 3 · Tue 16 Jun 2026 · 4-7 PM",
-          "Class 4 · Mon 22 Jun 2026 · 4-7 PM",
-          "Class 5 · Wed 24 Jun 2026 · 4-7 PM"
+          "Class 1 & 2 · Thu 18 Jun 2026 · 4-7 PM",
+          "Class 3 & 4 · Mon 22 Jun 2026 · 4-7 PM",
+          "Class 5 & 6 · Wed 24 Jun 2026 · 4-7 PM",
+          "Class 7 & 8 · Sat 27 Jun 2026 · 4-7 PM",
+          "Class 9 & 10 · Mon 29 Jun 2026 · 4-7 PM"
         ]
       },
       {
         "subject": "Math classes (two sessions per day)",
         "sessions": [
-          "Class 1 · Thu 11 Jun 2026 · 4-7 PM",
-          "Class 2 · Mon 15 Jun 2026 · 4-7 PM",
-          "Class 3 · Wed 17 Jun 2026 · 4-7 PM",
-          "Class 4 · Tue 23 Jun 2026 · 4-7 PM",
-          "Class 5 · Thu 25 Jun 2026 · 4-7 PM"
+          "Class 1 & 2 · Sat 20 Jun 2026 · 4-7 PM",
+          "Class 3 & 4 · Tue 23 Jun 2026 · 4-7 PM",
+          "Class 5 & 6 · Thu 25 Jun 2026 · 4-7 PM",
+          "Class 7 & 8 · Sun 28 Jun 2026 · 4-7 PM",
+          "Class 9 & 10 · Tue 30 Jun 2026 · 4-7 PM"
         ]
       }
     ],
     "mock_tests_label": "Mock Test Dates",
     "mock_tests": [
-      "Mock Test 1 - Math · Fri 12 Jun 2026 · 3-4 PM · MASLab, Dhaka",
-      "Mock Test 1 - Science · Fri 12 Jun 2026 · 5-6 PM · MASLab, Dhaka",
-      "Mock Test 2 - Math · Fri 19 Jun 2026 · 3-4 PM · MASLab, Dhaka",
-      "Mock Test 2 - Science · Fri 19 Jun 2026 · 5-6 PM · MASLab, Dhaka"
+      "Mock Test 1 - Math · Fri 19 Jun 2026 · 3-4 PM · MASLab, Dhaka",
+      "Mock Test 1 - Science · Fri 19 Jun 2026 · 5-6 PM · MASLab, Dhaka",
+      "Mock Test 2 - Math · Fri 26 Jun 2026 · 3-4 PM · MASLab, Dhaka",
+      "Mock Test 2 - Science · Fri 26 Jun 2026 · 5-6 PM · MASLab, Dhaka"
     ],
     "schedule_note": "The mentioned schedule can be adjusted with prior notice due to any unavoidable circumstances.",
     "registration": true,
@@ -386,7 +380,6 @@
     },
     "category": "advanced"
   },
-
   {
     "slug": "lab-day",
     "home_order": "06",
@@ -423,7 +416,6 @@
     "registration": false,
     "category": "beginner"
   },
-
   {
     "slug": "stem-masterclass",
     "home_order": "07",
@@ -454,46 +446,76 @@
     "registration": true,
     "category": "advanced"
   },
-
   {
     "slug": "kids-ai-ml",
     "home_order": "08",
-    "feeAmount": null,
-    "title": "Kids AI and Machine Learning",
+    "feeAmount": 3000,
+    "title": "Kids Machine Learning and AI",
     "tagline": "An introductory, hands-on program where young learners bridge basic coding logic with real-world machine learning concepts.",
-    "metaDescription": "A hands-on Kids AI and Machine Learning program for Class 5 or below, where young learners explore electronics, sensors and coding to build their first robot.",
-    "eyebrow": "Year-round · Kids AI &amp; ML",
+    "metaDescription": "A hands-on Kids Machine Learning and AI program for Class 4-5-6 - 10 sessions (5 online + 5 offline) covering AI, prompt engineering, ML model training, and robotics.",
+    "eyebrow": "Year-round · AI &amp; ML",
     "image": "/images/robotics.webp",
     "level": "Beginner",
-    "audience": "Class 5 or below",
-    "duration": "12 classes",
-    "format": "Interactive build-and-code sessions",
-    "outcome": "Hands on learning before building your 1st robot",
-    "price": "৳ On enquiry",
-    "schedule": "Starts 15 June 2026",
+    "audience": "Class 4-5-6",
+    "duration": "10 sessions (5 online + 5 offline)",
+    "format": "Online & Offline",
+    "outcome": "Hands on AI and Machine Learning Model Build, AI Integration at Robotics",
+    "price": "৳ 3,000",
+    "schedule": "Starts 20 June 2026",
     "registrationStarts": "2026-06-15",
     "register_url": "/registration?program=kids-ai-ml",
     "register_label": "Enroll now",
     "description": [
-      "Welcome to the future of technology. This Foundation Course is an introductory, highly interactive program that demystifies how machines work over 12 classes.",
-      "Students dive into basic electronics, understand how sensors perceive the world, and learn the fundamentals of physical computing. By the end of the course, every student will have built and programmed their very first functioning robot."
+      "This program offers students a comprehensive introduction to the world of Artificial Intelligence. Participants will explore the mechanics behind AI, learning how models are trained to make predictions and generate results. Additionally, they will master essential prompt engineering techniques to optimize interactions with chatbots.",
+      "Students will then take a hands-on approach by training their own machine learning models using custom datasets. This practical experience will empower them to build interactive games and prediction systems.",
+      "In the second phase of the workshop, students will delve into the field of Physical AI. They will gain an understanding of how robots perceive data and learn the fundamental principles of physical computing. By the conclusion of the course, every student will have successfully designed and programmed their very own functioning AI-driven robot."
     ],
     "what_youll_do": [
-      "Detailed course outline coming soon"
+      "How AI Learn, train and give results",
+      "Prompt Engineering",
+      "Comic Story using AI",
+      "Game Development using machine learning model",
+      "Image Classification",
+      "Physical AI Programs - AI integration in Robotics"
     ],
     "registration": true,
-    "category": "beginner"
+    "category": "beginner",
+    "registrationEnds": null,
+    "startsOn": "2026-06-20",
+    "prerequisite": "Scratch Programming",
+    "class_schedule_label": "Class Schedule",
+    "class_schedule": [
+      {
+        "subject": "Online classes",
+        "sessions": [
+          "Class 1 · Sat 20 Jun 2026 · 3-5 PM",
+          "Class 2 · Fri 26 Jun 2026 · 3-5 PM",
+          "Class 3 · Sat 27 Jun 2026 · 3-5 PM",
+          "Class 4 · Fri 3 Jul 2026 · 3-5 PM",
+          "Class 5 · Sat 4 Jul 2026 · 3-5 PM"
+        ]
+      },
+      {
+        "subject": "Offline classes",
+        "sessions": [
+          "Class 6 (Offline) · Fri 10 Jul 2026 · 3-5 PM",
+          "Class 7 (Offline) · Sat 11 Jul 2026 · 3-5 PM",
+          "Class 8 (Offline) · Fri 17 Jul 2026 · 3-5 PM",
+          "Class 9 (Offline) · Sat 18 Jul 2026 · 3-5 PM",
+          "Class 10 (Offline) · Fri 24 Jul 2026 · 3-5 PM"
+        ]
+      }
+    ]
   },
-
   {
     "slug": "mock-test",
     "home_order": "04",
     "feeAmount": 500,
     "title": "BdMSO Mock Test",
-    "tagline": "Mock exam held on June 12 and June 19 to benchmark your skills and understand your standing. Available for Science, Math, or both subjects.",
-    "metaDescription": "BdMSO Mock Tests on 12 and 19 June 2026 - on-site simulated exams in Math and Science that mirror the real Olympiad and benchmark your child's readiness.",
-    "startsOn": "2026-06-12",
-    "endsOn": "2026-06-19",
+    "tagline": "Mock exam held on June 19 and June 26 to benchmark your skills and understand your standing. Available for Science, Math, or both subjects.",
+    "metaDescription": "BdMSO Mock Tests on 19 and 26 June 2026 - on-site simulated exams in Math and Science that mirror the real Olympiad and benchmark your child's readiness.",
+    "startsOn": "2026-06-19",
+    "endsOn": "2026-06-26",
     "registrationStarts": "2026-05-15",
     "registrationEnds": "2026-06-18",
     "eyebrow": "Year-round · Testing",
@@ -504,7 +526,7 @@
     "format": "On-site mock exam · MASLab, Dhaka",
     "outcome": "Exam confidence and competitive leaderboard placement",
     "price": "৳ 500",
-    "schedule": "Mock 1: 12 June 2026 · Mock 2: 19 June 2026",
+    "schedule": "Mock 1: 19 June 2026 · Mock 2: 26 June 2026",
     "register_url": "/registration?program=mock-test",
     "register_label": "Sign up for a mock",
     "description": [
@@ -512,10 +534,10 @@
       "Hosted at MASLab in Dhaka, these monthly tests help students master their time management and identify weak points before the main event. Detailed leaderboards and results are published after each test."
     ],
     "what_youll_do": [
-      "BdMSO Mock Test 1 - Friday, 12 June 2026 · 3:00–4:00 PM (Math)", 
-      "BdMSO Mock Test 1 - Friday, 12 June 2026 · 5:00–6:00 PM (Science)",
-      "BdMSO Mock Test 2 - Friday, 19 June 2026 · 3:00–4:00 PM (Math)",
-      "BdMSO Mock Test 2 - Friday, 19 June 2026 · 5:00–6:00 PM (Science)",
+      "BdMSO Mock Test 1 - Friday, 19 June 2026 · 3:00–4:00 PM (Math)",
+      "BdMSO Mock Test 1 - Friday, 19 June 2026 · 5:00–6:00 PM (Science)",
+      "BdMSO Mock Test 2 - Friday, 26 June 2026 · 3:00–4:00 PM (Math)",
+      "BdMSO Mock Test 2 - Friday, 26 June 2026 · 5:00–6:00 PM (Science)",
       "Venue: MASLab, Dhaka",
       "Detailed leaderboards and personal score breakdowns published after each test"
     ],
@@ -529,32 +551,31 @@
         {
           "id": "mt1-math",
           "label": "Mock Test 1 - Math",
-          "sub": "Fri 12 Jun 2026 - 3-4 PM - MASLab, Dhaka",
+          "sub": "Fri 19 Jun 2026 - 3-4 PM - MASLab, Dhaka",
           "price": 500
         },
         {
           "id": "mt1-sci",
           "label": "Mock Test 1 - Science",
-          "sub": "Fri 12 Jun 2026 - 5-6 PM - MASLab, Dhaka",
+          "sub": "Fri 19 Jun 2026 - 5-6 PM - MASLab, Dhaka",
           "price": 500
         },
         {
           "id": "mt2-math",
           "label": "Mock Test 2 - Math",
-          "sub": "Fri 19 Jun 2026 - 3-4 PM - MASLab, Dhaka",
+          "sub": "Fri 26 Jun 2026 - 3-4 PM - MASLab, Dhaka",
           "price": 500
         },
         {
           "id": "mt2-sci",
           "label": "Mock Test 2 - Science",
-          "sub": "Fri 19 Jun 2026 - 5-6 PM - MASLab, Dhaka",
+          "sub": "Fri 26 Jun 2026 - 5-6 PM - MASLab, Dhaka",
           "price": 500
         }
       ]
     },
     "category": "advanced"
   },
-
   {
     "slug": "summer-camp",
     "home_order": "10",
@@ -586,7 +607,6 @@
     "registration": true,
     "category": "residential"
   },
-
   {
     "slug": "winter-camp",
     "home_order": "11",
@@ -615,7 +635,6 @@
     "registration": false,
     "category": "residential"
   },
-
   {
     "slug": "exchange-program",
     "home_order": "12",
@@ -644,5 +663,4 @@
     "registration": false,
     "category": "residential"
   }
-
 ]

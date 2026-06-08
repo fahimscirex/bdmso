@@ -394,7 +394,7 @@ function buildProgramPages({ target = "dist" } = {}) {
     // is true the active CTA carries the window dates so the inline
     // script below can downgrade it to "opens on…" for upcoming
     // programs (kept client-side so static pages never go stale).
-    const regOpen = p.registration !== false;
+    const regOpen = p.registration !== false || (p.registrationStarts && new Date().toISOString().slice(0, 10) < p.registrationStarts);
     const closedBox = (text) =>
       `<div class="pd-cta" style="text-align:center;padding:14px;border-radius:12px;background:var(--bg-alt,#f1f3f7);color:var(--ink-3);font-weight:700;font-size:14px;">${text}</div>`;
     const winAttrs = `${p.registrationStarts ? ` data-reg-starts="${escAttr(p.registrationStarts)}"` : ""}${p.registrationEnds ? ` data-reg-ends="${escAttr(p.registrationEnds)}"` : ""}`;
@@ -716,10 +716,11 @@ function buildProgramsIndex() {
     // and closed ones show their category badge (Beginner/Advanced/...).
     let badgeClass, badgeLabel;
     const todayISO = new Date().toISOString().slice(0, 10);
-    const inWindow = p.registration !== false
+    const upcoming = p.registrationStarts && todayISO < p.registrationStarts;
+    const inWindow = upcoming || (p.registration !== false
       && (p.registrationStarts || p.registrationEnds)
       && (!p.registrationStarts || todayISO >= p.registrationStarts)
-      && (!p.registrationEnds   || todayISO <= p.registrationEnds);
+      && (!p.registrationEnds   || todayISO <= p.registrationEnds));
     if (inWindow) {
       badgeClass = "b-open"; badgeLabel = "Open";
     } else {
