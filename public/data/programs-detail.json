@@ -14,9 +14,9 @@
     "format": "MCQ, Short and Broad Question · 50 + 50 = 100 marks",
     "outcome": "Winners advance to National Residential Camp and TST",
     "price": "৳ 1,000",
-    "schedule": "Registration closes 26 June 2026",
+    "schedule": "Registration closes 30 June 2026",
     "registrationStarts": "2026-01-01",
-    "registrationEnds": "2026-06-26",
+    "registrationEnds": "2026-06-30",
     "options": {
       "kind": "radio",
       "label": "Subjects",
@@ -95,9 +95,9 @@
     "format": "On-site quiz competition",
     "outcome": "Medal and Certificate of Achievement for the winners",
     "price": "৳ 1,000",
-    "schedule": "Registration closes 26 June 2026",
+    "schedule": "Registration closes 30 June 2026",
     "registrationStarts": "2026-05-20",
-    "registrationEnds": "2026-06-26",
+    "registrationEnds": "2026-06-30",
     "register_url": "/registration?program=national-quiz-competition",
     "register_label": "Register now",
     "description": [
@@ -208,7 +208,7 @@
     "register_label": "Enroll now",
     "description": [
       "Take your Olympiad journey to the next level with the BdMSO Preparatory Course. This basic-level online program is meticulously crafted for students in Class 6 or below who are aiming to compete at the national level.",
-      "The structured training focuses on problem-solving, critical thinking, and Olympiad-style question patterns over 10-sessions of live online classes. The course also includes 2 mock tests (12 June and 19 June 2026) to evaluate readiness. Held from 6 to 26 June 2026."
+      "The structured training focuses on problem-solving, critical thinking, and Olympiad-style question patterns over 10-sessions of live online classes. The course also includes 2 mock tests (19 June and 26 June 2026) to evaluate readiness. Held from 6 to 26 June 2026."
     ],
     "related_programs": [
       {
@@ -462,7 +462,7 @@
     "outcome": "Hands on AI and Machine Learning Model Build, AI Integration at Robotics",
     "price": "৳ 3,000",
     "schedule": "Starts 20 June 2026",
-    "registrationStarts": "2026-06-15",
+    "registrationStarts": "2026-06-08",
     "register_url": "/registration?program=kids-ai-ml",
     "register_label": "Enroll now",
     "description": [
