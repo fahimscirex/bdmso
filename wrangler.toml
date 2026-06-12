@@ -52,6 +52,12 @@ preview_bucket_name = "bdmso-assets"
 [env.production]
 name = "bdmso"
 
+# Auto-reconcile stuck pending payments every 30 minutes.
+# Catches card/3DS payments where the browser redirect broke and the
+# IPN never arrived.
+[env.production.triggers]
+crons = ["*/30 * * * *"]
+
 [env.production.assets]
 directory = "./dist"
 binding = "ASSETS"

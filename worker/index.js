@@ -229,6 +229,18 @@ function rewriteForAsset(pathname) {
 }
 
 export default {
+  // Cron-triggered reconciliation: catches pending payments that fell
+  // through the cracks (browser redirect broke, IPN never arrived, callback
+  // threw an error).  Configure in wrangler.toml:
+  //   [triggers]
+  //   crons = ["*/30 * * * *"]
+  async scheduled(event, env) {
+    const { reconcileStalePayments } = await import("./lib/reconcile.js");
+    const baseUrl = `https://${env.PRODUCTION_DOMAIN || "bdmso.org"}`;
+    const result = await reconcileStalePayments(env, baseUrl);
+    console.log(`[reconcile-cron] checked=${result.checked} paid=${result.paid} failed=${result.failed} errors=${result.errors.length}`);
+  },
+
   async fetch(request, env) {
     const url = new URL(request.url);
 

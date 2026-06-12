@@ -12,6 +12,7 @@ import { PROGRAM_NAMES } from "../lib/programs.js";
 import { createVerificationToken, sendVerificationEmail, assignMemberIdAndSendReceipt, sendBroadcastEmail } from "../lib/email.js";
 import { getBaseUrl } from "../lib/util.js";
 import { checkActionRateLimit, recordActionAttempt, clientIpFor } from "../lib/rate-limit.js";
+import { reconcilePayment, reconcileStalePayments } from "../lib/reconcile.js";
 
 const admin = new Hono();
 
@@ -288,6 +289,47 @@ admin.get("/payments", async (c) => {
     },
     filter: { status: status || null, limit },
   });
+});
+
+// POST /api/admin/payments/:id/reconcile
+// Re-verifies a single pending payment against ShurjoPay and marks it
+// paid or failed.  Only works on payments with status = 'pending'.
+admin.post("/payments/:id/reconcile", async (c) => {
+  const id = c.req.param("id");
+  const payment = await c.env.DB.prepare(
+    "SELECT id, tran_id, val_id, amount, registration_id, status, coupon_code, purpose, proposed_options FROM payments WHERE id = ? LIMIT 1"
+  ).bind(id).first();
+  if (!payment) return c.json({ error: "Payment not found." }, 404);
+  if (payment.status !== "pending") {
+    return c.json({ error: `Payment is already ${payment.status}.` }, 400);
+  }
+  if (!payment.val_id) {
+    return c.json({ error: "Payment has no ShurjoPay order ID (val_id). Cannot verify." }, 400);
+  }
+
+  try {
+    const result = await reconcilePayment(c.env, payment, getBaseUrl(c.req.raw));
+    const session = c.get("session");
+    await recordAudit(c.env, session.account_id, "payment.reconcile", {
+      payment_id: payment.id, tran_id: payment.tran_id, ...result,
+    });
+    return c.json({ ok: true, ...result });
+  } catch (err) {
+    return c.json({ error: `Reconciliation failed: ${err.message}` }, 502);
+  }
+});
+
+// POST /api/admin/payments/reconcile-stale
+// Bulk-reconcile all pending payments older than 30 minutes.
+admin.post("/payments/reconcile-stale", async (c) => {
+  try {
+    const result = await reconcileStalePayments(c.env, getBaseUrl(c.req.raw));
+    const session = c.get("session");
+    await recordAudit(c.env, session.account_id, "payment.reconcile_bulk", result);
+    return c.json({ ok: true, ...result });
+  } catch (err) {
+    return c.json({ error: `Bulk reconciliation failed: ${err.message}` }, 502);
+  }
 });
 
 // ─── Sponsorships ────────────────────────────────────────────────────────────

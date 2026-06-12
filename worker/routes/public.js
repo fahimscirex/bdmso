@@ -933,6 +933,13 @@ export async function handlePaymentCallback(request, env, url) {
     return done("success");
   } catch (err) {
     console.log("[payment-callback] shurjoPay error:", err.message);
+    // Record the error so reconciliation can see it, but keep status as
+    // 'pending' so a late IPN can still claim the payment.
+    try {
+      await env.DB.prepare(
+        "UPDATE payments SET gateway_status = ?, updated_at = ? WHERE val_id = ? AND status = 'pending'"
+      ).bind(`CallbackError: ${err.message}`, new Date().toISOString(), spOrderId).run();
+    } catch {}
     return done("failed");
   }
 }
