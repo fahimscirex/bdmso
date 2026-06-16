@@ -11,6 +11,10 @@
 import { getShurjopayConfig, shurjopayGetToken, shurjopayVerify } from "./shurjopay.js";
 import { assignMemberIdAndSendReceipt, sendUpdatedReceiptForRegistration } from "./email.js";
 
+// Transient states (Initiated/Pending) that are older than this are
+// treated as terminal — the user abandoned checkout.
+const TRANSIENT_TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2 hours
+
 // Verify a single payment and update the DB if the gateway confirms it.
 // Returns { status, method, error? }.
 export async function reconcilePayment(env, payment, baseUrl) {
@@ -22,10 +26,24 @@ export async function reconcilePayment(env, payment, baseUrl) {
 
   const isSuccess = gwStatus === "Success" || gwStatus === "00";
   if (!isSuccess) {
+    const lower = gwStatus.toLowerCase();
+    if (lower === "cancel" || lower === "cancelled" || lower === "failed") {
+      await env.DB.prepare(
+        "UPDATE payments SET status = 'failed', gateway_status = ?, updated_at = ? WHERE id = ? AND status = 'pending'"
+      ).bind(gwStatus, now, payment.id).run();
+      return { status: "failed", method: null, error: gwStatus };
+    }
+    const isStale = payment.created_at && Date.now() - new Date(payment.created_at).getTime() > TRANSIENT_TIMEOUT_MS;
+    if (isStale) {
+      await env.DB.prepare(
+        "UPDATE payments SET status = 'failed', gateway_status = ?, updated_at = ? WHERE id = ? AND status = 'pending'"
+      ).bind(`Stale:${gwStatus}`, now, payment.id).run();
+      return { status: "failed", method: null, error: `Stale:${gwStatus}` };
+    }
     await env.DB.prepare(
-      "UPDATE payments SET status = 'failed', gateway_status = ?, updated_at = ? WHERE id = ? AND status = 'pending'"
+      "UPDATE payments SET gateway_status = ?, updated_at = ? WHERE id = ? AND status = 'pending'"
     ).bind(gwStatus, now, payment.id).run();
-    return { status: "failed", method: null, error: gwStatus };
+    return { status: "pending", method: null, error: gwStatus };
   }
 
   // Amount sanity check — same logic as the callback handler.
@@ -81,7 +99,7 @@ export async function reconcilePayment(env, payment, baseUrl) {
 export async function reconcileStalePayments(env, baseUrl, ageMs = 30 * 60 * 1000) {
   const cutoff = new Date(Date.now() - ageMs).toISOString();
   const stale = await env.DB.prepare(
-    "SELECT id, tran_id, val_id, amount, registration_id, coupon_code, purpose, proposed_options FROM payments WHERE status = 'pending' AND created_at < ?"
+    "SELECT id, tran_id, val_id, amount, created_at, registration_id, coupon_code, purpose, proposed_options FROM payments WHERE status = 'pending' AND created_at < ?"
   ).bind(cutoff).all();
 
   if (!stale.results?.length) return { checked: 0, paid: 0, failed: 0, errors: [] };

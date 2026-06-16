@@ -1,7 +1,7 @@
 // Payments list. Mirrors Registrations but groups by payment intent.
 // Shows revenue at the top - the question finance asks most often.
 
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useState, useCallback } from 'preact/hooks';
 import { api, ApiError } from '../api';
 import { navigate, href } from '../router';
 import { toCsv, downloadCsv } from '../csv';
@@ -49,8 +49,10 @@ export function Payments() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [exporting, setExporting] = useState(false);
+  const [reconciling, setReconciling] = useState<string | null>(null);
+  const [reconcilingAll, setReconcilingAll] = useState(false);
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     setError(null);
     setData(null);
     const qs = statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : '';
@@ -58,6 +60,34 @@ export function Payments() {
       .then(setData)
       .catch((err: ApiError) => setError(err.message));
   }, [statusFilter]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  async function reconcile(id: string) {
+    setReconciling(id);
+    try {
+      const res = await api.post<{ ok: true; status: string }>(`/api/admin/payments/${id}/reconcile`);
+      alert(`Reconciled: ${res.status}`);
+      fetchData();
+    } catch (err) {
+      alert((err as ApiError).message);
+    } finally {
+      setReconciling(null);
+    }
+  }
+
+  async function reconcileAll() {
+    setReconcilingAll(true);
+    try {
+      const res = await api.post<{ ok: true; checked: number; paid: number; failed: number }>('/api/admin/payments/reconcile-stale');
+      alert(`Reconciled ${res.checked} stale payments: ${res.paid} paid, ${res.failed} failed.`);
+      fetchData();
+    } catch (err) {
+      alert((err as ApiError).message);
+    } finally {
+      setReconcilingAll(false);
+    }
+  }
 
   // Export the current filtered view (up to the API's 1000-row cap) to CSV.
   async function exportCsv() {
@@ -115,9 +145,18 @@ export function Payments() {
         <button
           type="button"
           class="btn-secondary"
+          disabled={reconcilingAll || !data}
+          onClick={reconcileAll}
+          style="margin-left:auto;"
+        >
+          {reconcilingAll ? 'Reconciling…' : 'Reconcile All Stale'}
+        </button>
+        <button
+          type="button"
+          class="btn-secondary"
           disabled={exporting || !data}
           onClick={exportCsv}
-          style="margin-left:auto;align-self:flex-end;"
+          style="align-self:flex-end;"
         >
           {exporting ? 'Exporting…' : 'Export CSV'}
         </button>
@@ -145,6 +184,7 @@ export function Payments() {
                 <th>Gateway</th>
                 <th>Coupon</th>
                 <th>Updated</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -185,6 +225,18 @@ export function Payments() {
                     <td>{p.gateway_status || '-'}</td>
                     <td>{p.coupon_code ? <code>{p.coupon_code}</code> : <span class="muted">-</span>}</td>
                     <td class="cell-sub">{formatDateTime(p.updated_at)}</td>
+                    <td>
+                      {p.status === 'pending' && (
+                        <button
+                          type="button"
+                          class="btn-secondary btn-sm"
+                          disabled={reconciling === p.id}
+                          onClick={(e) => { e.stopPropagation(); reconcile(p.id); }}
+                        >
+                          {reconciling === p.id ? '…' : 'Reconcile'}
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 );
               })}

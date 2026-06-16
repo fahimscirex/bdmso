@@ -821,14 +821,21 @@ export async function handlePaymentCallback(request, env, url) {
     // shurjoPay returns "Success" on a confirmed paid txn for wallet rails
     // (bKash, Nagad). Card rails settle via the issuer bank and come back
     // with ISO 8583 "00" (Approved) in transaction_status instead, so accept
-    // both. Anything else (Cancel / Failed / Initiated / Pending) is treated
-    // as not-yet-paid.
+    // both. Initiated/Pending are transient — keep payment as pending so
+    // reconciliation retries. Only Cancel/Failed are terminal.
     const isSuccess = status === "Success" || status === "00";
     if (!isSuccess) {
+      const lower = status.toLowerCase();
+      if (lower === "cancel" || lower === "cancelled" || lower === "failed") {
+        await env.DB.prepare(
+          "UPDATE payments SET status = 'failed', gateway_status = ?, updated_at = ? WHERE val_id = ? AND status != 'paid'"
+        ).bind(status, now, spOrderId).run();
+        return done(lower === "cancel" ? "cancelled" : "failed");
+      }
       await env.DB.prepare(
-        "UPDATE payments SET status = 'failed', gateway_status = ?, updated_at = ? WHERE val_id = ? AND status != 'paid'"
+        "UPDATE payments SET gateway_status = ?, updated_at = ? WHERE val_id = ? AND status = 'pending'"
       ).bind(status, now, spOrderId).run();
-      return done(status.toLowerCase() === "cancel" ? "cancelled" : "failed");
+      return done("pending");
     }
 
     // Amount sanity check. We trust shurjoPay's verify response, but the
