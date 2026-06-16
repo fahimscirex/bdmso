@@ -94,7 +94,7 @@ admin.get("/registrations", async (c) => {
       p.updated_at AS payment_updated_at
     FROM registrations r
     LEFT JOIN payments p ON p.id = (
-      SELECT id FROM payments WHERE registration_id = r.id ORDER BY created_at DESC LIMIT 1
+      SELECT id FROM payments WHERE registration_id = r.id ORDER BY CASE status WHEN 'paid' THEN 0 WHEN 'pending' THEN 1 ELSE 2 END, created_at DESC LIMIT 1
     )
     ${whereSql}
     ORDER BY r.created_at DESC

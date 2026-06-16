@@ -197,7 +197,8 @@ export async function handleMe(request, env) {
       LEFT JOIN payments p ON p.id = (
         SELECT id FROM payments
         WHERE registration_id = r.id AND purpose = 'initial'
-        ORDER BY created_at DESC LIMIT 1
+        ORDER BY CASE status WHEN 'paid' THEN 0 WHEN 'pending' THEN 1 ELSE 2 END, created_at DESC
+        LIMIT 1
       )
       WHERE r.guardian_account_id = ?
       ORDER BY r.created_at DESC
