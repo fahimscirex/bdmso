@@ -352,7 +352,7 @@
       "Mock Test 2 - Science · Fri 26 Jun 2026 · 5-6 PM · MASLab, Dhaka"
     ],
     "schedule_note": "The mentioned schedule can be adjusted with prior notice due to any unavoidable circumstances.",
-    "registration": true,
+    "registration": false,
     "options": {
       "kind": "radio",
       "label": "Subjects",
