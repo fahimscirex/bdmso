@@ -1,18 +1,5 @@
 # Schema
 
-### programs
-- slug: text (pk)
-- title: text (required)
-- category: text
-- image: text
-- duration: text
-- format: text
-- outcome: text
-- level: text
-- meta_description: text
-- home_order: text
-- 01: register_url text
-
 ### guardian_accounts
 - id: text (pk)
 - email: text (required)
@@ -121,6 +108,21 @@
 - to_price: real (required)
 - delta: real (required)
 
+### programs
+- slug: text (pk)
+- title: text (required)
+- tagline: text
+- cohort: text
+- image: text
+- venue: text
+- audience: text
+- subjects_json: text
+- rendered: at request time
+  routine_json text
+- published: integer (required)
+- published_at: text
+- updated_by: text
+
 ### posts
 - slug: text (pk)
 - title: text (required)
@@ -131,6 +133,93 @@
 - rendered: at request time
   published integer (required)
 - featured: integer (required)
+- published_at: text
+
+### press_mentions
+- id: integer (pk)
+- outlet: text (required)
+- title: text (required)
+- url: text (required)
+- published_on: text
+- image: text
+- featured: integer (required)
+- sort_order: integer (required)
+- published: integer (required)
+- updated_by: text
+
+### hall_of_fame_photos
+- id: integer (pk)
+- image: text (required)
+- caption: text
+- year: text
+- sort_order: integer (required)
+- published: integer (required)
+- updated_by: text
+
+### medalists
+- id: integer (pk)
+- year: text (required)
+- category: text (required)
+- medal: text (required)
+- name: text (required)
+- school: text
+- sort_order: integer (required)
+- published: integer (required)
+- updated_by: text
+
+### team_members
+- id: integer (pk)
+- section: text (required)
+- subgroup: text
+- year: text
+- name: text (required)
+- role: text
+- affiliation: text
+- image: text
+- sort_order: integer (required)
+- published: integer (required)
+- updated_by: text
+
+### invoice_seq
+- year: integer (pk)
+- next_seq: integer (required)
+
+### pending_publish
+- id: text (pk)
+- entity_type: text (required)
+- entity_id: text (required, fk)
+- action: text (required)
+- materialized_content: text
+- d1_after_json: text
+- status: text (required)
+- staged_at: text (required)
+
+### publish_snapshots
+- entity_type: text (required)
+- entity_id: text (required, fk)
+- d1_json: text (required)
+
+### exam_events
+- event_key: text (pk)
+- label: text (required)
+- program_slug: text (required)
+- sections: text (required)
+- results_published: integer (required)
+- published_at: text
+
+### cohorts
+- cohort_key: text (pk)
+- program_slug: text (required)
+- label: text (required)
+- status: text (required)
+- enroll_opens: text
+- enroll_closes: text
+- starts_on: text
+- ends_on: text
+- price_override: integer
+- capacity: integer
+- sections: text (required)
+- results_published: integer (required)
 - published_at: text
 
 ### registration_notes

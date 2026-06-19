@@ -1,15 +1,25 @@
 # Libraries
 
-- `apps/admin/src/api.ts` — class ApiError, const api
-- `apps/admin/src/auth.ts`
-  - function getToken: () => string | null
-  - function setToken: (token) => void
-  - function clearToken: () => void
-- `apps/admin/src/csv.ts` — function toCsv: (headers, rows) => string, function downloadCsv: (filename, csv) => void
-- `apps/admin/src/router.ts`
-  - function useRoute: () => string
-  - function navigate: (to) => void
-  - function href: (to) => string
+- `apps/admin/src/hooks/use-list.ts` — function useList: (fetcher) => void
+- `apps/admin/src/hooks/use-mobile.ts` — function useIsMobile: () => void
+- `apps/admin/src/lib/export-csv.ts` — function exportCsv: (filename, rows, columns) => void, type CsvColumn
+- `apps/admin/src/lib/format.ts`
+  - function bdt: (amount) => string
+  - function compactBdt: (amount) => string
+  - function num: (n) => string
+  - function dateUK: (iso) => string
+  - function dateBD: (iso) => string
+  - function timeBD: (iso) => string
+  - _...2 more_
+- `apps/admin/src/lib/http.ts`
+  - function request: (method, path, body?) => Promise<T>
+  - function upload: (path, form) => Promise<T>
+  - class ApiError
+  - const http
+- `apps/admin/src/lib/markdown.ts` — function renderMarkdown: (md) => string
+- `apps/admin/src/lib/run.ts` — function run: (p, ok, after?) => void
+- `apps/admin/src/lib/table.ts` — function inArray, function cap
+- `apps/admin/src/lib/utils.ts` — function cn: (...inputs) => void
 - `apps/guardian/src/api.ts` — class ApiError, const api
 - `apps/guardian/src/auth.ts`
   - function getSession: () => Session | null
@@ -19,10 +29,24 @@
   - function syncHeaderName: (studentFullName) => void
   - function getToken: () => string | null
   - _...2 more_
+- `apps/guardian/src/format.ts`
+  - function formatBdt: (n) => string
+  - function formatDate: (iso) => string
+  - function toIso
+- `apps/guardian/src/me.ts`
+  - function loadMe: (force) => Promise<MeLite>
+  - function tierLabel: (tier) => string
+  - type ExamResult
+  - type ResultReg
+  - type MeLite
 - `apps/guardian/src/router.ts`
   - function useRoute: () => string
   - function navigate: (to) => void
   - function href: (to) => string
+- `apps/static/src/lib/fmtPress.ts` — function fmtPress: (iso) => string
+- `apps/static/src/lib/ogImage.ts` — function optimizedAbsolute: (p) => Promise<string>, function optimizedDimensions: (p) => Promise<
+- `apps/static/src/lib/regState.js` — function deriveRegState: (yearRound, starts, ends, today) => void
+- `apps/static/src/lib/related.js` — function relatedTo: (subject, candidates, limit) => void
 - `public/js/api.js` — function buildFunctionUrl: (name) => void, function postJson: (functionName, payload, token) => void
 - `public/js/bd-districts.js` — function canonicalDistrict: (value) => void, const BD_DISTRICTS
 - `public/js/md.js`
@@ -35,6 +59,7 @@
   - function programHasOptions: (slug) => void
   - function computeOptionsTotal: (slug, ids) => void
   - const PROGRAM_OPTIONS
+- `scripts/materialize.mjs` — function materialize: () => void
 - `worker/lib/audit-log.js` — function recordAudit: (env, accountId, action, target) => void
 - `worker/lib/crypto.js`
   - function toHex: (buffer) => void
@@ -56,32 +81,50 @@
   - function labelsOf: (cfg, ids) => void
   - function computeDiff: (cfg, fromIds, toIds) => void
   - function isWithinEditWindow: (registrationCloses, todayISO) => void
+  - function deriveRegState: (yearRound, starts, ends, today) => void
+  - _...1 more_
 - `worker/lib/programs.js` — function loadCatalog: (env) => void, function getCatalog: (c) => void
+- `worker/lib/publish.js`
+  - function isDataset: (entityType) => void
+  - function pathFor: (entityType, entityId) => void
+  - function materializeEntity: (env, entityType, entityId, action) => void
+  - function titleFor: (env, entityType, entityId) => void
+  - function captureSnapshot: (env, entityType, entityId) => void
+  - function restoreSnapshot: (env, entityType, entityId, action) => void
+  - _...2 more_
 - `worker/lib/rate-limit.js`
   - function checkLoginRateLimit: (env, email) => void
   - function recordLoginAttempt: (env, email, success) => void
   - function checkActionRateLimit: (env, bucket, key, limit, windowMs) => void
   - function recordActionAttempt: (env, bucket, key) => void
   - function clientIpFor: (request) => void
+- `worker/lib/reconcile.js` — function reconcilePayment: (env, payment, baseUrl) => void, function reconcileStalePayments: (env, baseUrl, ageMs) => void
+- `worker/lib/repoAssets.js`
+  - function repoRelForLogical: (logical) => void
+  - function readRepoAsset: (env, repoRel) => void
+  - function writeRepoAsset: (env, repoRel, arrayBuffer, contentType, message) => void
 - `worker/lib/sessions.js`
   - function createSession: (env, accountId) => void
   - function verifySession: (env, token) => void
   - function extractToken: (request) => void
+  - function sessionCookie: (token, request, ttlMs) => void
+  - function clearSessionCookie: (request) => void
   - function requireAuth: (request, env) => void
-  - const SESSION_TTL_MS
+  - _...2 more_
 - `worker/lib/shurjopay.js`
   - function getShurjopayConfig: (env) => void
   - function shurjopayGetToken: (config, env) => void
   - function shurjopayCreatePayment: (config, tokenInfo, payload) => void
   - function shurjopayVerify: (config, tokenInfo, spOrderId) => void
+  - function shurjopayOutcome: (result) => void
 - `worker/lib/util.js`
-  - function jsonResponse: (body, status) => void
+  - function jsonResponse: (body, status, extraHeaders) => void
   - function badRequest: (message, status) => void
   - function redirectTo: (url) => void
   - function createId: (prefix) => void
   - function parseClassDigit: (className) => void
   - function reserveMemberId: (env, year, classDigit) => void
-  - _...4 more_
+  - _...5 more_
 - `worker/lib/validation.js`
   - function normalizeString: (value) => void
   - function requireField: (value, label) => void

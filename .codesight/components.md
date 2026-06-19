@@ -1,33 +1,62 @@
 # Components
 
 - **App** — `apps/admin/src/App.tsx`
-- **CommandPalette** — props: open, onClose — `apps/admin/src/components/CommandPalette.tsx`
-- **Icon** — props: name, size, cls — `apps/admin/src/components/Icon.tsx`
-- **ImageField** — props: label, hint, prefix, value, onChange — `apps/admin/src/components/ImageField.tsx`
-- **NavShell** — props: currentRoute, userEmail, onSignOut — `apps/admin/src/components/NavShell.tsx`
-- **NeedsAttention** — props: data — `apps/admin/src/components/NeedsAttention.tsx`
-- **NotificationBell** — `apps/admin/src/components/NotificationBell.tsx`
-- **Sparkline** — props: data, tone, height, showArea — `apps/admin/src/components/Sparkline.tsx`
-- **AuditLog** — `apps/admin/src/pages/AuditLog.tsx`
-- **Broadcast** — `apps/admin/src/pages/Broadcast.tsx`
-- **Coupons** — `apps/admin/src/pages/Coupons.tsx`
-- **Dashboard** — `apps/admin/src/pages/Dashboard.tsx`
-- **Events** — `apps/admin/src/pages/Events.tsx`
-- **Login** — props: onSignedIn — `apps/admin/src/pages/Login.tsx`
-- **PaymentReports** — `apps/admin/src/pages/PaymentReports.tsx`
-- **Payments** — `apps/admin/src/pages/Payments.tsx`
-- **PostEditor** — props: slug — `apps/admin/src/pages/PostEditor.tsx`
-- **Posts** — `apps/admin/src/pages/Posts.tsx`
-- **RegistrationDetail** — props: id — `apps/admin/src/pages/RegistrationDetail.tsx`
-- **Registrations** — `apps/admin/src/pages/Registrations.tsx`
-- **Settings** — `apps/admin/src/pages/Settings.tsx`
-- **Sponsorships** — `apps/admin/src/pages/Sponsorships.tsx`
-- **Triage** — `apps/admin/src/pages/Triage.tsx`
-- **Users** — `apps/admin/src/pages/Users.tsx`
+- **AppShell** — `apps/admin/src/components/app-shell.tsx`
+- **AppSidebar** — `apps/admin/src/components/app-sidebar.tsx`
+- **AttachmentField** — props: value, onChange — `apps/admin/src/components/attachment-field.tsx`
+- **CommandMenu** — props: open, onOpenChange — `apps/admin/src/components/command-menu.tsx`
+- **ConfirmDeleteItem** — props: name, onConfirm — `apps/admin/src/components/confirm-delete.tsx`
+- **DataTableColumnHeader** — props: column, title, className — `apps/admin/src/components/data-table/data-table-column-header.tsx`
+- **DateFilterContent** — props: column, onPick, leading, trailing — `apps/admin/src/components/data-table/data-table-date-filter.tsx`
+- **DataTableDateFilter** — props: column — `apps/admin/src/components/data-table/data-table-date-filter.tsx`
+- **DataTableFacetedFilter** — props: column, title, options — `apps/admin/src/components/data-table/data-table-faceted-filter.tsx`
+- **DataTablePagination** — props: table — `apps/admin/src/components/data-table/data-table-pagination.tsx`
+- **DataTableViewOptions** — props: table — `apps/admin/src/components/data-table/data-table-view-options.tsx`
+- **EditorField** — props: label, hint, htmlFor, className — `apps/admin/src/components/editor/editor-kit.tsx`
+- **SwitchField** — props: label, hint, checked, onChange, id — `apps/admin/src/components/editor/editor-kit.tsx`
+- **EditorSection** — props: title, description, className — `apps/admin/src/components/editor/editor-kit.tsx`
+- **EditorDialog** — props: open, onOpenChange, trigger, title, description, onSubmit, submitLabel, preview — `apps/admin/src/components/editor/editor-kit.tsx`
+- **DateField** — props: value, onChange, id — `apps/admin/src/components/editor/editor-kit.tsx`
+- **ImageField** — props: value, onChange, prefix, id, hidePreview — `apps/admin/src/components/editor/editor-kit.tsx`
+- **MarkdownTextarea** — props: value, onChange, id, rows — `apps/admin/src/components/editor/editor-kit.tsx`
+- **MarkdownPreview** — props: md, image — `apps/admin/src/components/editor/editor-kit.tsx`
+- **ListError** — props: message, onRetry — `apps/admin/src/components/list-error.tsx`
+- **LoginScreen** — `apps/admin/src/components/login-screen.tsx`
+- **NavUser** — `apps/admin/src/components/nav-user.tsx`
+- **PageHeader** — props: title, description, actions — `apps/admin/src/components/page-header.tsx`
+- **PaymentActions** — props: payment, onDone — `apps/admin/src/components/payment-actions.tsx`
+- **Placeholder** — `apps/admin/src/components/placeholder.tsx`
+- **PublishBar** — `apps/admin/src/components/publish-bar.tsx`
+- **StatusBadge** — props: status, className — `apps/admin/src/components/status-badge.tsx`
+- **ThemeToggle** — `apps/admin/src/components/theme-toggle.tsx`
+- **AuthProvider** — `apps/admin/src/lib/auth-context.tsx`
+- **AuditPage** — `apps/admin/src/pages/audit.tsx`
+- **BroadcastPage** — `apps/admin/src/pages/broadcast.tsx`
+- **CouponsPage** — `apps/admin/src/pages/coupons.tsx`
+- **DashboardPage** — `apps/admin/src/pages/dashboard.tsx`
+- **EmailTemplatesPage** — `apps/admin/src/pages/email-templates.tsx`
+- **EventsPage** — `apps/admin/src/pages/events.tsx`
+- **HallOfFamePage** — `apps/admin/src/pages/hall-of-fame.tsx`
+- **PaymentsPage** — `apps/admin/src/pages/payments.tsx`
+- **PostsPage** — `apps/admin/src/pages/posts.tsx`
+- **PressPage** — `apps/admin/src/pages/press.tsx`
+- **ProgramsPage** — `apps/admin/src/pages/programs.tsx`
+- **RegistrationDetailPage** — props: id — `apps/admin/src/pages/registration-detail.tsx`
+- **RegistrationsPage** — `apps/admin/src/pages/registrations.tsx`
+- **ReportsPage** — `apps/admin/src/pages/reports.tsx`
+- **SponsorshipsPage** — `apps/admin/src/pages/sponsorships.tsx`
+- **SystemHealthPage** — `apps/admin/src/pages/system-health.tsx`
+- **TeamPage** — `apps/admin/src/pages/team.tsx`
+- **TriagePage** — `apps/admin/src/pages/triage.tsx`
+- **UsersPage** — `apps/admin/src/pages/users.tsx`
+- **RouterProvider** — `apps/admin/src/router.tsx`
+- **Link** — props: href, className, onNavigate — `apps/admin/src/router.tsx`
 - **App** — `apps/guardian/src/App.tsx`
 - **ChangeSelectionModal** — props: registrationId, programLabel, paid, config, currentIds, unavailableIds, showSubject, showVenue, currentSubject, currentVenue — `apps/guardian/src/components/ChangeSelectionModal.tsx`
 - **DashboardSkeleton** — `apps/guardian/src/components/DashboardSkeleton.tsx`
+- **DateField** — props: value, onChange, placeholder, ariaLabel, min, max, required, className — `apps/guardian/src/components/DateField.tsx`
 - **Dropdown** — props: value, onChange, options, placeholder, ariaLabel — `apps/guardian/src/components/Dropdown.tsx`
+- **ErrorPanel** — props: error, onRetry — `apps/guardian/src/components/ErrorPanel.tsx`
 - **NotificationTicker** — `apps/guardian/src/components/NotificationTicker.tsx`
 - **PaymentBanner** — `apps/guardian/src/components/PaymentBanner.tsx`
 - **ProfileSkeleton** — `apps/guardian/src/components/ProfileSkeleton.tsx`
@@ -36,4 +65,4 @@
 - **Home** — `apps/guardian/src/pages/Home.tsx`
 - **Login** — props: onSignedIn — `apps/guardian/src/pages/Login.tsx`
 - **Profile** — `apps/guardian/src/pages/Profile.tsx`
-- **App** — `dash/src/App.jsx`
+- **Results** — `apps/guardian/src/pages/Results.tsx`
