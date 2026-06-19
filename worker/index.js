@@ -245,8 +245,10 @@ font:16px/1.6 system-ui,sans-serif;background:#0b1020;color:#e7ebf5;text-align:c
 <p>Please check back in a few minutes. Existing registrations and payments are safe.</p></div></body></html>`;
 
 function maintenanceGate(request, url, env) {
-  // Admin app + API stay reachable so operators can keep working.
-  if (url.pathname.startsWith("/admin") || url.pathname.startsWith("/api/admin")) return null;
+  // Admin app + API stay reachable so operators can keep working, and the auth
+  // endpoints so admins can actually log in (login is the shared /api/login).
+  if (url.pathname.startsWith("/admin") || url.pathname.startsWith("/api/admin")
+      || url.pathname === "/api/login" || url.pathname === "/api/logout") return null;
   const key = env.MAINTENANCE_KEY || "";
   const cookie = request.headers.get("cookie") || "";
   if (key && cookie.includes(`bdmso_preview=${key}`)) return null;
