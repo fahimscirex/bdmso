@@ -74,6 +74,14 @@ DASHBOARD-PLAN.md
 # Local notes
 notes
 
+# Scratch / prototype HTML + handover docs - working artifacts, never committed.
+.kimchi/
+.mcp.json
+AUDIT-REPORT*.md
+card-redesign.html
+dash/
+tmp/
+
 # Root-level source PDFs are working docs - never commit them.
 # Published copies belong in public/downloads/.
 /*.pdf
