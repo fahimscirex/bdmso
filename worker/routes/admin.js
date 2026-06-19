@@ -1193,20 +1193,17 @@ admin.get("/analytics", async (c) => {
       GROUP BY c.cohort_key
       ORDER BY total DESC
     `).all(),
-    // Collection figures scoped to the active runs (matches the KPI tiles +
-    // by-program block), via the registration's cohort.
+    // Lifetime gateway (online) collection - the shurjoPay KPI tile. Lifetime,
+    // not active-runs: the top tiles are all-time; the by-program block below is
+    // the cohort-scoped view.
     c.env.DB.prepare(`
-      SELECT COALESCE(SUM(p.amount), 0) AS total
-      FROM payments p JOIN registrations r ON r.id = p.registration_id
-      WHERE p.status = 'paid'
-        AND r.cohort_key IN (SELECT cohort_key FROM cohorts WHERE ${cohortStageSQL("")} IN ('enrolling', 'upcoming', 'running'))
+      SELECT COALESCE(SUM(amount), 0) AS total
+      FROM payments WHERE status = 'paid' AND channel = 'online'
     `).first(),
-    // Cash / manual revenue settled offline (active runs).
+    // Lifetime cash / manual collection - the Cash KPI tile.
     c.env.DB.prepare(`
-      SELECT COALESCE(SUM(p.amount), 0) AS total
-      FROM payments p JOIN registrations r ON r.id = p.registration_id
-      WHERE p.status = 'paid' AND p.channel = 'manual'
-        AND r.cohort_key IN (SELECT cohort_key FROM cohorts WHERE ${cohortStageSQL("")} IN ('enrolling', 'upcoming', 'running'))
+      SELECT COALESCE(SUM(amount), 0) AS total
+      FROM payments WHERE status = 'paid' AND channel = 'manual'
     `).first(),
     // Today vs yesterday deltas (registrations + paid + revenue). Predicates are
     // sargable (raw column vs ISO day bounds) so the created_at/updated_at indexes

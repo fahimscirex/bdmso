@@ -94,7 +94,8 @@ type Analytics = {
   attention: { stuck_unpaid: number; recent_failed: number; unread_sponsorships: number; expiring_coupons: number };
   deltas: { reg_today: number; reg_yesterday: number; paid_today: number; paid_yesterday: number; rev_today: number; rev_yesterday: number; pending_today: number; pending_yesterday: number };
   series: { registrations: { day: string; total: number; paid: number }[]; payments: { day: string; count: number; revenue: number }[] };
-  cashCollected: number;
+  revenue: number;        // lifetime gateway (online) collection
+  cashCollected: number;  // lifetime cash / manual collection
 };
 
 /* ── Content editor record shapes (full records returned for editing) ─────── */
@@ -281,7 +282,7 @@ export const api = {
       kpis: [
         { label: 'Total registrations', value: num(regS.summary.total), delta: pct(an.deltas.reg_today, an.deltas.reg_yesterday), spark: regSpark.length ? regSpark : [0] },
         { label: 'Pending payments', value: num(payS.summary.pending), delta: pct(an.deltas.pending_today, an.deltas.pending_yesterday), spark: revSpark.length ? revSpark : [0] },
-        { label: 'shurjoPay collection', value: bdt(payS.summary.revenue), delta: pct(an.deltas.rev_today, an.deltas.rev_yesterday), spark: revSpark.length ? revSpark : [0] },
+        { label: 'shurjoPay collection', value: bdt(an.revenue), delta: pct(an.deltas.rev_today, an.deltas.rev_yesterday), spark: revSpark.length ? revSpark : [0] },
         { label: 'Cash collection', value: bdt(an.cashCollected), delta: 0, spark: [0] },
       ],
       attention: { stuck: an.attention.stuck_unpaid, failed: an.attention.recent_failed, unverified: an.attention.expiring_coupons },

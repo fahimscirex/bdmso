@@ -305,6 +305,7 @@ export function RegistrationDetailPage({ id }: { id: string }) {
             <TableHeader>
               <TableRow>
                 <TableHead>Payment ID</TableHead>
+                <TableHead>Txn ID</TableHead>
                 <TableHead>Program</TableHead>
                 <TableHead>Method</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
@@ -316,7 +317,7 @@ export function RegistrationDetailPage({ id }: { id: string }) {
             <TableBody>
               {reg.payments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                     No payments recorded.
                   </TableCell>
                 </TableRow>
@@ -324,6 +325,7 @@ export function RegistrationDetailPage({ id }: { id: string }) {
                 reg.payments.map((p) => (
                   <TableRow key={p.id}>
                     <TableCell className="font-mono text-xs">{p.id}</TableCell>
+                    <TableCell className="font-mono text-xs">{p.txnId || '—'}</TableCell>
                     <TableCell className="text-muted-foreground">{p.program.replace('BdMSO ', '')}</TableCell>
                     <TableCell>
                       {p.method}
