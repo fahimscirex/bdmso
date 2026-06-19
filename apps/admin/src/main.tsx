@@ -1,8 +1,24 @@
-import { render } from 'preact';
-import { App } from './App';
-import 'flatpickr/dist/flatpickr.css';
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { ThemeProvider } from 'next-themes';
 import './index.css';
+import { App } from './App';
+import { RouterProvider } from './router';
+import { AuthProvider } from '@/lib/auth-context';
+import { Toaster } from '@/components/ui/sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
-const root = document.getElementById('app');
-if (!root) throw new Error('Missing #app root element.');
-render(<App />, root);
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="bdmso-theme" disableTransitionOnChange>
+      <TooltipProvider delayDuration={150}>
+        <AuthProvider>
+          <RouterProvider>
+            <App />
+            <Toaster richColors position="top-right" />
+          </RouterProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </ThemeProvider>
+  </StrictMode>,
+);

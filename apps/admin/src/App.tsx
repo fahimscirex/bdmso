@@ -1,178 +1,87 @@
-// Top-level: auth gate + route switch. Two-state UI:
-//   1. No token → show Login. On success, save token + re-render.
-//   2. Token   → show NavShell with the right page for the current URL.
-//
-// Sign-out (or any 401 from the API client) clears the token, dropping back
-// to state 1.
+import { lazy, Suspense } from 'react';
+import { AppShell } from '@/components/app-shell';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { LoginScreen } from '@/components/login-screen';
+import { Placeholder } from '@/components/placeholder';
+import { useAuth } from '@/lib/auth-context';
+import { useRouter } from '@/router';
+import { Skeleton } from '@/components/ui/skeleton';
 
-import { useEffect, useState } from 'preact/hooks';
-import { getToken, clearToken } from './auth';
-import { useRoute } from './router';
-import { api, ApiError } from './api';
-import { Login } from './pages/Login';
-import { Dashboard } from './pages/Dashboard';
-import { Registrations } from './pages/Registrations';
-import { RegistrationDetail } from './pages/RegistrationDetail';
-import { Payments } from './pages/Payments';
-import { Sponsorships } from './pages/Sponsorships';
-import { AuditLog } from './pages/AuditLog';
-import { Users } from './pages/Users';
-import { Settings } from './pages/Settings';
-import { Coupons } from './pages/Coupons';
-import { Broadcast } from './pages/Broadcast';
-import { Posts } from './pages/Posts';
-import { PostEditor } from './pages/PostEditor';
-import { Programs } from './pages/Programs';
-import { ProgramEditor } from './pages/ProgramEditor';
-import { PressMentions } from './pages/PressMentions';
-import { PressMentionEditor } from './pages/PressMentionEditor';
-import { HallOfFame } from './pages/HallOfFame';
-import { HallOfFameEditor } from './pages/HallOfFameEditor';
-import { Medalists } from './pages/Medalists';
-import { Team } from './pages/Team';
-import { TeamEditor } from './pages/TeamEditor';
-import { Triage } from './pages/Triage';
-import { PaymentReports } from './pages/PaymentReports';
-import { Events } from './pages/Events';
-import { CommandPalette } from './components/CommandPalette';
-import { NavShell } from './components/NavShell';
+// Lazy routes - each page is its own chunk, so heavy deps (recharts, TanStack
+// Table) load only when that page is first visited. Named exports are mapped to
+// default for React.lazy.
+const named = <T extends Record<string, unknown>, K extends keyof T>(p: Promise<T>, key: K) =>
+  p.then((m) => ({ default: m[key] as React.ComponentType<Record<string, unknown>> }));
 
-type Identity = { email: string; role: string };
+const DashboardPage = lazy(() => named(import('@/pages/dashboard'), 'DashboardPage'));
+const TriagePage = lazy(() => named(import('@/pages/triage'), 'TriagePage'));
+const ReportsPage = lazy(() => named(import('@/pages/reports'), 'ReportsPage'));
+const RegistrationsPage = lazy(() => named(import('@/pages/registrations'), 'RegistrationsPage'));
+const RegistrationDetailPage = lazy(() => named(import('@/pages/registration-detail'), 'RegistrationDetailPage'));
+const PaymentsPage = lazy(() => named(import('@/pages/payments'), 'PaymentsPage'));
+const ProgramsPage = lazy(() => named(import('@/pages/programs'), 'ProgramsPage'));
+const CouponsPage = lazy(() => named(import('@/pages/coupons'), 'CouponsPage'));
+const EventsPage = lazy(() => named(import('@/pages/events'), 'EventsPage'));
+const SponsorshipsPage = lazy(() => named(import('@/pages/sponsorships'), 'SponsorshipsPage'));
+const BroadcastPage = lazy(() => named(import('@/pages/broadcast'), 'BroadcastPage'));
+const EmailTemplatesPage = lazy(() => named(import('@/pages/email-templates'), 'EmailTemplatesPage'));
+const PostsPage = lazy(() => named(import('@/pages/posts'), 'PostsPage'));
+const PressPage = lazy(() => named(import('@/pages/press'), 'PressPage'));
+const HallOfFamePage = lazy(() => named(import('@/pages/hall-of-fame'), 'HallOfFamePage'));
+const TeamPage = lazy(() => named(import('@/pages/team'), 'TeamPage'));
+const UsersPage = lazy(() => named(import('@/pages/users'), 'UsersPage'));
+const AuditPage = lazy(() => named(import('@/pages/audit'), 'AuditPage'));
+const SystemHealthPage = lazy(() => named(import('@/pages/system-health'), 'SystemHealthPage'));
 
 export function App() {
-  const [token, setTokenState] = useState<string | null>(() => getToken());
-  const [identity, setIdentity] = useState<Identity | null>(null);
-  const [identityError, setIdentityError] = useState<string | null>(null);
-  const [paletteOpen, setPaletteOpen] = useState(false);
-  const route = useRoute();
-
-  // Global keyboard shortcuts.
-  //   Cmd+K / Ctrl+K  - toggle command palette
-  //   /               - same (when not in an input/textarea)
-  //   ?               - same (cheap "show shortcuts" until we have a help page)
-  useEffect(() => {
-    function handler(e: KeyboardEvent) {
-      const isModK = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k';
-      const target = e.target as HTMLElement | null;
-      const inField = target && /^(input|textarea|select)$/i.test(target.tagName);
-      if (isModK) { e.preventDefault(); setPaletteOpen((o) => !o); return; }
-      if (!inField && (e.key === '/' || e.key === '?')) { e.preventDefault(); setPaletteOpen(true); }
-    }
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, []);
-
-  // Once we have a token, fetch /api/admin/health to populate the topbar.
-  // A 401 here means the token is dead - drop it and bounce to login.
-  useEffect(() => {
-    if (!token) { setIdentity(null); return; }
-    api.get<{ email: string; role: string }>('/api/admin/health')
-      .then((d) => setIdentity({ email: d.email, role: d.role }))
-      .catch((err: ApiError) => {
-        if (err.status === 401) signOut();
-        else setIdentityError(err.message);
-      });
-  }, [token]);
-
-  function onSignedIn() {
-    setTokenState(getToken());
-    setIdentityError(null);
-  }
-
-  function signOut() {
-    clearToken();
-    setTokenState(null);
-    setIdentity(null);
-  }
-
-  if (!token) return <Login onSignedIn={onSignedIn} />;
-
-  if (identityError) {
-    return (
-      <main class="shell">
-        <div class="card">
-          <h2>Couldn't reach the admin API</h2>
-          <p class="error">{identityError}</p>
-          <button onClick={signOut}>Sign out</button>
-        </div>
-      </main>
-    );
-  }
-
-  if (!identity) {
-    return <main class="shell"><div class="muted">Loading…</div></main>;
-  }
-
+  const { path } = useRouter();
+  const { status } = useAuth();
+  if (status === 'loading') return <div className="grid min-h-dvh place-items-center text-sm text-muted-foreground">Loading…</div>;
+  if (status !== 'authed') return <LoginScreen />;
   return (
-    <>
-      <NavShell currentRoute={route} onSignOut={signOut}>
-        {renderPage(route)}
-      </NavShell>
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
-    </>
+    <AppShell>
+      <ErrorBoundary key={path}>
+        <Suspense fallback={<PageFallback />}>{renderPage(path)}</Suspense>
+      </ErrorBoundary>
+    </AppShell>
   );
 }
 
-function renderPage(route: string) {
-  // /registrations/:id - detail view.
-  const regDetail = route.match(/^\/registrations\/([\w-]+)$/);
-  if (regDetail) return <RegistrationDetail id={regDetail[1]} />;
-
-  // /posts/new and /posts/<slug>/edit - the editor handles both.
-  const postEdit = route.match(/^\/posts\/([a-z0-9][a-z0-9-]*)\/edit$/);
-  if (postEdit) return <PostEditor slug={postEdit[1]} />;
-  if (route === '/posts/new') return <PostEditor slug="new" />;
-
-  // /programs/new and /programs/<slug>/edit - the editor handles both.
-  const progEdit = route.match(/^\/programs\/([a-z0-9][a-z0-9-]*)\/edit$/);
-  if (progEdit) return <ProgramEditor slug={progEdit[1]} />;
-  if (route === '/programs/new') return <ProgramEditor slug="new" />;
-
-  // /press/new and /press/<id>/edit - press mentions (numeric ids).
-  const pressEdit = route.match(/^\/press\/(\d+)\/edit$/);
-  if (pressEdit) return <PressMentionEditor id={pressEdit[1]} />;
-  if (route === '/press/new') return <PressMentionEditor id="new" />;
-
-  // /hall-of-fame/new and /hall-of-fame/<id>/edit - HoF photos (numeric ids).
-  const hofEdit = route.match(/^\/hall-of-fame\/(\d+)\/edit$/);
-  if (hofEdit) return <HallOfFameEditor id={hofEdit[1]} />;
-  if (route === '/hall-of-fame/new') return <HallOfFameEditor id="new" />;
-
-  // /team/new and /team/<id>/edit - team members (numeric ids).
-  const teamEdit = route.match(/^\/team\/(\d+)\/edit$/);
-  if (teamEdit) return <TeamEditor id={teamEdit[1]} />;
-  if (route === '/team/new') return <TeamEditor id="new" />;
-
-  switch (route) {
-    case '/':              return <Dashboard />;
-    case '/triage':        return <Triage />;
-    case '/registrations': return <Registrations />;
-    case '/payments':         return <Payments />;
-    case '/payments/reports': return <PaymentReports />;
-    case '/sponsorships':  return <Sponsorships />;
-    case '/coupons':       return <Coupons />;
-    case '/broadcast':     return <Broadcast />;
-    case '/events':        return <Events />;
-    case '/posts':         return <Posts />;
-    case '/programs':      return <Programs />;
-    case '/press':         return <PressMentions />;
-    case '/hall-of-fame':  return <HallOfFame />;
-    case '/medalists':     return <Medalists />;
-    case '/team':          return <Team />;
-    case '/users':         return <Users />;
-    case '/audit':         return <AuditLog />;
-    case '/settings':      return <Settings />;
-    default:               return <NotFound route={route} />;
+function renderPage(path: string) {
+  if (path.startsWith('/registrations/')) return <RegistrationDetailPage id={decodeURIComponent(path.slice('/registrations/'.length))} />;
+  switch (path) {
+    case '/': return <DashboardPage />;
+    case '/triage': return <TriagePage />;
+    case '/reports': return <ReportsPage />;
+    case '/registrations': return <RegistrationsPage />;
+    case '/programs': return <ProgramsPage />;
+    case '/coupons': return <CouponsPage />;
+    case '/events': return <EventsPage />;
+    case '/sponsorships': return <SponsorshipsPage />;
+    case '/broadcast': return <BroadcastPage />;
+    case '/broadcast/templates': return <EmailTemplatesPage />;
+    case '/posts': return <PostsPage />;
+    case '/press': return <PressPage />;
+    case '/hall-of-fame': return <HallOfFamePage />;
+    case '/team': return <TeamPage />;
+    case '/users': return <UsersPage />;
+    case '/audit': return <AuditPage />;
+    case '/system': return <SystemHealthPage />;
+    default:
+      if (path.startsWith('/payments')) return <PaymentsPage />;
+      return <Placeholder />;
   }
 }
 
-function NotFound({ route }: { route: string }) {
+function PageFallback() {
   return (
-    <>
-      <div class="page-header">
-        <h1>Page not found</h1>
-        <p class="sub">No route matches <code>{route}</code>. Try the sidebar.</p>
+    <div className="space-y-4">
+      <Skeleton className="h-8 w-44" />
+      <Skeleton className="h-4 w-72" />
+      <div className="grid gap-4 pt-2 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
       </div>
-    </>
+      <Skeleton className="h-72 w-full rounded-xl" />
+    </div>
   );
 }
