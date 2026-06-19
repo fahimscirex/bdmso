@@ -12,7 +12,7 @@ const wranglerPort = process.env.WRANGLER_PORT || "8787";
 const vitePort     = process.env.VITE_PORT     || "5174";
 
 const procs = [
-  { name: "wrangler", cmd: "wrangler", args: ["dev", "--live-reload", `--port=${wranglerPort}`] },
+  { name: "wrangler", cmd: "wrangler", args: ["dev", `--port=${wranglerPort}`] },
   { name: "admin",    cmd: "pnpm",     args: ["--filter", "@bdmso/admin", "dev"],
     env: { ...process.env, VITE_PORT: vitePort, WRANGLER_PORT: wranglerPort } },
 ];

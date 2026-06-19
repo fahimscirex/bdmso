@@ -17,6 +17,7 @@
 name = "bdmso"
 main = "worker/index.js"
 compatibility_date = "2026-04-21"
+account_id = "8e9ad2df3e231d0894556dea8781925c"
 
 # ===== Local dev (default) ============================================
 # `wrangler dev` picks this up. Static assets come from public/ so edits
@@ -50,6 +51,12 @@ preview_database_id = "650eb353-3ecb-4710-87b6-4d72aea2cd71"
 
 [env.production]
 name = "bdmso"
+
+# Auto-reconcile stuck pending payments every 30 minutes.
+# Catches card/3DS payments where the browser redirect broke and the
+# IPN never arrived. Runs the scheduled() handler in worker/index.js.
+[env.production.triggers]
+crons = ["*/30 * * * *"]
 
 [env.production.assets]
 directory = "./dist"

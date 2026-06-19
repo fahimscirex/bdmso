@@ -10,10 +10,9 @@ BREVO_API_KEY=your-brevo-api-key-here
 # Format: "Name <email@domain.com>"  OR just  "email@domain.com"
 EMAIL_FROM=BdMSO <info@example.com>
 
-# shurjoPay - sign up at https://shurjopay.com.bd to get live creds. The
-# universal sandbox set is sp_sandbox / pyyk97hu&6u6 / NOK; flip
-# SHURJOPAY_SANDBOX to "false" (or use a secret) when you switch to live.
-SHURJOPAY_USERNAME=sp_sandbox
-SHURJOPAY_PASSWORD=pyyk97hu&6u6
-SHURJOPAY_PREFIX=NOK
+# shurjoPay - sign up at https://shurjopay.com.bd to get sandbox/live creds.
+# Flip SHURJOPAY_SANDBOX to "false" (or use a secret) when you switch to live.
+SHURJOPAY_USERNAME=your-shurjopay-username
+SHURJOPAY_PASSWORD=your-shurjopay-password
+SHURJOPAY_PREFIX=your-merchant-prefix
 # SHURJOPAY_SANDBOX=true  # already set in wrangler.toml; override to "false" for live

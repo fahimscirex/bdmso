@@ -14,7 +14,7 @@ const WRANGLER_PORT = process.env.WRANGLER_PORT || "8787";
 const base = { ...process.env, WRANGLER_PORT };
 
 const procs = [
-  { name: "worker",   cmd: "wrangler", args: ["dev", "--live-reload", `--port=${WRANGLER_PORT}`] },
+  { name: "worker",   cmd: "wrangler", args: ["dev", `--port=${WRANGLER_PORT}`] },
   { name: "astro",    cmd: "pnpm",     args: ["--filter", "@bdmso/static", "dev"] },
   { name: "admin",    cmd: "pnpm",     args: ["--filter", "@bdmso/admin", "dev"],    env: { ...base, VITE_PORT: "5174" } },
   { name: "guardian", cmd: "pnpm",     args: ["--filter", "@bdmso/guardian", "dev"], env: { ...base, VITE_PORT: "5173" } },

@@ -7,6 +7,15 @@
   "description": "BdMSO static marketing site prepared for Cloudflare Pages and Workers with D1.",
   "scripts": {
     "build": "echo 'Use pnpm run build:all (site + apps), or build:static / build:admin / build:guardian.' && exit 1",
+    "test": "node --test 'worker/**/*.test.js'",
+    "test:watch": "node --test --watch 'worker/**/*.test.js'",
+    "test:cov": "node --test --experimental-test-coverage 'worker/**/*.test.js'",
+    "typecheck": "pnpm -r --filter @bdmso/admin --filter @bdmso/guardian exec tsc -b",
+    "sync:images": "node scripts/sync-images.mjs",
+    "prebuild:static": "node scripts/sync-images.mjs",
+    "predev:worker": "node scripts/sync-images.mjs",
+    "predev:all": "node scripts/sync-images.mjs",
+    "predev:static": "node scripts/sync-images.mjs",
     "build:static": "apps/static/node_modules/.bin/astro build --root apps/static",
     "build:admin": "pnpm --filter @bdmso/admin build",
     "build:guardian": "pnpm --filter @bdmso/guardian build",
@@ -32,7 +41,7 @@
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.18",
-    "hono": "^4.12.19"
+    "hono": "^4.12.25"
   },
   "devDependencies": {
     "sharp": "0.34.5"
