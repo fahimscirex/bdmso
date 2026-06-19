@@ -80,7 +80,14 @@ IMPORT=$SP/etl-import.sql
   echo "-- ===== backfills + column defaults ====="
   echo "UPDATE registrations SET cohort_key=(SELECT cohort_key FROM cohorts WHERE program_slug=registrations.registration_type) WHERE cohort_key IS NULL;"
   echo "UPDATE payments SET cohort_key=(SELECT cohort_key FROM registrations WHERE registrations.id=payments.registration_id) WHERE cohort_key IS NULL;"
-  echo "UPDATE payments SET channel='online' WHERE channel IS NULL;"          # historical = shurjoPay
+  # Channel: the old schema had no channel, so infer manual (cash/bank/offline)
+  # from a cash-like method or a missing shurjoPay order; everything else is the
+  # gateway. Then force-tag specific manual bKash transfers that went outside
+  # shurjoPay but still carry a val_id (indistinguishable from gateway by data).
+  echo "UPDATE payments SET channel = CASE WHEN val_id IS NULL OR lower(method) IN ('cash','bank','manual') THEN 'manual' ELSE 'online' END WHERE channel IS NULL;"
+  for mid in pay_ee00159c1574099505cd pay_819d503e0c6a41849138 pay_7816ef58aafa40149400; do
+    echo "UPDATE payments SET channel='manual' WHERE id='$mid';"
+  done
   echo "UPDATE guardian_accounts SET updated_at=created_at WHERE updated_at IS NULL;"
   echo "UPDATE coupons SET updated_at=created_at WHERE updated_at IS NULL;"
   echo "COMMIT;"
