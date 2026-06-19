@@ -1,7 +1,6 @@
 ---
 home_order: "12"
 title: "BdMSO Exchange Program"
-tagline: "The pinnacle - 30-day international exchange for top BdMSO performers, by invitation only."
 metaDescription: "The BdMSO Exchange Program - a 30-day international academic exchange for top-performing BdMSO students, by invitation only. Real international research exposure."
 eyebrow: "International · Exchange"
 image: "/images/exchange.webp"

@@ -5,7 +5,6 @@ category: Workshop
 date: 2026-05-01
 author: Samin Yasar Ahmed
 excerpt: Twelve students spent a full day mapping skeletal structures, exploring light and prisms, using microscopes, and creating Elephant Toothpaste while learning about chemical reactions.
-description: Twelve primary students spent a hands-on Lab Day mapping skeletons, exploring light and prisms, using microscopes and making Elephant Toothpaste reactions.
 image: /images/lab-day-primary.webp
 ---
 

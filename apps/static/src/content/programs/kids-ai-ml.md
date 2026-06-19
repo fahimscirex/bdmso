@@ -1,18 +1,19 @@
 ---
 home_order: "08"
-title: "Kids AI and Machine Learning"
-tagline: "An introductory, hands-on program where young learners bridge basic coding logic with real-world machine learning concepts."
-metaDescription: "A hands-on Kids AI and Machine Learning program for Class 5 or below, where young learners explore electronics, sensors and coding to build their first robot."
-registrationStarts: "2026-06-15"
-eyebrow: "Year-round · Kids AI &amp; ML"
+feeAmount: 3000
+title: "Kids Machine Learning and AI"
+metaDescription: "A hands-on Kids Machine Learning and AI program for Class 4-5-6 - 10 sessions (5 online + 5 offline) covering AI, prompt engineering, ML model training, and robotics."
+startsOn: "2026-06-20"
+registrationStarts: "2026-06-08"
+eyebrow: "Year-round · AI &amp; ML"
 image: "/images/robotics.webp"
-audience: "Class 5 or below"
-duration: "12 classes"
-format: "Interactive build-and-code sessions"
-outcome: "Hands on learning before building your 1st robot"
+audience: "Class 4-5-6"
+duration: "10 sessions (5 online + 5 offline)"
+format: "Online & Offline"
+outcome: "Hands on AI and Machine Learning Model Build, AI Integration at Robotics"
 level: "Beginner"
-schedule: "Starts 15 June 2026"
-price: "৳ On enquiry"
+schedule: "Starts 20 June 2026"
+price: "৳ 3,000"
 register_url: "/registration?program=kids-ai-ml"
 register_label: "Enroll now"
 category: "beginner"
@@ -20,10 +21,35 @@ category: "beginner"
 
 ## About this program
 
-Welcome to the future of technology. This Foundation Course is an introductory, highly interactive program that demystifies how machines work over 12 classes.
+This program offers students a comprehensive introduction to the world of Artificial Intelligence. Participants will explore the mechanics behind AI, learning how models are trained to make predictions and generate results. Additionally, they will master essential prompt engineering techniques to optimize interactions with chatbots.
 
-Students dive into basic electronics, understand how sensors perceive the world, and learn the fundamentals of physical computing. By the end of the course, every student will have built and programmed their very first functioning robot.
+Students will then take a hands-on approach by training their own machine learning models using custom datasets. This practical experience will empower them to build interactive games and prediction systems.
+
+In the second phase of the workshop, students will delve into the field of Physical AI. They will gain an understanding of how robots perceive data and learn the fundamental principles of physical computing. By the conclusion of the course, every student will have successfully designed and programmed their very own functioning AI-driven robot.
 
 ## What you'll do
 
-- Detailed course outline coming soon
+- How AI Learn, train and give results
+- Prompt Engineering
+- Comic Story using AI
+- Game Development using machine learning model
+- Image Classification
+- Physical AI Programs - AI integration in Robotics
+
+## Class Schedule
+
+### Online classes
+
+- Class 1 · Sat 20 Jun 2026 · 3-5 PM
+- Class 2 · Fri 26 Jun 2026 · 3-5 PM
+- Class 3 · Sat 27 Jun 2026 · 3-5 PM
+- Class 4 · Fri 3 Jul 2026 · 3-5 PM
+- Class 5 · Sat 4 Jul 2026 · 3-5 PM
+
+### Offline classes
+
+- Class 6 (Offline) · Fri 10 Jul 2026 · 3-5 PM
+- Class 7 (Offline) · Sat 11 Jul 2026 · 3-5 PM
+- Class 8 (Offline) · Fri 17 Jul 2026 · 3-5 PM
+- Class 9 (Offline) · Sat 18 Jul 2026 · 3-5 PM
+- Class 10 (Offline) · Fri 24 Jul 2026 · 3-5 PM

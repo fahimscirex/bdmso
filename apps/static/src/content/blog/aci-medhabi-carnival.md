@@ -5,7 +5,6 @@ category: Event
 date: 2026-04-29
 author: Samin Yasar Ahmed
 excerpt: Primary students joined a full day of chess against a Grandmaster, art stations, tangram puzzles, book reading, robotics demos, and telescope activities at the ACI Centre in Tejgaon.
-description: Primary students spent a full STEM day at the ACI Medhabi Carnival - chess with a Grandmaster, tangram puzzles, robotics demos and telescope sessions.
 image: /images/aci-medhabi-carnival.webp
 ---
 

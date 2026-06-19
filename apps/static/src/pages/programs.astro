@@ -114,7 +114,7 @@ const cards = programs
         </div>
       </div>
       <h3 class="p-card-title">${escHtml(p.title)}</h3>
-      <p class="p-card-desc">${escHtml(p.tagline || "")}</p>
+      <p class="p-card-desc">${escHtml(p.tagline || p.metaDescription || "")}</p>
       <div class="p-card-facts">${facts}</div>
       <div class="p-card-foot">
         <span class="p-card-fee">${fee}</span>
@@ -131,6 +131,7 @@ const cards = programs
   page="programs"
   canonical="https://bdmso.org/programs"
   image="https://bdmso.org/images/stem.webp"
+  imageAlt="BdMSO STEM programme participants in a hands-on session"
   jsonLd={jsonLd}
 >
   <style is:global slot="head">
@@ -362,7 +363,7 @@ const cards = programs
       padding: 3px 10px; border-radius: 999px; margin: 4px 0 0; flex-shrink: 0;
       white-space: nowrap;
     }
-    .p-modal-hero h1 {
+    .p-modal-hero h2 {
       font-size: 1.25rem; line-height: 1.25;
       margin: 0; color: white; letter-spacing: -0.005em;
       flex: 1; min-width: 0;
@@ -435,15 +436,11 @@ const cards = programs
     body.modal-open { overflow: hidden; }
   </style>
 
-  <main>
     <section class="page-head"><div class="container">
       <span class="eyebrow">Programs &amp; Courses</span>
-      <!-- This is the only real H1 on /programs. Two other <h1> occurrences
-           further down sit inside JS template literals for the modal hero
-           (`p-modal-hero h1`) and only mount into the DOM when a modal opens,
-           at which point this page-head section is visually covered. SEO
-           audits that count <h1> in raw HTML will see 3; the rendered DOM
-           has exactly 1 at any given time. -->
+      <!-- This is the only H1 on /programs. The modal hero further down
+           (`p-modal-hero`) uses an <h2> so the page never has more than one
+           <h1>, in raw HTML or in the rendered DOM. -->
       <h1>Your journey to STEM excellence starts here.</h1>
       <p>Build a strong foundation through these official camps and training modules, from beginner-friendly workshops to international-level residential camps.</p>
     </div></section>
@@ -474,7 +471,6 @@ const cards = programs
       <div class="p-filter-info" id="all-count" hidden></div>
       <div class="p-section-empty" id="all-empty" data-empty hidden>No programs match this filter.</div>
     </section>
-  </main>
 
   <!-- Program detail modal. Content is fetched on demand from /programs/<slug>
        so the static SEO-indexed page and the modal share the same source. -->
@@ -635,7 +631,7 @@ const cards = programs
 
             const heroHtml = `<section class="p-modal-hero">
               <div class="title-row">
-                <h1>${esc(h1Text)}</h1>
+                <h2>${esc(h1Text)}</h2>
                 ${eyebrowText ? `<span class="eyebrow">${esc(eyebrowText)}</span>` : ''}
               </div>
               ${ledeText ? `<p class="lede">${esc(ledeText)}</p>` : ''}

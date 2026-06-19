@@ -1,7 +1,6 @@
 ---
 home_order: "10"
 title: "SPSB Nature Camp"
-tagline: "An activity-packed, 3-day residential camp coming up this December that turns the great outdoors into a living classroom."
 metaDescription: "The SPSB Nature Camp - a 4-day residential program of outdoor learning, ecology treks, stargazing and conservation projects for curious young explorers."
 registrationStarts: "2026-12-01"
 eyebrow: "Residential · Nature"

@@ -5,7 +5,6 @@ category: Press
 date: 2025-08-22
 author: Prothom Alo English Desk
 excerpt: Over 200 primary students competed in the inaugural Bangladesh Mathematics and Science Olympiad's national round at St. Joseph Higher Secondary School in Dhaka. Fifty-two students earned medals, and the top six in each subject will represent Bangladesh at IMSO 2025 in Kedah, Malaysia.
-description: Over 200 primary students competed in the first BdMSO National Round at St. Joseph, Dhaka. 52 won medals; the top six per subject advance to IMSO 2025 in Malaysia.
 image: /images/press/prothomalo-saint-joseph.webp
 ---
 

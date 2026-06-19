@@ -27,3 +27,26 @@ export async function optimizedAbsolute(p: string): Promise<string> {
     return p;
   }
 }
+
+// Actual rendered dimensions of the optimized OG image, mirroring the width cap
+// in optimizedAbsolute (so og:image:width/height match the emitted asset).
+// Returns null for remote/unknown/SVG paths where dimensions aren't known.
+export async function optimizedDimensions(
+  p: string,
+): Promise<{ width: number; height: number } | null> {
+  try {
+    const path = p.replace(/^https?:\/\/[^/]+/, "");
+    if (!path.startsWith("/") || /\.(svg|gif)$/i.test(path)) return null;
+    let r = path.replace(/^\//, "");
+    if (r.startsWith("r2/")) r = `uploads/${r.slice("r2/".length)}`;
+    else if (r.startsWith("assets/")) r = r.slice("assets/".length);
+    const loader = ASSETS[`/src/assets/${r}`];
+    if (!loader) return null;
+    const meta = (await loader()).default;
+    const width = Math.min(1200, meta.width);
+    const height = Math.round((width * meta.height) / meta.width);
+    return { width, height };
+  } catch {
+    return null;
+  }
+}

@@ -2,6 +2,7 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { getCollection } from "astro:content";
 import Img from "../components/Img.astro";
+import { fmtPress } from "../lib/fmtPress";
 
 const title = "Media and Press Coverage - BdMSO in the News";
 const description =
@@ -10,15 +11,6 @@ const description =
 // Press coverage now comes from D1 (edited in the admin dashboard), materialized
 // to the press content collection. Ordered featured-first by the materializer.
 const press = await getCollection("press");
-const fmtPress = (iso: string) => {
-  if (!iso) return "";
-  if (iso.length === 7) {
-    const d = new Date(`${iso}-01`);
-    return isNaN(+d) ? iso : d.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
-  }
-  const d = new Date(iso);
-  return isNaN(+d) ? iso : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-};
 
 // Structured data: an ItemList of press coverage, each a NewsArticle about
 // BdMSO published by the outlet - helps search engines surface the coverage.
@@ -49,6 +41,7 @@ const mediaSchema = press.length
   page="media"
   canonical="https://bdmso.org/media"
   image="https://bdmso.org/images/press.webp"
+  imageAlt="BdMSO featured in press and media coverage"
   jsonLd={mediaSchema}
 >
   <style is:global slot="head">
@@ -90,7 +83,6 @@ const mediaSchema = press.length
     @media (max-width: 700px) { .clippings { grid-template-columns: 1fr 1fr; } .clip:nth-child(1), .clip:nth-child(4) { grid-column: span 2; } .clip:nth-child(1) { grid-row: auto; } }
   </style>
 
-  <main>
     <section class="page-head"><div class="container">
       <span class="eyebrow">Media &amp; Press</span>
       <h1>BdMSO in the news.</h1>
@@ -141,5 +133,4 @@ const mediaSchema = press.length
       </div>
 
     </section>
-  </main>
 </BaseLayout>

@@ -1,4 +1,3 @@
-<main>
 <section class="page-head">
   <div class="container">
     <span class="eyebrow">Registration Portal</span>
@@ -78,31 +77,31 @@
            prep-course subjects, etc.). Hidden when not applicable. -->
       <div id="program-options-panel" hidden></div>
       <div class="form-body">
-        <div class="field"><label>Student's Full Name</label><input id="f-name" placeholder="e.g. Tasneem Islam" /></div>
+        <div class="field"><label for="f-name">Student's Full Name</label><input id="f-name" placeholder="e.g. Tasneem Islam" /></div>
         <div class="field" id="field-dob">
-          <label>Date of Birth</label>
-          <input type="text" id="f-dob-display" class="date-input" aria-label="Date of birth" placeholder="dd/mm/yyyy" autocomplete="off" />
+          <label for="f-dob-display">Date of Birth</label>
+          <input type="text" id="f-dob-display" class="date-input" placeholder="dd/mm/yyyy" autocomplete="off" />
           <input type="hidden" id="f-dob" />
         </div>
-        <div class="field"><label>Curriculum</label>
+        <div class="field"><label for="f-medium">Curriculum</label>
           <select id="f-medium">
             <option value="">Select curriculum</option>
             <option value="national">National (Bangla or English version)</option>
             <option value="international">International (English Medium)</option>
           </select>
         </div>
-        <div class="field"><label>Class</label>
+        <div class="field"><label for="f-class">Class</label>
           <select id="f-class"><option>Class 3</option><option>Class 4</option><option selected>Class 5</option><option>Class 6</option></select>
         </div>
-        <div class="field"><label>Gender</label>
+        <div class="field"><label for="f-gender">Gender</label>
           <select id="f-gender"><option value="">Select</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select>
         </div>
-        <div class="field"><label>School</label><input id="f-school" placeholder="e.g. Viqarunnisa Noon School" /></div>
-        <div class="field"><label>District</label>
+        <div class="field"><label for="f-school">School</label><input id="f-school" placeholder="e.g. Viqarunnisa Noon School" /></div>
+        <div class="field"><label for="f-district">District</label>
           <select id="f-district"><option value="">Select district</option></select>
         </div>
         <div class="field" id="field-subject" hidden>
-          <label>Priority Subject</label>
+          <label for="f-subject">Priority Subject</label>
           <select id="f-subject">
             <option value="">Select subject</option>
             <option value="math">Mathematics</option>
@@ -111,7 +110,7 @@
           <p class="field-hint">If you qualify in both subjects, this is the one we prioritise for top placement.</p>
         </div>
         <div class="field" id="field-venue" hidden>
-          <label>Exam Region</label>
+          <label for="f-venue">Exam Region</label>
           <select id="f-venue">
             <option value="">Select exam region</option>
             <option value="dhaka">Dhaka</option>
@@ -126,20 +125,20 @@
 
     <div id="step-2" hidden>
       <div class="form-body">
-        <div class="field"><label>Guardian's Name</label><input id="g-name" placeholder="e.g. Rumana Haque" /></div>
-        <div class="field"><label>Relationship</label>
+        <div class="field"><label for="g-name">Guardian's Name</label><input id="g-name" placeholder="e.g. Rumana Haque" /></div>
+        <div class="field"><label for="g-rel">Relationship</label>
           <select id="g-rel"><option>Mother</option><option>Father</option><option>Guardian</option></select>
         </div>
         <div class="field">
-          <label>Mobile (WhatsApp preferred)</label>
+          <label for="g-phone">Mobile (WhatsApp preferred)</label>
           <div class="phone-group">
             <span class="phone-prefix">+880</span>
             <input id="g-phone" type="tel" inputmode="numeric" maxlength="10" pattern="[0-9]{10}"
               placeholder="1XXXXXXXXX" autocomplete="tel-national" />
           </div>
         </div>
-        <div class="field"><label>Email</label><input id="g-email" type="email" placeholder="guardian@example.com" /></div>
-        <div class="field full"><label>Address</label><textarea id="g-addr" rows="2" maxlength="240" placeholder="Flat, Road, Area, Postcode"></textarea><div class="char-counter" id="g-addr-counter" aria-live="polite">0 / 240</div></div>
+        <div class="field"><label for="g-email">Email</label><input id="g-email" type="email" placeholder="guardian@example.com" /></div>
+        <div class="field full"><label for="g-addr">Address</label><textarea id="g-addr" rows="2" maxlength="240" placeholder="Flat, Road, Area, Postcode"></textarea><div class="char-counter" id="g-addr-counter" aria-live="polite">0 / 240</div></div>
       </div>
       <div class="form-foot"><button class="btn btn-ghost" type="button" data-prev-step="1">← Back</button><span class="step-status" id="step-2-status" aria-live="polite"></span><button class="btn btn-primary" type="button" id="step-2-next" data-next-step="3">Continue →</button></div>
     </div>
@@ -156,7 +155,7 @@
           <p style="font-size:14px; color:var(--ink-3); margin:0 0 16px;">The guardian email will be used as the account login for future BdMSO portal access.</p>
           <div class="form-body" style="padding:0;">
             <div class="field">
-              <label>Password</label>
+              <label for="account-password">Password</label>
               <input id="account-password" type="password" autocomplete="new-password" placeholder="At least 8 characters" />
               <div class="pwd-checklist" id="pwd-checklist" aria-live="polite">
                 <div class="pwd-rule" data-rule="length"><span class="pwd-rule-icon">✓</span>At least 8 characters</div>
@@ -164,7 +163,7 @@
                 <div class="pwd-rule" data-rule="number"><span class="pwd-rule-icon">✓</span>Includes a number</div>
               </div>
             </div>
-            <div class="field"><label>Confirm Password</label><input id="account-password-confirm" type="password" autocomplete="new-password" placeholder="Re-enter password" /></div>
+            <div class="field"><label for="account-password-confirm">Confirm Password</label><input id="account-password-confirm" type="password" autocomplete="new-password" placeholder="Re-enter password" /></div>
           </div>
         </div>
         <div class="terms" style="margin-top:18px;">
@@ -178,37 +177,48 @@
     <div id="step-4" hidden>
       <div class="success">
         <div class="ic"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg></div>
-        <h3 style="font-family:var(--font-display); color: var(--navy-900); font-size: 1.6rem; margin-bottom: 8px;">Details saved - one more step.</h3>
+        <h3 style="font-family:var(--font-display); color: var(--navy-900); font-size: 1.6rem; margin-bottom: 8px;">Details saved - two steps left.</h3>
         <p style="max-width:560px; margin:0 auto 18px;">Your BdMSO registration form has been saved and the guardian account is now active for <strong id="account-email"></strong>.</p>
 
-        <div style="max-width:560px; margin:0 auto 20px; padding:18px 20px; background:#fef2f2; border:2px solid #dc2626; border-radius:12px; text-align:left;">
-          <div style="display:flex; gap:12px; align-items:flex-start;">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#991b1b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top:2px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <div>
-              <div style="font-weight:800; color:#991b1b; margin-bottom:4px; font-size:14.5px; letter-spacing:0.02em;">Your registration is NOT complete until payment is confirmed.</div>
-              <div style="font-size:13.5px; color:#7f1d1d; line-height:1.55;">You will not receive a BdMSO ID, exam admit, or any program resources until your payment is confirmed. Go to your dashboard now to complete payment.</div>
-            </div>
-          </div>
-        </div>
-
-        <div style="max-width:560px; margin:0 auto 20px; padding:18px 20px; background:var(--bg-alt); border:1px solid var(--line); border-radius:12px; text-align:center;">
-          <div style="font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px;">BdMSO ID - Pending</div>
-          <div style="font-size:14px; color:var(--navy-800);">Your student's BdMSO ID is issued only after payment is confirmed.</div>
-          <div id="member-id" hidden></div>
-        </div>
-
-        <div style="max-width:560px; margin:0 auto 24px; padding:16px 20px; background:#fffbeb; border:1px solid #fcd34d; border-radius:12px; text-align:left;">
+        <div style="max-width:560px; margin:0 auto 20px; padding:18px 20px; background:#fffbeb; border:1px solid #fcd34d; border-radius:12px; text-align:left;">
           <div style="display:flex; gap:12px; align-items:flex-start;">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top:2px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
             <div>
-              <div style="font-weight:700; color:#92400e; margin-bottom:4px;">Please verify your email</div>
-              <div style="font-size:14px; color:#78350f;">We've sent a verification link to your inbox. You'll need to verify before you can pay for this registration. The link expires in 24 hours. If you don't see it, check your spam folder.</div>
+              <div style="font-weight:800; color:#92400e; margin-bottom:4px; font-size:14.5px;">Step 1: Verify your email, then come back to pay.</div>
+              <div style="font-size:13.5px; color:#78350f; line-height:1.55;">We've sent a verification link to your inbox. You must verify before you can pay - the link expires in 24 hours. If you don't see it, check your spam folder.</div>
             </div>
           </div>
+        </div>
+
+        <div style="max-width:560px; margin:0 auto 24px; padding:16px 20px; background:#fef2f2; border:1px solid #dc2626; border-radius:12px; text-align:left;">
+          <div style="font-weight:700; color:#991b1b; margin-bottom:4px; font-size:14px;">Step 2: Pay to complete your registration.</div>
+          <div style="font-size:13px; color:#7f1d1d; line-height:1.55;">Until payment is confirmed your registration is not complete: no BdMSO ID, exam admit, or program resources are issued. Your BdMSO ID is issued automatically once payment clears.</div>
+          <div id="member-id" hidden></div>
+        </div>
+
+        <div class="pay-choice" style="max-width:560px; margin:0 auto 24px; padding:20px; background:var(--bg-alt); border:1px solid var(--line); border-radius:12px; text-align:left;">
+          <div style="font-weight:700; color:var(--navy-900); margin-bottom:4px;">Payment method</div>
+          <p style="font-size:13.5px; color:var(--ink-3); margin:0 0 14px;">You can pay online (after verifying your email) or settle manually by cash / bank transfer.</p>
+          <label class="pay-opt" style="display:flex; gap:10px; align-items:flex-start; padding:12px; border:1px solid var(--line); border-radius:10px; margin-bottom:10px; cursor:pointer;">
+            <input type="radio" name="pay-method" value="online" checked style="margin-top:3px;" />
+            <span>
+              <span style="display:block; font-weight:700; color:var(--navy-900);">Pay online (shurjoPay)</span>
+              <span style="display:block; font-size:13px; color:var(--ink-3);">Cards, mobile banking and net banking. Your BdMSO ID is issued automatically once payment clears.</span>
+            </span>
+          </label>
+          <label class="pay-opt" style="display:flex; gap:10px; align-items:flex-start; padding:12px; border:1px solid var(--line); border-radius:10px; cursor:pointer;">
+            <input type="radio" name="pay-method" value="manual" style="margin-top:3px;" />
+            <span>
+              <span style="display:block; font-weight:700; color:var(--navy-900);">Pay manually / cash</span>
+              <span style="display:block; font-size:13px; color:var(--ink-3);">We generate a printable invoice with payment instructions. Settle by cash or bank transfer, then we confirm it for you.</span>
+            </span>
+          </label>
+          <div class="step-status" id="pay-status" aria-live="polite" style="margin-top:8px;"></div>
         </div>
 
         <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
           <a class="btn btn-primary btn-lg" id="success-dashboard-link" href="/dashboard">Go to dashboard →</a>
+          <button class="btn btn-ghost btn-lg" type="button" id="pay-now-btn" title="Verify your email first, then pay.">Pay now (after verifying) →</button>
           <a class="btn btn-ghost btn-lg" href="/resources">View student resources</a>
         </div>
       </div>
@@ -216,6 +226,5 @@
     <div class="form-message" id="form-message" aria-live="polite"></div>
   </div>
 </section>
-</main>
 
 <script type="module" src="/js/registration.js"></script>

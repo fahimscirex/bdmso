@@ -7,7 +7,7 @@
 // are inlined at the end of <body>.
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
-import { optimizedAbsolute } from "../lib/ogImage";
+import { optimizedAbsolute, optimizedDimensions } from "../lib/ogImage";
 
 interface Props {
   title: string;
@@ -15,6 +15,7 @@ interface Props {
   page?: string;
   canonical?: string;
   image?: string;
+  imageAlt?: string;
   ogType?: string;
   articlePublished?: string;
   articleAuthor?: string;
@@ -27,6 +28,7 @@ const {
   page = "",
   canonical = Astro.url.href,
   image = "https://bdmso.org/images/logo.webp",
+  imageAlt,
   ogType = "website",
   articlePublished,
   articleAuthor,
@@ -35,13 +37,15 @@ const {
 } = Astro.props;
 
 const ogImage = await optimizedAbsolute(image);
+const ogImageDims = await optimizedDimensions(image);
+const ogImageAlt = imageAlt ?? title;
 
 const FONT_HREF =
   "https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap";
 ---
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -51,17 +55,21 @@ const FONT_HREF =
     <link rel="canonical" href={canonical} />
     <meta property="og:type" content={ogType} />
     <meta property="og:site_name" content="BdMSO" />
-    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale" content="en_GB" />
     <meta property="og:url" content={canonical} />
     <meta property="og:title" content={title} />
     {description && <meta property="og:description" content={description} />}
     <meta property="og:image" content={ogImage} />
+    {ogImageDims && <meta property="og:image:width" content={String(ogImageDims.width)} />}
+    {ogImageDims && <meta property="og:image:height" content={String(ogImageDims.height)} />}
+    <meta property="og:image:alt" content={ogImageAlt} />
     {articlePublished && <meta property="article:published_time" content={articlePublished} />}
     {articleAuthor && <meta property="article:author" content={articleAuthor} />}
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     {description && <meta name="twitter:description" content={description} />}
     <meta name="twitter:image" content={ogImage} />
+    <meta name="twitter:image:alt" content={ogImageAlt} />
     <meta name="theme-color" content="#0b1b3f" />
     <meta name="color-scheme" content="light" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -80,15 +88,49 @@ const FONT_HREF =
       onload="this.onload=null;this.rel='stylesheet'"
     />
     <noscript><link rel="stylesheet" href={FONT_HREF} /></noscript>
-    <link rel="stylesheet" href="/css/styles.css" />
+    <link rel="preload" as="style" href="/css/styles.css" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href="/css/styles.css" /></noscript>
+    <style is:global>
+      /* Skip-to-content link: visually hidden until focused (WCAG 2.4.1). */
+      .skip-link {
+        position: absolute;
+        left: -9999px;
+        top: 0;
+        z-index: 1000;
+        padding: 10px 16px;
+        background: var(--navy-900, #0b1b3f);
+        color: #fff;
+        font-weight: 700;
+        border-radius: 0 0 8px 0;
+        text-decoration: none;
+      }
+      .skip-link:focus {
+        left: 0;
+        outline: 2px solid var(--gold-500, #f5c518);
+        outline-offset: 2px;
+      }
+      /* First global visible-focus affordance (WCAG 2.4.7). Additive: targets
+         :focus-visible so it does not fight inputs that use box-shadow rings. */
+      :focus-visible {
+        outline: 2px solid var(--navy-700, #1c3a7a);
+        outline-offset: 2px;
+      }
+      .bdsel-trigger:focus-visible {
+        outline: 2px solid var(--navy-700, #1c3a7a);
+        outline-offset: 2px;
+      }
+    </style>
     {jsonLd.map((schema) => (
       <script type="application/ld+json" set:html={JSON.stringify(schema).replace(/</g, "\\u003c")} />
     ))}
     <slot name="head" />
   </head>
   <body data-page={page}>
+    <a href="#main" class="skip-link">Skip to content</a>
     <Header page={page} />
-    <slot />
+    <main id="main">
+      <slot />
+    </main>
     <Footer />
     <script>
       // Pause decorative ambient animations while the tab is backgrounded.

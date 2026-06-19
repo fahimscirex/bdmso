@@ -55,6 +55,7 @@ const resultsSchema = medalistRows.length
   page="results"
   canonical="https://bdmso.org/results"
   image="https://bdmso.org/images/group-winner.webp"
+  imageAlt="BdMSO medal winners celebrating together"
   jsonLd={resultsSchema}
 >
   <style is:global slot="head">
@@ -136,16 +137,23 @@ const resultsSchema = medalistRows.length
     .deleg .r { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
   </style>
 
-  <main>
     <section class="page-head"><div class="container">
       <span class="eyebrow">Hall of Excellence</span>
       <h1>BdMSO Results &amp; Rankings</h1>
     </div></section>
 
     <section class="container results-wrap">
-      <div class="years" role="tablist">
+      <div class="years" role="tablist" aria-label="Results by year">
         {years.map((y, i) => (
-          <button class={i === 0 ? "active" : ""} data-year={y}>{y}</button>
+          <button
+            class={i === 0 ? "active" : ""}
+            data-year={y}
+            role="tab"
+            id={`year-tab-${y}`}
+            aria-controls={`year-panel-${y}`}
+            aria-selected={i === 0 ? "true" : "false"}
+            tabindex={i === 0 ? 0 : -1}
+          >{y}</button>
         ))}
       </div>
 
@@ -157,7 +165,7 @@ const resultsSchema = medalistRows.length
       {years.map((y, i) => {
         const cats = categoriesFor(y);
         return (
-          <div class="year-panel" data-year={y} hidden={i !== 0}>
+          <div class="year-panel" data-year={y} id={`year-panel-${y}`} role="tabpanel" aria-labelledby={`year-tab-${y}`} tabindex="0" hidden={i !== 0}>
             <div class="accordion">
               {cats.length === 0 ? (
                 <details class="acc" open>
@@ -200,16 +208,36 @@ const resultsSchema = medalistRows.length
         );
       })}
     </section>
-  </main>
 
   <script is:inline>
-  document.querySelectorAll('.years button').forEach(b => b.addEventListener('click', () => {
-    document.querySelectorAll('.years button').forEach(x => x.classList.remove('active'));
-    b.classList.add('active');
-    const yr = b.dataset.year;
-    document.querySelectorAll('.year-panel').forEach(p => {
-      p.hidden = p.dataset.year !== yr;
+  (function () {
+    const tabs = Array.from(document.querySelectorAll('.years button[role="tab"]'));
+    function select(tab) {
+      tabs.forEach((x) => {
+        const on = x === tab;
+        x.classList.toggle('active', on);
+        x.setAttribute('aria-selected', on ? 'true' : 'false');
+        x.tabIndex = on ? 0 : -1;
+      });
+      const yr = tab.dataset.year;
+      document.querySelectorAll('.year-panel').forEach((p) => {
+        p.hidden = p.dataset.year !== yr;
+      });
+    }
+    tabs.forEach((b, i) => {
+      b.addEventListener('click', () => select(b));
+      b.addEventListener('keydown', (e) => {
+        let next = -1;
+        if (e.key === 'ArrowRight') next = (i + 1) % tabs.length;
+        else if (e.key === 'ArrowLeft') next = (i - 1 + tabs.length) % tabs.length;
+        else if (e.key === 'Home') next = 0;
+        else if (e.key === 'End') next = tabs.length - 1;
+        if (next === -1) return;
+        e.preventDefault();
+        select(tabs[next]);
+        tabs[next].focus();
+      });
     });
-  }));
+  })();
   </script>
 </BaseLayout>

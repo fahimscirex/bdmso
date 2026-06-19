@@ -1,15 +1,5 @@
 [
   {
-    "id": "17",
-    "section": "advisor",
-    "subgroup": "",
-    "year": "",
-    "name": "Munir Hasan",
-    "role": "",
-    "affiliation": "President, SPSB & BdOSN",
-    "image": "/images/team/munir-hasan.webp"
-  },
-  {
     "id": "18",
     "section": "advisor",
     "subgroup": "",
@@ -298,6 +288,16 @@
     "role": "A Levels, MLIS",
     "affiliation": "",
     "image": "/images/team/matra.webp"
+  },
+  {
+    "id": "17",
+    "section": "organizing",
+    "subgroup": "",
+    "year": "",
+    "name": "Munir Hasan",
+    "role": "",
+    "affiliation": "President, SPSB & BdOSN",
+    "image": "/images/team/munir-hasan.webp"
   },
   {
     "id": "20",

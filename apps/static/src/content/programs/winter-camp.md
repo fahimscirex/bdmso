@@ -1,7 +1,6 @@
 ---
 home_order: "11"
 title: "International Summer/Winter Camp"
-tagline: "Residential Camp outside Bangladesh with global experts."
 metaDescription: "A 5-day international residential camp outside Bangladesh connecting young learners with global STEM experts and BdMSO alumni for mentorship and cross-cultural projects."
 eyebrow: "Residential · International"
 image: "/images/winter_camp.webp"

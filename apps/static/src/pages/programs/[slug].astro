@@ -91,14 +91,13 @@ const relatedPosts = relatedTo(
 ---
 
 <BaseLayout title={pageTitle} description={metaDesc} page="programs" canonical={url} image={image} jsonLd={[courseSchema, breadcrumb]}>
-  <main>
     <section class="pd-hero"><div class="container">
       <div class="pd-topbar">
         <a class="pd-back" href="/programs">All programs</a>
         <span class="eyebrow">{p.eyebrow || "Program"}</span>
       </div>
       <h1>{p.title}</h1>
-      <p class="lede">{p.tagline}</p>
+      <p class="lede">{p.tagline || p.metaDescription}</p>
     </div></section>
 
     <section class="container pd-wrap">
@@ -149,7 +148,6 @@ const relatedPosts = relatedTo(
       heading="Related reading"
       items={relatedPosts.map((r) => ({ kicker: "Blog", title: r.title, desc: r.desc, url: r.url }))}
     />
-  </main>
 
   <script is:inline>
     // Downgrade the CTA to "opens on…/closed" based on the registration window.

@@ -2,7 +2,6 @@
 home_order: "06"
 feeAmount: 1500
 title: "Lab Day Workshop"
-tagline: "An intensive, 6-hour laboratory experience that pulls Physics, Biology, and Chemistry concepts out of textbooks and into reality."
 metaDescription: "A hands-on 6-hour Lab Day Workshop for Class 5 or below at MASLab, with real Physics, Biology and Chemistry experiments. Lunch, snacks and certificate included."
 startsOn: "2026-06-05"
 endsOn: "2026-06-05"

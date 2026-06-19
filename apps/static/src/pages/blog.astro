@@ -38,7 +38,7 @@ function formatDate(d: Date) {
 }
 ---
 
-<BaseLayout title={title} description={description} page="blog" canonical="https://bdmso.org/blog" image="https://bdmso.org/images/aci-medhabi-carnival.webp" jsonLd={jsonLd}>
+<BaseLayout title={title} description={description} page="blog" canonical="https://bdmso.org/blog" image="https://bdmso.org/images/aci-medhabi-carnival.webp" imageAlt="Students at the ACI Medhabi Carnival" jsonLd={jsonLd}>
   <style is:global slot="head">
     .page-head { background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-page-dark) 100%); color: white; padding: 80px 0 100px; position: relative; overflow: hidden; }
     .page-head::before { content:""; position:absolute; inset:0; background: radial-gradient(600px 300px at 50% 100%, var(--glow-gold-sm), transparent 60%); }
@@ -91,7 +91,6 @@ function formatDate(d: Date) {
     .posts-loading { text-align: center; padding: 48px; color: var(--ink-3); }
   </style>
 
-  <main>
     <section class="page-head"><div class="container">
       <span class="eyebrow">News &amp; Announcements</span>
       <h1>What's happening at BdMSO.</h1>
@@ -141,7 +140,6 @@ function formatDate(d: Date) {
         ))}
       </div>
     </section>
-  </main>
 
   <script is:inline>
     (() => {

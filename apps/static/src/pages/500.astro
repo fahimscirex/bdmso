@@ -9,19 +9,51 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   canonical="https://bdmso.org/500"
   robots="noindex"
 >
-  <main>
-    <section class="section" style="text-align:center; padding:96px 0;">
-      <div class="container">
+  <style is:global slot="head">
+    .notfound-wrap {
+      min-height: calc(100vh - 72px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 64px 24px;
+      background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-page-dark) 100%);
+      color: white; position: relative; overflow: hidden;
+    }
+    .notfound-wrap::before {
+      content: ""; position: absolute; inset: 0;
+      background: radial-gradient(800px 400px at 50% 50%, var(--glow-gold-sm), transparent 60%);
+      pointer-events: none;
+    }
+    .notfound-card {
+      position: relative; z-index: 1;
+      text-align: center; max-width: 560px; width: 100%;
+    }
+    .notfound-card .eyebrow {
+      background: var(--navy-surface-dk); color: var(--gold-on-dark); border-color: var(--navy-border-dk);
+      margin-bottom: 18px;
+    }
+    .notfound-card h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.4rem, 6vw, 4rem); line-height: 1.05;
+      color: white; margin: 0 0 16px;
+    }
+    .notfound-card .code {
+      font-family: var(--font-mono); font-size: 14px;
+      color: var(--gold-500); letter-spacing: 0.18em; text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .notfound-card p { color: var(--on-dark-2); font-size: 1.05rem; margin: 0 0 32px; }
+    .notfound-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  </style>
+
+    <section class="notfound-wrap">
+      <div class="notfound-card">
         <span class="eyebrow">Error 500</span>
-        <h1 style="margin:14px 0 12px;">Something went wrong on our end.</h1>
-        <p style="max-width:520px; margin:0 auto 28px; color:var(--ink-2);">
-          An unexpected error stopped this page from loading. It is not your fault - please try again in a moment.
-        </p>
-        <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-          <a class="btn btn-gold btn-lg" href="/">Back to home</a>
+        <div class="code">500</div>
+        <h1>Something went wrong on our end.</h1>
+        <p>An unexpected error stopped this page from loading. It is not your fault - please try again in a moment.</p>
+        <div class="notfound-actions">
+          <a class="btn btn-gold btn-lg" href="/">← Back to home</a>
           <a class="btn btn-ghost btn-lg" href="mailto:support@bdmso.org">Contact support</a>
         </div>
       </div>
     </section>
-  </main>
 </BaseLayout>

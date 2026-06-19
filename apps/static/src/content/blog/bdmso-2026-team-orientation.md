@@ -5,7 +5,6 @@ category: Announcement
 date: 2026-05-01
 author: Samin Yasar Ahmed
 excerpt: Mentors and volunteers gathered for a four-hour orientation to prepare BdMSO 2026 - Bangladesh's national math and science olympiad pathway for primary students bound for IMSO in Indonesia.
-description: Mentors and volunteers met for a four-hour orientation launching BdMSO 2026 - Bangladesh's primary-school Math and Science Olympiad pathway to IMSO in Indonesia.
 image: /images/team/team-orientation.webp
 ---
 

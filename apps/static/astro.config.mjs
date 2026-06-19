@@ -16,7 +16,19 @@ export default defineConfig({
   publicDir: "../../public",
   // Emit /terms.html (not /terms/index.html) so URLs match the existing site.
   build: { format: "file" },
-  integrations: [sitemap()],
+  integrations: [
+    sitemap({
+      // Keep noindex pages out of the sitemap. These emit
+      // <meta name="robots" content="noindex"> (login, reset-password,
+      // registration/invoice); error pages 404/500 are already excluded by Astro.
+      filter: (page) =>
+        ![
+          "https://bdmso.org/login",
+          "https://bdmso.org/reset-password",
+          "https://bdmso.org/registration/invoice",
+        ].includes(page.replace(/\/$/, "")),
+    }),
+  ],
   // Dev only: proxy /api to the worker running under `wrangler dev` (see
   // scripts/dev.mjs). Production routing is the worker itself; this just lets
   // `astro dev` serve the site while /api/* reaches the local worker + D1.

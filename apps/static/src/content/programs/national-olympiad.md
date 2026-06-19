@@ -2,10 +2,9 @@
 home_order: "01"
 feeAmount: 1000
 title: "BdMSO National Olympiad"
-tagline: "Your child's path to representing Bangladesh at IMSO."
 metaDescription: "The official BdMSO National Olympiad - a 60-minute Math and Science exam for students Class 6 and below, and the pathway to represent Bangladesh at IMSO."
 registrationStarts: "2026-01-01"
-registrationEnds: "2026-06-26"
+registrationEnds: "2026-06-30"
 eyebrow: "National · Olympiad"
 image: "/images/national-round-winners.webp"
 audience: "Class 6 or below"
@@ -13,11 +12,11 @@ duration: "60 minutes/subject"
 format: "MCQ, Short and Broad Question · 50 + 50 = 100 marks"
 outcome: "Winners advance to National Residential Camp and TST"
 level: "Open · Class 6 or below"
-schedule: "Registration closes 26 June 2026"
+schedule: "Registration closes 30 June 2026"
 price: "৳ 1,000"
 register_url: "/registration?program=national-olympiad"
 register_label: "Register now"
-options: {"kind":"radio","label":"Subjects","help":"Choose your subjects. Exam fee is per subject; Both includes both papers.","items":[{"id":"math","label":"Mathematics","sub":"60-minute Math paper — MCQ, Short and Broad Questions · 50 marks","price":1000},{"id":"science","label":"Science","sub":"60-minute Science paper — MCQ, Short and Broad Questions · 50 marks","price":1000},{"id":"both","label":"Both Mathematics and Science","sub":"Full 2-hour exam covering both papers · 50 + 50 = 100 marks","price":1500}]}
+options: {"kind":"radio","items":[{"id":"math","label":"Mathematics","sub":"60-minute Math paper — MCQ, Short and Broad Questions · 50 marks","price":1000},{"id":"science","label":"Science","sub":"60-minute Science paper — MCQ, Short and Broad Questions · 50 marks","price":1000},{"id":"both","label":"Both Mathematics and Science","sub":"Full 2-hour exam covering both papers · 50 + 50 = 100 marks","price":1500}]}
 category: "competition"
 ---
 

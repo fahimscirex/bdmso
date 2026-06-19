@@ -1,0 +1,250 @@
+---
+// Printable manual-payment invoice. Standalone page (no site header/footer),
+// noindex. Reached at /registration/invoice?reg=<registrationId>&inv=<invoiceNo>
+// after the guardian chooses "Pay manually / cash" on the registration form
+// (the worker returns this url from /api/create-payment). It is a plain static
+// page; the registration id and invoice number come from the query string at
+// runtime, then it fetches GET /api/invoice/:registrationId?inv=<invoiceNo>
+// (Bearer token from the bdmso_user session in localStorage) and renders a
+// clean printable slip.
+import Img from "../../components/Img.astro";
+---
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Invoice - BdMSO</title>
+    <meta name="robots" content="noindex,nofollow" />
+    <meta name="theme-color" content="#0b1b3f" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      onload="this.onload=null;this.rel='stylesheet'"
+    />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" />
+    </noscript>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <style is:global>
+      .inv-shell { min-height: 100vh; background: var(--bg-alt, #f1f3f7); padding: 32px 20px; }
+      .inv-toolbar { max-width: 720px; margin: 0 auto 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+      .inv-paper { max-width: 720px; margin: 0 auto; background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 40px; box-shadow: var(--shadow-sm); }
+      .inv-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; flex-wrap: wrap; border-bottom: 2px solid var(--line); padding-bottom: 20px; margin-bottom: 24px; }
+      .inv-logo { height: 46px; width: auto; display: block; }
+      .inv-org { font-size: 13px; color: var(--ink-3); line-height: 1.5; margin-top: 10px; }
+      .inv-title { text-align: right; }
+      .inv-title h1 { font-size: 1.5rem; margin: 0 0 6px; color: var(--navy-900); }
+      .inv-no { font-family: var(--font-mono, monospace); font-size: 14px; color: var(--navy-700); font-weight: 600; }
+      .inv-meta { font-size: 13px; color: var(--ink-3); margin-top: 4px; }
+      .inv-status { display: inline-block; margin-top: 8px; padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; background: #fef3c7; color: #92400e; }
+      .inv-status.paid { background: #dcfce7; color: #15803d; }
+      .inv-cols { display: flex; gap: 32px; flex-wrap: wrap; margin-bottom: 28px; }
+      .inv-col { flex: 1; min-width: 220px; }
+      .inv-col h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); margin: 0 0 8px; }
+      .inv-col .nm { font-weight: 700; color: var(--navy-900); margin-bottom: 2px; }
+      .inv-col .ln { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+      table.inv-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+      table.inv-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); border-bottom: 1px solid var(--line); padding: 0 0 10px; }
+      table.inv-table th.amt, table.inv-table td.amt { text-align: right; }
+      table.inv-table td { padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 14px; color: var(--navy-900); vertical-align: top; }
+      table.inv-table td .sub { font-size: 12.5px; color: var(--ink-3); margin-top: 3px; }
+      .inv-total { display: flex; justify-content: flex-end; margin-bottom: 28px; }
+      .inv-total .box { min-width: 240px; }
+      .inv-total .row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; color: var(--ink-2); }
+      .inv-total .row.grand { border-top: 2px solid var(--line); margin-top: 6px; padding-top: 12px; font-size: 1.05rem; font-weight: 800; color: var(--navy-900); }
+      .inv-pay { background: var(--bg-alt); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+      .inv-pay h2 { font-size: 13px; margin: 0 0 8px; color: var(--navy-900); }
+      .inv-pay p { font-size: 13px; color: var(--ink-2); line-height: 1.6; margin: 0 0 6px; }
+      .inv-pay .ref { font-family: var(--font-mono, monospace); font-weight: 600; color: var(--navy-700); }
+      .inv-foot { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-3); text-align: center; }
+      .inv-msg { max-width: 720px; margin: 40px auto; text-align: center; color: var(--ink-3); font-size: 15px; line-height: 1.6; }
+      .inv-msg.err { color: #dc2626; }
+      @media print {
+        .inv-shell { background: #fff; padding: 0; }
+        .inv-toolbar { display: none; }
+        .inv-paper { border: none; box-shadow: none; border-radius: 0; max-width: none; padding: 0; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="inv-shell">
+      <div class="inv-toolbar">
+        <a class="btn btn-ghost" href="/dashboard">← Back to dashboard</a>
+        <button type="button" class="btn btn-primary" id="inv-print" hidden>Print invoice</button>
+      </div>
+
+      <div class="inv-paper" id="inv-paper" hidden>
+        <div class="inv-head">
+          <div>
+            <Img class="inv-logo" src="/images/logo.webp" alt="BdMSO" loading="eager" fetchpriority="high" />
+            <div class="inv-org">
+              Bangladesh Math &amp; Science Olympiad<br />
+              support@bdmso.org · bdmso.org
+            </div>
+          </div>
+          <div class="inv-title">
+            <h1>Invoice</h1>
+            <div class="inv-no" id="inv-no"></div>
+            <div class="inv-meta" id="inv-date"></div>
+            <div class="inv-status" id="inv-status"></div>
+          </div>
+        </div>
+
+        <div class="inv-cols">
+          <div class="inv-col">
+            <h2>Billed to</h2>
+            <div class="nm" id="inv-guardian"></div>
+            <div class="ln" id="inv-guardian-contact"></div>
+          </div>
+          <div class="inv-col">
+            <h2>Student</h2>
+            <div class="nm" id="inv-student"></div>
+            <div class="ln" id="inv-student-detail"></div>
+          </div>
+        </div>
+
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th class="amt">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div id="inv-program"></div>
+                <div class="sub" id="inv-options"></div>
+              </td>
+              <td class="amt" id="inv-line-amount"></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="inv-total">
+          <div class="box">
+            <div class="row grand"><span>Total due</span><span id="inv-amount"></span></div>
+          </div>
+        </div>
+
+        <div class="inv-pay">
+          <h2>How to pay</h2>
+          <p>Please settle this invoice by cash or bank transfer. Quote your invoice number <span class="ref" id="inv-ref"></span> on the payment so we can match it to your registration.</p>
+          <p>Once we receive your payment we confirm it from our end and your BdMSO ID is issued automatically. Questions? Email <a href="mailto:support@bdmso.org">support@bdmso.org</a>.</p>
+        </div>
+
+        <div class="inv-foot">
+          This invoice was generated by BdMSO. Your registration is confirmed only after payment is received.
+        </div>
+      </div>
+
+      <div class="inv-msg" id="inv-msg">Loading your invoice…</div>
+    </div>
+
+    <script is:inline>
+      (function () {
+        var paper = document.getElementById('inv-paper');
+        var msgEl = document.getElementById('inv-msg');
+        var printBtn = document.getElementById('inv-print');
+
+        function show(text, kind) {
+          paper.hidden = true;
+          printBtn.hidden = true;
+          msgEl.hidden = false;
+          msgEl.textContent = text;
+          msgEl.className = 'inv-msg ' + (kind || '');
+        }
+
+        // Registration id and invoice no both come from the query string.
+        var params = new URLSearchParams(location.search);
+        var registrationId = params.get('reg') || '';
+        var invoiceNo = params.get('inv') || '';
+
+        if (!registrationId) {
+          show('This invoice link is invalid or incomplete. Please open it from your dashboard.', 'err');
+          return;
+        }
+
+        var session = null;
+        try { session = JSON.parse(localStorage.getItem('bdmso_user') || 'null'); } catch (e) {}
+        if (!session) {
+          show('Please sign in to view this invoice.', 'err');
+          return;
+        }
+
+        function fmtDate(iso) {
+          if (!iso) return '';
+          var d = new Date(iso);
+          if (isNaN(d.getTime())) return '';
+          // dd Mon yyyy, en-GB.
+          return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+        function fmtBdt(n) {
+          var v = Number(n || 0);
+          return '৳ ' + v.toLocaleString('en-GB');
+        }
+        function setText(id, text) {
+          var el = document.getElementById(id);
+          if (el) el.textContent = text || '';
+        }
+
+        var url = '/api/invoice/' + encodeURIComponent(registrationId) +
+          (invoiceNo ? '?inv=' + encodeURIComponent(invoiceNo) : '');
+
+        fetch(url, { credentials: 'same-origin', headers: session.token ? { Authorization: 'Bearer ' + session.token } : {} })
+          .then(function (res) {
+            return res.json().catch(function () { return {}; }).then(function (data) {
+              if (!res.ok) throw new Error(data.error || 'This invoice could not be loaded.');
+              return data;
+            });
+          })
+          .then(function (inv) {
+            setText('inv-no', inv.invoiceNo || '');
+            setText('inv-ref', inv.invoiceNo || '');
+            setText('inv-date', 'Issued ' + fmtDate(inv.createdAt));
+
+            var statusEl = document.getElementById('inv-status');
+            var paid = inv.status === 'paid';
+            statusEl.textContent = paid ? 'Paid' : 'Awaiting payment';
+            statusEl.className = 'inv-status' + (paid ? ' paid' : '');
+
+            setText('inv-guardian', inv.guardianName || '');
+            var gc = document.getElementById('inv-guardian-contact');
+            if (gc) {
+              gc.textContent = '';
+              [inv.guardianEmail, inv.guardianPhone].filter(Boolean).forEach(function (line, i) {
+                if (i > 0) gc.appendChild(document.createElement('br'));
+                gc.appendChild(document.createTextNode(line));
+              });
+            }
+
+            setText('inv-student', inv.studentName || '');
+            var sd = [inv.studentClass, inv.studentDistrict].filter(Boolean).join(' · ');
+            setText('inv-student-detail', sd);
+
+            setText('inv-program', inv.programName || 'BdMSO Registration');
+            var opts = Array.isArray(inv.programOptions) ? inv.programOptions.filter(Boolean) : [];
+            setText('inv-options', opts.length ? opts.join(', ') : '');
+
+            setText('inv-line-amount', fmtBdt(inv.amount));
+            setText('inv-amount', fmtBdt(inv.amount));
+
+            paper.hidden = false;
+            msgEl.hidden = true;
+            printBtn.hidden = false;
+          })
+          .catch(function (err) {
+            show(err.message, 'err');
+          });
+
+        printBtn.addEventListener('click', function () { window.print(); });
+      })();
+    </script>
+  </body>
+</html>

@@ -113,6 +113,11 @@
   .quick-enroll .qe-head, .quick-enroll .qe-body, .quick-enroll .qe-foot { padding: 20px 16px; }
   .instructions { padding: 20px 16px; }
   .success { padding: 32px 16px; }
+  /* Avoid the box-in-a-box on phones: drop the priced-options panel's own
+     inset/border/background so the session cards become the only boxes,
+     reclaiming the doubled-up horizontal space. */
+  #program-options-panel { margin: 16px 0 0; padding: 0; background: none; border: none; }
+  #program-options-panel .opt-item { background: white; }
 }
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .field label { font-size: 13px; font-weight: 600; color: var(--navy-900); }

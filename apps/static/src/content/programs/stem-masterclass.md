@@ -1,7 +1,6 @@
 ---
 home_order: "07"
 title: "STEM Masterclass Series"
-tagline: "Masterclasses of specialized topics on physics, chemistry, biology or Math. One masterclass consists of 6 classes."
 metaDescription: "A 6-class STEM Masterclass for Class 4-6 and 7-8 students, led by mentors and past Olympiad champions, bridging Olympiad prep to TST-level fluency."
 startsOn: "2026-08-01"
 registrationStarts: "2026-08-01"

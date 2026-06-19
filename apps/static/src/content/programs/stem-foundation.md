@@ -2,7 +2,6 @@
 home_order: "09"
 feeAmount: 3000
 title: "STEM Foundation Program"
-tagline: "The ultimate head start in Science, Technology, Engineering and Math - for Class 2 to 8."
 metaDescription: "The BdMSO STEM Foundation Program - a 2-month journey through Science, Technology, Engineering and Math for Class 2 to 8, taught in age-appropriate batches."
 startsOn: "2026-07-03"
 registrationStarts: "2026-07-03"

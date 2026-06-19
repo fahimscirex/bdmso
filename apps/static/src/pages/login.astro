@@ -8,6 +8,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 
 <BaseLayout
   title="Log in - BdMSO"
+  description="Log in to your BdMSO account to manage registrations and results."
   page="login"
   robots="noindex,follow"
   canonical="https://bdmso.org/login"
@@ -38,6 +39,19 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       font-family: var(--font-sans); width: 100%; box-sizing: border-box;
     }
     .field input:focus { outline: none; border-color: var(--navy-700); box-shadow: 0 0 0 4px var(--focus-ring); }
+    .pw-field { position: relative; }
+    .pw-field input { padding-right: 44px; }
+    .pw-eye {
+      position: absolute; right: 0; top: 0; bottom: 0; width: 42px;
+      display: flex; align-items: center; justify-content: center;
+      background: transparent; border: none; cursor: pointer; color: var(--ink-3);
+      padding: 0; border-radius: 0 var(--r) var(--r) 0;
+    }
+    .pw-eye:hover { color: var(--navy-900); }
+    .pw-eye:focus-visible { outline: 2px solid var(--navy-700); outline-offset: -2px; }
+    .pw-eye .eye-off { display: none; }
+    .pw-eye[aria-pressed="true"] .eye-on  { display: none; }
+    .pw-eye[aria-pressed="true"] .eye-off { display: block; }
 
     .error-msg {
       background: #fef2f2; border: 1px solid #fecaca;
@@ -127,7 +141,6 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     @media (max-width: 480px) { .login-card { padding: 28px 20px; } }
   </style>
 
-  <main>
     <div class="login-wrap">
       <div class="login-card">
         <!-- Sign-in view -->
@@ -143,7 +156,13 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             </div>
             <div class="field">
               <label for="login-password">Password</label>
-              <input type="password" id="login-password" name="password" placeholder="••••••••" autocomplete="current-password" required />
+              <div class="pw-field">
+                <input type="password" id="login-password" name="password" placeholder="••••••••" autocomplete="current-password" required />
+                <button type="button" class="pw-eye" aria-label="Show password" data-pw="login-password" tabindex="-1">
+                  <svg class="eye-on" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="eye-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                </button>
+              </div>
             </div>
             <div id="login-error" class="error-msg" hidden></div>
             <button type="submit" class="btn btn-primary login-submit">Sign in</button>
@@ -164,7 +183,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
             Back to sign in
           </button>
-          <h1 style="font-size:1.4rem; margin:0 0 6px;">Recover your account</h1>
+          <h2 style="font-size:1.4rem; margin:0 0 6px;">Recover your account</h2>
           <p class="sub">Pick what you've forgotten - we'll guide you through.</p>
 
           <div class="recover-tabs" role="tablist">
@@ -225,15 +244,34 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         </div>
       </div>
     </div>
-  </main>
 
   <script is:inline type="module">
     import { postJson } from '/js/api.js';
 
-    // Redirect if already logged in
-    try {
-      if (JSON.parse(localStorage.getItem('bdmso_user'))) window.location.replace('/dashboard');
-    } catch {}
+    // Redirect if already logged in (no redirect param means normal dashboard flow)
+    const loginRedirectTo = (() => {
+      try {
+        const r = new URL(window.location.href).searchParams.get('redirect');
+        return r && r.startsWith('/') ? r : null;
+      } catch { return null; }
+    })();
+    if (!loginRedirectTo) {
+      try {
+        if (JSON.parse(localStorage.getItem('bdmso_user'))) window.location.replace('/dashboard');
+      } catch {}
+    }
+
+    // Password show/hide toggles
+    document.querySelectorAll('.pw-eye').forEach(btn => {
+      const input = document.getElementById(btn.dataset.pw);
+      if (!input) return;
+      btn.addEventListener('click', () => {
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+        btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+      });
+    });
 
     const form = document.getElementById('login-form');
     const errorEl = document.getElementById('login-error');
@@ -251,12 +289,11 @@ import BaseLayout from "../layouts/BaseLayout.astro";
           password: form.password.value
         });
         localStorage.setItem('bdmso_user', JSON.stringify({
-          token: data.token,
           accountId: data.accountId,
           fullName: data.fullName,
           email: data.email
         }));
-        window.location.href = '/dashboard';
+        window.location.href = loginRedirectTo || '/dashboard';
       } catch (err) {
         errorEl.textContent = err.message;
         errorEl.hidden = false;
