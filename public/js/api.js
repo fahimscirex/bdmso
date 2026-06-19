@@ -8,6 +8,7 @@ export async function postJson(functionName, payload, token) {
   const response = await fetch(buildFunctionUrl(functionName), {
     method: "POST",
     headers,
+    credentials: "same-origin",
     body: JSON.stringify(payload)
   });
 

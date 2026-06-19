@@ -146,11 +146,12 @@ renderNews().catch(() => {});
 async function adaptRegisterCta() {
   let session = null;
   try { session = JSON.parse(localStorage.getItem('bdmso_user') || 'null'); } catch {}
-  if (!session?.token) return;
+  if (!session) return;
 
   let regs = [];
   try {
-    const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${session.token}` } });
+    const headers = session.token ? { Authorization: `Bearer ${session.token}` } : {};
+    const res = await fetch('/api/me', { headers, credentials: 'same-origin' });
     if (!res.ok) return;
     const data = await res.json();
     regs = data.registrations || [];

@@ -70,9 +70,8 @@
     if (logoutBtn) {
       logoutBtn.addEventListener('click', async () => {
         const s = getSession();
-        if (s?.token) {
-          try { await fetch('/api/logout', { method: 'POST', headers: { Authorization: `Bearer ${s.token}` } }); } catch {}
-        }
+        const headers = s?.token ? { Authorization: `Bearer ${s.token}` } : {};
+        try { await fetch('/api/logout', { method: 'POST', headers, credentials: 'same-origin' }); } catch {}
         localStorage.removeItem('bdmso_user');
         window.location.href = '/login';
       });

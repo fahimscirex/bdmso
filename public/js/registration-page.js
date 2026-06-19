@@ -265,8 +265,11 @@ async function initQuickEnroll() {
   const fullReg   = document.getElementById('full-reg-section');
   const formShell = document.getElementById('form');
 
-  // For logged-in users with no program param, treat the page as the NQR flow.
-  const effectiveProgram = program || (session?.token ? 'national-olympiad' : null);
+  // Only enter quick-enroll when the URL actually carried a ?program= param.
+  // Without one, fall through to the program-choice cards (#full-reg-section)
+  // so signed-in guardians explicitly pick Olympiad vs Quiz instead of being
+  // silently funneled into the Olympiad flow.
+  const effectiveProgram = program;
   if (!effectiveProgram) return;
 
   await loadCatalogMaps();
@@ -289,7 +292,7 @@ async function initQuickEnroll() {
   const basePrice = PROGRAM_PRICES[effectiveProgram];
   priceEl.textContent = basePrice ? `৳ ${basePrice.toLocaleString()}` : 'On enquiry';
 
-  if (session?.token) {
+  if (session) {
     // Logged-in: show quick enroll, hide full form
     panel.hidden = false;
     fullReg.hidden = true;
@@ -301,7 +304,22 @@ async function initQuickEnroll() {
     // Load existing student info
     let allRegs = [];
     try {
-      const res = await fetch('/api/me', { headers: { Authorization: `Bearer ${session.token}` } });
+      const headers = session.token ? { Authorization: `Bearer ${session.token}` } : {};
+      const res = await fetch('/api/me', { headers, credentials: 'same-origin' });
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          // Session expired - clear stale localStorage and redirect to login
+          // so the user can re-authenticate and come back to this page.
+          localStorage.removeItem('bdmso_user');
+          window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+          return;
+        }
+        // Other server error - fall back to full form
+        panel.hidden = true;
+        fullReg.hidden = false;
+        formShell.hidden = false;
+        return;
+      }
       const data = await res.json();
       allRegs = data.registrations || [];
       const reg  = allRegs[0];
@@ -434,12 +452,12 @@ async function initQuickEnroll() {
         const res = await postJson('add-enrollment', {
           registrationType: effectiveProgram,
           ...(programOptions ? { programOptions } : {}),
-        }, session.token);
+        }, session?.token);
         // Carry the new registration id so the dashboard can scroll
         // straight to its Pay Now card instead of dumping the guardian
         // at the top of a long list.
         const focus = res?.applicationId ? `?focus=${encodeURIComponent(res.applicationId)}` : '?enrolled=1';
-        window.location.href = `dashboard.html${focus}`;
+        window.location.href = `/dashboard${focus}`;
       } catch (err) {
         errEl.textContent = err.message;
         errEl.style.display = 'block';
@@ -479,6 +497,17 @@ async function initQuickEnroll() {
     tag.textContent = programName;
     backBar.append(backLink, tag);
     formShell.parentElement.insertBefore(backBar, formShell);
+
+    // Returning user prompt: if someone already has a BdMSO account,
+    // logging in skips this form entirely and uses their saved details.
+    const loginBanner = document.createElement('div');
+    loginBanner.style.cssText = 'margin-bottom:20px;padding:12px 16px;background:var(--navy-50,#f0f4ff);border:1px solid var(--navy-200,#c7d5f5);border-radius:8px;font-size:14px;color:var(--ink-2);';
+    const loginBannerLink = document.createElement('a');
+    loginBannerLink.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+    loginBannerLink.style.cssText = 'color:var(--navy-700);font-weight:600;text-decoration:underline;';
+    loginBannerLink.textContent = 'Log in';
+    loginBanner.append('Already have a BdMSO account? ', loginBannerLink, ' to use your saved student details - no need to fill this form again.');
+    formShell.parentElement.insertBefore(loginBanner, formShell);
   }
 }
 

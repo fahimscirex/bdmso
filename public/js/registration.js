@@ -10,10 +10,11 @@ let takenOptionIds = new Set();
 async function loadTakenOptions() {
   let session = null;
   try { session = JSON.parse(localStorage.getItem("bdmso_user") || "null"); } catch {}
-  if (!session?.token) return;
+  if (!session) return;
   let res;
   try {
-    res = await fetch("/api/me", { headers: { Authorization: `Bearer ${session.token}` } });
+    const headers = session.token ? { Authorization: `Bearer ${session.token}` } : {};
+    res = await fetch("/api/me", { headers, credentials: "same-origin" });
   } catch { return; }
   if (!res.ok) return;
   let data;
@@ -177,6 +178,11 @@ function syncConditionalFields() {
 
 let currentStep = 1;
 
+// The registration id returned by submit-registration. Needed by the
+// step-4 "Pay now" action so it can create a payment for the newly
+// created registration without another round-trip.
+let createdRegistrationId = null;
+
 function valueOf(id) {
   return document.getElementById(id).value.trim();
 }
@@ -201,9 +207,14 @@ function markError(id, hint) {
   if (!hintEl) {
     hintEl = document.createElement("span");
     hintEl.className = "field-error";
+    hintEl.id = `${id}-error`;
+    hintEl.setAttribute("role", "alert");
     field.appendChild(hintEl);
   }
   hintEl.textContent = hint;
+  // Announce the failure to assistive tech and link the field to its hint.
+  el.setAttribute("aria-invalid", "true");
+  el.setAttribute("aria-describedby", hintEl.id);
   if (!el.dataset.errorBound) {
     const clear = () => clearError(id);
     el.addEventListener("input", clear);
@@ -218,6 +229,8 @@ function clearError(id) {
   const field = el.closest(".field");
   if (!field) return;
   field.classList.remove("is-error");
+  el.removeAttribute("aria-invalid");
+  el.removeAttribute("aria-describedby");
   const hintEl = field.querySelector(".field-error");
   if (hintEl) hintEl.textContent = "";
 }
@@ -225,6 +238,10 @@ function clearError(id) {
 function clearAllErrors() {
   document.querySelectorAll(".field.is-error").forEach((f) => {
     f.classList.remove("is-error");
+    f.querySelectorAll("[aria-invalid]").forEach((el) => {
+      el.removeAttribute("aria-invalid");
+      el.removeAttribute("aria-describedby");
+    });
     const hintEl = f.querySelector(".field-error");
     if (hintEl) hintEl.textContent = "";
   });
@@ -495,9 +512,8 @@ async function submitRegistration() {
 
   try {
     const response = await postJson("submit-registration", registrationPayload());
-    if (response.token) {
+    if (response.accountId) {
       localStorage.setItem("bdmso_user", JSON.stringify({
-        token: response.token,
         accountId: response.accountId,
         fullName: response.fullName,
         email: response.email
@@ -513,6 +529,7 @@ async function submitRegistration() {
     if (dashLink && response.applicationId) {
       dashLink.href = `/dashboard?focus=${encodeURIComponent(response.applicationId)}`;
     }
+    createdRegistrationId = response.applicationId || null;
     setStep(4);
     setMessage("", "neutral");
   } catch (error) {
@@ -520,6 +537,52 @@ async function submitRegistration() {
   } finally {
     button.disabled = false;
     button.textContent = "Submit & Create Account →";
+  }
+}
+
+// Step-4 "Pay now" action. Lets the guardian pick the online gateway
+// (shurjoPay, default) or a manual / cash flow, then creates a payment
+// for the freshly created registration. On a manual response the server
+// returns a printable invoice url we redirect to; on online it returns
+// the shurjoPay checkout url. The server still requires a verified email,
+// so an unverified guardian gets a clear inline error here.
+async function payNow() {
+  const status = document.getElementById("pay-status");
+  if (!createdRegistrationId) {
+    if (status) { status.textContent = "Registration not found. Please use the dashboard to pay."; status.dataset.kind = "error"; }
+    return;
+  }
+  let session = null;
+  try { session = JSON.parse(localStorage.getItem("bdmso_user") || "null"); } catch {}
+  const checked = document.querySelector('input[name="pay-method"]:checked');
+  const paymentMethod = checked ? checked.value : "online";
+
+  const button = document.getElementById("pay-now-btn");
+  button.disabled = true;
+  button.textContent = "Starting payment...";
+  if (status) { status.textContent = ""; status.dataset.kind = "neutral"; }
+
+  try {
+    const response = await postJson(
+      "create-payment",
+      { registrationId: createdRegistrationId, paymentMethod },
+      session?.token
+    );
+    if (response.manual && response.invoiceUrl) {
+      location.href = response.invoiceUrl;
+      return;
+    }
+    if (response.checkoutURL) {
+      location.href = response.checkoutURL;
+      return;
+    }
+    // A 0-fee registration completes server-side with no redirect.
+    if (status) { status.textContent = "Payment complete. Redirecting to your dashboard..."; status.dataset.kind = "success"; }
+    location.href = `/dashboard?focus=${encodeURIComponent(createdRegistrationId)}`;
+  } catch (error) {
+    if (status) { status.textContent = error.message; status.dataset.kind = "error"; }
+    button.disabled = false;
+    button.textContent = "Pay now →";
   }
 }
 
@@ -816,6 +879,7 @@ function bindLiveRefresh() {
 function init() {
   bindStepControls();
   document.getElementById("submit-registration").addEventListener("click", submitRegistration);
+  document.getElementById("pay-now-btn")?.addEventListener("click", payNow);
   initDob();
 
   // The competition is now decided by the URL, not a dropdown - so we
