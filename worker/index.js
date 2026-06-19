@@ -227,6 +227,43 @@ function rewriteForAsset(pathname) {
   return `${pathname}.html`;
 }
 
+// Temporary maintenance mode. Flip MAINTENANCE="true" (dashboard var) to show
+// the public a "back soon" page during a deploy/cutover. /admin + /api/admin
+// stay open so you can keep working, and visiting any page with
+// ?preview=<MAINTENANCE_KEY> drops a bypass cookie so you can smoke-test the
+// live stack while the public still sees the page. Returns a Response to short-
+// circuit, or null to let the request through.
+const MAINTENANCE_HTML = `<!doctype html><html lang="en-GB"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>BdMSO — Back soon</title><style>
+:root{color-scheme:light dark}body{margin:0;min-height:100dvh;display:grid;place-items:center;
+font:16px/1.6 system-ui,sans-serif;background:#0b1020;color:#e7ebf5;text-align:center;padding:2rem}
+.card{max-width:32rem}h1{font-size:1.6rem;margin:0 0 .5rem}p{opacity:.8;margin:.25rem 0}
+.dot{display:inline-block;width:.5rem;height:.5rem;border-radius:50%;background:#5b8cff;margin-right:.4rem}
+</style></head><body><div class="card"><h1><span class="dot"></span>We'll be right back</h1>
+<p>BdMSO is undergoing a short scheduled upgrade.</p>
+<p>Please check back in a few minutes. Existing registrations and payments are safe.</p></div></body></html>`;
+
+function maintenanceGate(request, url, env) {
+  // Admin app + API stay reachable so operators can keep working.
+  if (url.pathname.startsWith("/admin") || url.pathname.startsWith("/api/admin")) return null;
+  const key = env.MAINTENANCE_KEY || "";
+  const cookie = request.headers.get("cookie") || "";
+  if (key && cookie.includes(`bdmso_preview=${key}`)) return null;
+  // ?preview=<key> sets the bypass cookie, then redirects to the clean URL.
+  if (key && url.searchParams.get("preview") === key) {
+    return new Response(null, { status: 302, headers: {
+      location: url.origin + url.pathname,
+      "set-cookie": `bdmso_preview=${key}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=86400`,
+    } });
+  }
+  return new Response(MAINTENANCE_HTML, { status: 503, headers: {
+    "content-type": "text/html; charset=utf-8",
+    "retry-after": "3600",
+    "cache-control": "no-store",
+  } });
+}
+
 export default {
   // Cron-triggered reconciliation: catches pending payments that fell
   // through the cracks (browser redirect broke, IPN never arrived, callback
@@ -251,6 +288,11 @@ export default {
 
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    if (env.MAINTENANCE === "true") {
+      const blocked = maintenanceGate(request, url, env);
+      if (blocked) return blocked;
+    }
 
     try {
       if (url.pathname.startsWith("/api/")) {

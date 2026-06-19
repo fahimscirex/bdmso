@@ -33,6 +33,10 @@ run_worker_first = true
 [vars]
 SHURJOPAY_SANDBOX = "true"
 ENVIRONMENT = "development"
+# Maintenance mode. "true" shows the public a "back soon" page (admin + a
+# ?preview=<MAINTENANCE_KEY> bypass stay open). Toggle in the dashboard; set
+# MAINTENANCE_KEY as a SECRET (wrangler secret put MAINTENANCE_KEY --env production).
+MAINTENANCE = "false"
 # Local asset sidecar (scripts/dev-asset-sink.mjs): the worker reads/writes
 # repo image assets (admin previews + uploads) through it in dev, instead of
 # committing to GitHub. dev:one / dev:admin start it on this port.
@@ -69,6 +73,9 @@ run_worker_first = true
 # "development" unlocks plaintext logging of verify/reset URLs. Anything
 # else (including unset) is treated as prod.
 ENVIRONMENT = "production"
+# Maintenance mode (toggle in dashboard during cutover). MAINTENANCE_KEY is a
+# SECRET: wrangler secret put MAINTENANCE_KEY --env production
+MAINTENANCE = "false"
 # Flip to "false" to hit ShurjoPay's live endpoint. The committed value
 # is safe-by-default; the dashboard's "Variables and Secrets" panel can
 # override per-environment without touching this file.
