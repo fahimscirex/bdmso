@@ -75,7 +75,7 @@ run_worker_first = true
 ENVIRONMENT = "production"
 # Maintenance mode (toggle in dashboard during cutover). MAINTENANCE_KEY is a
 # SECRET: wrangler secret put MAINTENANCE_KEY --env production
-MAINTENANCE = "false"
+MAINTENANCE = "true"
 # Flip to "false" to hit ShurjoPay's live endpoint. The committed value
 # is safe-by-default; the dashboard's "Variables and Secrets" panel can
 # override per-environment without touching this file.
@@ -92,8 +92,8 @@ GITHUB_BRANCH = "refactor"
 
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "bdmso"
-database_id = "650eb353-3ecb-4710-87b6-4d72aea2cd71"
+database_name = "bdmso-v2"
+database_id = "3299d736-4398-419e-b053-f0b24083690c"
 
 # Workers logs (console + per-invocation) and traces in the CF dashboard.
 [env.production.observability.logs]
