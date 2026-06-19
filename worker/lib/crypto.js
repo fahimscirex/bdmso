@@ -18,3 +18,11 @@ export async function hashPassword(password, salt, iterations = PBKDF2_ITERATION
   );
   return toHex(bits);
 }
+
+// Constant-time string comparison for hex hashes (prevents timing attacks).
+export function timingSafeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}

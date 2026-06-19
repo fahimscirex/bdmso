@@ -13,7 +13,7 @@ import {
   handleLogin, handleLogout, handleMe,
   handleRegistration, handleAddEnrollment, handleValidateCoupon,
   handleSponsorship,
-  handleCreatePayment, handlePaymentCallback,
+  handleCreatePayment, handlePaymentCallback, handleInvoice,
   handleVerifyEmail, handleResendVerification,
   handleForgotPassword, handleForgotEmail, handleResetPassword,
   handleCatalog,
@@ -46,6 +46,7 @@ api.get ("/validate-coupon",       (c) => handleValidateCoupon(c.req.raw, c.env,
 api.post("/submit-sponsorship",    (c) => handleSponsorship(c.req.raw, c.env));
 api.post("/create-payment",        (c) => handleCreatePayment(c.req.raw, c.env));
 api.all ("/payment-callback",      (c) => handlePaymentCallback(c.req.raw, c.env, new URL(c.req.url)));
+api.get ("/invoice/:registrationId", (c) => handleInvoice(c.req.raw, c.env, new URL(c.req.url), c.req.param("registrationId")));
 api.get ("/verify-email",          (c) => handleVerifyEmail(c.req.raw, c.env, new URL(c.req.url)));
 api.post("/resend-verification",   (c) => handleResendVerification(c.req.raw, c.env));
 api.post("/forgot-password",       (c) => handleForgotPassword(c.req.raw, c.env));
@@ -60,7 +61,7 @@ api.route("/admin", adminRoutes);      // /api/admin/health, ...
 // 500 so we don't leak e.g. "D1_ERROR: no such table: login_attempts: SQLITE_ERROR".
 api.onError((err, c) => {
   if (err.status) return c.json({ error: err.message }, err.status);
-  console.log(`[api-error] ${c.req.method} ${c.req.path}:`, err?.stack || err?.message || err);
+  console.log(`[api-error] ${c.req.method} ${c.req.path}:`, err?.message || err);
   return c.json({ error: "Something went wrong. Please try again." }, 500);
 });
 
@@ -227,6 +228,27 @@ function rewriteForAsset(pathname) {
 }
 
 export default {
+  // Cron-triggered reconciliation: catches pending payments that fell
+  // through the cracks (browser redirect broke, IPN never arrived, callback
+  // threw an error).  Configured in wrangler.toml:
+  //   [env.production.triggers]
+  //   crons = ["*/30 * * * *"]
+  async scheduled(event, env) {
+    // Top-level guard: a throw here (failed import, DB error in the pre-loop
+    // query) would otherwise surface only as an opaque cron failure. Catch and
+    // log so the schedule keeps running and the cause is visible in `tail`.
+    try {
+      const { reconcileStalePayments } = await import("./lib/reconcile.js");
+      // PRODUCTION_DOMAIN: canonical host (set as a Worker var/secret in wrangler.toml),
+      // used to build callback/IPN base URLs when reconciling stale payments off-request.
+      const baseUrl = `https://${env.PRODUCTION_DOMAIN || "bdmso.org"}`;
+      const result = await reconcileStalePayments(env, baseUrl);
+      console.log(`[reconcile-cron] checked=${result.checked} paid=${result.paid} failed=${result.failed} errors=${result.errors.length}`);
+    } catch (err) {
+      console.log("[reconcile-cron] fatal:", err?.stack || err?.message || err);
+    }
+  },
+
   async fetch(request, env) {
     const url = new URL(request.url);
 
@@ -273,7 +295,7 @@ export default {
     } catch (err) {
       // Custom 500: serve the built /500.html with the correct status code so a
       // crash never leaks a stack trace or a soft-200 error page.
-      console.error("worker error:", err && err.stack ? err.stack : err);
+      console.error("worker error:", err && err.message ? err.message : err);
       try {
         const page = await env.ASSETS.fetch(new Request(new URL("/500.html", url.origin)));
         const body = page.ok ? await page.text() : "<!doctype html><h1>500 - Something went wrong</h1>";

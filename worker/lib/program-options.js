@@ -100,3 +100,19 @@ export function deriveRegState(yearRound, starts, ends, today = null) {
   if (starts || ends) return 'open';
   return 'closed';
 }
+
+// Derive a run's (cohort's) lifecycle stage from its own dates - the same enrol
+// window logic as deriveRegState, plus the session end for the running->ended
+// step. 'draft' and 'archived' are manual overrides and pass straight through.
+// `today` defaults to the UTC date, matching deriveRegState. Keep the SQL mirror
+// in worker/routes/admin.js (cohortStageSQL) in sync with this.
+export function deriveCohortStage(status, enrollOpens, enrollCloses, startsOn, endsOn, today = null) {
+  if (status === 'draft' || status === 'archived') return status;
+  // No date signals to derive from -> honour the stored status.
+  if (!enrollOpens && !enrollCloses && !startsOn && !endsOn) return status;
+  today = today || new Date().toISOString().slice(0, 10);
+  if (endsOn && today > endsOn) return 'ended';
+  if (enrollOpens && today < enrollOpens) return 'upcoming';
+  if (!enrollCloses || today <= enrollCloses) return 'enrolling';
+  return 'running';
+}

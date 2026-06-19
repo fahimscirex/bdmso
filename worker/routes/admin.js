@@ -9,8 +9,11 @@ import { sessionMiddleware } from "../middleware/session.js";
 import { requireRole } from "../middleware/requireRole.js";
 import { recordAudit } from "../lib/audit-log.js";
 import { getCatalog } from "../lib/programs.js";
+import { deriveCohortStage } from "../lib/program-options.js";
 import { writeRepoAsset } from "../lib/repoAssets.js";
-import { getShurjopayConfig, shurjopayGetToken, shurjopayVerify } from "../lib/shurjopay.js";
+import { reconcilePayment, reconcileStalePayments } from "../lib/reconcile.js";
+import { materializeEntity, titleFor, pathFor, isDataset, publishFiles, captureSnapshot, restoreSnapshot } from "../lib/publish.js";
+import { createId } from "../lib/util.js";
 import { createVerificationToken, sendVerificationEmail, createPasswordResetToken, sendPasswordResetEmail, assignMemberIdAndSendReceipt, sendBroadcastEmail } from "../lib/email.js";
 import { getBaseUrl } from "../lib/util.js";
 import { checkActionRateLimit, recordActionAttempt, clientIpFor } from "../lib/rate-limit.js";
@@ -19,13 +22,15 @@ const admin = new Hono();
 
 admin.use("*", sessionMiddleware);
 admin.use("*", requireRole("admin"));
-// Per-IP cap across the entire admin namespace. Admins make a lot of
-// requests (dashboard list views, broadcast composer polls), but 200
-// per 15 minutes is well above any human workflow and stops a
-// credential-stuffed admin token from being used to scrape data fast.
+// Per-IP cap across the entire admin namespace. Each dashboard/list page fires
+// several GETs and a few views poll, so a real admin session legitimately makes
+// hundreds of requests in a sitting - 1500 per 15 minutes stays well clear of
+// that while still stopping a stolen admin token from scraping data fast.
+// Skipped in local dev, where hot-reload refetches trip any cap.
 admin.use("*", async (c, next) => {
+  if (c.env.ENVIRONMENT === "development") return next();
   const ip = clientIpFor(c.req.raw);
-  if (!(await checkActionRateLimit(c.env, "admin-ip", ip, 200, 15 * 60 * 1000))) {
+  if (!(await checkActionRateLimit(c.env, "admin-ip", ip, 1500, 15 * 60 * 1000))) {
     return c.json({ error: "Too many admin requests. Slow down." }, 429);
   }
   await recordActionAttempt(c.env, "admin-ip", ip);
@@ -120,6 +125,8 @@ admin.get("/registrations", async (c) => {
         r.student_school,
         r.student_district,
         r.preferred_venue,
+        r.preferred_subject,
+        r.program_options,
         r.guardian_full_name,
         r.guardian_email,
         r.guardian_phone,
@@ -138,7 +145,7 @@ admin.get("/registrations", async (c) => {
       FROM registrations r
       LEFT JOIN guardian_accounts a ON a.id = r.guardian_account_id
       LEFT JOIN payments p ON p.id = (
-        SELECT id FROM payments WHERE registration_id = r.id ORDER BY created_at DESC LIMIT 1
+        SELECT id FROM payments WHERE registration_id = r.id ORDER BY CASE status WHEN 'paid' THEN 0 WHEN 'pending' THEN 1 ELSE 2 END, created_at DESC LIMIT 1
       )
       ${whereSql}
       ORDER BY ${sortCol} ${sortDir}, r.id ${sortDir}
@@ -270,6 +277,45 @@ admin.patch("/registrations/:id/status", async (c) => {
   return c.json({ ok: true, id, status });
 });
 
+// PATCH /api/admin/registrations/:id
+// Whitelist-update editable student/guardian fields on a registration. Only
+// the fields present in the body are touched; everything else is ignored.
+admin.patch("/registrations/:id", async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req.json().catch(() => ({}));
+  const allowed = [
+    "student_full_name", "student_date_of_birth", "student_class_name",
+    "student_gender", "student_medium", "student_school", "student_district",
+    "guardian_full_name", "guardian_relationship", "guardian_phone",
+    "guardian_email", "guardian_address",
+  ];
+  const sets = [];
+  const binds = [];
+  for (const field of allowed) {
+    if (Object.prototype.hasOwnProperty.call(body, field)) {
+      sets.push(`${field} = ?`);
+      binds.push(body[field]);
+    }
+  }
+  if (!sets.length) return c.json({ error: "No updatable fields provided." }, 400);
+
+  const before = await c.env.DB.prepare(
+    "SELECT id FROM registrations WHERE id = ? LIMIT 1"
+  ).bind(id).first();
+  if (!before) return c.json({ error: "Registration not found." }, 404);
+
+  binds.push(id);
+  await c.env.DB.prepare(
+    `UPDATE registrations SET ${sets.join(", ")} WHERE id = ?`
+  ).bind(...binds).run();
+
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "registration.update_fields", {
+    type: "registration", id, payload: { fields: sets.map((s) => s.split(" = ")[0]) },
+  });
+  return c.json({ ok: true, id });
+});
+
 // POST /api/admin/registrations/:id/resend-verification
 // Re-sends the email-verification link to the registration's guardian
 // account. Friendly no-op if the address is already verified.
@@ -299,30 +345,6 @@ admin.post("/registrations/:id/resend-verification", async (c) => {
   return c.json({ ok: true, alreadyVerified: false });
 });
 
-// POST /api/admin/registrations/:id/resend-receipt
-// Re-sends the payment receipt for a paid registration. Reuses
-// assignMemberIdAndSendReceipt, which is idempotent on the member-id mint.
-admin.post("/registrations/:id/resend-receipt", async (c) => {
-  const id = c.req.param("id");
-  const reg = await c.env.DB.prepare(
-    "SELECT id FROM registrations WHERE id = ? LIMIT 1"
-  ).bind(id).first();
-  if (!reg) return c.json({ error: "Registration not found." }, 404);
-
-  const payment = await c.env.DB.prepare(
-    "SELECT tran_id FROM payments WHERE registration_id = ? AND status = 'paid' ORDER BY updated_at DESC LIMIT 1"
-  ).bind(id).first();
-  if (!payment) return c.json({ error: "No paid payment on this registration - nothing to receipt." }, 400);
-
-  await assignMemberIdAndSendReceipt(c.env, payment.tran_id, getBaseUrl(c.req.raw));
-
-  const session = c.get("session");
-  await recordAudit(c.env, session.account_id, "registration.resend_receipt", {
-    type: "registration", id, payload: { tran_id: payment.tran_id },
-  });
-  return c.json({ ok: true });
-});
-
 // PATCH /api/admin/payments/:id/status
 // Manual override of a single payment's status (offline/reconciled payments,
 // stuck gateway). Marking a payment paid cascades its registration to paid,
@@ -338,19 +360,60 @@ admin.patch("/payments/:id/status", async (c) => {
   ).bind(id).first();
   if (!row) return c.json({ error: "Payment not found." }, 404);
 
-  await c.env.DB.prepare(
-    "UPDATE payments SET status = ?, gateway_status = 'Manual (admin)', updated_at = datetime('now') WHERE id = ?"
-  ).bind(status, id).run();
+  // Atomic: flip the payment and (if going paid) cascade the registration in one
+  // batch so a mid-sequence failure can't leave them inconsistent.
+  const stmts = [
+    c.env.DB.prepare(
+      "UPDATE payments SET status = ?, gateway_status = 'Manual (admin)', updated_at = datetime('now') WHERE id = ?"
+    ).bind(status, id),
+  ];
   if (status === "paid" && row.registration_id) {
-    await c.env.DB.prepare("UPDATE registrations SET status = 'paid' WHERE id = ?")
-      .bind(row.registration_id).run();
+    stmts.push(c.env.DB.prepare("UPDATE registrations SET status = 'paid' WHERE id = ?").bind(row.registration_id));
   }
+  await c.env.DB.batch(stmts);
 
   const session = c.get("session");
   await recordAudit(c.env, session.account_id, "payment.status_manual", {
     type: "payment", id, payload: { from: row.status, to: status, manual: true },
   });
   return c.json({ ok: true, status });
+});
+
+// PATCH /api/admin/payments/:id/complete
+// Settle a manual (cash/bank/offline) payment: flip it to paid, record the
+// method (default 'cash') and optional account number, cascade the registration
+// to paid, then mint the member id + send the receipt (keyed by tran_id).
+admin.patch("/payments/:id/complete", async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req.json().catch(() => ({}));
+  const method = (typeof body.method === "string" && body.method.trim()) ? body.method.trim() : "cash";
+  const accountNumber = typeof body.accountNumber === "string" && body.accountNumber.trim()
+    ? body.accountNumber.trim() : null;
+
+  const row = await c.env.DB.prepare(
+    "SELECT id, status, registration_id, tran_id FROM payments WHERE id = ? LIMIT 1"
+  ).bind(id).first();
+  if (!row) return c.json({ error: "Payment not found." }, 404);
+
+  // Atomic: settle the payment and cascade the registration to paid in one batch.
+  const stmts = [
+    c.env.DB.prepare(
+      "UPDATE payments SET status = 'paid', method = ?, account_number = COALESCE(?, account_number), gateway_status = 'Manual (admin)', updated_at = datetime('now') WHERE id = ?"
+    ).bind(method, accountNumber, id),
+  ];
+  if (row.registration_id) {
+    stmts.push(c.env.DB.prepare("UPDATE registrations SET status = 'paid' WHERE id = ?").bind(row.registration_id));
+  }
+  await c.env.DB.batch(stmts);
+
+  // Mint the BdMSO member id + send the receipt (idempotent on the mint).
+  await assignMemberIdAndSendReceipt(c.env, row.tran_id, getBaseUrl(c.req.raw));
+
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "payment.complete_manual", {
+    type: "payment", id, payload: { from: row.status, to: "paid", method },
+  });
+  return c.json({ ok: true, status: "paid" });
 });
 
 // POST /api/admin/payments/:id/resend-receipt
@@ -388,6 +451,7 @@ admin.get("/payments", async (c) => {
   const rows = await c.env.DB.prepare(`
     SELECT
       p.id, p.amount, p.currency, p.tran_id, p.val_id, p.gateway_status,
+      p.method, p.account_number,
       p.status, p.coupon_code, p.created_at, p.updated_at,
       r.id                AS registration_id,
       r.registration_type,
@@ -431,54 +495,57 @@ admin.get("/payments", async (c) => {
   });
 });
 
-// POST /api/admin/payments/:id/reverify
-// Re-fetches the transaction status from shurjoPay and reconciles our local
-// `payments.status` with whatever the gateway says. Useful when the IPN
-// got dropped or the browser-return path was interrupted.
-admin.post("/payments/:id/reverify", async (c) => {
-  const id  = c.req.param("id");
-  const row = await c.env.DB.prepare(
-    "SELECT id, val_id, tran_id, status, registration_id, amount FROM payments WHERE id = ? LIMIT 1"
+// POST /api/admin/payments/:id/reconcile
+// Re-verifies a single pending payment against ShurjoPay and, if confirmed,
+// claims it paid and runs the post-payment side effects (member id, receipt,
+// coupon count) exactly once — same as the live callback. Only works on
+// payments with status = 'pending'.
+admin.post("/payments/:id/reconcile", async (c) => {
+  const id = c.req.param("id");
+  const payment = await c.env.DB.prepare(
+    "SELECT id, tran_id, val_id, amount, created_at, registration_id, status, coupon_code, purpose, proposed_options FROM payments WHERE id = ? LIMIT 1"
   ).bind(id).first();
-  if (!row) return c.json({ error: "Payment not found." }, 404);
-  if (!row.val_id) return c.json({ error: "No shurjoPay order id stored - can't re-verify." }, 400);
+  if (!payment) return c.json({ error: "Payment not found." }, 404);
+  if (payment.status !== "pending") {
+    return c.json({ error: `Payment is already ${payment.status}.` }, 400);
+  }
+  if (!payment.val_id) {
+    return c.json({ error: "Payment has no ShurjoPay order ID (val_id). Cannot verify." }, 400);
+  }
 
-  const config = getShurjopayConfig(c.env);
-  let verified;
   try {
-    const tokenInfo = await shurjopayGetToken(config, c.env);
-    verified = await shurjopayVerify(config, tokenInfo, row.val_id);
-  } catch (err) {
-    console.error("[admin.reverify] shurjoPay verify failed:", err?.stack || err?.message || err);
-    return c.json({ error: "Payment verification failed. Please try again." }, 502);
-  }
-
-  // Map gateway status to our internal status.
-  const gatewayStatus = String(verified?.transaction_status || "").toLowerCase();
-  const newStatus = gatewayStatus === "success" ? "paid"
-                  : gatewayStatus === "cancel" || gatewayStatus === "cancelled" ? "cancelled"
-                  : gatewayStatus === "fail" || gatewayStatus === "failed" ? "failed"
-                  : null;
-
-  if (!newStatus) {
-    return c.json({ ok: true, gateway: verified, status_unchanged: true, message: `Gateway reported "${gatewayStatus}" - no status change.` });
-  }
-
-  const session = c.get("session");
-  if (newStatus !== row.status) {
-    await c.env.DB.prepare(
-      "UPDATE payments SET status = ?, gateway_status = ?, updated_at = datetime('now') WHERE id = ?"
-    ).bind(newStatus, gatewayStatus, id).run();
-    if (newStatus === "paid" && row.registration_id) {
-      await c.env.DB.prepare("UPDATE registrations SET status = 'paid' WHERE id = ?")
-        .bind(row.registration_id).run();
-    }
-    await recordAudit(c.env, session.account_id, "payment.reverify", {
-      type: "payment", id, payload: { from: row.status, to: newStatus, gateway: gatewayStatus },
+    const result = await reconcilePayment(c.env, payment, getBaseUrl(c.req.raw));
+    const session = c.get("session");
+    await recordAudit(c.env, session.account_id, "payment.reconcile", {
+      type: "payment", id: payment.id,
+      payload: { tran_id: payment.tran_id, ...result },
     });
+    return c.json({ ok: true, ...result });
+  } catch (err) {
+    console.error("payment reconcile failed:", err);
+    return c.json({ error: "Reconciliation failed. Something went wrong." }, 502);
   }
+});
 
-  return c.json({ ok: true, status: newStatus, gateway: verified });
+// POST /api/admin/payments/reconcile-stale   body: { all?: bool }
+// Bulk re-verify pending payments against shurjoPay. Default: only those older
+// than 30 minutes (the cron's job). With { all: true } it re-verifies EVERY
+// pending payment regardless of age - the on-demand "clear the backlog" trigger
+// (e.g. right after a deploy that fixes the success-detection logic).
+admin.post("/payments/reconcile-stale", async (c) => {
+  let all = false;
+  try { all = (await c.req.json())?.all === true; } catch { /* no body */ }
+  try {
+    const result = await reconcileStalePayments(c.env, getBaseUrl(c.req.raw), all ? 0 : undefined);
+    const session = c.get("session");
+    await recordAudit(c.env, session.account_id, "payment.reconcile_bulk", {
+      type: "payment", id: "bulk", payload: { ...result, scope: all ? "all" : "stale" },
+    });
+    return c.json({ ok: true, ...result });
+  } catch (err) {
+    console.error("bulk payment reconcile failed:", err);
+    return c.json({ error: "Bulk reconciliation failed. Something went wrong." }, 502);
+  }
 });
 
 // GET /api/admin/payments/reports?period=day|week|month&from=&to=
@@ -533,6 +600,24 @@ admin.get("/payments/reports", async (c) => {
     LIMIT 20
   `).all();
 
+  // Revenue per cohort (program run), lifetime. The durable per-run history -
+  // a cohort is a fixed time window so its total stays meaningful even as new
+  // runs open.
+  const byCohort = await c.env.DB.prepare(`
+    SELECT r.cohort_key                                          AS cohort_key,
+           COALESCE(c.label, r.cohort_key, '(unassigned)')       AS label,
+           c.program_slug                                        AS program_slug,
+           COUNT(*)                                              AS count,
+           COALESCE(SUM(p.amount), 0)                            AS revenue
+    FROM payments p
+    JOIN registrations r ON r.id = p.registration_id
+    LEFT JOIN cohorts c  ON c.cohort_key = r.cohort_key
+    WHERE p.status = 'paid'
+    GROUP BY r.cohort_key
+    ORDER BY revenue DESC
+    LIMIT 50
+  `).all();
+
   return c.json({
     ok: true,
     period, from, to,
@@ -544,6 +629,10 @@ admin.get("/payments/reports", async (c) => {
     })),
     byCoupon: (byCoupon.results || []).map((r) => ({
       coupon: r.coupon, count: Number(r.count), revenue: Number(r.revenue),
+    })),
+    byCohort: (byCohort.results || []).map((r) => ({
+      cohortKey: r.cohort_key, label: r.label, programSlug: r.program_slug,
+      count: Number(r.count), revenue: Number(r.revenue),
     })),
   });
 });
@@ -716,6 +805,47 @@ admin.patch("/users/:id/role", async (c) => {
   return c.json({ ok: true, id, role });
 });
 
+// PATCH /api/admin/users/:id
+// Whitelist-update a guardian account's contact fields. Email must stay unique
+// across accounts. Only the fields present in the body are touched.
+admin.patch("/users/:id", async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req.json().catch(() => ({}));
+  const allowed = ["full_name", "phone", "email"];
+  const sets = [];
+  const binds = [];
+  for (const field of allowed) {
+    if (Object.prototype.hasOwnProperty.call(body, field)) {
+      sets.push(`${field} = ?`);
+      binds.push(body[field]);
+    }
+  }
+  if (!sets.length) return c.json({ error: "No updatable fields provided." }, 400);
+
+  const before = await c.env.DB.prepare(
+    "SELECT id FROM guardian_accounts WHERE id = ? LIMIT 1"
+  ).bind(id).first();
+  if (!before) return c.json({ error: "User not found." }, 404);
+
+  if (Object.prototype.hasOwnProperty.call(body, "email")) {
+    const clash = await c.env.DB.prepare(
+      "SELECT id FROM guardian_accounts WHERE email = ? AND id != ? LIMIT 1"
+    ).bind(body.email, id).first();
+    if (clash) return c.json({ error: "That email is already in use by another account." }, 409);
+  }
+
+  binds.push(id);
+  await c.env.DB.prepare(
+    `UPDATE guardian_accounts SET ${sets.join(", ")} WHERE id = ?`
+  ).bind(...binds).run();
+
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "user.update_fields", {
+    type: "user", id, payload: { fields: sets.map((s) => s.split(" = ")[0]) },
+  });
+  return c.json({ ok: true, id });
+});
+
 // ─── Coupons ─────────────────────────────────────────────────────────────────
 //
 // Coupons are how we hand out partner / scholarship discounts. The
@@ -823,6 +953,10 @@ admin.patch("/coupons/:code", async (c) => {
 
   const sets  = [];
   const binds = [];
+  if (body.expire) {
+    sets.push("expires_at = ?");
+    binds.push(new Date().toISOString());
+  }
   for (const f of COUPON_UPDATE_FIELDS) {
     if (!(f in body)) continue;
     let value = body[f];
@@ -890,12 +1024,14 @@ admin.delete("/coupons/:code", async (c) => {
 // component resolves to the optimized asset and the admin previews via
 // /admin-img. See worker/lib/repoAssets.js. (No R2.)
 
+// NB: image/svg+xml is intentionally excluded. SVGs are served raw from our
+// own origin (/admin-img, /assets/uploads) and an SVG can carry inline
+// <script>, so allowing uploads would be a stored-XSS vector. Raster only.
 const ALLOWED_IMAGE_TYPES = {
   "image/jpeg": "jpg",
   "image/png":  "png",
   "image/webp": "webp",
   "image/gif":  "gif",
-  "image/svg+xml": "svg",
 };
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;   // 10 MB - cover-image sized.
 
@@ -1026,7 +1162,7 @@ admin.get("/analytics", async (c) => {
   // All eight aggregates run in parallel - D1 latency dominates, so
   // sequential awaits would compound badly.
   const [
-    funnel, byVenue, byProgram, revenue, deltas, regSeries, paySeries, attention, expiringCoupons,
+    funnel, byVenue, byProgram, revenue, cashCollected, deltas, regSeries, paySeries, attention, expiringCoupons,
   ] = await Promise.all([
     c.env.DB.prepare(`
       SELECT
@@ -1035,6 +1171,7 @@ admin.get("/analytics", async (c) => {
         SUM(CASE WHEN status = 'paid'      THEN 1 ELSE 0 END)   AS paid,
         SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END)   AS cancelled
       FROM registrations
+      WHERE cohort_key IN (SELECT cohort_key FROM cohorts WHERE ${cohortStageSQL("")} IN ('enrolling', 'upcoming', 'running'))
     `).first(),
     c.env.DB.prepare(`
       SELECT COALESCE(NULLIF(TRIM(preferred_venue), ''), 'Not set') AS venue,
@@ -1045,25 +1182,45 @@ admin.get("/analytics", async (c) => {
       ORDER BY total DESC
     `).all(),
     c.env.DB.prepare(`
-      SELECT registration_type,
-             COUNT(*)                                          AS total,
-             SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END)  AS paid
-      FROM registrations
-      GROUP BY registration_type
+      SELECT c.cohort_key, c.program_slug, c.label,
+             COUNT(r.id)                                         AS total,
+             SUM(CASE WHEN r.status = 'paid' THEN 1 ELSE 0 END)  AS paid,
+             COALESCE((SELECT SUM(p.amount) FROM payments p
+                       WHERE p.cohort_key = c.cohort_key AND p.status = 'paid'), 0) AS revenue
+      FROM cohorts c
+      LEFT JOIN registrations r ON r.cohort_key = c.cohort_key
+      WHERE ${cohortStageSQL("c")} IN ('enrolling', 'upcoming', 'running')
+      GROUP BY c.cohort_key
       ORDER BY total DESC
     `).all(),
-    c.env.DB.prepare(
-      "SELECT COALESCE(SUM(amount), 0) AS total FROM payments WHERE status = 'paid'"
-    ).first(),
-    // Today vs yesterday deltas (registrations + paid + revenue).
+    // Collection figures scoped to the active runs (matches the KPI tiles +
+    // by-program block), via the registration's cohort.
+    c.env.DB.prepare(`
+      SELECT COALESCE(SUM(p.amount), 0) AS total
+      FROM payments p JOIN registrations r ON r.id = p.registration_id
+      WHERE p.status = 'paid'
+        AND r.cohort_key IN (SELECT cohort_key FROM cohorts WHERE ${cohortStageSQL("")} IN ('enrolling', 'upcoming', 'running'))
+    `).first(),
+    // Cash / manual revenue settled offline (active runs).
+    c.env.DB.prepare(`
+      SELECT COALESCE(SUM(p.amount), 0) AS total
+      FROM payments p JOIN registrations r ON r.id = p.registration_id
+      WHERE p.status = 'paid' AND p.channel = 'manual'
+        AND r.cohort_key IN (SELECT cohort_key FROM cohorts WHERE ${cohortStageSQL("")} IN ('enrolling', 'upcoming', 'running'))
+    `).first(),
+    // Today vs yesterday deltas (registrations + paid + revenue). Predicates are
+    // sargable (raw column vs ISO day bounds) so the created_at/updated_at indexes
+    // apply; same UTC-day semantics as date(col)=date('now').
     c.env.DB.prepare(`
       SELECT
-        (SELECT COUNT(*) FROM registrations WHERE date(created_at) = date('now'))                                       AS reg_today,
-        (SELECT COUNT(*) FROM registrations WHERE date(created_at) = date('now', '-1 day'))                             AS reg_yesterday,
-        (SELECT COUNT(*) FROM registrations WHERE status='paid' AND date(created_at) = date('now'))                     AS paid_today,
-        (SELECT COUNT(*) FROM registrations WHERE status='paid' AND date(created_at) = date('now', '-1 day'))           AS paid_yesterday,
-        (SELECT COALESCE(SUM(amount),0) FROM payments WHERE status='paid' AND date(updated_at) = date('now'))           AS rev_today,
-        (SELECT COALESCE(SUM(amount),0) FROM payments WHERE status='paid' AND date(updated_at) = date('now', '-1 day')) AS rev_yesterday
+        (SELECT COUNT(*) FROM registrations WHERE created_at >= date('now') AND created_at < date('now','+1 day'))                                  AS reg_today,
+        (SELECT COUNT(*) FROM registrations WHERE created_at >= date('now','-1 day') AND created_at < date('now'))                                   AS reg_yesterday,
+        (SELECT COUNT(*) FROM registrations WHERE status='paid' AND created_at >= date('now') AND created_at < date('now','+1 day'))                 AS paid_today,
+        (SELECT COUNT(*) FROM registrations WHERE status='paid' AND created_at >= date('now','-1 day') AND created_at < date('now'))                 AS paid_yesterday,
+        (SELECT COALESCE(SUM(amount),0) FROM payments WHERE status='paid' AND updated_at >= date('now') AND updated_at < date('now','+1 day'))       AS rev_today,
+        (SELECT COALESCE(SUM(amount),0) FROM payments WHERE status='paid' AND updated_at >= date('now','-1 day') AND updated_at < date('now'))       AS rev_yesterday,
+        (SELECT COUNT(*) FROM registrations WHERE status='submitted' AND created_at >= date('now') AND created_at < date('now','+1 day'))            AS pending_today,
+        (SELECT COUNT(*) FROM registrations WHERE status='submitted' AND created_at >= date('now','-1 day') AND created_at < date('now'))            AS pending_yesterday
     `).first(),
     // Registrations per day, last 30 days. Client fills missing days with 0.
     c.env.DB.prepare(`
@@ -1071,7 +1228,7 @@ admin.get("/analytics", async (c) => {
              COUNT(*)                                          AS total,
              SUM(CASE WHEN status='paid' THEN 1 ELSE 0 END)    AS paid
       FROM registrations
-      WHERE date(created_at) >= date('now', '-29 days')
+      WHERE created_at >= date('now', '-29 days')
       GROUP BY day
       ORDER BY day
     `).all(),
@@ -1081,7 +1238,7 @@ admin.get("/analytics", async (c) => {
              COUNT(*)                            AS count,
              COALESCE(SUM(amount), 0)            AS revenue
       FROM payments
-      WHERE status='paid' AND date(updated_at) >= date('now', '-29 days')
+      WHERE status='paid' AND updated_at >= date('now', '-29 days')
       GROUP BY day
       ORDER BY day
     `).all(),
@@ -1125,12 +1282,16 @@ admin.get("/analytics", async (c) => {
       venue: r.venue, total: Number(r.total), paid: Number(r.paid),
     })),
     byProgram: (byProgram.results || []).map((r) => ({
-      type:  r.registration_type,
-      label: catalog.nameFor(r.registration_type),
-      total: Number(r.total),
-      paid:  Number(r.paid),
+      type:    r.program_slug,
+      program_label: catalog.nameFor(r.program_slug),
+      cohort:  r.cohort_key,
+      label:   r.label,
+      total:   Number(r.total),
+      paid:    Number(r.paid),
+      revenue: Number(r.revenue),
     })),
     revenue: Number(revenue?.total) || 0,
+    cashCollected: Number(cashCollected?.total) || 0,
     deltas: {
       reg_today:       Number(deltas?.reg_today)       || 0,
       reg_yesterday:   Number(deltas?.reg_yesterday)   || 0,
@@ -1138,6 +1299,8 @@ admin.get("/analytics", async (c) => {
       paid_yesterday:  Number(deltas?.paid_yesterday)  || 0,
       rev_today:       Number(deltas?.rev_today)       || 0,
       rev_yesterday:   Number(deltas?.rev_yesterday)   || 0,
+      pending_today:   Number(deltas?.pending_today)   || 0,
+      pending_yesterday: Number(deltas?.pending_yesterday) || 0,
     },
     series: {
       registrations: (regSeries.results || []).map((r) => ({
@@ -1191,6 +1354,19 @@ admin.get("/broadcast/recipients", async (c) => {
   return c.json({ ok: true, count: Number(row?.n) || 0 });
 });
 
+// GET /api/admin/regions
+// Sorted distinct non-empty registration venues, for broadcast targeting.
+// (The venue filter elsewhere binds to registrations.preferred_venue.)
+admin.get("/regions", async (c) => {
+  const rows = await c.env.DB.prepare(`
+    SELECT DISTINCT preferred_venue AS venue
+    FROM registrations
+    WHERE preferred_venue IS NOT NULL AND preferred_venue != ''
+    ORDER BY preferred_venue
+  `).all();
+  return c.json({ regions: (rows.results || []).map((r) => r.venue) });
+});
+
 // POST /api/admin/broadcast  { subject, message, program?, venue?, status? }
 admin.post("/broadcast", async (c) => {
   const body    = await c.req.json();
@@ -1199,22 +1375,57 @@ admin.post("/broadcast", async (c) => {
   if (!subject) return c.json({ error: "Subject is required." }, 400);
   if (!message) return c.json({ error: "Message is required." }, 400);
 
-  const { whereSql, binds } = broadcastFilters(body);
-  const rows = await c.env.DB.prepare(`
-    SELECT DISTINCT a.email
-    FROM registrations r
-    JOIN guardian_accounts a ON a.id = r.guardian_account_id
-    ${whereSql}
-  `).bind(...binds).all();
-  const recipients = (rows.results || []).map((r) => r.email).filter(Boolean);
-  if (recipients.length === 0) {
-    return c.json({ error: "No guardians match those filters - nothing to send." }, 400);
+  const session = c.get("session");
+  if (!(await checkActionRateLimit(c.env, "broadcast", session.account_id, 10, 60 * 60 * 1000))) {
+    return c.json({ error: "Too many broadcasts. Wait an hour before sending again." }, 429);
+  }
+  await recordActionAttempt(c.env, "broadcast", session.account_id);
+
+  // Optional attachments: [{ name, content (base64) }]. Brevo caps a single
+  // email near 10 MB, so guard the decoded total before we ship it.
+  const attachments = Array.isArray(body.attachments)
+    ? body.attachments
+        .filter((a) => a && typeof a.name === "string" && typeof a.content === "string" && a.content)
+        .map((a) => ({ name: a.name.slice(0, 200), content: a.content }))
+    : [];
+  if (attachments.length > 20) {
+    return c.json({ error: "Too many attachments (max 20)." }, 400);
+  }
+  const attachmentBytes = attachments.reduce((n, a) => n + Math.floor(a.content.length * 0.75), 0);
+  if (attachmentBytes > 10 * 1024 * 1024) {
+    return c.json({ error: "Attachments exceed 10 MB total." }, 400);
   }
 
-  const result = await sendBroadcastEmail(c.env, { subject, message, recipients });
+  // Manual recipient list (body.emails) takes precedence over the audience
+  // filters - lets an admin send to specific addresses directly.
+  const manual = Array.isArray(body.emails)
+    ? [...new Set(body.emails.map((e) => String(e).trim().toLowerCase()).filter(Boolean))]
+    : [];
+  let recipients;
+  if (manual.length) {
+    const emailRe = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+    const bad = manual.filter((e) => !emailRe.test(e));
+    if (bad.length) return c.json({ error: `Invalid email address: ${bad[0]}` }, 400);
+    recipients = manual;
+  } else {
+    const { whereSql, binds } = broadcastFilters(body);
+    const rows = await c.env.DB.prepare(`
+      SELECT DISTINCT a.email
+      FROM registrations r
+      JOIN guardian_accounts a ON a.id = r.guardian_account_id
+      ${whereSql}
+    `).bind(...binds).all();
+    recipients = (rows.results || []).map((r) => r.email).filter(Boolean);
+  }
+  if (recipients.length === 0) {
+    return c.json({ error: "No recipients - add emails or widen the filters." }, 400);
+  }
 
-  const session = c.get("session");
-  const filtersJson = JSON.stringify({ program: body.program || null, venue: body.venue || null, status: body.status || null });
+  const result = await sendBroadcastEmail(c.env, { subject, message, recipients, html: true, attachments });
+
+  const filtersJson = manual.length
+    ? JSON.stringify({ manual: recipients.length })
+    : JSON.stringify({ program: body.program || null, venue: body.venue || null, status: body.status || null });
 
   // Persist to broadcast_log so the history tab can show past sends.
   // Best-effort: a log-write failure doesn't fail the send.
@@ -1223,7 +1434,7 @@ admin.post("/broadcast", async (c) => {
       INSERT INTO broadcast_log (subject, body, filters_json, recipient_count, sent_count, failed_count, channel, sent_by)
       VALUES (?, ?, ?, ?, ?, ?, 'email', ?)
     `).bind(subject, message, filtersJson, recipients.length, result.sent, result.failed, session.account_id).run();
-  } catch { /* swallow - audit_log still captures it */ }
+  } catch (err) { console.error("[admin.broadcast] log insert failed:", err?.message || err); }
 
   await recordAudit(c.env, session.account_id, "broadcast.send", {
     type: "broadcast",
@@ -1290,24 +1501,29 @@ admin.delete("/registrations/:id/notes/:noteId", async (c) => {
 // ─── Bulk actions on registrations ───────────────────────────────────────
 // POST /api/admin/registrations/bulk/remind  { ids: [...] }
 //   Sends a generic "complete your payment" email to each registration's
-//   guardian. Idempotent in the sense that the same call sends again - no
-//   "last reminded at" tracking yet.
+//   guardian. Skips anyone reminded in the last 24h (reminded_at) so a
+//   guardian re-selected in the unpaid list day after day isn't re-mailed.
+const REMIND_COOLDOWN = "-1 day";
 admin.post("/registrations/bulk/remind", async (c) => {
   const body = await c.req.json();
   const ids  = Array.isArray(body.ids) ? body.ids.slice(0, 500) : [];
   if (ids.length === 0) return c.json({ error: "No registrations selected." }, 400);
 
-  // Fetch guardian emails for each unpaid registration in the list.
+  // Fetch guardian emails for each unpaid registration in the list that hasn't
+  // been reminded within the cooldown window.
   const placeholders = ids.map(() => "?").join(",");
+  // Bare column names (no alias) so the same filter is valid in both the
+  // aliased SELECT below and the UPDATE further down (which has no alias).
+  const remindFilter = `status = 'submitted' AND guardian_email IS NOT NULL AND guardian_email != ''
+      AND (reminded_at IS NULL OR reminded_at < datetime('now', '${REMIND_COOLDOWN}'))`;
   const rows = await c.env.DB.prepare(`
-    SELECT DISTINCT r.guardian_email AS email, r.student_full_name AS student
+    SELECT DISTINCT r.guardian_email AS email
     FROM registrations r
-    WHERE r.id IN (${placeholders}) AND r.status = 'submitted'
-      AND r.guardian_email IS NOT NULL AND r.guardian_email != ''
+    WHERE r.id IN (${placeholders}) AND ${remindFilter}
   `).bind(...ids).all();
   const recipients = (rows.results || []).map((r) => r.email);
   if (recipients.length === 0) {
-    return c.json({ error: "No unpaid registrations matched the selection." }, 400);
+    return c.json({ error: "Nothing to remind: those registrations are already paid, or were reminded within the last 24 hours." }, 400);
   }
 
   const baseUrl = new URL(c.req.url).origin;
@@ -1315,6 +1531,14 @@ admin.post("/registrations/bulk/remind", async (c) => {
   const message = `Hi,\n\nYou started registering for a BdMSO program but the payment isn't complete yet. To finish, please return to your dashboard and pay:\n\n${baseUrl}/dashboard\n\nIf you've already paid or no longer wish to participate, you can ignore this message.\n\nThanks,\nBdMSO Team`;
 
   const result = await sendBroadcastEmail(c.env, { subject, message, recipients });
+
+  // Stamp reminded_at on exactly the rows we just reminded (same filter), so the
+  // cooldown applies on the next bulk-remind.
+  if (result.sent > 0) {
+    await c.env.DB.prepare(
+      `UPDATE registrations SET reminded_at = datetime('now') WHERE id IN (${placeholders}) AND ${remindFilter}`
+    ).bind(...ids).run();
+  }
 
   const session = c.get("session");
   await recordAudit(c.env, session.account_id, "registration.bulk_remind", {
@@ -1479,15 +1703,17 @@ admin.post("/triage/snooze", async (c) => {
   const id    = String(body.id || "");
   const hours = Number(body.hours);
   if (!kind || !id) return c.json({ error: "kind + id required." }, 400);
-  const validHours = Number.isFinite(hours) && hours > 0 ? hours : 24;
+  // Clamp to a whole number of hours in a sane range (1h - 1yr), default 24.
+  const validHours  = Math.min(Math.max(Math.floor(Number(hours) || 24), 1), 8760);
+  const snoozedUntil = new Date(Date.now() + validHours * 60 * 60 * 1000).toISOString();
   const session = c.get("session");
 
   await c.env.DB.prepare(`
     INSERT INTO triage_state (admin_account_id, target_kind, target_id, snoozed_until)
-    VALUES (?, ?, ?, datetime('now', '+${validHours} hours'))
+    VALUES (?, ?, ?, ?)
     ON CONFLICT(admin_account_id, target_kind, target_id)
-    DO UPDATE SET snoozed_until = datetime('now', '+${validHours} hours'), resolved_at = NULL
-  `).bind(session.account_id, kind, id).run();
+    DO UPDATE SET snoozed_until = ?, resolved_at = NULL
+  `).bind(session.account_id, kind, id, snoozedUntil, snoozedUntil).run();
 
   return c.json({ ok: true, snoozed_hours: validHours });
 });
@@ -1722,35 +1948,50 @@ admin.get("/broadcast/log", async (c) => {
 // class filter to narrow the working set for organisers on the day.
 
 // GET /api/admin/events  - distinct event keys seen so far in either table.
+const safeJsonArray = (s) => { try { const v = JSON.parse(s || "[]"); return Array.isArray(v) ? v : []; } catch { return []; } };
+
 admin.get("/events", async (c) => {
-  const rows = await c.env.DB.prepare(`
-    SELECT event_key, COUNT(DISTINCT registration_id) AS rows
-    FROM (
-      SELECT event_key, registration_id FROM attendance
-      UNION ALL
-      SELECT event_key, registration_id FROM scores
-    )
-    GROUP BY event_key
-    ORDER BY event_key
-  `).all();
+  const events = (await c.env.DB.prepare(
+    "SELECT cohort_key AS event_key, label, program_slug, sections, results_published, published_at FROM cohorts WHERE sections != '[]' ORDER BY cohort_key"
+  ).all()).results || [];
+  // How many distinct registrations have at least one score per event.
+  const counts = (await c.env.DB.prepare(
+    "SELECT event_key, COUNT(DISTINCT registration_id) AS n FROM scores GROUP BY event_key"
+  ).all()).results || [];
+  const countMap = Object.fromEntries((counts).map((r) => [r.event_key, Number(r.n) || 0]));
   return c.json({
     ok: true,
-    rows: (rows.results || []).map((r) => ({ event_key: r.event_key, rows: Number(r.rows) || 0 })),
+    rows: events.map((e) => ({
+      event_key: e.event_key,
+      label: e.label,
+      program_slug: e.program_slug,
+      sections: safeJsonArray(e.sections),
+      results_published: e.results_published === 1,
+      published_at: e.published_at,
+      scored: countMap[e.event_key] || 0,
+    })),
   });
 });
 
 // GET /api/admin/events/:event/roster?venue=&class=
+// Roster = paid registrations for the event's program, with attendance, the
+// guardian's BdMSO ID, and any scores entered so far (keyed by section).
 admin.get("/events/:event/roster", async (c) => {
   const catalog = await getCatalog(c);
   const event_key = c.req.param("event");
   const venue = c.req.query("venue");
   const klass = c.req.query("class");
 
-  const wheres = ["r.status = 'paid'"];
-  const binds  = [];
+  const ev = await c.env.DB.prepare(
+    "SELECT program_slug, sections FROM cohorts WHERE cohort_key = ? LIMIT 1"
+  ).bind(event_key).first();
+  if (!ev) return c.json({ error: "Unknown event." }, 404);
+
+  const wheres = ["r.status = 'paid'", "r.registration_type = ?"];
+  const binds  = [ev.program_slug];
   if (venue) { wheres.push("r.preferred_venue = ?");    binds.push(venue); }
   if (klass) { wheres.push("r.student_class_name = ?"); binds.push(klass); }
-  const whereSql = wheres.length ? `WHERE ${wheres.join(" AND ")}` : "";
+  const whereSql = `WHERE ${wheres.join(" AND ")}`;
 
   const rows = await c.env.DB.prepare(`
     SELECT r.id, r.student_full_name, r.student_class_name, r.student_gender,
@@ -1767,13 +2008,25 @@ admin.get("/events/:event/roster", async (c) => {
     LIMIT 5000
   `).bind(event_key, ...binds).all();
 
+  // Scores entered for this event, grouped by registration -> { section: {score,max,rank,tier} }.
+  const scoreRows = (await c.env.DB.prepare(
+    "SELECT registration_id, section, score, max_score, rank, tier FROM scores WHERE event_key = ?"
+  ).bind(event_key).all()).results || [];
+  const scoreMap = {};
+  for (const s of scoreRows) {
+    (scoreMap[s.registration_id] ??= {})[s.section] =
+      { score: s.score, max: s.max_score, rank: s.rank, tier: s.tier };
+  }
+
   return c.json({
     ok: true,
-    event_key, venue: venue || null, class: klass || null,
+    event_key, program_slug: ev.program_slug, sections: safeJsonArray(ev.sections),
+    venue: venue || null, class: klass || null,
     rows: (rows.results || []).map((r) => ({
       ...r,
       program_label: catalog.nameFor(r.registration_type),
       attendance_status: r.attendance_status || "absent",
+      scores: scoreMap[r.id] || {},
     })),
   });
 });
@@ -1802,27 +2055,6 @@ admin.post("/events/:event/checkin", async (c) => {
   `).bind(regId, event_key, status, session.account_id, notes).run();
 
   return c.json({ ok: true });
-});
-
-// GET /api/admin/events/:event/scores?section=
-admin.get("/events/:event/scores", async (c) => {
-  const event_key = c.req.param("event");
-  const section = c.req.query("section");
-  const wheres = ["s.event_key = ?"];
-  const binds = [event_key];
-  if (section) { wheres.push("s.section = ?"); binds.push(section); }
-
-  const rows = await c.env.DB.prepare(`
-    SELECT s.id, s.registration_id, s.section, s.score, s.max_score, s.rank, s.tier,
-           r.student_full_name, r.student_class_name, r.preferred_venue
-    FROM scores s
-    JOIN registrations r ON r.id = s.registration_id
-    WHERE ${wheres.join(" AND ")}
-    ORDER BY s.section, s.score DESC
-    LIMIT 5000
-  `).bind(...binds).all();
-
-  return c.json({ ok: true, event_key, section: section || null, rows: rows.results || [] });
 });
 
 // POST /api/admin/events/:event/scores  { registration_id, section, score, max_score }
@@ -1875,17 +2107,15 @@ admin.post("/events/:event/scores/finalize", async (c) => {
              : section.includes("science") ? "science"
              : "all-round";
 
-  // Apply ranks + tiers. Concurrent finalize calls would race; the audit
-  // log will record both. For our scale (sub-1000 rows), do it one-by-one
-  // rather than batch UPDATE … FROM (D1's not great at that).
+  // Apply ranks + tiers in one atomic batch (was a sequential UPDATE per row -
+  // hundreds of round-trips, and a mid-loop failure left a half-ranked section).
+  // Concurrent finalize calls would still race; the audit log records both.
   const session = c.get("session");
-  for (let i = 0; i < list.length; i++) {
+  await c.env.DB.batch(list.map((row, i) => {
     const rank = i + 1;
     const rowTier = rank <= tierTop ? tier : null;
-    await c.env.DB.prepare(
-      "UPDATE scores SET rank = ?, tier = ? WHERE id = ?"
-    ).bind(rank, rowTier, list[i].id).run();
-  }
+    return c.env.DB.prepare("UPDATE scores SET rank = ?, tier = ? WHERE id = ?").bind(rank, rowTier, row.id);
+  }));
 
   await recordAudit(c.env, session.account_id, "scores.finalize", {
     type: "scores", id: event_key,
@@ -1893,6 +2123,325 @@ admin.post("/events/:event/scores/finalize", async (c) => {
   });
 
   return c.json({ ok: true, ranked: list.length, tier_top: tierTop });
+});
+
+// POST /api/admin/events/:event/scores/import
+//   { rows: [{ member_id, scores: { <sectionId>: number } }], commit?: bool }
+// Bulk score import keyed by BdMSO ID. Always returns a per-row classification
+// (matched / unmatched / invalid); only writes to `scores` when commit=true.
+admin.post("/events/:event/scores/import", async (c) => {
+  const event_key = c.req.param("event");
+  const body   = await c.req.json();
+  const commit = body.commit === true;
+  const inputRows = Array.isArray(body.rows) ? body.rows : [];
+
+  const ev = await c.env.DB.prepare(
+    "SELECT program_slug, sections FROM cohorts WHERE cohort_key = ? LIMIT 1"
+  ).bind(event_key).first();
+  if (!ev) return c.json({ error: "Unknown event." }, 404);
+  const sections = safeJsonArray(ev.sections);
+  const maxBySection = Object.fromEntries(sections.map((s) => [s.id, Number(s.max)]));
+
+  const matched = [], unmatched = [], invalid = [];
+  const writes = [];
+  const session = c.get("session");
+
+  for (const raw of inputRows) {
+    const memberId = String(raw.member_id || "").trim();
+    if (!memberId) { unmatched.push({ member_id: "", reason: "missing BdMSO ID" }); continue; }
+
+    // BdMSO ID -> account -> the registration for this event's program.
+    const reg = await c.env.DB.prepare(`
+      SELECT r.id, r.student_full_name
+      FROM registrations r
+      JOIN guardian_accounts a ON a.id = r.guardian_account_id
+      WHERE a.member_id = ? AND r.registration_type = ? AND r.status = 'paid'
+      LIMIT 1
+    `).bind(memberId, ev.program_slug).first();
+    if (!reg) { unmatched.push({ member_id: memberId, reason: "no paid registration for this event" }); continue; }
+
+    const scores = raw.scores && typeof raw.scores === "object" ? raw.scores : {};
+    const cleaned = [];
+    let bad = null;
+    for (const [sectionId, val] of Object.entries(scores)) {
+      if (val === "" || val == null) continue;            // blank cell -> skip that section
+      const max = maxBySection[sectionId];
+      if (max == null) { bad = `unknown section "${sectionId}"`; break; }
+      const num = Number(val);
+      if (!Number.isFinite(num) || num < 0 || num > max) { bad = `${sectionId}=${val} out of 0..${max}`; break; }
+      cleaned.push({ section: sectionId, score: num, max });
+    }
+    if (bad) { invalid.push({ member_id: memberId, student: reg.student_full_name, reason: bad }); continue; }
+    if (cleaned.length === 0) { invalid.push({ member_id: memberId, student: reg.student_full_name, reason: "no scores" }); continue; }
+
+    matched.push({ member_id: memberId, student: reg.student_full_name, sections: cleaned.length });
+    if (commit) {
+      for (const cs of cleaned) {
+        writes.push(c.env.DB.prepare(`
+          INSERT INTO scores (registration_id, event_key, section, score, max_score, entered_by)
+          VALUES (?, ?, ?, ?, ?, ?)
+          ON CONFLICT(registration_id, event_key, section) DO UPDATE SET
+            score = excluded.score, max_score = excluded.max_score,
+            entered_at = datetime('now'), entered_by = excluded.entered_by,
+            rank = NULL, tier = NULL
+        `).bind(reg.id, event_key, cs.section, cs.score, cs.max, session.account_id));
+      }
+    }
+  }
+
+  if (commit && writes.length) {
+    await c.env.DB.batch(writes);
+    await recordAudit(c.env, session.account_id, "scores.import", {
+      type: "scores", id: event_key,
+      payload: { matched: matched.length, unmatched: unmatched.length, invalid: invalid.length },
+    });
+  }
+
+  return c.json({
+    ok: true, committed: commit,
+    summary: { matched: matched.length, unmatched: unmatched.length, invalid: invalid.length },
+    matched, unmatched, invalid,
+  });
+});
+
+// POST /api/admin/events/:event/publish  { published: bool }
+// Release / unrelease results to guardians for this event.
+admin.post("/events/:event/publish", async (c) => {
+  const event_key = c.req.param("event");
+  const body = await c.req.json();
+  const publish = body.published === true;
+
+  const ev = await c.env.DB.prepare("SELECT label, results_published FROM cohorts WHERE cohort_key = ? LIMIT 1").bind(event_key).first();
+  if (!ev) return c.json({ error: "Unknown event." }, 404);
+  const wasPublished = ev.results_published === 1;
+
+  await c.env.DB.prepare(
+    "UPDATE cohorts SET results_published = ?, published_at = CASE WHEN ? THEN datetime('now') ELSE NULL END WHERE cohort_key = ?"
+  ).bind(publish ? 1 : 0, publish ? 1 : 0, event_key).run();
+
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "results.publish", {
+    type: "exam_event", id: event_key, payload: { published: publish },
+  });
+
+  // Notify guardians once, only on the 0 -> 1 transition (so re-publishing or a
+  // no-op publish doesn't re-mail). Best-effort: an email hiccup must not fail
+  // the publish. Targets guardians whose child actually has a score recorded.
+  let notified = 0;
+  if (publish && !wasPublished) {
+    try {
+      const rows = (await c.env.DB.prepare(`
+        SELECT DISTINCT r.guardian_email AS email
+        FROM registrations r
+        WHERE r.cohort_key = ? AND r.guardian_email IS NOT NULL AND TRIM(r.guardian_email) != ''
+          AND EXISTS (SELECT 1 FROM scores s WHERE s.registration_id = r.id)
+      `).bind(event_key).all()).results || [];
+      const recipients = rows.map((x) => x.email);
+      if (recipients.length) {
+        const baseUrl = getBaseUrl(c.req.raw);
+        const res = await sendBroadcastEmail(c.env, {
+          subject: `Your ${ev.label} results are now available`,
+          message: `Results for ${ev.label} have been published.\n\nSign in to your dashboard to view your child's score and ranking:\n${baseUrl}/dashboard`,
+          recipients,
+        });
+        notified = res.sent || 0;
+      }
+    } catch (err) {
+      console.error("[results.publish] guardian notification failed:", err?.message || err);
+    }
+  }
+
+  return c.json({ ok: true, published: publish, notified });
+});
+
+// ─── Cohorts (program runs) ──────────────────────────────────────────────
+// A cohort = one scheduled run of a program. cohort_key is INTERNAL, format
+// {slug}-{MM}{YY} (MM = start month for repeatable programs, 00 once-a-year),
+// with -b2/-b3 appended only if the same program runs twice in one month.
+const COHORT_STATUSES = ["draft", "upcoming", "enrolling", "running", "ended", "archived"];
+
+// Compute MM (00 for non-repeatable) + the next free key for a program/run.
+async function nextCohortKey(env, programSlug, repeatable, startsOn, enrollOpens) {
+  const src  = startsOn || enrollOpens || null;
+  const year = (src && src.length >= 4) ? src.slice(0, 4) : String(new Date().getUTCFullYear());
+  const yy   = year.slice(-2);
+  const mm   = (repeatable === 1 && startsOn && startsOn.length >= 7) ? startsOn.slice(5, 7) : "00";
+  const base = `${programSlug}-${mm}${yy}`;
+  const taken = async (k) => !!(await env.DB.prepare("SELECT 1 FROM cohorts WHERE cohort_key = ?").bind(k).first());
+  if (!(await taken(base))) return { key: base, year };
+  let n = 2;
+  while (await taken(`${base}-b${n}`)) n++;
+  return { key: `${base}-b${n}`, year };
+}
+
+// SQL mirror of deriveCohortStage() in lib/program-options.js - keep in sync.
+// `date('now')` is UTC, matching deriveRegState's notion of today. `pfx` is the
+// table alias (e.g. "c") or "" for unqualified columns.
+function cohortStageSQL(pfx) {
+  const p = pfx ? `${pfx}.` : "";
+  return `CASE
+    WHEN ${p}status IN ('draft','archived') THEN ${p}status
+    WHEN ${p}enroll_opens IS NULL AND ${p}enroll_closes IS NULL AND ${p}starts_on IS NULL AND ${p}ends_on IS NULL THEN ${p}status
+    WHEN ${p}ends_on IS NOT NULL AND date('now') > ${p}ends_on THEN 'ended'
+    WHEN ${p}enroll_opens IS NOT NULL AND date('now') < ${p}enroll_opens THEN 'upcoming'
+    WHEN ${p}enroll_closes IS NULL OR date('now') <= ${p}enroll_closes THEN 'enrolling'
+    ELSE 'running' END`;
+}
+
+admin.get("/cohorts", async (c) => {
+  const rows = (await c.env.DB.prepare(`
+    SELECT c.cohort_key, c.program_slug, c.label, c.status, c.enroll_opens, c.enroll_closes,
+           c.starts_on, c.ends_on, c.price_override, c.capacity, c.sections,
+           c.results_published, c.public_featured, c.published_at, c.created_at,
+           COUNT(r.id)                                        AS regs,
+           SUM(CASE WHEN r.status = 'paid' THEN 1 ELSE 0 END) AS paid
+    FROM cohorts c
+    LEFT JOIN registrations r ON r.cohort_key = c.cohort_key
+    GROUP BY c.cohort_key
+    ORDER BY c.program_slug, c.created_at DESC
+  `).all()).results || [];
+  return c.json({
+    ok: true,
+    // status is the DERIVED lifecycle stage (from the run's own dates); 'draft'
+    // and 'archived' pass through as the only manual overrides.
+    rows: rows.map((r) => ({
+      ...r,
+      status: deriveCohortStage(r.status, r.enroll_opens, r.enroll_closes, r.starts_on, r.ends_on),
+      sections: safeJsonArray(r.sections),
+      results_published: r.results_published === 1,
+      public_featured: r.public_featured === 1,
+    })),
+  });
+});
+
+// POST /api/admin/cohorts  { program_slug, label?, status? }  - "Open new run".
+// The Program page is the single edit surface for schedule/price; this just
+// SNAPSHOTS the program's current registration + session dates into a new run
+// and carries the exam sections from the program's most recent run. To change a
+// run's dates/price you edit the program first, then open the run.
+admin.post("/cohorts", async (c) => {
+  const b = await c.req.json();
+  const programSlug = String(b.program_slug || "").trim();
+  if (!programSlug) return c.json({ error: "program_slug required." }, 400);
+  const prog = await c.env.DB.prepare(
+    "SELECT slug, title, repeatable, registration_opens, registration_closes, starts_on, ends_on FROM programs WHERE slug = ? LIMIT 1"
+  ).bind(programSlug).first();
+  if (!prog) return c.json({ error: "Unknown program." }, 404);
+
+  const { key, year } = await nextCohortKey(c.env, programSlug, prog.repeatable, prog.starts_on, prog.registration_opens);
+  const label   = (b.label || "").trim() || `${prog.title} ${year}`;
+  const status  = COHORT_STATUSES.includes(b.status) ? b.status : "enrolling";
+  // Carry exam sections from the program's previous run (if any).
+  const prev = await c.env.DB.prepare(
+    "SELECT sections FROM cohorts WHERE program_slug = ? ORDER BY created_at DESC LIMIT 1"
+  ).bind(programSlug).first();
+
+  await c.env.DB.prepare(`
+    INSERT INTO cohorts (cohort_key, program_slug, label, status, enroll_opens, enroll_closes, starts_on, ends_on, sections)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    key, programSlug, label, status,
+    prog.registration_opens, prog.registration_closes, prog.starts_on, prog.ends_on,
+    prev?.sections || "[]",
+  ).run();
+
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "cohort.open", { type: "cohort", id: key, payload: { program: programSlug, status } });
+  return c.json({ ok: true, cohort_key: key });
+});
+
+// PATCH /api/admin/cohorts/:key - lifecycle (status) + label. Dates/price are a
+// program-page concern; a new run re-snapshots them.
+admin.patch("/cohorts/:key", async (c) => {
+  const key = c.req.param("key");
+  const b   = await c.req.json();
+  const exists = await c.env.DB.prepare("SELECT 1 FROM cohorts WHERE cohort_key = ? LIMIT 1").bind(key).first();
+  if (!exists) return c.json({ error: "Unknown cohort." }, 404);
+
+  const sets = [], binds = [];
+  if (typeof b.label === "string" && b.label.trim()) { sets.push("label = ?"); binds.push(b.label.trim()); }
+  if (COHORT_STATUSES.includes(b.status)) { sets.push("status = ?"); binds.push(b.status); }
+  if (!sets.length) return c.json({ error: "No editable fields." }, 400);
+
+  await c.env.DB.prepare(`UPDATE cohorts SET ${sets.join(", ")} WHERE cohort_key = ?`).bind(...binds, key).run();
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "cohort.update", { type: "cohort", id: key, payload: b });
+  return c.json({ ok: true });
+});
+
+// DELETE /api/admin/cohorts/:key - hard delete. Refused if the run has any
+// registrations (those carry payments/results); archive such runs instead.
+admin.delete("/cohorts/:key", async (c) => {
+  const key = c.req.param("key");
+  const cohort = await c.env.DB.prepare("SELECT cohort_key, label FROM cohorts WHERE cohort_key = ? LIMIT 1").bind(key).first();
+  if (!cohort) return c.json({ error: "Unknown cohort." }, 404);
+
+  const used = await c.env.DB.prepare("SELECT COUNT(*) AS n FROM registrations WHERE cohort_key = ?").bind(key).first();
+  if (Number(used?.n || 0) > 0) {
+    return c.json({ error: `This run has ${used.n} registration(s). Archive it instead of deleting.` }, 409);
+  }
+
+  // No registrations -> safe to remove, along with any generated medalists tagged to it.
+  await c.env.DB.prepare("DELETE FROM medalists WHERE cohort_key = ?").bind(key).run();
+  await c.env.DB.prepare("DELETE FROM cohorts WHERE cohort_key = ?").bind(key).run();
+
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "cohort.delete", { type: "cohort", id: key, payload: { label: cohort.label } });
+  return c.json({ ok: true });
+});
+
+// POST /api/admin/cohorts/:key/feature  { featured: bool }
+// Feature this run's winners on the public /results page (or unfeature). The
+// public medalists are GENERATED from the cohort's finalised scores - rank 1/2/3
+// per section -> gold/silver/bronze - and tagged with the cohort_key so a
+// re-feature replaces cleanly. Hand-entered/historical medalists (cohort_key
+// NULL) are untouched. Stages a medalist publish for the review/commit step.
+const MEDAL_BY_RANK = { 1: "gold", 2: "silver", 3: "bronze" };
+
+admin.post("/cohorts/:key/feature", async (c) => {
+  const key = c.req.param("key");
+  const featured = (await c.req.json().catch(() => ({})))?.featured === true;
+  const cohort = await c.env.DB.prepare(
+    "SELECT cohort_key, label, sections, starts_on FROM cohorts WHERE cohort_key = ? LIMIT 1"
+  ).bind(key).first();
+  if (!cohort) return c.json({ error: "Unknown cohort." }, 404);
+
+  // Always clear this cohort's previously generated rows first.
+  await c.env.DB.prepare("DELETE FROM medalists WHERE cohort_key = ?").bind(key).run();
+
+  let generated = 0;
+  if (featured) {
+    const sections = safeJsonArray(cohort.sections);
+    const labelFor = Object.fromEntries(sections.map((s) => [s.id, s.label]));
+    const year = (cohort.starts_on && cohort.starts_on.length >= 4)
+      ? cohort.starts_on.slice(0, 4)
+      : `20${key.replace(/-b\d+$/, "").slice(-2)}`;
+
+    const winners = (await c.env.DB.prepare(`
+      SELECT s.section, s.rank, r.student_full_name AS name, r.student_school AS school
+      FROM scores s JOIN registrations r ON r.id = s.registration_id
+      WHERE s.event_key = ? AND s.rank IS NOT NULL AND s.rank BETWEEN 1 AND 3
+      ORDER BY s.section, s.rank
+    `).bind(key).all()).results || [];
+
+    const session = c.get("session");
+    const inserts = winners.map((w) => c.env.DB.prepare(`
+      INSERT INTO medalists (year, category, medal, name, school, sort_order, published, cohort_key, updated_by)
+      VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
+    `).bind(
+      year, labelFor[w.section] || w.section, MEDAL_BY_RANK[w.rank], w.name, w.school || null, w.rank, key, session.account_id,
+    ));
+    if (inserts.length) await c.env.DB.batch(inserts);
+    generated = inserts.length;
+  }
+
+  await c.env.DB.prepare("UPDATE cohorts SET public_featured = ? WHERE cohort_key = ?").bind(featured ? 1 : 0, key).run();
+  // Stage the medalist dataset so the change reaches the public site on publish.
+  await stagePending(c, "medalist", "medalist", "update");
+
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "cohort.feature", { type: "cohort", id: key, payload: { featured, generated } });
+  return c.json({ ok: true, featured, generated });
 });
 
 // ─── Posts (D1-backed CMS) ───────────────────────────────────────────────
@@ -1909,6 +2458,43 @@ admin.post("/events/:event/scores/finalize", async (c) => {
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,80}[a-z0-9])?$/;
 
 const POST_FIELDS = ["title", "excerpt", "category", "author", "image", "body_md", "published", "featured", "published_at"];
+
+// ─── Staged publish ────────────────────────────────────────────────────────
+// Content edits no longer push to GitHub on save. Instead they stage a
+// pending_publish row (deduped per entity), and POST /publish commits the whole
+// set in one GitHub commit. For the whole-file JSON datasets (press/halloffame/
+// medalist/team) every row edit collapses onto a single pending row keyed by
+// the dataset name, because the published file is rebuilt from all D1 rows.
+//
+// entityType: 'post' | 'program' | 'press' | 'halloffame' | 'medalist' | 'team'
+async function stagePending(c, entityType, entityId, action) {
+  // Datasets key by the dataset name so all row edits dedupe to one row; the
+  // file is rebuilt from D1 at publish time, so 'create'/'update'/'delete' all
+  // resolve to the same "rebuild" action.
+  const key = isDataset(entityType) ? entityType : String(entityId);
+  const stageAction = isDataset(entityType) ? "update" : action;
+
+  const mat = await materializeEntity(c.env, entityType, key, stageAction);
+  const path = mat ? mat.path : pathFor(entityType, key);
+  const content = mat ? mat.content : null;
+
+  const session = c.get("session");
+  const id = createId("pp");
+  // UPSERT: repeated edits of the same entity keep ONE pending row (latest
+  // content). The unique index on (entity_type, entity_id) drives the conflict.
+  await c.env.DB.prepare(`
+    INSERT INTO pending_publish
+      (id, entity_type, entity_id, action, materialized_path, materialized_content, status, staged_by, staged_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, datetime('now'), datetime('now'))
+    ON CONFLICT(entity_type, entity_id) DO UPDATE SET
+      action               = excluded.action,
+      materialized_path    = excluded.materialized_path,
+      materialized_content = excluded.materialized_content,
+      status               = 'pending',
+      staged_by            = excluded.staged_by,
+      updated_at           = datetime('now')
+  `).bind(id, entityType, key, stageAction, path, content, session.account_id).run();
+}
 
 admin.get("/posts", async (c) => {
   const status = c.req.query("status"); // 'published' | 'draft' | undefined
@@ -1982,6 +2568,7 @@ admin.post("/posts", async (c) => {
     type: "post", id: slug,
     payload: { title: post.title, published: post.published, featured: post.featured },
   });
+  await stagePending(c, "post", slug, "create");
 
   return c.json({ ok: true, slug });
 });
@@ -2018,6 +2605,7 @@ admin.patch("/posts/:slug", async (c) => {
         .map(([k, v]) => [k, k === "published_at" || k === "body_md" ? undefined : v])
     ),
   });
+  await stagePending(c, "post", slug, "update");
 
   return c.json({ ok: true });
 });
@@ -2033,6 +2621,7 @@ admin.delete("/posts/:slug", async (c) => {
   await recordAudit(c.env, session.account_id, "post.delete", {
     type: "post", id: slug, payload: { title: before.title },
   });
+  await stagePending(c, "post", slug, "delete");
 
   return c.json({ ok: true });
 });
@@ -2154,6 +2743,7 @@ admin.post("/programs", async (c) => {
     type: "program", id: slug,
     payload: { title: sani.values.title, published: sani.values.published },
   });
+  await stagePending(c, "program", slug, "create");
 
   return c.json({ ok: true, slug });
 });
@@ -2174,12 +2764,32 @@ admin.patch("/programs/:slug", async (c) => {
 
   await c.env.DB.prepare(`UPDATE programs SET ${sets.join(", ")} WHERE slug = ?`).bind(...binds).run();
 
+  // Keep live runs in step with the program's dates: editing the program's
+  // registration/session window re-syncs any run that isn't historical.
+  // Ended/archived runs stay frozen as a record of how that run actually ran.
+  const COHORT_DATE_MAP = {
+    registration_opens:  "enroll_opens",
+    registration_closes: "enroll_closes",
+    starts_on:           "starts_on",
+    ends_on:             "ends_on",
+  };
+  const dateSets = [], dateBinds = [];
+  for (const [pk, ck] of Object.entries(COHORT_DATE_MAP)) {
+    if (pk in sani.values) { dateSets.push(`${ck} = ?`); dateBinds.push(sani.values[pk]); }
+  }
+  if (dateSets.length) {
+    await c.env.DB.prepare(
+      `UPDATE cohorts SET ${dateSets.join(", ")} WHERE program_slug = ? AND status NOT IN ('ended', 'archived')`
+    ).bind(...dateBinds, slug).run();
+  }
+
   await recordAudit(c.env, session.account_id, "program.update", {
     type: "program", id: slug,
     payload: Object.fromEntries(
       keys.filter((k) => k !== "body_md" && k !== "pricing_json").map((k) => [k, sani.values[k]])
     ),
   });
+  await stagePending(c, "program", slug, "update");
 
   return c.json({ ok: true });
 });
@@ -2195,6 +2805,7 @@ admin.delete("/programs/:slug", async (c) => {
   await recordAudit(c.env, session.account_id, "program.delete", {
     type: "program", id: slug, payload: { title: before.title },
   });
+  await stagePending(c, "program", slug, "delete");
 
   return c.json({ ok: true });
 });
@@ -2326,6 +2937,117 @@ function sanitisePricing(pricing) {
 // D1 is the source of truth; rows materialize to content/data/press.json.
 // Was the hand-edited public/data/media.json + hardcoded media.astro. Mirrors
 // the Programs routes; integer id (not slug) since press rows have no page.
+// Generic CRUD for the "dataset" content entities (press / hall-of-fame / team):
+// list (+filter +published summary), get-one, create, update, delete - all
+// materialize to content/*.json via stagePending. They differ only by table,
+// field sanitiser/normaliser, list filter/order, required fields, and audit/stage
+// labels, so one factory registers all five routes per entity.
+function registerDatasetCrud(admin, opts) {
+  const {
+    path, table, normalise, sanitise, listFilter, listOrder, listLimit = 200,
+    required = [], requiredMsg, labelField, createPayload,
+    auditType, auditPrefix, stageEntity, notFound,
+  } = opts;
+
+  admin.get(`/${path}`, async (c) => {
+    const { wheres, binds } = listFilter ? listFilter(c) : { wheres: [], binds: [] };
+    const whereSql = wheres.length ? `WHERE ${wheres.join(" AND ")}` : "";
+    const list = await c.env.DB.prepare(
+      `SELECT * FROM ${table} ${whereSql} ${listOrder} LIMIT ${listLimit}`
+    ).bind(...binds).all();
+    const summary = await c.env.DB.prepare(
+      `SELECT COUNT(*) AS total,
+              SUM(CASE WHEN published = 1 THEN 1 ELSE 0 END) AS published,
+              SUM(CASE WHEN published = 0 THEN 1 ELSE 0 END) AS drafts
+       FROM ${table}`
+    ).first();
+    return c.json({
+      ok: true,
+      rows: (list.results || []).map(normalise),
+      summary: {
+        total: Number(summary?.total) || 0,
+        published: Number(summary?.published) || 0,
+        drafts: Number(summary?.drafts) || 0,
+      },
+    });
+  });
+
+  admin.get(`/${path}/:id`, async (c) => {
+    const row = await c.env.DB.prepare(`SELECT * FROM ${table} WHERE id = ? LIMIT 1`)
+      .bind(c.req.param("id")).first();
+    if (!row) return c.json({ error: notFound }, 404);
+    return c.json({ ok: true, item: normalise(row) });
+  });
+
+  admin.post(`/${path}`, async (c) => {
+    const sani = sanitise(await c.req.json());
+    if (sani.error) return c.json({ error: sani.error }, 400);
+    if (required.length && !required.every((k) => sani.values[k])) {
+      return c.json({ error: requiredMsg }, 400);
+    }
+    const session = c.get("session");
+    const keys = Object.keys(sani.values);
+    const cols = [...keys, "updated_by"];
+    const ph = [...keys.map(() => "?"), "?"];
+    const binds = [...keys.map((k) => sani.values[k]), session.account_id];
+    const res = await c.env.DB.prepare(
+      `INSERT INTO ${table} (${cols.join(", ")}) VALUES (${ph.join(", ")})`
+    ).bind(...binds).run();
+    const id = res.meta?.last_row_id;
+    await recordAudit(c.env, session.account_id, `${auditPrefix}.create`, {
+      type: auditType, id: String(id), payload: createPayload ? createPayload(sani.values) : {},
+    });
+    await stagePending(c, stageEntity, id, "create");
+    return c.json({ ok: true, id });
+  });
+
+  admin.patch(`/${path}/:id`, async (c) => {
+    const id = c.req.param("id");
+    const before = await c.env.DB.prepare(`SELECT id FROM ${table} WHERE id = ? LIMIT 1`).bind(id).first();
+    if (!before) return c.json({ error: notFound }, 404);
+    const sani = sanitise(await c.req.json(), { partial: true });
+    if (sani.error) return c.json({ error: sani.error }, 400);
+    const keys = Object.keys(sani.values);
+    if (keys.length === 0) return c.json({ error: "No editable fields provided." }, 400);
+    const session = c.get("session");
+    const sets = [...keys.map((k) => `${k} = ?`), "updated_by = ?"];
+    const binds = [...keys.map((k) => sani.values[k]), session.account_id, id];
+    await c.env.DB.prepare(`UPDATE ${table} SET ${sets.join(", ")} WHERE id = ?`).bind(...binds).run();
+    await recordAudit(c.env, session.account_id, `${auditPrefix}.update`, {
+      type: auditType, id: String(id), payload: Object.fromEntries(keys.map((k) => [k, sani.values[k]])),
+    });
+    await stagePending(c, stageEntity, id, "update");
+    return c.json({ ok: true });
+  });
+
+  admin.delete(`/${path}/:id`, async (c) => {
+    const id = c.req.param("id");
+    const before = await c.env.DB.prepare(`SELECT ${labelField} FROM ${table} WHERE id = ?`).bind(id).first();
+    if (!before) return c.json({ error: notFound }, 404);
+    await c.env.DB.prepare(`DELETE FROM ${table} WHERE id = ?`).bind(id).run();
+    const session = c.get("session");
+    await recordAudit(c.env, session.account_id, `${auditPrefix}.delete`, {
+      type: auditType, id: String(id), payload: { [labelField]: before[labelField] },
+    });
+    await stagePending(c, stageEntity, id, "delete");
+    return c.json({ ok: true });
+  });
+}
+
+const datasetStatusFilter = (c) => {
+  const status = c.req.query("status");
+  const wheres = [];
+  if (status === "published") wheres.push("published = 1");
+  else if (status === "draft") wheres.push("published = 0");
+  return { wheres, binds: [] };
+};
+const datasetSectionFilter = (c) => {
+  const section = c.req.query("section");
+  const wheres = [], binds = [];
+  if (section) { wheres.push("section = ?"); binds.push(section); }
+  return { wheres, binds };
+};
+
 function normalisePressRow(r) {
   return {
     id: r.id,
@@ -2358,94 +3080,14 @@ function sanitisePressInput(input, { partial = false } = {}) {
   return { values: v };
 }
 
-admin.get("/press-mentions", async (c) => {
-  const status = c.req.query("status");
-  const wheres = [];
-  if (status === "published") wheres.push("published = 1");
-  else if (status === "draft") wheres.push("published = 0");
-  const whereSql = wheres.length ? `WHERE ${wheres.join(" AND ")}` : "";
-
-  const list = await c.env.DB.prepare(`
-    SELECT * FROM press_mentions ${whereSql}
-    ORDER BY featured DESC, sort_order ASC, id ASC LIMIT 200
-  `).all();
-  const summary = await c.env.DB.prepare(`
-    SELECT COUNT(*) AS total,
-           SUM(CASE WHEN published = 1 THEN 1 ELSE 0 END) AS published,
-           SUM(CASE WHEN published = 0 THEN 1 ELSE 0 END) AS drafts
-    FROM press_mentions
-  `).first();
-
-  return c.json({
-    ok: true,
-    rows: (list.results || []).map(normalisePressRow),
-    summary: {
-      total: Number(summary?.total) || 0,
-      published: Number(summary?.published) || 0,
-      drafts: Number(summary?.drafts) || 0,
-    },
-  });
-});
-
-admin.get("/press-mentions/:id", async (c) => {
-  const row = await c.env.DB.prepare("SELECT * FROM press_mentions WHERE id = ? LIMIT 1")
-    .bind(c.req.param("id")).first();
-  if (!row) return c.json({ error: "Press mention not found." }, 404);
-  return c.json({ ok: true, item: normalisePressRow(row) });
-});
-
-admin.post("/press-mentions", async (c) => {
-  const sani = sanitisePressInput(await c.req.json());
-  if (sani.error) return c.json({ error: sani.error }, 400);
-  if (!sani.values.outlet || !sani.values.title || !sani.values.url) {
-    return c.json({ error: "Outlet, title, and URL are required." }, 400);
-  }
-  const session = c.get("session");
-  const keys = Object.keys(sani.values);
-  const cols = [...keys, "updated_by"];
-  const ph = [...keys.map(() => "?"), "?"];
-  const binds = [...keys.map((k) => sani.values[k]), session.account_id];
-
-  const res = await c.env.DB.prepare(`INSERT INTO press_mentions (${cols.join(", ")}) VALUES (${ph.join(", ")})`)
-    .bind(...binds).run();
-  const id = res.meta?.last_row_id;
-  await recordAudit(c.env, session.account_id, "press.create", {
-    type: "press_mention", id: String(id), payload: { title: sani.values.title },
-  });
-  return c.json({ ok: true, id });
-});
-
-admin.patch("/press-mentions/:id", async (c) => {
-  const id = c.req.param("id");
-  const before = await c.env.DB.prepare("SELECT id FROM press_mentions WHERE id = ? LIMIT 1").bind(id).first();
-  if (!before) return c.json({ error: "Press mention not found." }, 404);
-
-  const sani = sanitisePressInput(await c.req.json(), { partial: true });
-  if (sani.error) return c.json({ error: sani.error }, 400);
-  const keys = Object.keys(sani.values);
-  if (keys.length === 0) return c.json({ error: "No editable fields provided." }, 400);
-
-  const session = c.get("session");
-  const sets = [...keys.map((k) => `${k} = ?`), "updated_by = ?"];
-  const binds = [...keys.map((k) => sani.values[k]), session.account_id, id];
-  await c.env.DB.prepare(`UPDATE press_mentions SET ${sets.join(", ")} WHERE id = ?`).bind(...binds).run();
-
-  await recordAudit(c.env, session.account_id, "press.update", {
-    type: "press_mention", id: String(id), payload: Object.fromEntries(keys.map((k) => [k, sani.values[k]])),
-  });
-  return c.json({ ok: true });
-});
-
-admin.delete("/press-mentions/:id", async (c) => {
-  const id = c.req.param("id");
-  const before = await c.env.DB.prepare("SELECT title FROM press_mentions WHERE id = ?").bind(id).first();
-  if (!before) return c.json({ error: "Press mention not found." }, 404);
-  await c.env.DB.prepare("DELETE FROM press_mentions WHERE id = ?").bind(id).run();
-  const session = c.get("session");
-  await recordAudit(c.env, session.account_id, "press.delete", {
-    type: "press_mention", id: String(id), payload: { title: before.title },
-  });
-  return c.json({ ok: true });
+registerDatasetCrud(admin, {
+  path: "press-mentions", table: "press_mentions",
+  normalise: normalisePressRow, sanitise: sanitisePressInput,
+  listFilter: datasetStatusFilter, listOrder: "ORDER BY featured DESC, sort_order ASC, id ASC",
+  required: ["outlet", "title", "url"], requiredMsg: "Outlet, title, and URL are required.",
+  labelField: "title", createPayload: (v) => ({ title: v.title }),
+  auditType: "press_mention", auditPrefix: "press", stageEntity: "press",
+  notFound: "Press mention not found.",
 });
 
 // ─── Hall of Fame photos (homepage slider) ────────────────────────────────
@@ -2477,264 +3119,14 @@ function sanitiseHofInput(input, { partial = false } = {}) {
   return { values: v };
 }
 
-admin.get("/hall-of-fame", async (c) => {
-  const status = c.req.query("status");
-  const wheres = [];
-  if (status === "published") wheres.push("published = 1");
-  else if (status === "draft") wheres.push("published = 0");
-  const whereSql = wheres.length ? `WHERE ${wheres.join(" AND ")}` : "";
-
-  const list = await c.env.DB.prepare(`
-    SELECT * FROM hall_of_fame_photos ${whereSql}
-    ORDER BY sort_order ASC, id ASC LIMIT 200
-  `).all();
-  const summary = await c.env.DB.prepare(`
-    SELECT COUNT(*) AS total,
-           SUM(CASE WHEN published = 1 THEN 1 ELSE 0 END) AS published,
-           SUM(CASE WHEN published = 0 THEN 1 ELSE 0 END) AS drafts
-    FROM hall_of_fame_photos
-  `).first();
-
-  return c.json({
-    ok: true,
-    rows: (list.results || []).map(normaliseHofRow),
-    summary: {
-      total: Number(summary?.total) || 0,
-      published: Number(summary?.published) || 0,
-      drafts: Number(summary?.drafts) || 0,
-    },
-  });
-});
-
-admin.get("/hall-of-fame/:id", async (c) => {
-  const row = await c.env.DB.prepare("SELECT * FROM hall_of_fame_photos WHERE id = ? LIMIT 1")
-    .bind(c.req.param("id")).first();
-  if (!row) return c.json({ error: "Photo not found." }, 404);
-  return c.json({ ok: true, item: normaliseHofRow(row) });
-});
-
-admin.post("/hall-of-fame", async (c) => {
-  const sani = sanitiseHofInput(await c.req.json());
-  if (sani.error) return c.json({ error: sani.error }, 400);
-  if (!sani.values.image) return c.json({ error: "An image is required." }, 400);
-  const session = c.get("session");
-  const keys = Object.keys(sani.values);
-  const cols = [...keys, "updated_by"];
-  const ph = [...keys.map(() => "?"), "?"];
-  const binds = [...keys.map((k) => sani.values[k]), session.account_id];
-
-  const res = await c.env.DB.prepare(`INSERT INTO hall_of_fame_photos (${cols.join(", ")}) VALUES (${ph.join(", ")})`)
-    .bind(...binds).run();
-  const id = res.meta?.last_row_id;
-  await recordAudit(c.env, session.account_id, "halloffame.create", {
-    type: "hall_of_fame_photo", id: String(id), payload: { caption: sani.values.caption },
-  });
-  return c.json({ ok: true, id });
-});
-
-admin.patch("/hall-of-fame/:id", async (c) => {
-  const id = c.req.param("id");
-  const before = await c.env.DB.prepare("SELECT id FROM hall_of_fame_photos WHERE id = ? LIMIT 1").bind(id).first();
-  if (!before) return c.json({ error: "Photo not found." }, 404);
-
-  const sani = sanitiseHofInput(await c.req.json(), { partial: true });
-  if (sani.error) return c.json({ error: sani.error }, 400);
-  const keys = Object.keys(sani.values);
-  if (keys.length === 0) return c.json({ error: "No editable fields provided." }, 400);
-
-  const session = c.get("session");
-  const sets = [...keys.map((k) => `${k} = ?`), "updated_by = ?"];
-  const binds = [...keys.map((k) => sani.values[k]), session.account_id, id];
-  await c.env.DB.prepare(`UPDATE hall_of_fame_photos SET ${sets.join(", ")} WHERE id = ?`).bind(...binds).run();
-
-  await recordAudit(c.env, session.account_id, "halloffame.update", {
-    type: "hall_of_fame_photo", id: String(id), payload: Object.fromEntries(keys.map((k) => [k, sani.values[k]])),
-  });
-  return c.json({ ok: true });
-});
-
-admin.delete("/hall-of-fame/:id", async (c) => {
-  const id = c.req.param("id");
-  const before = await c.env.DB.prepare("SELECT caption FROM hall_of_fame_photos WHERE id = ?").bind(id).first();
-  if (!before) return c.json({ error: "Photo not found." }, 404);
-  await c.env.DB.prepare("DELETE FROM hall_of_fame_photos WHERE id = ?").bind(id).run();
-  const session = c.get("session");
-  await recordAudit(c.env, session.account_id, "halloffame.delete", {
-    type: "hall_of_fame_photo", id: String(id), payload: { caption: before.caption },
-  });
-  return c.json({ ok: true });
-});
-
-// ─── Medalists (/results page) ─────────────────────────────────────────────
-// Materializes to content/data/medalists.json. Was hardcoded in results.astro.
-const MEDAL_TIERS = ["gold", "silver", "bronze"];
-
-function normaliseMedalistRow(r) {
-  return {
-    id: r.id,
-    year: r.year,
-    category: r.category,
-    medal: r.medal,
-    name: r.name,
-    school: r.school || "",
-    sort_order: r.sort_order ?? 0,
-    published: r.published === 1,
-    updated_at: r.updated_at,
-  };
-}
-
-function sanitiseMedalistInput(input, { partial = false } = {}) {
-  const v = {};
-  const has = (k) => (k in input) || !partial;
-  if (has("year")) v.year = trimOrNull(input.year);
-  if (has("category")) v.category = trimOrNull(input.category);
-  if (has("medal")) {
-    const m = (trimOrNull(input.medal) || "").toLowerCase();
-    if (m && !MEDAL_TIERS.includes(m)) return { error: `medal must be one of: ${MEDAL_TIERS.join(", ")}` };
-    v.medal = m || null;
-  }
-  if (has("name")) v.name = trimOrNull(input.name);
-  if (has("school")) v.school = trimOrNull(input.school);
-  if (has("sort_order")) {
-    const n = Number(input.sort_order);
-    v.sort_order = Number.isFinite(n) ? Math.trunc(n) : 0;
-  }
-  if (has("published")) v.published = input.published ? 1 : 0;
-  return { values: v };
-}
-
-admin.get("/medalists", async (c) => {
-  const year = c.req.query("year");
-  const category = c.req.query("category");
-  const wheres = [];
-  const binds = [];
-  if (year) { wheres.push("year = ?"); binds.push(year); }
-  if (category) { wheres.push("category = ?"); binds.push(category); }
-  const whereSql = wheres.length ? `WHERE ${wheres.join(" AND ")}` : "";
-
-  const list = await c.env.DB.prepare(`
-    SELECT * FROM medalists ${whereSql}
-    ORDER BY year DESC, category ASC,
-      CASE medal WHEN 'gold' THEN 0 WHEN 'silver' THEN 1 WHEN 'bronze' THEN 2 ELSE 3 END,
-      sort_order ASC, id ASC
-    LIMIT 1000
-  `).bind(...binds).all();
-
-  const summary = await c.env.DB.prepare(`
-    SELECT COUNT(*) AS total,
-           SUM(CASE WHEN published = 1 THEN 1 ELSE 0 END) AS published,
-           SUM(CASE WHEN published = 0 THEN 1 ELSE 0 END) AS drafts
-    FROM medalists
-  `).first();
-
-  // Distinct years for the filter dropdown.
-  const years = await c.env.DB.prepare("SELECT DISTINCT year FROM medalists ORDER BY year DESC").all();
-
-  return c.json({
-    ok: true,
-    rows: (list.results || []).map(normaliseMedalistRow),
-    years: (years.results || []).map((r) => r.year),
-    summary: {
-      total: Number(summary?.total) || 0,
-      published: Number(summary?.published) || 0,
-      drafts: Number(summary?.drafts) || 0,
-    },
-  });
-});
-
-admin.post("/medalists", async (c) => {
-  const sani = sanitiseMedalistInput(await c.req.json());
-  if (sani.error) return c.json({ error: sani.error }, 400);
-  if (!sani.values.year || !sani.values.category || !sani.values.medal || !sani.values.name) {
-    return c.json({ error: "Year, category, medal, and name are required." }, 400);
-  }
-  const session = c.get("session");
-  const keys = Object.keys(sani.values);
-  const cols = [...keys, "updated_by"];
-  const ph = [...keys.map(() => "?"), "?"];
-  const binds = [...keys.map((k) => sani.values[k]), session.account_id];
-
-  const res = await c.env.DB.prepare(`INSERT INTO medalists (${cols.join(", ")}) VALUES (${ph.join(", ")})`)
-    .bind(...binds).run();
-  const id = res.meta?.last_row_id;
-  await recordAudit(c.env, session.account_id, "medalist.create", {
-    type: "medalist", id: String(id), payload: { name: sani.values.name, year: sani.values.year },
-  });
-  return c.json({ ok: true, id });
-});
-
-admin.patch("/medalists/:id", async (c) => {
-  const id = c.req.param("id");
-  const before = await c.env.DB.prepare("SELECT id FROM medalists WHERE id = ? LIMIT 1").bind(id).first();
-  if (!before) return c.json({ error: "Medalist not found." }, 404);
-
-  const sani = sanitiseMedalistInput(await c.req.json(), { partial: true });
-  if (sani.error) return c.json({ error: sani.error }, 400);
-  const keys = Object.keys(sani.values);
-  if (keys.length === 0) return c.json({ error: "No editable fields provided." }, 400);
-
-  const session = c.get("session");
-  const sets = [...keys.map((k) => `${k} = ?`), "updated_by = ?"];
-  const binds = [...keys.map((k) => sani.values[k]), session.account_id, id];
-  await c.env.DB.prepare(`UPDATE medalists SET ${sets.join(", ")} WHERE id = ?`).bind(...binds).run();
-
-  await recordAudit(c.env, session.account_id, "medalist.update", {
-    type: "medalist", id: String(id), payload: Object.fromEntries(keys.map((k) => [k, sani.values[k]])),
-  });
-  return c.json({ ok: true });
-});
-
-admin.delete("/medalists/:id", async (c) => {
-  const id = c.req.param("id");
-  const before = await c.env.DB.prepare("SELECT name FROM medalists WHERE id = ?").bind(id).first();
-  if (!before) return c.json({ error: "Medalist not found." }, 404);
-  await c.env.DB.prepare("DELETE FROM medalists WHERE id = ?").bind(id).run();
-  const session = c.get("session");
-  await recordAudit(c.env, session.account_id, "medalist.delete", {
-    type: "medalist", id: String(id), payload: { name: before.name },
-  });
-  return c.json({ ok: true });
-});
-
-// Bulk import (CSV upload from the admin parses to rows). "Replace that year":
-// for every year present in the payload we clear existing medalists, then insert
-// the uploaded rows (published). Done in one batch so a year is never left empty
-// on a failed insert. Row order becomes sort_order within each medal column.
-admin.post("/medalists/import", async (c) => {
-  const body = await c.req.json();
-  const rows = Array.isArray(body.rows) ? body.rows : null;
-  if (!rows || rows.length === 0) return c.json({ error: "No rows to import." }, 400);
-  if (rows.length > 2000) return c.json({ error: "Too many rows (max 2000)." }, 400);
-
-  const clean = [];
-  for (let i = 0; i < rows.length; i++) {
-    const sani = sanitiseMedalistInput(rows[i]);
-    if (sani.error) return c.json({ error: `Row ${i + 1}: ${sani.error}` }, 400);
-    const v = sani.values;
-    if (!v.year || !v.category || !v.medal || !v.name) {
-      return c.json({ error: `Row ${i + 1}: year, category, medal, and name are required.` }, 400);
-    }
-    clean.push(v);
-  }
-
-  const years = [...new Set(clean.map((r) => r.year))];
-  const session = c.get("session");
-  const stmts = [];
-  for (const y of years) {
-    stmts.push(c.env.DB.prepare("DELETE FROM medalists WHERE year = ?").bind(y));
-  }
-  clean.forEach((v, i) => {
-    stmts.push(c.env.DB.prepare(
-      "INSERT INTO medalists (year, category, medal, name, school, sort_order, published, updated_by) " +
-      "VALUES (?, ?, ?, ?, ?, ?, 1, ?)",
-    ).bind(v.year, v.category, v.medal, v.name, v.school ?? null, i + 1, session.account_id));
-  });
-  await c.env.DB.batch(stmts);
-
-  await recordAudit(c.env, session.account_id, "medalist.import", {
-    type: "medalist", id: years.join(","), payload: { years, count: clean.length },
-  });
-  return c.json({ ok: true, imported: clean.length, years });
+registerDatasetCrud(admin, {
+  path: "hall-of-fame", table: "hall_of_fame_photos",
+  normalise: normaliseHofRow, sanitise: sanitiseHofInput,
+  listFilter: datasetStatusFilter, listOrder: "ORDER BY sort_order ASC, id ASC",
+  required: ["image"], requiredMsg: "An image is required.",
+  labelField: "caption", createPayload: (v) => ({ caption: v.caption }),
+  auditType: "hall_of_fame_photo", auditPrefix: "halloffame", stageEntity: "halloffame",
+  notFound: "Photo not found.",
 });
 
 // ─── Team members (/team page) ─────────────────────────────────────────────
@@ -2776,94 +3168,138 @@ function sanitiseTeamInput(input, { partial = false } = {}) {
   return { values: v };
 }
 
-admin.get("/team", async (c) => {
-  const section = c.req.query("section");
-  const wheres = [];
-  const binds = [];
-  if (section) { wheres.push("section = ?"); binds.push(section); }
-  const whereSql = wheres.length ? `WHERE ${wheres.join(" AND ")}` : "";
-
-  const list = await c.env.DB.prepare(`
-    SELECT * FROM team_members ${whereSql}
-    ORDER BY section ASC, sort_order ASC, id ASC LIMIT 500
-  `).bind(...binds).all();
-  const summary = await c.env.DB.prepare(`
-    SELECT COUNT(*) AS total,
-           SUM(CASE WHEN published = 1 THEN 1 ELSE 0 END) AS published,
-           SUM(CASE WHEN published = 0 THEN 1 ELSE 0 END) AS drafts
-    FROM team_members
-  `).first();
-
-  return c.json({
-    ok: true,
-    rows: (list.results || []).map(normaliseTeamRow),
-    summary: {
-      total: Number(summary?.total) || 0,
-      published: Number(summary?.published) || 0,
-      drafts: Number(summary?.drafts) || 0,
-    },
-  });
+registerDatasetCrud(admin, {
+  path: "team", table: "team_members",
+  normalise: normaliseTeamRow, sanitise: sanitiseTeamInput,
+  listFilter: datasetSectionFilter, listOrder: "ORDER BY section ASC, sort_order ASC, id ASC", listLimit: 500,
+  required: ["section", "name"], requiredMsg: "Section and name are required.",
+  labelField: "name", createPayload: (v) => ({ name: v.name, section: v.section }),
+  auditType: "team_member", auditPrefix: "team", stageEntity: "team",
+  notFound: "Team member not found.",
 });
 
-admin.get("/team/:id", async (c) => {
-  const row = await c.env.DB.prepare("SELECT * FROM team_members WHERE id = ? LIMIT 1")
-    .bind(c.req.param("id")).first();
-  if (!row) return c.json({ error: "Team member not found." }, 404);
-  return c.json({ ok: true, item: normaliseTeamRow(row) });
-});
+// ─── Publish (review + single-commit) ──────────────────────────────────────
+// Content edits stage pending_publish rows (see stagePending). These endpoints
+// review, commit (one GitHub commit), or discard the staged set.
 
-admin.post("/team", async (c) => {
-  const sani = sanitiseTeamInput(await c.req.json());
-  if (sani.error) return c.json({ error: sani.error }, 400);
-  if (!sani.values.section || !sani.values.name) {
-    return c.json({ error: "Section and name are required." }, 400);
+const PENDING_LABELS = {
+  post: "post", program: "program", press: "press update",
+  halloffame: "Hall of Fame update", medalist: "medalists update", team: "team update",
+};
+
+// GET /api/admin/publish/pending - list everything waiting to be published.
+admin.get("/publish/pending", async (c) => {
+  const rows = (await c.env.DB.prepare(
+    "SELECT id, entity_type, entity_id, action, materialized_path, staged_at FROM pending_publish WHERE status = 'pending' ORDER BY staged_at ASC"
+  ).all()).results || [];
+
+  const changes = [];
+  for (const r of rows) {
+    changes.push({
+      id: r.id,
+      entity_type: r.entity_type,
+      entity_id: r.entity_id,
+      action: r.action,
+      title: await titleFor(c.env, r.entity_type, r.entity_id),
+      path: r.materialized_path,
+      staged_at: r.staged_at,
+    });
   }
-  const session = c.get("session");
-  const keys = Object.keys(sani.values);
-  const cols = [...keys, "updated_by"];
-  const ph = [...keys.map(() => "?"), "?"];
-  const binds = [...keys.map((k) => sani.values[k]), session.account_id];
 
-  const res = await c.env.DB.prepare(`INSERT INTO team_members (${cols.join(", ")}) VALUES (${ph.join(", ")})`)
-    .bind(...binds).run();
-  const id = res.meta?.last_row_id;
-  await recordAudit(c.env, session.account_id, "team.create", {
-    type: "team_member", id: String(id), payload: { name: sani.values.name, section: sani.values.section },
-  });
-  return c.json({ ok: true, id });
+  // Suggested commit message: "Update 3 posts, 1 program".
+  const counts = {};
+  for (const r of rows) {
+    const label = PENDING_LABELS[r.entity_type] || r.entity_type;
+    counts[label] = (counts[label] || 0) + 1;
+  }
+  const parts = Object.entries(counts).map(([label, n]) => `${n} ${label}${n > 1 && !label.includes(" ") ? "s" : ""}`);
+  const suggestedMessage = parts.length ? `Update ${parts.join(", ")}` : "Publish content changes";
+
+  return c.json({ ok: true, count: rows.length, changes, suggestedMessage });
 });
 
-admin.patch("/team/:id", async (c) => {
-  const id = c.req.param("id");
-  const before = await c.env.DB.prepare("SELECT id FROM team_members WHERE id = ? LIMIT 1").bind(id).first();
-  if (!before) return c.json({ error: "Team member not found." }, 404);
+// POST /api/admin/publish - materialize all pending rows from CURRENT D1 state
+// and commit them in ONE GitHub commit. Marks the set published on success.
+admin.post("/publish", async (c) => {
+  let message = "";
+  try { message = (await c.req.json())?.message || ""; } catch {}
 
-  const sani = sanitiseTeamInput(await c.req.json(), { partial: true });
-  if (sani.error) return c.json({ error: sani.error }, 400);
-  const keys = Object.keys(sani.values);
-  if (keys.length === 0) return c.json({ error: "No editable fields provided." }, 400);
+  const rows = (await c.env.DB.prepare(
+    "SELECT id, entity_type, entity_id, action FROM pending_publish WHERE status = 'pending' ORDER BY staged_at ASC"
+  ).all()).results || [];
+  if (rows.length === 0) return c.json({ error: "Nothing to publish." }, 400);
+
+  // Re-materialize from D1 now (authoritative) so the commit reflects the very
+  // latest state, not whatever was cached at stage time.
+  const files = [];
+  const seenPaths = new Set();
+  for (const r of rows) {
+    const mat = await materializeEntity(c.env, r.entity_type, r.entity_id, r.action);
+    const path = mat ? mat.path : pathFor(r.entity_type, r.entity_id);
+    if (!path || seenPaths.has(path)) continue;
+    seenPaths.add(path);
+    files.push({ path, content: mat ? mat.content : null });
+  }
 
   const session = c.get("session");
-  const sets = [...keys.map((k) => `${k} = ?`), "updated_by = ?"];
-  const binds = [...keys.map((k) => sani.values[k]), session.account_id, id];
-  await c.env.DB.prepare(`UPDATE team_members SET ${sets.join(", ")} WHERE id = ?`).bind(...binds).run();
+  const finalMessage = message.trim() || `Publish ${rows.length} content change${rows.length > 1 ? "s" : ""}`;
 
-  await recordAudit(c.env, session.account_id, "team.update", {
-    type: "team_member", id: String(id), payload: Object.fromEntries(keys.map((k) => [k, sani.values[k]])),
+  let result;
+  try {
+    result = await publishFiles(c.env, files, finalMessage);
+  } catch (err) {
+    return c.json({ error: `Publish failed: ${err.message}` }, 502);
+  }
+
+  await c.env.DB.prepare(
+    "UPDATE pending_publish SET status = 'published', updated_at = datetime('now') WHERE status = 'pending'"
+  ).run();
+
+  // Record the just-committed D1 state as each entity's revert baseline so a
+  // later discard can roll back to it. Best-effort: never fail the publish.
+  for (const r of rows) {
+    // Best-effort: never fail the publish. But surface failures - a swallowed
+    // error here leaves the entity with no discard baseline, so log which
+    // entity lost its snapshot.
+    try { await captureSnapshot(c.env, r.entity_type, r.entity_id); }
+    catch (err) { console.log(`[publish] snapshot failed for ${r.entity_type}#${r.entity_id}:`, err?.message || err); }
+  }
+
+  await recordAudit(c.env, session.account_id, "publish.commit", {
+    type: "publish", id: result.commit,
+    payload: { commit: result.commit, files: result.files, message: finalMessage },
   });
-  return c.json({ ok: true });
+
+  return c.json({ ok: true, commit: result.commit, files: result.files });
 });
 
-admin.delete("/team/:id", async (c) => {
-  const id = c.req.param("id");
-  const before = await c.env.DB.prepare("SELECT name FROM team_members WHERE id = ?").bind(id).first();
-  if (!before) return c.json({ error: "Team member not found." }, 404);
-  await c.env.DB.prepare("DELETE FROM team_members WHERE id = ?").bind(id).run();
+// POST /api/admin/publish/discard - revert each pending entity's D1 state to
+// its last-published baseline (snapshot), then drop the pending rows. Entities
+// edited before any publish-through-this-system have no baseline; those are
+// reported as skipped rather than risk wiping live content.
+admin.post("/publish/discard", async (c) => {
+  const rows = (await c.env.DB.prepare(
+    "SELECT entity_type, entity_id, action FROM pending_publish WHERE status = 'pending'"
+  ).all()).results || [];
+
+  let reverted = 0, skipped = 0;
+  for (const r of rows) {
+    try {
+      const outcome = await restoreSnapshot(c.env, r.entity_type, r.entity_id, r.action);
+      if (outcome === "skipped") skipped++; else reverted++;
+    } catch {
+      skipped++;
+    }
+  }
+
+  await c.env.DB.prepare("DELETE FROM pending_publish WHERE status = 'pending'").run();
+
   const session = c.get("session");
-  await recordAudit(c.env, session.account_id, "team.delete", {
-    type: "team_member", id: String(id), payload: { name: before.name },
+  await recordAudit(c.env, session.account_id, "publish.discard", {
+    type: "publish", id: "discard", payload: { discarded: rows.length, reverted, skipped },
   });
-  return c.json({ ok: true });
+
+  return c.json({ ok: true, discarded: rows.length, reverted, skipped });
 });
 
 export default admin;

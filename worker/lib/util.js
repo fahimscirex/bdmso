@@ -1,10 +1,10 @@
 // HTTP response helpers, ID generators, body parsers - pure utilities with no
 // dependencies on other worker modules.
 
-export function jsonResponse(body, status = 200) {
+export function jsonResponse(body, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }
+    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...extraHeaders }
   });
 }
 
@@ -56,6 +56,23 @@ export function couponAppliesToType(appliesTo, type) {
   return appliesTo.split(",").map(s => s.trim()).includes(type);
 }
 
+// Apply a coupon to a base amount. Pure so it can be unit-tested without a DB.
+// "percent" -> rounded percentage off; anything else -> flat amount off,
+// floored at 0 so a large flat discount can't produce a negative charge.
+export function couponDiscount(baseAmount, discountType, discountValue) {
+  return discountType === "percent"
+    ? Math.round(baseAmount * (1 - discountValue / 100))
+    : Math.max(0, baseAmount - discountValue);
+}
+
+// Does the gateway-verified amount cover what we billed? Money-critical:
+// a non-finite verified amount, or one that falls short by more than a 0.01
+// epsilon (float/rounding slack), counts as an underpayment. Pure + shared by
+// the callback and reconciliation so the two can't drift.
+export function amountCoversBilled(verifiedAmount, billedAmount) {
+  return Number.isFinite(verifiedAmount) && verifiedAmount + 0.01 >= billedAmount;
+}
+
 export async function parseJson(request) {
   try { return await request.json(); }
   catch {
@@ -65,11 +82,6 @@ export async function parseJson(request) {
     err.status = 400;
     throw err;
   }
-}
-
-export async function parseForm(request) {
-  try { return Object.fromEntries(new URLSearchParams(await request.text())); }
-  catch { return {}; }
 }
 
 export function getBaseUrl(request) {

@@ -2,21 +2,21 @@
 // All handlers preserve the exact behavior from the pre-Hono single-file
 // worker. They take (request, env [, url]) and return a Response.
 
-import { jsonResponse, badRequest, redirectTo, createId, couponAppliesToType, parseJson, getBaseUrl } from "../lib/util.js";
+import { jsonResponse, badRequest, redirectTo, createId, couponAppliesToType, couponDiscount, amountCoversBilled, parseJson, getBaseUrl } from "../lib/util.js";
 import { normalizeString, requireField, isEmail, isPhoneLike } from "../lib/validation.js";
-import { hashPassword, PBKDF2_ITERATIONS_CURRENT, DUMMY_HASH_SALT } from "../lib/crypto.js";
-import { createSession, extractToken, requireAuth } from "../lib/sessions.js";
+import { hashPassword, PBKDF2_ITERATIONS_CURRENT, DUMMY_HASH_SALT, timingSafeEqual } from "../lib/crypto.js";
+import { createSession, extractToken, requireAuth, sessionCookie, clearSessionCookie } from "../lib/sessions.js";
 import { checkLoginRateLimit, recordLoginAttempt, checkActionRateLimit, recordActionAttempt, clientIpFor } from "../lib/rate-limit.js";
 import { createVerificationToken, sendVerificationEmail, sendSponsorshipNotification, assignMemberIdAndSendReceipt, createPasswordResetToken, sendPasswordResetEmail, sendUpdatedReceiptForRegistration } from "../lib/email.js";
 import { recordAudit } from "../lib/audit-log.js";
 import { loadCatalog } from "../lib/programs.js";
-import { deriveRegState } from "../lib/program-options.js";
+import { deriveRegState, deriveCohortStage } from "../lib/program-options.js";
 // Program catalog now comes from D1 via loadCatalog(env). registrationOpenFor,
 // effectiveProgramPrice, names/prices and the option logic are catalog methods
 // (see lib/programs.js) - each handler does `const catalog = await loadCatalog(env)`
 // once. Keeping the call sites on the catalog API insulates them from future
 // schema/vocabulary changes.
-import { getShurjopayConfig, shurjopayGetToken, shurjopayCreatePayment, shurjopayVerify } from "../lib/shurjopay.js";
+import { getShurjopayConfig, shurjopayGetToken, shurjopayCreatePayment, shurjopayVerify, shurjopayOutcome } from "../lib/shurjopay.js";
 import { canonicalDistrict } from "../lib/districts.js";
 
 // Returns option ids already held by any non-cancelled registration of
@@ -26,6 +26,38 @@ import { canonicalDistrict } from "../lib/districts.js";
 // set against the proposed ids to decide if a duplicate is being
 // attempted - same Mock Test session booked twice, same Prep subject
 // picked on a second Prep registration, etc.
+// The cohort (program run) a new registration belongs to: the program's
+// currently-enrolling run, else its most recent run. Stamped at signup so the
+// registration is permanently bound to that run (results/reports key off it).
+async function resolveCohortKey(env, programSlug) {
+  const { results } = await env.DB.prepare(`
+    SELECT cohort_key, status, enroll_opens, enroll_closes, starts_on, ends_on
+    FROM cohorts WHERE program_slug = ?
+    ORDER BY created_at DESC
+  `).bind(programSlug).all();
+  if (!results || results.length === 0) return null;
+  // Bind to the run whose derived stage is currently 'enrolling' (newest first,
+  // already ordered); else fall back to the most recent run.
+  const enrolling = results.find(
+    (r) => deriveCohortStage(r.status, r.enroll_opens, r.enroll_closes, r.starts_on, r.ends_on) === "enrolling",
+  );
+  return (enrolling || results[0]).cohort_key;
+}
+
+// Capacity enforcement. A cohort's `capacity` is opt-in: NULL or 0 means
+// unlimited (the common case), so this is a no-op unless an admin set a cap.
+// Non-cancelled registrations count toward the cap.
+async function cohortAtCapacity(env, cohortKey) {
+  if (!cohortKey) return false;
+  const cohort = await env.DB.prepare("SELECT capacity FROM cohorts WHERE cohort_key = ? LIMIT 1").bind(cohortKey).first();
+  const cap = Number(cohort?.capacity) || 0;
+  if (cap <= 0) return false;
+  const row = await env.DB.prepare(
+    "SELECT COUNT(*) AS n FROM registrations WHERE cohort_key = ? AND status != 'cancelled'"
+  ).bind(cohortKey).first();
+  return Number(row?.n || 0) >= cap;
+}
+
 async function getTakenOptionIds(env, accountId, registrationType, exceptRegistrationId = null) {
   const rows = await env.DB.prepare(
     `SELECT id, program_options FROM registrations
@@ -47,10 +79,19 @@ export async function handleLogin(request, env) {
   const payload = await parseJson(request);
   const email    = requireField(payload.email,    "Email").toLowerCase();
   const password = requireField(payload.password, "Password");
+  if (password.length > 1000) return badRequest("Password too long.", 400);
 
   if (!(await checkLoginRateLimit(env, email))) {
     return badRequest("Too many failed attempts. Please try again in 15 minutes.", 429);
   }
+  // Per-IP volume cap so a single source can't spray a few guesses each across
+  // many different emails (distributed credential stuffing) - the per-email
+  // failure counter above never trips in that pattern.
+  const loginIp = clientIpFor(request);
+  if (!(await checkActionRateLimit(env, "login-ip", loginIp, 30, 15 * 60 * 1000))) {
+    return badRequest("Too many attempts from this network. Please try again in 15 minutes.", 429);
+  }
+  await recordActionAttempt(env, "login-ip", loginIp);
 
   const account = await env.DB.prepare(
     "SELECT id, email, full_name, password_hash, password_salt, password_iterations, email_verified, role FROM guardian_accounts WHERE email = ? LIMIT 1"
@@ -66,7 +107,7 @@ export async function handleLogin(request, env) {
 
   const storedIterations = account.password_iterations || 100000;
   const hash = await hashPassword(password, account.password_salt, storedIterations);
-  if (hash !== account.password_hash) {
+  if (!timingSafeEqual(hash, account.password_hash)) {
     await recordLoginAttempt(env, email, false);
     return badRequest("Invalid email or password.", 401);
   }
@@ -100,7 +141,7 @@ export async function handleLogin(request, env) {
     email: account.email,
     role: account.role || "guardian",
     emailVerified: !!account.email_verified
-  });
+  }, 200, { "set-cookie": sessionCookie(token, request) });
 }
 
 export async function handleLogout(request, env) {
@@ -121,7 +162,7 @@ export async function handleLogout(request, env) {
     }
     await env.DB.prepare("DELETE FROM sessions WHERE id = ?").bind(token).run();
   }
-  return jsonResponse({ ok: true });
+  return jsonResponse({ ok: true }, 200, { "set-cookie": clearSessionCookie(request) });
 }
 
 export async function handleMe(request, env) {
@@ -162,7 +203,8 @@ export async function handleMe(request, env) {
       LEFT JOIN payments p ON p.id = (
         SELECT id FROM payments
         WHERE registration_id = r.id AND purpose = 'initial'
-        ORDER BY created_at DESC LIMIT 1
+        ORDER BY CASE status WHEN 'paid' THEN 0 WHEN 'pending' THEN 1 ELSE 2 END, created_at DESC
+        LIMIT 1
       )
       WHERE r.guardian_account_id = ?
       ORDER BY r.created_at DESC
@@ -179,9 +221,56 @@ export async function handleMe(request, env) {
     try { ids = JSON.parse(r.program_options || "[]"); } catch { return []; }
     return catalog.getOptionLabels(r.registration_type, Array.isArray(ids) ? ids : []);
   };
+  // Published exam results, attached per registration. Only events with
+  // results_published = 1 surface here, so guardians never see draft scores.
+  const resultByReg = {};
+  const regIds = (rows.results || []).map((r) => r.id);
+  if (regIds.length) {
+    const pubEvents = (await env.DB.prepare(
+      "SELECT cohort_key AS event_key, label, program_slug, sections FROM cohorts WHERE results_published = 1"
+    ).all()).results || [];
+    if (pubEvents.length) {
+      const eventByProgram = {};
+      for (const e of pubEvents) eventByProgram[e.program_slug] = e;
+      const pubKeys = pubEvents.map((e) => e.event_key);
+      const regPh = regIds.map(() => "?").join(",");
+      const keyPh = pubKeys.map(() => "?").join(",");
+      const scoreRows = (await env.DB.prepare(
+        `SELECT registration_id, event_key, section, score, max_score, rank, tier
+         FROM scores WHERE registration_id IN (${regPh}) AND event_key IN (${keyPh})`
+      ).bind(...regIds, ...pubKeys).all()).results || [];
+      const byRegEvent = {};
+      for (const s of scoreRows) (byRegEvent[`${s.registration_id}|${s.event_key}`] ??= []).push(s);
+
+      for (const r of rows.results) {
+        const e = eventByProgram[r.registration_type];
+        if (!e) continue;
+        const sList = byRegEvent[`${r.id}|${e.event_key}`];
+        if (!sList || !sList.length) continue;
+        let defs = [];
+        try { defs = JSON.parse(e.sections || "[]"); } catch { defs = []; }
+        const labelById = Object.fromEntries((Array.isArray(defs) ? defs : []).map((d) => [d.id, d.label]));
+        const sections = sList.map((s) => ({
+          section: s.section, label: labelById[s.section] || s.section,
+          score: s.score, max: s.max_score, rank: s.rank, tier: s.tier,
+        }));
+        const ranks = sections.map((s) => s.rank).filter((x) => x != null);
+        resultByReg[r.id] = {
+          event_label: e.label,
+          sections,
+          total: sections.reduce((n, s) => n + Number(s.score || 0), 0),
+          max_total: sections.reduce((n, s) => n + Number(s.max || 0), 0),
+          rank: ranks.length ? Math.min(...ranks) : null,
+          tier: sections.map((s) => s.tier).find(Boolean) || null,
+        };
+      }
+    }
+  }
+
   const registrations = (rows.results || []).map((r) => {
     return {
       ...r,
+      result: resultByReg[r.id] || null,
       program_label: catalog.nameFor(r.registration_type),
       program_price: catalog.effectiveProgramPrice(r),
       option_labels: optionLabelsFor(r),
@@ -302,6 +391,7 @@ export async function handleRegistration(request, env) {
   const guardianEmail      = requireField(guardian.email,     "Guardian email").toLowerCase();
   const guardianAddress    = requireField(guardian.address,   "Address");
   const password           = requireField(acct.password,      "Password");
+  if (password.length > 1000) return badRequest("Password too long.", 400);
   const registrationType   = normalizeString(payload.registrationType) || "national-olympiad";
   const catalog = await loadCatalog(env);
   if (!catalog.has(registrationType)) {
@@ -400,6 +490,10 @@ export async function handleRegistration(request, env) {
   const createdAt         = new Date().toISOString();
   const passwordSalt      = crypto.randomUUID();
   const passwordHash      = await hashPassword(password, passwordSalt, PBKDF2_ITERATIONS_CURRENT);
+  const cohortKey         = await resolveCohortKey(env, registrationType);
+  if (await cohortAtCapacity(env, cohortKey)) {
+    return badRequest("This programme run is full. Please check back later or contact us.", 409);
+  }
 
   await env.DB.batch([
     env.DB.prepare(
@@ -410,13 +504,13 @@ export async function handleRegistration(request, env) {
         id, registration_type, student_full_name, student_date_of_birth, student_class_name,
         student_gender, student_medium, student_school, student_district, guardian_account_id, guardian_full_name,
         guardian_relationship, guardian_phone, guardian_email, guardian_address,
-        preferred_venue, preferred_subject, program_options, terms_accepted, status, source_page, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        preferred_venue, preferred_subject, program_options, terms_accepted, status, source_page, cohort_key, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       applicationId, registrationType, studentFullName, studentDateOfBirth, studentClassName,
       studentGender, studentMedium || null, studentSchool, districtCanonical, guardianAccountId, guardianFullName,
       guardianRelationship, guardianPhone, guardianEmail, guardianAddress,
-      preferredVenue, preferredSubject, programOptions, termsAccepted ? 1 : 0, "submitted", sourcePage, createdAt
+      preferredVenue, preferredSubject, programOptions, termsAccepted ? 1 : 0, "submitted", sourcePage, cohortKey, createdAt
     )
   ]);
 
@@ -431,22 +525,22 @@ export async function handleRegistration(request, env) {
     fullName: guardianFullName,
     email: guardianEmail,
     emailVerified: false
-  });
+  }, 200, { "set-cookie": sessionCookie(token, request) });
 }
 
 export async function handleVerifyEmail(request, env, url) {
   const token = url.searchParams.get("token");
   const base  = getBaseUrl(request);
-  if (!token) return redirectTo(`${base}/dashboard.html?verified=invalid`);
+  if (!token) return redirectTo(`${base}/dashboard?verified=invalid`);
 
   const row = await env.DB.prepare(
     "SELECT account_id, expires_at FROM email_verification_tokens WHERE token = ? LIMIT 1"
   ).bind(token).first();
 
-  if (!row) return redirectTo(`${base}/dashboard.html?verified=invalid`);
+  if (!row) return redirectTo(`${base}/dashboard?verified=invalid`);
   if (row.expires_at <= new Date().toISOString()) {
     await env.DB.prepare("DELETE FROM email_verification_tokens WHERE token = ?").bind(token).run();
-    return redirectTo(`${base}/dashboard.html?verified=expired`);
+    return redirectTo(`${base}/dashboard?verified=expired`);
   }
 
   await env.DB.batch([
@@ -454,7 +548,7 @@ export async function handleVerifyEmail(request, env, url) {
     env.DB.prepare("DELETE FROM email_verification_tokens WHERE account_id = ?").bind(row.account_id),
   ]);
 
-  return redirectTo(`${base}/dashboard.html?verified=success`);
+  return redirectTo(`${base}/dashboard?verified=success`);
 }
 
 export async function handleResendVerification(request, env) {
@@ -466,6 +560,14 @@ export async function handleResendVerification(request, env) {
     "SELECT email_verified FROM guardian_accounts WHERE id = ? LIMIT 1"
   ).bind(account.account_id).first();
   if (row?.email_verified) return jsonResponse({ ok: true, alreadyVerified: true });
+
+  // Throttle so a logged-in (even unverified) user can't loop this to fire
+  // unbounded verification emails at their own address (Brevo quota / sender
+  // reputation). Keyed on the account, mirroring forgot-password.
+  if (!(await checkActionRateLimit(env, "resend-verification", account.account_id, 3, 15 * 60 * 1000))) {
+    return badRequest("Too many requests. Please wait a few minutes before resending.", 429);
+  }
+  await recordActionAttempt(env, "resend-verification", account.account_id);
 
   // Intentionally do NOT delete prior tokens here. Both emails go to the
   // same address, so both links are equivalent - invalidating the older
@@ -529,6 +631,15 @@ export async function handleForgotPassword(request, env) {
 // account's registrations, or the BdMSO ID issued to that account.
 // Pass exactly one of `phone` or `memberId`.
 export async function handleForgotEmail(request, env) {
+  // Throttle per IP: this endpoint confirms account existence and returns a
+  // masked email, so without a cap it enables enumeration of the phone/member-id
+  // space. (Siblings forgot-password/reset-password are already throttled.)
+  const ip = clientIpFor(request);
+  if (!(await checkActionRateLimit(env, "forgot-email", ip, 10, 15 * 60 * 1000))) {
+    return badRequest("Too many requests. Please try again in a few minutes.", 429);
+  }
+  await recordActionAttempt(env, "forgot-email", ip);
+
   const payload = await parseJson(request);
   const phoneRaw    = normalizeString(payload.phone);
   const memberIdRaw = normalizeString(payload.memberId);
@@ -556,7 +667,8 @@ export async function handleForgotEmail(request, env) {
     return badRequest("Enter a phone number or BdMSO ID.");
   }
 
-  if (!row) return jsonResponse({ ok: true, found: false });
+  // Keep the response shape stable across branches so clients get one shape.
+  if (!row) return jsonResponse({ ok: true, found: false, maskedEmail: null });
   return jsonResponse({ ok: true, found: true, maskedEmail: maskEmail(row.email) });
 }
 
@@ -575,6 +687,7 @@ export async function handleResetPassword(request, env) {
   const password = requireField(payload.password, "Password");
   if (!token) return badRequest("This reset link is invalid.");
   if (password.length < 8) return badRequest("Password must be at least 8 characters.");
+  if (password.length > 1000) return badRequest("Password too long.", 400);
 
   const row = await env.DB.prepare(
     "SELECT token, account_id, expires_at, used FROM password_reset_tokens WHERE token = ? LIMIT 1"
@@ -630,6 +743,19 @@ export async function handleSponsorship(request, env) {
     .catch(err => console.log("[email-sponsorship] notify failed:", err.message));
 
   return jsonResponse({ ok: true, leadId });
+}
+
+// Mints the next human-readable invoice number ('INV-YYYY-NNNN') for a manual
+// payment. The per-year counter lives in invoice_seq; a single INSERT … ON
+// CONFLICT DO UPDATE … RETURNING reserves + increments atomically so two
+// parallel manual checkouts can't collide on a sequence value.
+async function generateInvoiceNo(env) {
+  const year = new Date().getFullYear();
+  const row = await env.DB.prepare(
+    "INSERT INTO invoice_seq (year, next_seq) VALUES (?, 1) ON CONFLICT(year) DO UPDATE SET next_seq = next_seq + 1 RETURNING next_seq"
+  ).bind(year).first();
+  const seq = Number(row?.next_seq) || 1;
+  return `INV-${year}-${String(seq).padStart(4, "0")}`;
 }
 
 export async function handleCreatePayment(request, env) {
@@ -712,9 +838,7 @@ export async function handleCreatePayment(request, env) {
         (!coupon.max_uses   || coupon.used_count < coupon.max_uses) &&
         (!coupon.applies_to || couponAppliesToType(coupon.applies_to, reg.registration_type))
     ) {
-      finalAmount = coupon.discount_type === "percent"
-        ? Math.round(baseAmount * (1 - coupon.discount_value / 100))
-        : Math.max(0, baseAmount - coupon.discount_value);
+      finalAmount = couponDiscount(baseAmount, coupon.discount_type, coupon.discount_value);
       // used_count is incremented in the payment callback once payment is confirmed,
       // except for free registrations (amount=0) which complete immediately below.
     }
@@ -725,18 +849,42 @@ export async function handleCreatePayment(request, env) {
   const now    = new Date().toISOString();
   const base   = getBaseUrl(request);
 
+  // Manual (cash / bank / offline) checkout - no gateway session. We record a
+  // pending payment row tagged channel='manual' with a generated invoice number
+  // and hand the guardian an invoice to settle; an admin later marks it paid.
+  const paymentMethod = normalizeString(payload.paymentMethod) || "online";
+  if (paymentMethod === "manual") {
+    const invoiceNo = await generateInvoiceNo(env);
+    const paymentId = createId("pay");
+    await env.DB.prepare(
+      "INSERT INTO payments (id, registration_id, amount, currency, tran_id, channel, method, invoice_no, coupon_code, status, cohort_key, created_at, updated_at) VALUES (?, ?, ?, 'BDT', ?, 'manual', 'manual', ?, ?, 'pending', ?, ?, ?)"
+    ).bind(paymentId, registrationId, amount, tranId, invoiceNo, couponCode || null, reg.cohort_key, now, now).run();
+    return jsonResponse({
+      ok: true,
+      manual: true,
+      invoiceNo,
+      amount,
+      invoiceUrl: `/registration/invoice?reg=${registrationId}&inv=${invoiceNo}`,
+    });
+  }
+
   // Free registration - skip payment gateway entirely
   if (amount === 0) {
     const paymentId = createId("pay");
     const freeOps = [
       env.DB.prepare(
-        "INSERT INTO payments (id, registration_id, amount, currency, tran_id, status, created_at, updated_at) VALUES (?, ?, 0, 'BDT', ?, 'paid', ?, ?)"
-      ).bind(paymentId, registrationId, tranId, now, now),
+        "INSERT INTO payments (id, registration_id, amount, currency, tran_id, status, cohort_key, created_at, updated_at) VALUES (?, ?, 0, 'BDT', ?, 'paid', ?, ?, ?)"
+      ).bind(paymentId, registrationId, tranId, reg.cohort_key, now, now),
       env.DB.prepare("UPDATE registrations SET status = 'paid' WHERE id = ?").bind(registrationId),
     ];
     if (couponCode) {
       freeOps.push(
-        env.DB.prepare("UPDATE coupons SET used_count = used_count + 1 WHERE code = ?").bind(couponCode)
+        // Guard against over-redemption: only increment while uses remain. If
+        // the coupon is already exhausted this updates 0 rows (the free reg
+        // still completes - the discount was already applied at this point).
+        env.DB.prepare(
+          "UPDATE coupons SET used_count = used_count + 1 WHERE code = ? AND (max_uses IS NULL OR used_count < max_uses)"
+        ).bind(couponCode)
       );
     }
     await env.DB.batch(freeOps);
@@ -775,7 +923,7 @@ export async function handleCreatePayment(request, env) {
       customer_post_code: "1000",
     });
   } catch (err) {
-    console.error("[public.createPayment] gateway error:", err?.stack || err?.message || err);
+    console.error("[public.createPayment] gateway error:", err?.message || String(err));
     return badRequest("Payment gateway error. Please try again.");
   }
 
@@ -784,10 +932,54 @@ export async function handleCreatePayment(request, env) {
   // our merchant tran_id.
   const paymentId = createId("pay");
   await env.DB.prepare(
-    "INSERT INTO payments (id, registration_id, amount, currency, tran_id, val_id, coupon_code, status, created_at, updated_at) VALUES (?, ?, ?, 'BDT', ?, ?, ?, 'pending', ?, ?)"
-  ).bind(paymentId, registrationId, amount, tranId, spRes.sp_order_id || null, couponCode || null, now, now).run();
+    "INSERT INTO payments (id, registration_id, amount, currency, tran_id, val_id, coupon_code, status, cohort_key, created_at, updated_at) VALUES (?, ?, ?, 'BDT', ?, ?, ?, 'pending', ?, ?, ?)"
+  ).bind(paymentId, registrationId, amount, tranId, spRes.sp_order_id || null, couponCode || null, reg.cohort_key, now, now).run();
 
   return jsonResponse({ ok: true, checkoutURL: spRes.checkout_url });
+}
+
+// GET /api/invoice/:registrationId?inv=<invoiceNo>
+// Returns the printable invoice for a manual payment. Requires auth and that
+// the registration (and its invoice) belongs to the calling guardian.
+export async function handleInvoice(request, env, url, registrationId) {
+  let account;
+  try { account = await requireAuth(request, env); }
+  catch (e) { return badRequest(e.message, e.status || 401); }
+
+  const invoiceNo = normalizeString(url.searchParams.get("inv"));
+  if (!registrationId || !invoiceNo) return badRequest("Missing registration or invoice number.");
+
+  const reg = await env.DB.prepare(
+    "SELECT * FROM registrations WHERE id = ? AND guardian_account_id = ? LIMIT 1"
+  ).bind(registrationId, account.account_id).first();
+  if (!reg) return badRequest("Registration not found.", 404);
+
+  const payment = await env.DB.prepare(
+    "SELECT amount, status, created_at FROM payments WHERE registration_id = ? AND invoice_no = ? LIMIT 1"
+  ).bind(registrationId, invoiceNo).first();
+  if (!payment) return badRequest("Invoice not found.", 404);
+
+  const catalog = await loadCatalog(env);
+  let storedOptions = [];
+  try { storedOptions = JSON.parse(reg.program_options || "[]"); } catch {}
+  const programOptions = catalog.programHasOptions(reg.registration_type)
+    ? catalog.getOptionLabels(reg.registration_type, storedOptions)
+    : [];
+
+  return jsonResponse({
+    invoiceNo,
+    createdAt:       payment.created_at,
+    status:          payment.status,
+    programName:     catalog.nameFor(reg.registration_type),
+    studentName:     reg.student_full_name,
+    studentClass:    reg.student_class_name,
+    studentDistrict: reg.student_district,
+    guardianName:    reg.guardian_full_name,
+    guardianEmail:   reg.guardian_email,
+    guardianPhone:   reg.guardian_phone,
+    amount:          payment.amount,
+    programOptions,
+  });
 }
 
 // Extracts shurjoPay's order id from a callback. The browser return puts
@@ -847,19 +1039,26 @@ export async function handlePaymentCallback(request, env, url) {
     const tokenInfo = await shurjopayGetToken(config, env);
     const result    = await shurjopayVerify(config, tokenInfo, spOrderId);
     const now       = new Date().toISOString();
-    const status    = result.transaction_status || result.sp_message || "Unknown";
-
-    // shurjoPay returns "Success" on a confirmed paid txn for wallet rails
-    // (bKash, Nagad). Card rails settle via the issuer bank and come back
-    // with ISO 8583 "00" (Approved) in transaction_status instead, so accept
-    // both. Anything else (Cancel / Failed / Initiated / Pending) is treated
-    // as not-yet-paid.
-    const isSuccess = status === "Success" || status === "00";
-    if (!isSuccess) {
+    // `status` is the descriptive string we persist for display; the success
+    // DECISION uses shurjopayOutcome, which keys off sp_code (authoritative,
+    // method-independent) rather than transaction_status. transaction_status is
+    // rail-dependent - "Success" on wallets (bKash/Nagad) but "Completed" on
+    // IBBL i-banking / mCash - so keying off it alone stranded those rails as
+    // pending despite sp_code=1000. Initiated/Pending stay pending for retry;
+    // only Cancel/Failed are terminal.
+    const status    = result.transaction_status || result.bank_status || result.sp_message || "Unknown";
+    const outcome   = shurjopayOutcome(result);
+    if (outcome !== "success") {
+      if (outcome === "cancelled" || outcome === "failed") {
+        await env.DB.prepare(
+          "UPDATE payments SET status = 'failed', gateway_status = ?, updated_at = ? WHERE val_id = ? AND status != 'paid'"
+        ).bind(status, now, spOrderId).run();
+        return done(outcome === "cancelled" ? "cancelled" : "failed");
+      }
       await env.DB.prepare(
-        "UPDATE payments SET status = 'failed', gateway_status = ?, updated_at = ? WHERE val_id = ? AND status != 'paid'"
+        "UPDATE payments SET gateway_status = ?, updated_at = ? WHERE val_id = ? AND status = 'pending'"
       ).bind(status, now, spOrderId).run();
-      return done(status.toLowerCase() === "cancel" ? "cancelled" : "failed");
+      return done("pending");
     }
 
     // Amount sanity check. We trust shurjoPay's verify response, but the
@@ -869,7 +1068,7 @@ export async function handlePaymentCallback(request, env, url) {
     // visible in admin and doesn't auto-mark paid.
     const verifiedAmount = Number(result.amount ?? result.txn_amount ?? NaN);
     const billedAmount   = Number(payment.amount);
-    if (!Number.isFinite(verifiedAmount) || verifiedAmount + 0.01 < billedAmount) {
+    if (!amountCoversBilled(verifiedAmount, billedAmount)) {
       console.log(`[payment-callback] amount mismatch val_id=${spOrderId} billed=${billedAmount} verified=${verifiedAmount}`);
       await env.DB.prepare(
         "UPDATE payments SET status = 'failed', gateway_status = ?, updated_at = ? WHERE val_id = ? AND status != 'paid'"
@@ -881,8 +1080,8 @@ export async function handlePaymentCallback(request, env, url) {
     // to paid. meta.changes tells us whether THIS call won the race, so
     // the side effects (member id, receipt, coupon count) run exactly once.
     const claim = await env.DB.prepare(
-      "UPDATE payments SET status = 'paid', gateway_status = 'Success', method = ?, updated_at = ? WHERE val_id = ? AND status != 'paid'"
-    ).bind(result.method || null, now, spOrderId).run();
+      "UPDATE payments SET status = 'paid', gateway_status = 'Success', method = ?, account_number = ?, updated_at = ? WHERE val_id = ? AND status = 'pending'"
+    ).bind(result.method || null, result.account_number || result.card_number || result.phone_no || null, now, spOrderId).run();
 
     if (!claim?.meta || claim.meta.changes === 0) {
       return done("success");  // the other channel claimed it first
@@ -953,8 +1152,11 @@ export async function handlePaymentCallback(request, env, url) {
     ];
     if (payment.coupon_code) {
       ops.push(
-        env.DB.prepare("UPDATE coupons SET used_count = used_count + 1 WHERE code = ?")
-          .bind(payment.coupon_code)
+        // Guard against over-redemption: only increment while uses remain so a
+        // limited-use coupon can't exceed max_uses under concurrent callbacks.
+        env.DB.prepare(
+          "UPDATE coupons SET used_count = used_count + 1 WHERE code = ? AND (max_uses IS NULL OR used_count < max_uses)"
+        ).bind(payment.coupon_code)
       );
     }
     await env.DB.batch(ops);
@@ -965,6 +1167,13 @@ export async function handlePaymentCallback(request, env, url) {
     return done("success");
   } catch (err) {
     console.log("[payment-callback] shurjoPay error:", err.message);
+    // Record the error so reconciliation can see it, but keep status as
+    // 'pending' so a late IPN (or the cron) can still claim the payment.
+    try {
+      await env.DB.prepare(
+        "UPDATE payments SET gateway_status = ?, updated_at = ? WHERE val_id = ? AND status = 'pending'"
+      ).bind(`CallbackError: ${err.message}`, new Date().toISOString(), spOrderId).run();
+    } catch {}
     return done("failed");
   }
 }
@@ -1034,6 +1243,10 @@ export async function handleAddEnrollment(request, env) {
 
   const applicationId = createId("app");
   const createdAt     = new Date().toISOString();
+  const cohortKey     = await resolveCohortKey(env, registrationType);
+  if (await cohortAtCapacity(env, cohortKey)) {
+    return badRequest("This programme run is full. Please check back later or contact us.", 409);
+  }
 
   // The BdMSO ID lives on the guardian account, not on registration
   // rows - so a new enrollment doesn't carry one; the account's ID
@@ -1043,8 +1256,8 @@ export async function handleAddEnrollment(request, env) {
       id, registration_type, student_full_name, student_date_of_birth, student_class_name,
       student_gender, student_medium, student_school, student_district, guardian_account_id, guardian_full_name,
       guardian_relationship, guardian_phone, guardian_email, guardian_address,
-      program_options, terms_accepted, status, source_page, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'submitted', 'programs.html', ?)
+      program_options, terms_accepted, status, source_page, cohort_key, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'submitted', 'programs.html', ?, ?)
   `).bind(
     applicationId, registrationType,
     existing.student_full_name, existing.student_date_of_birth,
@@ -1055,6 +1268,7 @@ export async function handleAddEnrollment(request, env) {
     existing.guardian_relationship, existing.guardian_phone,
     account.email, existing.guardian_address,
     programOptions,
+    cohortKey,
     createdAt
   ).run();
 
@@ -1086,7 +1300,3 @@ export async function handleValidateCoupon(request, env, url) {
       : `৳${Number(coupon.discount_value).toLocaleString()} off`
   });
 }
-
-// (Removed) grantPrepFreeMockTests - the Prep Course no longer auto-creates
-// separate free Mock Test registrations. Mock tests are now bundled into the
-// Prep Course package itself (see each subject option in programs-detail.json).

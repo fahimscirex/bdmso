@@ -8,8 +8,12 @@ export async function checkLoginRateLimit(env, email) {
   const row = await env.DB.prepare(
     "SELECT COUNT(*) AS n FROM login_attempts WHERE email = ? AND success = 0 AND attempted_at > ?"
   ).bind(email, since).first();
-  // Lazily purge rows outside the window - no need to await.
-  env.DB.prepare("DELETE FROM login_attempts WHERE attempted_at < ?").bind(since).run().catch(() => {});
+  // Lazily purge rows outside the window. Probabilistic (~2% of logins) so a
+  // full-table DELETE doesn't run on every single login - the count query above
+  // is index-backed and cheap regardless.
+  if (Math.random() < 0.02) {
+    env.DB.prepare("DELETE FROM login_attempts WHERE attempted_at < ?").bind(since).run().catch(() => {});
+  }
   return (row?.n || 0) < LOGIN_MAX_FAILS;
 }
 

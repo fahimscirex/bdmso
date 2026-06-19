@@ -21,12 +21,18 @@
 //              amount, received_amount, currency, method,
 //              customer_order_id, date_time, ... } ]
 //        Note: response is an ARRAY (their convention) - first element
-//        holds the txn. transaction_status === "Success" means paid.
+//        holds the txn. Success is authoritative on sp_code === "1000" (NOT
+//        transaction_status, which is rail-dependent) - see shurjopayOutcome.
 //
 // After the user finishes paying on the hosted page, shurjoPay redirects
 // to our return_url with `?order_id=<sp_order_id>` in the query - call it
 // "their order id", which is what verify() takes as input. Misleading name,
 // confirmed against return.js in their usage-examples repo.
+
+// Cap every gateway round-trip so a hung shurjoPay can't stall payment-create
+// or the verify-in-callback indefinitely (the request would otherwise hang
+// until the worker's own wall-clock limit). 15s is generous for these APIs.
+const GATEWAY_TIMEOUT_MS = 15000;
 
 export function getShurjopayConfig(env) {
   // Endpoint selection is now driven primarily by ENVIRONMENT, with
@@ -71,6 +77,7 @@ export async function shurjopayGetToken(config, env) {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body:   JSON.stringify({ username: config.username, password: config.password }),
+    signal: AbortSignal.timeout(GATEWAY_TIMEOUT_MS),
   });
   const data = await res.json().catch(() => ({}));
   if (!data.token) throw new Error(data.message || "shurjoPay token request failed");
@@ -108,9 +115,16 @@ export async function shurjopayCreatePayment(config, tokenInfo, payload) {
   };
   // Diagnostic: log the sanitised request body and the gateway's
   // response so we can see what shurjoPay parsed and how it answered.
-  // Token + store_id are credentials so they get redacted; amount,
-  // order_id, and customer_* are non-secret and useful for debugging.
-  const safeBody = { ...body, token: "***", store_id: "***" };
+  // Credentials (token, store_id) AND guardian PII (name/phone/email/
+  // address - this is a minors' programme) are redacted; amount and the
+  // order id stay for debugging. Workers logs are retained, so never
+  // emit PII here.
+  const safeBody = {
+    ...body,
+    token: "***", store_id: "***",
+    customer_name: "***", customer_phone: "***",
+    customer_email: "***", customer_address: "***",
+  };
   console.log(`[shurjopay] create-payment body=${JSON.stringify(safeBody)}`);
   const res = await fetch(`${config.base}/api/secret-pay`, {
     method: "POST",
@@ -120,9 +134,17 @@ export async function shurjopayCreatePayment(config, tokenInfo, payload) {
       Authorization:  `${tokenInfo.token_type} ${tokenInfo.token}`,
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(GATEWAY_TIMEOUT_MS),
   });
   const data = await res.json().catch(() => ({}));
-  console.log(`[shurjopay] create-payment status=${res.status} response=${JSON.stringify(data)}`);
+  // Never log the full response: it carries checkout_url (a session token).
+  // Mirror the redacted body above and emit only safe status fields.
+  const safeResponse = {
+    sp_code:           data.sp_code,
+    message:           data.message ?? data.sp_message,
+    transactionStatus: data.transactionStatus,
+  };
+  console.log(`[shurjopay] create-payment status=${res.status} response=${JSON.stringify(safeResponse)}`);
   if (!data.checkout_url) {
     throw new Error(data.message || data.sp_message || "shurjoPay create-payment failed");
   }
@@ -140,10 +162,34 @@ export async function shurjopayVerify(config, tokenInfo, spOrderId) {
       Authorization:  `${tokenInfo.token_type} ${tokenInfo.token}`,
     },
     body: JSON.stringify({ order_id: spOrderId }),
+    signal: AbortSignal.timeout(GATEWAY_TIMEOUT_MS),
   });
   const data = await res.json().catch(() => null);
   if (!Array.isArray(data) || data.length === 0) {
     throw new Error("shurjoPay verification returned no transaction.");
   }
-  return data[0]; // { transaction_status, bank_status, bank_trx_id, amount, ... }
+  return data[0]; // { sp_code, bank_status, transaction_status, method, amount, ... }
+}
+
+// Classify a verification result into 'success' | 'failed' | 'cancelled' |
+// 'pending'. shurjoPay exposes THREE status-ish fields and only sp_code is
+// reliable across rails:
+//   sp_code            "1000" = verified/paid (authoritative, method-independent)
+//   bank_status        rail outcome: "Success" | "Cancel" | "Failed" | "Pending"
+//   transaction_status DESCRIPTIVE + rail-dependent: wallets (bKash/Nagad)
+//                      return "Success", but IBBL i-banking / mCash return
+//                      "Completed" (sometimes uppercased). Keying success off
+//                      this field alone stranded those rails as pending.
+// So: trust sp_code first, corroborate with bank_status, and only fall back to
+// transaction_status. Unknown/transient states stay 'pending' for retry.
+export function shurjopayOutcome(result) {
+  const code = String(result?.sp_code ?? "").trim();
+  const bank = String(result?.bank_status ?? "").trim().toLowerCase();
+  const tx   = String(result?.transaction_status ?? "").trim().toLowerCase();
+
+  if (code === "1000" || bank === "success" ||
+      tx === "success" || tx === "completed" || tx === "00") return "success";
+  if (bank === "cancel" || bank === "cancelled" || tx === "cancel" || tx === "cancelled") return "cancelled";
+  if (bank === "failed" || tx === "failed") return "failed";
+  return "pending";
 }

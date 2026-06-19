@@ -10,6 +10,7 @@ import { recordAudit } from "../lib/audit-log.js";
 import { getBaseUrl, createId } from "../lib/util.js";
 import { createVerificationToken, sendVerificationEmail, sendUpdatedReceiptForRegistration } from "../lib/email.js";
 import { canonicalDistrict } from "../lib/districts.js";
+import { isPhoneLike } from "../lib/validation.js";
 import { getCatalog } from "../lib/programs.js";
 import {
   getShurjopayConfig,
@@ -62,8 +63,12 @@ guardian.patch("/profile", async (c) => {
   }
 
   if (typeof body.phone === "string") {
+    const phone = body.phone.trim();
+    if (phone && !isPhoneLike(phone)) {
+      return c.json({ error: "Phone number is not valid." }, 400);
+    }
     sets.push("phone = ?");
-    binds.push(body.phone.trim() || null);
+    binds.push(phone || null);
   }
 
   if (typeof body.email === "string") {
@@ -515,8 +520,8 @@ guardian.post("/registrations/:id/options/upgrade", async (c) => {
     await c.env.DB.prepare(
       `INSERT INTO payments (
          id, registration_id, amount, currency, tran_id, val_id,
-         status, purpose, proposed_options, created_at, updated_at
-       ) VALUES (?, ?, ?, 'BDT', ?, ?, 'pending', 'option-upgrade', ?, ?, ?)`
+         status, purpose, proposed_options, cohort_key, created_at, updated_at
+       ) VALUES (?, ?, ?, 'BDT', ?, ?, 'pending', 'option-upgrade', ?, (SELECT cohort_key FROM registrations WHERE id = ?), ?, ?)`
     ).bind(
       paymentId,
       ctx.reg.id,
@@ -524,6 +529,7 @@ guardian.post("/registrations/:id/options/upgrade", async (c) => {
       tranId,
       spRes.sp_order_id || null,
       JSON.stringify(diff.normalizedTo),
+      ctx.reg.id,
       now,
       now,
     ).run();

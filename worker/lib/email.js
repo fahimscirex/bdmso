@@ -5,6 +5,9 @@ import { normalizeString, escapeHtml } from "./validation.js";
 import { reserveMemberId, parseClassDigit } from "./util.js";
 import { loadCatalog } from "./programs.js";
 
+// Canonical public origin for assets embedded in emails (e.g. the logo).
+const SITE_ORIGIN = "https://bdmso.org";
+
 // Cloudflare Workers retains console output. Emails and URL tokens are
 // PII; redact before logging. logEmail keeps the domain (useful for
 // debugging deliverability) but drops the local-part beyond two chars.
@@ -78,6 +81,19 @@ export function parseEmailFrom(raw) {
 // the Response/errors; this removes the url + method + headers boilerplate that
 // was copied into every send* function.
 async function sendBrevoEmail(env, payload) {
+  // Dev safety net: outside production we do NOT hit the live Brevo API, because
+  // the production key lives in .dev.vars - so testing email-sending endpoints
+  // against real data can't mail real guardians. Opt back in for a deliberate
+  // dev send with EMAIL_LIVE=true. Returns a synthetic 201 so every caller's
+  // res.ok path behaves exactly as it does in production.
+  if (env.ENVIRONMENT !== "production" && env.EMAIL_LIVE !== "true") {
+    const n = Array.isArray(payload.messageVersions) ? payload.messageVersions.length
+            : Array.isArray(payload.to) ? payload.to.length : 0;
+    console.log(`[email] DEV: not sending "${payload.subject}" to ${n} recipient(s) (set EMAIL_LIVE=true to send for real)`);
+    return new Response(JSON.stringify({ messageId: "dev-no-send" }), {
+      status: 201, headers: { "content-type": "application/json" },
+    });
+  }
   return fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: {
@@ -267,7 +283,7 @@ export async function sendReceiptEmail(env, reg, memberId, baseUrl, extras = {})
     });
     const body = await res.text().catch(() => "");
     if (!res.ok) {
-      console.log(`[email-receipt] brevo error ${res.status}: ${body}`);
+      console.log(`[email-receipt] brevo error status=${res.status} (response body redacted)`);
     } else {
       let parsed = {};
       try { parsed = JSON.parse(body); } catch {}
@@ -317,8 +333,7 @@ export async function sendSponsorshipNotification(env, lead) {
       htmlContent: html,
     });
     if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      console.log(`[email-sponsorship] brevo error ${res.status}: ${body}`);
+      console.log(`[email-sponsorship] brevo error status=${res.status} (response body redacted)`);
     }
   } catch (err) {
     console.log("[email-sponsorship] brevo fetch failed:", err.message);
@@ -497,7 +512,7 @@ export async function sendVerificationEmail(env, email, verifyUrl) {
     });
     const body = await res.text().catch(() => "");
     if (!res.ok) {
-      console.log(`[email-verify] brevo error ${res.status}: ${body}`);
+      console.log(`[email-verify] brevo error status=${res.status} (response body redacted)`);
     } else {
       // Brevo returns { messageId: "<...>" } on success - log it so we
       // can correlate with their dashboard if the recipient doesn't see it.
@@ -546,8 +561,7 @@ export async function sendPasswordResetEmail(env, email, resetUrl) {
       subject: "Reset your BdMSO password",
       htmlContent: html,
     });
-    const body = await res.text().catch(() => "");
-    if (!res.ok) console.log(`[email-reset] brevo error ${res.status}: ${body}`);
+    if (!res.ok) console.log(`[email-reset] brevo error status=${res.status} (response body redacted)`);
     else console.log("[email-reset] brevo accepted");
   } catch (err) {
     console.log("[email-reset] brevo fetch failed:", err.message);
@@ -557,7 +571,156 @@ export async function sendPasswordResetEmail(env, email, resetUrl) {
 // Broadcast: one branded announcement to many guardians. Uses Brevo
 // messageVersions so every recipient gets their own copy (no shared
 // To: header), chunked so a large send still goes out in a few calls.
-export async function sendBroadcastEmail(env, { subject, message, recipients }) {
+// `html: true` treats `message` as pre-rendered HTML (from the composer's
+// markdown), sanitised before embedding. Otherwise `message` is plain text
+// (escaped, newlines -> <br>) - used by the bulk-remind reminder.
+// Allowlist sanitiser for admin-authored broadcast HTML (markdown -> HTML).
+// Runs on Cloudflare Workers (no DOM/jsdom, no deps), so we hand-roll a small
+// tokenizer instead of relying on a few easily-bypassed regex .replace() calls.
+//
+// Approach: scan the string left-to-right. Plain text is passed through. For
+// every "<...>" tag token we (a) drop the angle brackets of any tag not on the
+// allowlist while keeping its inner text, (b) for allowed tags rebuild the tag
+// from scratch keeping only allowlisted attributes with safe values, and
+// (c) wholesale remove a few dangerous elements together with their content.
+// Comments (<!-- -->) are stripped. Because we tokenise rather than pattern-
+// match, nested/split tricks like "<scr<script>ipt>" collapse to inert text.
+const SANITISE_ALLOWED_TAGS = new Set([
+  "a", "p", "br", "hr", "b", "strong", "i", "em", "u", "s", "blockquote",
+  "ul", "ol", "li", "h1", "h2", "h3", "h4", "h5", "h6", "span", "div", "img",
+  "table", "thead", "tbody", "tr", "td", "th", "pre", "code", "figure",
+  "figcaption",
+]);
+// Elements removed together with everything between their open/close tags.
+const SANITISE_VOID_DANGEROUS = new Set([
+  "script", "style", "iframe", "object", "embed", "svg", "math",
+]);
+// Per-tag attribute allowlist. `title`, `colspan`, `rowspan`, `align` are
+// allowed on any kept tag; the listed extras are tag-specific.
+const SANITISE_GLOBAL_ATTRS = new Set(["title", "colspan", "rowspan", "align"]);
+const SANITISE_TAG_ATTRS = {
+  a: new Set(["href"]),
+  img: new Set(["src", "alt", "width", "height"]),
+};
+
+function sanitiseHref(value) {
+  const v = String(value || "").trim();
+  if (/^(https?:\/\/|mailto:)/i.test(v)) return v;
+  if (v.startsWith("#") || v.startsWith("/")) return v;
+  return null;
+}
+
+function sanitiseImgSrc(value) {
+  const v = String(value || "").trim();
+  if (/^(https?:\/\/|data:image\/)/i.test(v)) return v;
+  return null;
+}
+
+// Pull "name=value" / "name='value'" / boolean attrs out of a raw tag body.
+function sanitiseParseAttrs(raw) {
+  const attrs = [];
+  const re = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)(?:\s*=\s*("[^"]*"|'[^']*'|[^\s"'>]+))?/g;
+  let m;
+  while ((m = re.exec(raw))) {
+    const name = m[1].toLowerCase();
+    let value = m[2];
+    if (value && (value[0] === '"' || value[0] === "'")) value = value.slice(1, -1);
+    attrs.push({ name, value: value == null ? null : value });
+  }
+  return attrs;
+}
+
+function sanitiseRebuildTag(tag, raw) {
+  const allowed = SANITISE_TAG_ATTRS[tag] || null;
+  const kept = [];
+  for (const { name, value } of sanitiseParseAttrs(raw)) {
+    if (name.startsWith("on")) continue;            // event handlers
+    if (name === "style" || name === "class" || name === "id") continue;
+    let ok = SANITISE_GLOBAL_ATTRS.has(name) || (allowed && allowed.has(name));
+    if (!ok) continue;
+    let v = value;
+    if (name === "href") { v = sanitiseHref(value); if (v == null) continue; }
+    if (name === "src")  { v = sanitiseImgSrc(value); if (v == null) continue; }
+    kept.push(v == null ? name : `${name}="${escapeHtml(v)}"`);
+  }
+  return kept.length ? `<${tag} ${kept.join(" ")}>` : `<${tag}>`;
+}
+
+export function sanitiseEmailHtml(html) {
+  const input = String(html || "");
+  let out = "";
+  let i = 0;
+  const n = input.length;
+  while (i < n) {
+    const lt = input.indexOf("<", i);
+    if (lt === -1) { out += input.slice(i); break; }
+    out += input.slice(i, lt);
+
+    // Strip HTML comments entirely.
+    if (input.startsWith("<!--", lt)) {
+      const end = input.indexOf("-->", lt + 4);
+      i = end === -1 ? n : end + 3;
+      continue;
+    }
+    // Other "<!...>" declarations: drop the token, keep nothing.
+    if (input[lt + 1] === "!") {
+      const gt = input.indexOf(">", lt);
+      i = gt === -1 ? n : gt + 1;
+      continue;
+    }
+
+    const gt = input.indexOf(">", lt);
+    if (gt === -1) {
+      // No closing bracket: treat the stray "<" as literal text and stop.
+      out += escapeHtml(input.slice(lt));
+      break;
+    }
+
+    // A second "<" before this ">" means the brackets don't pair cleanly
+    // (e.g. the split-tag trick "<scr<script>ipt>"). Emit this "<" as inert
+    // text and rescan from the next char so the real inner tag is handled.
+    const innerLt = input.indexOf("<", lt + 1);
+    if (innerLt !== -1 && innerLt < gt) {
+      out += "&lt;";
+      i = lt + 1;
+      continue;
+    }
+
+    const inner = input.slice(lt + 1, gt);
+    const m = /^\s*(\/?)\s*([a-zA-Z][a-zA-Z0-9]*)/.exec(inner);
+    if (!m) {
+      // Not a real tag (e.g. "< 5"): emit the "<" as text, continue after it.
+      out += "&lt;";
+      i = lt + 1;
+      continue;
+    }
+    const closing = m[1] === "/";
+    const tag = m[2].toLowerCase();
+    const rawAttrs = inner.slice(m[0].length);
+
+    if (SANITISE_VOID_DANGEROUS.has(tag)) {
+      // Drop the element and its content up to the matching close tag.
+      if (closing) { i = gt + 1; continue; }
+      const closeRe = new RegExp(`<\\s*\\/\\s*${tag}\\s*>`, "i");
+      const rest = input.slice(gt + 1);
+      const cm = closeRe.exec(rest);
+      i = cm ? gt + 1 + cm.index + cm[0].length : n;
+      continue;
+    }
+
+    if (!SANITISE_ALLOWED_TAGS.has(tag)) {
+      // Unknown tag: drop the angle brackets, keep inner text (none here).
+      i = gt + 1;
+      continue;
+    }
+
+    out += closing ? `</${tag}>` : sanitiseRebuildTag(tag, rawAttrs);
+    i = gt + 1;
+  }
+  return out;
+}
+
+export async function sendBroadcastEmail(env, { subject, message, recipients, html: isHtml = false, attachments = [] }) {
   console.log(`[email-broadcast] "${subject}" -> ${recipients.length} recipient(s)`);
   if (!env.BREVO_API_KEY) {
     console.log("[email-broadcast] skipped: BREVO_API_KEY not set");
@@ -565,11 +728,11 @@ export async function sendBroadcastEmail(env, { subject, message, recipients }) 
   }
 
   const sender   = parseEmailFrom(env.EMAIL_FROM);
-  const bodyHtml = escapeHtml(message).replace(/\r?\n/g, "<br>");
+  const bodyHtml = isHtml ? sanitiseEmailHtml(message) : escapeHtml(message).replace(/\r?\n/g, "<br>");
   const html = `
     <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#0b1b3f;">
       <div style="background:#0b1b3f;padding:22px 28px;border-radius:12px 12px 0 0;text-align:center;">
-        <img src="https://bdmso.org/images/logo.webp" alt="BdMSO" width="130" style="display:block;margin:0 auto;border:0;">
+        <img src="${SITE_ORIGIN}/images/logo.webp" alt="BdMSO" width="130" style="display:block;margin:0 auto;border:0;">
       </div>
       <div style="background:white;border:1px solid #e5e7eb;border-top:none;padding:26px 30px;border-radius:0 0 12px 12px;font-size:14px;line-height:1.65;color:#374151;">
         ${bodyHtml}
@@ -586,13 +749,13 @@ export async function sendBroadcastEmail(env, { subject, message, recipients }) 
         subject,
         htmlContent: html,
         messageVersions: chunk.map((email) => ({ to: [{ email }] })),
+        ...(attachments.length ? { attachment: attachments } : {}),
       });
       if (res.ok) {
         sent += chunk.length;
       } else {
         failed += chunk.length;
-        const t = await res.text().catch(() => "");
-        console.log(`[email-broadcast] brevo error ${res.status}: ${t}`);
+        console.log(`[email-broadcast] brevo error status=${res.status} (response body redacted)`);
       }
     } catch (err) {
       failed += chunk.length;
