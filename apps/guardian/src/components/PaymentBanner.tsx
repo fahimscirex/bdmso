@@ -7,6 +7,7 @@
 
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { navigate } from '../router';
+import { loadMe } from '../me';
 import { buildNotices, loadReadIds, saveReadIds, type Notice } from './NotificationTicker';
 
 const ROTATE_MS = 5000;
@@ -18,10 +19,10 @@ export function PaymentBanner() {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch('/api/me', { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d) setNotices(buildNotices(d)); })
-      .catch(() => { /* no banner on failure */ });
+    function fetch() { loadMe().then((d) => { if (d) setNotices(buildNotices(d)); }).catch(() => {}); }
+    fetch();
+    window.addEventListener('bdmso:me-refresh', fetch);
+    return () => window.removeEventListener('bdmso:me-refresh', fetch);
   }, []);
 
   const unread  = notices.filter((n) => !readIds.has(n.id));
@@ -114,11 +115,4 @@ export function PaymentBanner() {
       </div>
     </div>
   );
-}
-
-function getToken(): string {
-  try {
-    const raw = localStorage.getItem('bdmso_user');
-    return raw ? (JSON.parse(raw)?.token || '') : '';
-  } catch { return ''; }
 }

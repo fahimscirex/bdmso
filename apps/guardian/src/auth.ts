@@ -7,7 +7,7 @@
 const KEY = 'bdmso_user';
 
 export type Session = {
-  token: string;
+  token?: string;
   accountId: string;
   fullName: string;       // guardian / account holder
   email: string;

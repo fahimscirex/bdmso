@@ -22,8 +22,9 @@
 // the meta PATCH fires. If only options changed, only the options
 // call fires.
 
-import { useEffect, useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { api } from '../api';
+import { formatBdt } from '../format';
 
 export type OptionItem = {
   id: string;
@@ -71,10 +72,6 @@ const SUBJECT_OPTIONS = [
   { value: 'both',    label: 'Both' },
 ];
 
-function formatBdt(n: number): string {
-  return `৳ ${Number(n).toLocaleString('en-BD')}`;
-}
-
 function sumPrice(config: OptionsConfig | null, ids: string[]): number {
   if (!config) return 0;
   const set = new Set(ids);
@@ -96,6 +93,8 @@ export default function ChangeSelectionModal({
   const [ack, setAck]           = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]       = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId   = `cs-title-${registrationId}`;
 
   // Items held by OTHER registrations - excluding ids the current row
   // already owns so the guardian can keep their existing pick.
@@ -178,10 +177,48 @@ export default function ChangeSelectionModal({
     }
   }
 
+  // Focus management: move focus into the dialog on open, trap Tab /
+  // Shift+Tab among the dialog's focusable elements, and restore focus
+  // to the element that opened the modal on close (WCAG 2.4.3, 2.1.2).
   useEffect(() => {
-    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
+    const opener = document.activeElement as HTMLElement | null;
+
+    function focusable(): HTMLElement[] {
+      const root = dialogRef.current;
+      if (!root) return [];
+      return Array.from(root.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      )).filter((el) => !el.hasAttribute('disabled') && el.offsetParent !== null);
+    }
+
+    // Initial focus on the first focusable element (the close button).
+    const first = focusable()[0];
+    if (first) first.focus();
+    else dialogRef.current?.focus();
+
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key !== 'Tab') return;
+      const items = focusable();
+      if (items.length === 0) { e.preventDefault(); return; }
+      const firstEl = items[0];
+      const lastEl  = items[items.length - 1];
+      const active  = document.activeElement;
+      if (e.shiftKey) {
+        if (active === firstEl || !dialogRef.current?.contains(active)) {
+          e.preventDefault();
+          lastEl.focus();
+        }
+      } else if (active === lastEl) {
+        e.preventDefault();
+        firstEl.focus();
+      }
+    }
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      if (opener && typeof opener.focus === 'function') opener.focus();
+    };
   }, [onClose]);
 
   const ctaLabel =
@@ -192,13 +229,13 @@ export default function ChangeSelectionModal({
                                                        'Save';
 
   return (
-    <div class="cs-modal" role="dialog" aria-modal="true" aria-label="Edit enrollment">
+    <div class="cs-modal" role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <div class="cs-backdrop" onClick={onClose} />
-      <div class="cs-dialog">
+      <div class="cs-dialog" ref={dialogRef} tabIndex={-1}>
         <header class="cs-head">
           <div>
             <p class="cs-eyebrow">{programLabel}</p>
-            <h2 class="cs-title">Edit enrollment</h2>
+            <h2 class="cs-title" id={titleId}>Edit enrollment</h2>
           </div>
           <button type="button" class="cs-close" aria-label="Close" onClick={onClose}>×</button>
         </header>

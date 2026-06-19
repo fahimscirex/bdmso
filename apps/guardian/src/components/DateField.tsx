@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'preact/hooks';
-import flatpickr from 'flatpickr';
+import type { Instance as FlatpickrInstance } from 'flatpickr/dist/types/instance';
+import { toIso } from '../format';
 
 // A flatpickr-backed date input that ALWAYS displays dd/mm/yyyy regardless of
 // the browser locale (a native <input type="date"> follows the browser locale,
@@ -15,39 +16,52 @@ interface Props {
   class?: string;
 }
 
-const toIso = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 // dateFormat is d/m/Y, which flatpickr also uses to parse minDate/maxDate/defaultDate
 // strings - so ISO bounds/values must be passed as Date objects, not strings.
 const parseIso = (iso?: string): Date | undefined => (iso ? new Date(iso + 'T00:00:00') : undefined);
 
 export function DateField({ value, onChange, placeholder = 'dd/mm/yyyy', ariaLabel, min, max, required, class: className }: Props) {
   const ref = useRef<HTMLInputElement>(null);
-  const fp = useRef<flatpickr.Instance | null>(null);
+  const fp = useRef<FlatpickrInstance | null>(null);
   const cb = useRef(onChange);
   cb.current = onChange;
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    fp.current = flatpickr(el, {
-      dateFormat: 'd/m/Y',
-      allowInput: true,
-      minDate: parseIso(min),
-      maxDate: parseIso(max),
-      defaultDate: parseIso(value),
-      onChange: (dates) => cb.current(dates[0] ? toIso(dates[0]) : ''),
+    let cleanup: (() => void) | null = null;
+    let cancelled = false;
+
+    // Load flatpickr (JS + CSS) only where a date field is actually used, so
+    // it stays out of the initial app bundle.
+    Promise.all([
+      import('flatpickr'),
+      // @ts-expect-error - side-effect CSS import, no type declaration
+      import('flatpickr/dist/flatpickr.css'),
+    ]).then(([mod]) => {
+      if (cancelled) return;
+      const flatpickr = mod.default;
+      fp.current = flatpickr(el, {
+        dateFormat: 'd/m/Y',
+        allowInput: true,
+        minDate: parseIso(min),
+        maxDate: parseIso(max),
+        defaultDate: parseIso(value),
+        onChange: (dates) => cb.current(dates[0] ? toIso(dates[0]) : ''),
+      });
+      // Commit a fully-typed dd/mm/yyyy immediately (no need to blur/Enter first).
+      const onInput = () => {
+        const v = el.value.trim();
+        if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(v)) {
+          const d = fp.current?.parseDate(v, 'd/m/Y');
+          if (d) fp.current?.setDate(d, true);
+        }
+      };
+      el.addEventListener('input', onInput);
+      cleanup = () => { el.removeEventListener('input', onInput); fp.current?.destroy(); fp.current = null; };
     });
-    // Commit a fully-typed dd/mm/yyyy immediately (no need to blur/Enter first).
-    const onInput = () => {
-      const v = el.value.trim();
-      if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(v)) {
-        const d = fp.current?.parseDate(v, 'd/m/Y');
-        if (d) fp.current?.setDate(d, true);
-      }
-    };
-    el.addEventListener('input', onInput);
-    return () => { el.removeEventListener('input', onInput); fp.current?.destroy(); fp.current = null; };
+
+    return () => { cancelled = true; cleanup?.(); };
   }, []);
 
   useEffect(() => {

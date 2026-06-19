@@ -15,7 +15,9 @@ export function Dropdown({ value, onChange, options, placeholder, ariaLabel }: {
 }) {
   const [open, setOpen]     = useState(false);
   const [filter, setFilter] = useState('');
-  const ref = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(-1);
+  const ref     = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -38,18 +40,62 @@ export function Dropdown({ value, onChange, options, placeholder, ariaLabel }: {
     ? options.filter((o) => o.label.toLowerCase().includes(q))
     : options;
 
+  // When the panel opens, seed the active option to the current value so
+  // arrow keys start from the right place. Clamp when the filtered list
+  // changes so the index never points past the end.
+  useEffect(() => {
+    if (!open) { setActive(-1); return; }
+    const i = shown.findIndex((o) => o.value === value);
+    setActive(i);
+  }, [open]);
+  useEffect(() => {
+    if (open && active >= shown.length) setActive(shown.length - 1);
+  }, [shown.length]);
+
+  // Move the DOM focus to the active option for a roving-focus pattern,
+  // so screen readers announce the option as it changes.
+  useEffect(() => {
+    if (!open || active < 0) return;
+    const node = listRef.current?.children[active] as HTMLElement | undefined;
+    node?.focus();
+  }, [active, open]);
+
   function choose(v: string) {
     onChange(v);
     setOpen(false);
     setFilter('');
   }
 
+  function move(delta: number) {
+    if (shown.length === 0) return;
+    setActive((i) => {
+      const next = i < 0 ? (delta > 0 ? 0 : shown.length - 1) : i + delta;
+      return Math.max(0, Math.min(shown.length - 1, next));
+    });
+  }
+
+  function onKeyDown(e: KeyboardEvent) {
+    switch (e.key) {
+      case 'ArrowDown': e.preventDefault(); if (!open) { setOpen(true); } else { move(1); } break;
+      case 'ArrowUp':   e.preventDefault(); if (!open) { setOpen(true); } else { move(-1); } break;
+      case 'Home':      if (open) { e.preventDefault(); setActive(0); } break;
+      case 'End':       if (open) { e.preventDefault(); setActive(shown.length - 1); } break;
+      case 'Enter':
+      case ' ':
+        if (!open) { e.preventDefault(); setOpen(true); break; }
+        if (active >= 0 && shown[active]) { e.preventDefault(); choose(shown[active].value); }
+        break;
+    }
+  }
+
   return (
-    <div class={`bdsel${open ? ' is-open' : ''}`} ref={ref}>
+    <div class={`bdsel${open ? ' is-open' : ''}`} ref={ref} onKeyDown={onKeyDown}>
       <button
         type="button"
         class={`bdsel-trigger${value ? '' : ' is-placeholder'}`}
         aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
         {selected ? selected.label : (placeholder || 'Select…')}
@@ -60,16 +106,20 @@ export function Dropdown({ value, onChange, options, placeholder, ariaLabel }: {
             <input
               type="text" class="bdsel-search" placeholder="Type to filter…"
               autofocus value={filter}
-              onInput={(e) => setFilter((e.target as HTMLInputElement).value)}
+              onInput={(e) => { setFilter((e.target as HTMLInputElement).value); setActive(-1); }}
             />
           )}
-          <div class="bdsel-list">
+          <div class="bdsel-list" role="listbox" aria-label={ariaLabel} ref={listRef}>
             {shown.length === 0 && <div class="bdsel-empty">No matches</div>}
-            {shown.map((o) => (
+            {shown.map((o, i) => (
               <button
                 type="button" key={o.value}
-                class={`bdsel-opt${o.value === value ? ' is-selected' : ''}`}
+                role="option"
+                aria-selected={o.value === value}
+                tabIndex={i === active ? 0 : -1}
+                class={`bdsel-opt${o.value === value ? ' is-selected' : ''}${i === active ? ' is-active' : ''}`}
                 onClick={() => choose(o.value)}
+                onMouseEnter={() => setActive(i)}
               >
                 {o.label}
               </button>

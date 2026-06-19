@@ -10,7 +10,9 @@ import { BD_DISTRICTS } from '../districts';
 import { syncSessionName, syncHeaderName } from '../auth';
 import { Dropdown } from '../components/Dropdown';
 import { DateField } from '../components/DateField';
+import { PasswordInput } from '../components/PasswordInput';
 import ProfileSkeleton, { StudentsCardSkeleton } from '../components/ProfileSkeleton';
+import { ErrorPanel } from '../components/ErrorPanel';
 
 type ProfileRow = {
   accountId: string;
@@ -48,7 +50,9 @@ type MeResponse = {
 };
 
 // Renders an ISO date (e.g. "2013-10-02") as "2 Oct 2013". Falls back
-// to the raw string if it isn't a parseable date.
+// to the raw string if it isn't a parseable date. Kept separate from the
+// shared format.ts formatDate on purpose: that one returns '-'/'Invalid Date'
+// for the missing/unparseable cases, which would change what shows here.
 function prettyDate(iso: string | null | undefined): string {
   if (!iso) return '';
   const d = new Date(iso);
@@ -58,24 +62,27 @@ function prettyDate(iso: string | null | undefined): string {
 
 export function Profile() {
   const [profile, setProfile] = useState<ProfileRow | null>(null);
-  const [error, setError]     = useState<string | null>(null);
+  const [error, setError]     = useState<ApiError | null>(null);
 
   function loadProfile() {
+    setError(null);
     api.get<ProfileRow>('/api/me/profile')
       .then((p) => { setProfile(p); syncSessionName(p.fullName, p.email); })
-      .catch((err: ApiError) => setError(err.message));
+      .catch((err: ApiError) => setError(err));
   }
   useEffect(loadProfile, []);
 
+  if (error) return <ErrorPanel error={error} onRetry={loadProfile} />;
+
   return (
     <>
-      <div class="page-header">
-        <h1>Profile</h1>
-        <p class="sub">Your Account, Student details and passwords.</p>
-      </div>
+      {!profile && <ProfileSkeleton />}
 
-      {error && <div class="error">{error}</div>}
-      {!profile && !error && <ProfileSkeleton />}
+      {profile && (
+        <div class="page-header">
+          <h1>Your profile</h1>
+        </div>
+      )}
 
       {profile && (
         <div class="profile-grid">
@@ -244,8 +251,7 @@ function AccountEditForm({ profile, onCancel, onSaved }: {
             The new email address starts unverified - we'll send a verification link to it once you save.
           </p>
           <Field label="Current password" hint="Required to change your email address.">
-            <input
-              type="password" required autocomplete="current-password"
+            <PasswordInput required autocomplete="current-password"
               value={currentPassword}
               onInput={(e) => setCurrentPassword((e.target as HTMLInputElement).value)} />
           </Field>
@@ -531,13 +537,13 @@ function PasswordCard() {
       <form onSubmit={submit}>
         <div class="form-grid" style="grid-template-columns:1fr;border:none;padding:0;gap:12px;">
           <Field label="Current password">
-            <input type="password" required autocomplete="current-password" value={current} onInput={(e) => setCurrent((e.target as HTMLInputElement).value)} />
+            <PasswordInput required autocomplete="current-password" value={current} onInput={(e) => setCurrent((e.target as HTMLInputElement).value)} />
           </Field>
           <Field label="New password" hint="At least 8 characters.">
-            <input type="password" required autocomplete="new-password" value={next} onInput={(e) => setNext((e.target as HTMLInputElement).value)} />
+            <PasswordInput required autocomplete="new-password" value={next} onInput={(e) => setNext((e.target as HTMLInputElement).value)} />
           </Field>
           <Field label="Confirm new password">
-            <input type="password" required autocomplete="new-password" value={confirm} onInput={(e) => setConfirm((e.target as HTMLInputElement).value)} />
+            <PasswordInput required autocomplete="new-password" value={confirm} onInput={(e) => setConfirm((e.target as HTMLInputElement).value)} />
           </Field>
         </div>
         {error   && <div class="error" style="margin-top:12px;">{error}</div>}
@@ -585,8 +591,10 @@ function SessionsCard() {
 function Field({ label, hint, full, children }: { label: string; hint?: string; full?: boolean; children: any }) {
   return (
     <div class={`field${full ? ' field-full' : ''}`}>
-      <label>{label}</label>
-      {children}
+      <label>
+        <span class="field-label-text">{label}</span>
+        {children}
+      </label>
       {hint && <p class="field-hint">{hint}</p>}
     </div>
   );

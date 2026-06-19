@@ -4,45 +4,46 @@
 // marketing site's /js/site.js via Shell - see Shell.tsx.
 
 import { useEffect, useState } from 'preact/hooks';
-import { getToken, clearSession } from './auth';
+import { getSession, clearSession } from './auth';
 import { useRoute } from './router';
 import { api, ApiError } from './api';
 import { Login } from './pages/Login';
 import { Home } from './pages/Home';
+import { Results } from './pages/Results';
 import { Profile } from './pages/Profile';
 import { Shell } from './components/Shell';
 
 export function App() {
-  const [token, setTokenState] = useState<string | null>(() => getToken());
+  const [signedIn, setSignedIn] = useState<boolean>(() => !!getSession());
   const [validateError, setValidateError] = useState<string | null>(null);
   const route = useRoute();
 
-  // Cheap liveness ping - if /api/me/profile 401s the token rotted and
+  // Cheap liveness ping - if /api/me/profile 401s the session rotted and
   // we drop back to the login screen. Don't gate render on the result;
   // the header/content render immediately from cached session data.
   useEffect(() => {
-    if (!token) return;
+    if (!signedIn) return;
     api.get<unknown>('/api/me/profile').catch((err: ApiError) => {
       if (err.status === 401) signOut();
       else setValidateError(err.message);
     });
-  }, [token]);
+  }, [signedIn]);
 
   function onSignedIn() {
-    setTokenState(getToken());
+    setSignedIn(!!getSession());
     setValidateError(null);
   }
 
   function signOut() {
     clearSession();
-    setTokenState(null);
+    setSignedIn(false);
     // site.js reads bdmso_user on render; force a re-render of the
     // (now-logged-out) header by re-emitting DOMContentLoaded inside
     // Shell on next mount. For a clean state, just bounce to /login.
     location.href = '/login';
   }
 
-  if (!token) return <Login onSignedIn={onSignedIn} />;
+  if (!signedIn) return <Login onSignedIn={onSignedIn} />;
 
   if (validateError) {
     return (
@@ -66,6 +67,7 @@ export function App() {
 function renderPage(route: string) {
   switch (route) {
     case '/':        return <Home />;
+    case '/results': return <Results />;
     case '/profile': return <Profile />;
     default:         return <NotFound route={route} />;
   }

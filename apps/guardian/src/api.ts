@@ -19,6 +19,7 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
   const token = getToken();
   const init: RequestInit = {
     method,
+    credentials: 'same-origin',
     headers: {
       ...(token ? { authorization: `Bearer ${token}` } : {}),
       ...(body  ? { 'content-type': 'application/json' } : {}),

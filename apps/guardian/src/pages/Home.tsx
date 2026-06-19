@@ -8,7 +8,10 @@ import { api, ApiError } from '../api';
 import { syncSessionName, syncHeaderName } from '../auth';
 import ChangeSelectionModal from '../components/ChangeSelectionModal';
 import type { OptionsConfig } from '../components/ChangeSelectionModal';
+import { loadMe, type ExamResult } from '../me';
 import DashboardSkeleton from '../components/DashboardSkeleton';
+import { ErrorPanel } from '../components/ErrorPanel';
+import { formatBdt, formatDate } from '../format';
 
 type Registration = {
   id: string;
@@ -49,6 +52,9 @@ type Registration = {
   payment_method: string | null;
   preferred_venue: string | null;
   preferred_subject: string | null;
+  // Published exam result, or null until the org releases it. Attached by
+  // /api/me only for events with results_published = 1.
+  result: ExamResult | null;
 };
 
 type Response = {
@@ -56,16 +62,6 @@ type Response = {
   account: { fullName: string; email: string; role: string; emailVerified: boolean; memberId: string | null };
   registrations: Registration[];
 };
-
-function formatDate(iso: string | null): string {
-  if (!iso) return '-';
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-function formatBdt(n: number | null): string {
-  if (n == null) return '-';
-  return `৳ ${Number(n).toLocaleString('en-BD')}`;
-}
 
 // Open a printable receipt for a paid registration in a new window
 // and auto-trigger the browser's print dialog. The user can then
@@ -280,14 +276,22 @@ function printReceipt(reg: Registration, account: { fullName: string; email: str
   });</script>
 </body></html>`;
 
-  const win = window.open('', '_blank', 'width=720,height=900');
-  if (!win) {
-    alert('Please allow pop-ups for this site to download the receipt.');
-    return;
-  }
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
+  // Build the receipt as a Blob and open it via a real anchor click.
+  // A synchronous anchor navigation triggered by the user's tap is a
+  // user-gesture navigation, so it isn't popup-blocked the way
+  // window.open('', '_blank') + document.write is on mobile (iOS Safari
+  // in particular). The receipt's inline script still auto-prints.
+  const blob = new Blob([html], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.target   = '_blank';
+  a.rel      = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // Revoke after a delay so the new tab has time to load the document.
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 type PaymentNotice = 'success' | 'cancelled' | 'failed';
@@ -301,13 +305,17 @@ type StatFilter = 'all' | 'paid' | 'pending' | 'cancelled';
 
 export function Home() {
   const [data, setData]     = useState<Response | null>(null);
-  const [error, setError]   = useState<string | null>(null);
+  const [error, setError]   = useState<ApiError | null>(null);
   const [notice, setNotice] = useState<PaymentNotice | null>(() => readPaymentNotice());
+  // Transient in-app confirmation for card-level actions (cancel, coupon
+  // removed) so they aren't silent after a reload.
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [statFilter, setStatFilter] = useState<StatFilter>('all');
   const [idFlipped, setIdFlipped]   = useState(false);
   const [showCancelled, setShowCancelled] = useState(false);
 
   function reload() {
+    setError(null);
     api.get<Response>('/api/me')
       .then((d) => {
         setData(d);
@@ -318,7 +326,7 @@ export function Home() {
           || d.registrations[0]?.student_full_name;
         if (studentName) syncHeaderName(studentName);
       })
-      .catch((err: ApiError) => setError(err.message));
+      .catch((err: ApiError) => setError(err));
   }
   useEffect(reload, []);
 
@@ -357,7 +365,7 @@ export function Home() {
     history.replaceState(null, '', url.toString());
   }, [data]);
 
-  if (error) return <div class="error">{error}</div>;
+  if (error) return <ErrorPanel error={error} onRetry={reload} />;
   if (!data) return <DashboardSkeleton />;
 
   // Sort: submitted (payment due) → paid → cancelled, then most recent
@@ -418,6 +426,12 @@ export function Home() {
         <div class="alert alert-bad">
           <strong>Payment didn't go through.</strong> If money was deducted, contact <a href="mailto:support@bdmso.org">support@bdmso.org</a> with your transaction reference - otherwise just try again.
           <button type="button" class="alert-close" onClick={() => setNotice(null)} aria-label="Dismiss"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </div>
+      )}
+      {actionMsg && (
+        <div class="alert alert-ok" role="status">
+          {actionMsg}
+          <button type="button" class="alert-close" onClick={() => setActionMsg(null)} aria-label="Dismiss"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         </div>
       )}
 
@@ -515,7 +529,7 @@ export function Home() {
           ) : (
             <div class="reg-list">
               {(statFilter === 'cancelled' ? shownRegs : activeShown).map((r) => (
-                <RegistrationCard key={r.id} reg={r} allRegs={regs} account={data.account} onChanged={reload} />
+                <RegistrationCard key={r.id} reg={r} allRegs={regs} account={data.account} onChanged={reload} onNotice={setActionMsg} />
               ))}
 
               {statFilter !== 'cancelled' && cancelledShown.length > 0 && (
@@ -540,7 +554,7 @@ export function Home() {
                     </svg>
                   </button>
                   {showCancelled && cancelledShown.map((r) => (
-                    <RegistrationCard key={r.id} reg={r} allRegs={regs} account={data.account} onChanged={reload} />
+                    <RegistrationCard key={r.id} reg={r} allRegs={regs} account={data.account} onChanged={reload} onNotice={setActionMsg} />
                   ))}
                 </div>
               )}
@@ -559,7 +573,7 @@ export function Home() {
         </aside>
       </div>
 
-      <ExploreOtherPrograms registered={new Set(regs.map((r) => r.registration_type))} />
+      <ExploreOtherPrograms />
     </>
   );
 }
@@ -698,16 +712,8 @@ function buildKeyDates(regs: Registration[], todayISO: string): DateItem[] {
   return items.slice(0, 6);
 }
 
-// "6 Jun 2026". Same locale as elsewhere in the dashboard - day comes
-// first per BD/UK convention, full year so the line stands on its own.
-function formatKeyDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'short', year: 'numeric',
-  });
-}
-
 function ImportantDates({ regs }: { regs: Registration[] }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' });
   const items = buildKeyDates(regs, today);
   if (items.length === 0) return null;
   return (
@@ -716,7 +722,7 @@ function ImportantDates({ regs }: { regs: Registration[] }) {
       <ul class="datelist">
         {items.map((it, i) => (
           <li key={`${it.iso}-${i}`} class="datelist-item">
-            <span class="datelist-date">{formatKeyDate(it.iso)}</span>
+            <span class="datelist-date">{formatDate(it.iso)}</span>
             <span class="datelist-name">
               {it.before}<span class="datelist-prog">{it.program}</span>{it.after}
             </span>
@@ -736,18 +742,18 @@ type ProgramDetail = {
   slug: string;
   title: string;
   tagline?: string;
+  metaDescription?: string;
   audience?: string;
   home_order?: string;
   registration?: boolean;
   hidden?: boolean;
 };
 
-function ExploreOtherPrograms({ registered }: { registered: Set<string> }) {
+function ExploreOtherPrograms() {
   const [programs, setPrograms] = useState<ProgramDetail[] | null>(null);
 
   useEffect(() => {
-    fetch('/api/catalog', { cache: 'no-cache' })
-      .then((r) => (r.ok ? r.json() : []))
+    api.get<ProgramDetail[]>('/api/catalog')
       .then(setPrograms)
       .catch(() => setPrograms([]));
   }, []);
@@ -759,7 +765,6 @@ function ExploreOtherPrograms({ registered }: { registered: Set<string> }) {
   // programs-detail.json. We don't filter by "already registered"
   // because a parent may want to enroll another child or re-enroll
   // after a cancel; the per-program page handles that UX.
-  void registered;
   const openPrograms = programs.filter(
     (p) => p.registration !== false && !p.hidden,
   );
@@ -772,7 +777,7 @@ function ExploreOtherPrograms({ registered }: { registered: Set<string> }) {
           <a class="explore-card" href={`/programs/${p.slug}`} key={p.slug}>
             {p.audience && <div class="explore-card-eyebrow">{p.audience}</div>}
             <div class="explore-card-title">{p.title}</div>
-            {p.tagline && <p class="explore-card-desc">{p.tagline}</p>}
+            {(p.tagline || p.metaDescription) && <p class="explore-card-desc">{p.tagline || p.metaDescription}</p>}
             <div class="explore-card-foot">Learn more →</div>
           </a>
         ))}
@@ -817,7 +822,7 @@ type CouponInfo = { code: string; description: string; discountedAmount: number;
 
 type AccountInfo = Response['account'];
 
-function RegistrationCard({ reg, allRegs, account, onChanged }: { reg: Registration; allRegs: Registration[]; account: AccountInfo; onChanged: () => void }) {
+function RegistrationCard({ reg, allRegs, account, onChanged, onNotice }: { reg: Registration; allRegs: Registration[]; account: AccountInfo; onChanged: () => void; onNotice: (msg: string) => void }) {
   const basePrice  = reg.payment_amount ?? reg.program_price;
   // "On enquiry" programs (Masterclass, Kids AI, camps, Exchange) have
   // no fixed price - skip the Pay Now flow and surface a contact-us
@@ -835,6 +840,7 @@ function RegistrationCard({ reg, allRegs, account, onChanged }: { reg: Registrat
   const [validating, setValidating]     = useState(false);
   const [paying, setPaying]             = useState(false);
   const [payError, setPayError]         = useState<string | null>(null);
+  const [payMethod, setPayMethod]       = useState<'online' | 'manual'>('online');
   const [showEdit, setShowEdit] = useState(false);
 
   // Olympiad / Quiz have per-program meta (preferred_subject for
@@ -889,9 +895,7 @@ function RegistrationCard({ reg, allRegs, account, onChanged }: { reg: Registrat
     setCouponMsg(null);
     try {
       const url = `/api/validate-coupon?code=${encodeURIComponent(code)}&type=${encodeURIComponent(reg.registration_type)}`;
-      const res  = await fetch(url);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Invalid coupon');
+      const data = await api.get<{ discountType: string; discountValue: number; description: string }>(url);
 
       const discounted = data.discountType === 'percent'
         ? Math.round((basePrice ?? 0) * (1 - Number(data.discountValue) / 100))
@@ -916,13 +920,21 @@ function RegistrationCard({ reg, allRegs, account, onChanged }: { reg: Registrat
     setPaying(true);
     setPayError(null);
     try {
-      const body = { registrationId: reg.id, couponCode: coupon?.code || '' };
-      const data = await api.post<{ ok: true; free?: boolean; checkoutURL?: string }>('/api/create-payment', body);
-      if (data.free || !data.checkoutURL) {
+      const body = { registrationId: reg.id, couponCode: coupon?.code || '', paymentMethod: payMethod };
+      const data = await api.post<{ ok: true; free?: boolean; checkoutURL?: string; manual?: boolean; invoiceUrl?: string }>('/api/create-payment', body);
+      if (data.free) {
         location.href = '/dashboard?payment=success';
         return;
       }
-      location.href = data.checkoutURL;
+      if (data.manual && data.invoiceUrl) {
+        location.href = data.invoiceUrl;
+        return;
+      }
+      if (data.checkoutURL) {
+        location.href = data.checkoutURL;
+        return;
+      }
+      location.href = '/dashboard?payment=success';
     } catch (err) {
       setPayError((err as Error).message);
       setPaying(false);
@@ -937,6 +949,8 @@ function RegistrationCard({ reg, allRegs, account, onChanged }: { reg: Registrat
     setCancelError(null);
     try {
       await api.post<{ ok: true }>(`/api/me/registrations/${reg.id}/cancel`, {});
+      onNotice(`Enrollment cancelled for ${reg.student_full_name}. Re-register from the programs page to re-enroll.`);
+      loadMe(true);
       onChanged();
     } catch (err) {
       setCancelError((err as Error).message);
@@ -949,6 +963,7 @@ function RegistrationCard({ reg, allRegs, account, onChanged }: { reg: Registrat
     reg.payment_status === 'paid' ? 'paid'
     : reg.status === 'cancelled' ? 'muted'
     : onEnquiry ? 'muted'
+    : reg.payment_status === 'pending' ? 'pending resume'
     : 'pending';
 
   return (
@@ -994,6 +1009,14 @@ function RegistrationCard({ reg, allRegs, account, onChanged }: { reg: Registrat
             <div class="reg-card-options">{reg.option_labels?.length ? reg.option_labels.join(' · ') : 'No selection yet'}</div>
           </div>
         )}
+        {/* Pending checkout suppresses the options editor (server enforces
+            this too). Tell the parent why instead of silently hiding it. */}
+        {!!reg.options_config && reg.edit_window_open
+          && reg.status !== 'cancelled' && reg.payment_status === 'pending' && (
+          <div class="reg-card-options-row">
+            <div class="reg-card-options reg-card-options-hint">Finish or restart this payment to change your selection.</div>
+          </div>
+        )}
         <div class="reg-card-student">
           {reg.student_full_name} · {reg.student_class_name}
           {reg.student_gender ? ` · ${reg.student_gender}` : ''}
@@ -1009,6 +1032,12 @@ function RegistrationCard({ reg, allRegs, account, onChanged }: { reg: Registrat
             )}
           </div>
         )}
+        {reg.payment_status === 'pending' && (
+          <div class="reg-card-note reg-card-note-pending">
+            You started a payment but it wasn't completed — no charge was made. Pick up where you left off.
+          </div>
+        )}
+
 
       </div>
 
@@ -1058,43 +1087,60 @@ function RegistrationCard({ reg, allRegs, account, onChanged }: { reg: Registrat
                 formatBdt(basePrice)
               )}
             </div>
-            {showCoupon ? (
-              <div class="reg-card-coupon">
-                <input
-                  type="text"
-                  placeholder="Coupon code"
-                  value={couponInput}
-                  onInput={(e) => setCouponInput((e.target as HTMLInputElement).value.toUpperCase())}
-                  disabled={validating || paying}
-                />
+            <div class="reg-card-foot">
+              {coupon ? (
                 <button
                   type="button"
-                  class="btn-secondary"
-                  onClick={applyCoupon}
-                  disabled={validating || paying || !couponInput.trim()}
+                  class="reg-card-foot-link"
+                  disabled={paying}
+                  onClick={() => {
+                    setCoupon(null);
+                    setCouponInput('');
+                    setCouponMsg(null);
+                    setShowCoupon(false);
+                    onNotice('Coupon removed.');
+                  }}
                 >
-                  {validating ? '…' : 'Apply'}
+                  Remove coupon
                 </button>
-              </div>
-            ) : (
-              <button type="button" class="reg-card-foot-link" onClick={() => setShowCoupon(true)}>
-                Have a coupon?
-              </button>
-            )}
-            {couponMsg && (
-              <span class={`reg-card-coupon-msg ${couponMsg.ok ? 'ok' : 'bad'}`}>{couponMsg.text}</span>
-            )}
-            {canCancel && (
-              <button
-                type="button"
-                class="reg-card-foot-link danger"
-                disabled={cancelling || paying}
-                onClick={cancelRegistration}
-              >
-                {cancelling ? 'Cancelling…' : 'Cancel enrollment'}
-              </button>
-            )}
-            {cancelError && <span class="reg-card-coupon-msg bad">{cancelError}</span>}
+              ) : showCoupon ? (
+                <div class="reg-card-coupon">
+                  <input
+                    type="text"
+                    placeholder="Coupon code"
+                    value={couponInput}
+                    onInput={(e) => setCouponInput((e.target as HTMLInputElement).value.toUpperCase())}
+                    disabled={validating || paying}
+                  />
+                  <button
+                    type="button"
+                    class="btn-secondary"
+                    onClick={applyCoupon}
+                    disabled={validating || paying || !couponInput.trim()}
+                  >
+                    {validating ? '…' : 'Apply'}
+                  </button>
+                </div>
+              ) : (
+                <button type="button" class="reg-card-foot-link" onClick={() => setShowCoupon(true)}>
+                  Have a coupon?
+                </button>
+              )}
+              {couponMsg && (
+                <span class={`reg-card-coupon-msg ${couponMsg.ok ? 'ok' : 'bad'}`}>{couponMsg.text}</span>
+              )}
+              {canCancel && (
+                <button
+                  type="button"
+                  class="reg-card-foot-link danger"
+                  disabled={cancelling || paying}
+                  onClick={cancelRegistration}
+                >
+                  {cancelling ? 'Cancelling…' : 'Cancel enrollment'}
+                </button>
+              )}
+              {cancelError && <span class="reg-card-coupon-msg bad">{cancelError}</span>}
+            </div>
           </>
         )}
       </div>
@@ -1126,7 +1172,7 @@ function RegistrationCard({ reg, allRegs, account, onChanged }: { reg: Registrat
               class="reg-card-receipt-btn"
               onClick={() => printReceipt(reg, account)}
             >
-              Download Receipt
+              Receipt
             </button>
           ) : onEnquiry ? (
             <a
@@ -1137,6 +1183,32 @@ function RegistrationCard({ reg, allRegs, account, onChanged }: { reg: Registrat
             </a>
           ) : (
             <>
+              {!coupon?.free && (
+                <div class="reg-card-pay-method">
+                  <label class={`reg-card-pay-method-opt${payMethod === 'online' ? ' selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name={`pay-method-${reg.id}`}
+                      value="online"
+                      checked={payMethod === 'online'}
+                      onChange={() => setPayMethod('online')}
+                      disabled={paying}
+                    />
+                    Online
+                  </label>
+                  <label class={`reg-card-pay-method-opt${payMethod === 'manual' ? ' selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name={`pay-method-${reg.id}`}
+                      value="manual"
+                      checked={payMethod === 'manual'}
+                      onChange={() => setPayMethod('manual')}
+                      disabled={paying}
+                    />
+                    Cash
+                  </label>
+                </div>
+              )}
               <button
                 type="button"
                 class="btn-primary reg-card-pay-btn"

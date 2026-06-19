@@ -8,6 +8,7 @@
 import { useState } from 'preact/hooks';
 import { setSession } from '../auth';
 import { api, ApiError } from '../api';
+import { PasswordInput } from '../components/PasswordInput';
 
 // Flat response shape, matches public/login.html so marketing + SPA stay
 // in sync on what gets stored in localStorage.bdmso_user.
@@ -76,8 +77,7 @@ export function Login({ onSignedIn }: { onSignedIn: () => void }) {
             </label>
             <label class="auth-field">
               <span>Password</span>
-              <input
-                type="password"
+              <PasswordInput
                 required
                 autocomplete="current-password"
                 value={password}

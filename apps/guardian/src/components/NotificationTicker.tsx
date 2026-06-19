@@ -4,6 +4,10 @@
 // in localStorage since there is no server-side notifications table.
 
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { formatDate } from '../format';
+import { loadMe, type MeResponse } from '../me';
+
+export type { MeResponse };   // re-export so PaymentBanner can import from here
 
 export type Notice = {
   id: string;
@@ -12,29 +16,6 @@ export type Notice = {
   text: string;
   href?: string;
   at?: string;        // ISO timestamp, when known
-};
-
-type Registration = {
-  id: string;
-  registration_type: string;
-  program_label: string;       // catalog-derived, from /api/me
-  student_full_name: string;
-  status: 'submitted' | 'paid' | 'cancelled';
-  member_id: string | null;
-  payment_status: 'pending' | 'paid' | 'failed' | null;
-  payment_date: string | null;
-  created_at: string;
-  // registration_ends drives the per-program edit/pay window. Used
-  // by the "Payment due by" and "Edit deadline approaching" notices
-  // - one date per program, surfaced in two different voices.
-  registration_ends: string | null;
-  edit_window_open: boolean;
-};
-
-type MeResponse = {
-  ok: true;
-  account: { email: string; emailVerified: boolean };
-  registrations: Registration[];
 };
 
 const READ_KEY = 'bdmso_notif_read';
@@ -63,12 +44,6 @@ function daysUntil(iso: string | null | undefined): number | null {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return Math.ceil((target.getTime() - today.getTime()) / 86_400_000);
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'short', year: 'numeric',
-  });
 }
 
 function relativeTime(iso?: string): string {
@@ -176,10 +151,10 @@ export function NotificationTicker() {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch('/api/me', { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d) setNotices(buildNotices(d)); })
-      .catch(() => { /* leave empty */ });
+    function fetch() { loadMe().then((d) => { if (d) setNotices(buildNotices(d)); }).catch(() => {}); }
+    fetch();
+    window.addEventListener('bdmso:me-refresh', fetch);
+    return () => window.removeEventListener('bdmso:me-refresh', fetch);
   }, []);
 
   // Close the popover on outside click or Escape.
@@ -281,11 +256,4 @@ function NotifRow({ n, onDismiss }: { n: Notice; onDismiss: () => void }) {
   return n.href
     ? <a class="notif-row is-unread" href={n.href}>{inner}</a>
     : <div class="notif-row is-unread">{inner}</div>;
-}
-
-function getToken(): string {
-  try {
-    const raw = localStorage.getItem('bdmso_user');
-    return raw ? (JSON.parse(raw)?.token || '') : '';
-  } catch { return ''; }
 }

@@ -10,17 +10,17 @@
 // duplicate the marketing primary nav.
 
 import type { ComponentChildren } from 'preact';
-import { useEffect } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { navigate, href } from '../router';
+import { loadMe } from '../me';
 import { NotificationTicker } from './NotificationTicker';
 import { PaymentBanner } from './PaymentBanner';
 
 type Section = { label: string; href: string };
 
-const NAV: Section[] = [
-  { label: 'Home',    href: '/' },
-  { label: 'Profile', href: '/profile' },
-];
+const HOME: Section    = { label: 'Home',    href: '/' };
+const RESULTS: Section  = { label: 'Results', href: '/results' };
+const PROFILE: Section = { label: 'Profile', href: '/profile' };
 
 // Loaded once per mount. Doing this in a layout effect (vs <script> in
 // index.html) keeps the SPA bundle free of marketing assumptions and
@@ -46,6 +46,17 @@ type Props = {
 };
 
 export function Shell({ currentRoute, children }: Props) {
+  // The Results tab only appears once the guardian has a published result.
+  // We're on /results, so show it regardless (so a direct visit still has the
+  // active tab); otherwise gate on whether any registration has a result.
+  const [hasResults, setHasResults] = useState(currentRoute.startsWith('/results'));
+  useEffect(() => {
+    loadMe()
+      .then((d) => { if (d.registrations.some((r) => r.result)) setHasResults(true); })
+      .catch(() => {});
+  }, []);
+  const sections = hasResults ? [HOME, RESULTS, PROFILE] : [HOME, PROFILE];
+
   // The marketing nav highlights based on body[data-page]. "dashboard"
   // isn't in its primary NAV list so nothing lights up, which is the
   // intended behaviour - the Dashboard CTA in the header acts as the
@@ -63,12 +74,13 @@ export function Shell({ currentRoute, children }: Props) {
       <main class="gd-content">
         <div class="container gd-subnav">
           <nav class="gd-tabs" aria-label="Dashboard sections">
-            {NAV.map((s) => {
+            {sections.map((s) => {
               const active = s.href === '/' ? currentRoute === '/' : currentRoute.startsWith(s.href);
               return (
                 <a
                   href={href(s.href)}
                   class={`gd-tab${active ? ' active' : ''}`}
+                  aria-current={active ? 'page' : undefined}
                   onClick={(e) => { e.preventDefault(); navigate(s.href); }}
                 >{s.label}</a>
               );
