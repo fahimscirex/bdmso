@@ -81,6 +81,10 @@ db/dump.sql
 *.sqlite
 *.db
 
+# Result sheets / score CSVs carry student PII - never commit.
+*.csv
+Mock Test*.csv
+
 # Scratch / prototype HTML + handover docs - working artifacts, never committed.
 .kimchi/
 .mcp.json

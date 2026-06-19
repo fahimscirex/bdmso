@@ -2125,10 +2125,19 @@ admin.post("/events/:event/scores/finalize", async (c) => {
   return c.json({ ok: true, ranked: list.length, tier_top: tierTop });
 });
 
+// Prep students get free mock tests, but the number per season isn't fixed - so
+// the free enrollment is materialized at result-import time for the mocks they
+// actually sit, rather than granted up front. A paid registration in any of
+// these programs qualifies for a free mock-test enrollment.
+const MOCK_PROGRAM = "mock-test";
+const FREE_MOCK_QUALIFIERS = ["bdmso-preparatory-camp", "bdmso-preparatory"];
+
 // POST /api/admin/events/:event/scores/import
 //   { rows: [{ member_id, scores: { <sectionId>: number } }], commit?: bool }
-// Bulk score import keyed by BdMSO ID. Always returns a per-row classification
-// (matched / unmatched / invalid); only writes to `scores` when commit=true.
+// Bulk score import keyed by BdMSO ID. Returns a per-row classification
+// (matched / autoEnrolled / unmatched / invalid); only writes when commit=true.
+// For a mock-test event, an eligible prep-camp student with no mock-test reg is
+// auto-enrolled (free, paid) so their score can be recorded.
 admin.post("/events/:event/scores/import", async (c) => {
   const event_key = c.req.param("event");
   const body   = await c.req.json();
@@ -2142,7 +2151,7 @@ admin.post("/events/:event/scores/import", async (c) => {
   const sections = safeJsonArray(ev.sections);
   const maxBySection = Object.fromEntries(sections.map((s) => [s.id, Number(s.max)]));
 
-  const matched = [], unmatched = [], invalid = [];
+  const matched = [], autoEnrolledRows = [], unmatched = [], invalid = [];
   const writes = [];
   const session = c.get("session");
 
@@ -2151,13 +2160,53 @@ admin.post("/events/:event/scores/import", async (c) => {
     if (!memberId) { unmatched.push({ member_id: "", reason: "missing BdMSO ID" }); continue; }
 
     // BdMSO ID -> account -> the registration for this event's program.
-    const reg = await c.env.DB.prepare(`
+    let reg = await c.env.DB.prepare(`
       SELECT r.id, r.student_full_name
       FROM registrations r
       JOIN guardian_accounts a ON a.id = r.guardian_account_id
       WHERE a.member_id = ? AND r.registration_type = ? AND r.status = 'paid'
       LIMIT 1
     `).bind(memberId, ev.program_slug).first();
+
+    // Free mock-test benefit: a paid prep-camp student with no mock-test reg yet
+    // is auto-enrolled (free, paid) so their result can be recorded. Preview
+    // (commit=false) only reports it; commit actually creates the enrollment.
+    let isAuto = false;
+    if (!reg && ev.program_slug === MOCK_PROGRAM) {
+      const ph = FREE_MOCK_QUALIFIERS.map(() => "?").join(",");
+      const src = await c.env.DB.prepare(`
+        SELECT r.* FROM registrations r
+        JOIN guardian_accounts a ON a.id = r.guardian_account_id
+        WHERE a.member_id = ? AND r.registration_type IN (${ph}) AND r.status = 'paid'
+        ORDER BY r.created_at DESC LIMIT 1
+      `).bind(memberId, ...FREE_MOCK_QUALIFIERS).first();
+      if (src) {
+        isAuto = true;
+        if (commit) {
+          const regId = createId("app");
+          const now = new Date().toISOString();
+          await c.env.DB.batch([
+            c.env.DB.prepare(`
+              INSERT INTO registrations
+                (id, registration_type, student_full_name, student_date_of_birth, student_class_name,
+                 student_gender, student_medium, student_school, student_district, guardian_account_id,
+                 guardian_full_name, guardian_relationship, guardian_phone, guardian_email, guardian_address,
+                 terms_accepted, status, source_page, cohort_key, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'paid', 'mock-free-grant', ?, ?)
+            `).bind(regId, MOCK_PROGRAM, src.student_full_name, src.student_date_of_birth, src.student_class_name,
+              src.student_gender, src.student_medium, src.student_school, src.student_district, src.guardian_account_id,
+              src.guardian_full_name, src.guardian_relationship, src.guardian_phone, src.guardian_email,
+              src.guardian_address, event_key, now),
+            c.env.DB.prepare(
+              "INSERT INTO payments (id, registration_id, amount, currency, tran_id, status, cohort_key, created_at, updated_at) VALUES (?, ?, 0, 'BDT', ?, 'paid', ?, ?, ?)"
+            ).bind(createId("pay"), regId, createId("txn"), event_key, now, now),
+          ]);
+          reg = { id: regId, student_full_name: src.student_full_name };
+        } else {
+          reg = { id: null, student_full_name: src.student_full_name }; // preview placeholder
+        }
+      }
+    }
     if (!reg) { unmatched.push({ member_id: memberId, reason: "no paid registration for this event" }); continue; }
 
     const scores = raw.scores && typeof raw.scores === "object" ? raw.scores : {};
@@ -2174,7 +2223,7 @@ admin.post("/events/:event/scores/import", async (c) => {
     if (bad) { invalid.push({ member_id: memberId, student: reg.student_full_name, reason: bad }); continue; }
     if (cleaned.length === 0) { invalid.push({ member_id: memberId, student: reg.student_full_name, reason: "no scores" }); continue; }
 
-    matched.push({ member_id: memberId, student: reg.student_full_name, sections: cleaned.length });
+    (isAuto ? autoEnrolledRows : matched).push({ member_id: memberId, student: reg.student_full_name, sections: cleaned.length });
     if (commit) {
       for (const cs of cleaned) {
         writes.push(c.env.DB.prepare(`
@@ -2189,18 +2238,22 @@ admin.post("/events/:event/scores/import", async (c) => {
     }
   }
 
-  if (commit && writes.length) {
-    await c.env.DB.batch(writes);
+  if (commit && (writes.length || autoEnrolledRows.length)) {
+    if (writes.length) await c.env.DB.batch(writes);
     await recordAudit(c.env, session.account_id, "scores.import", {
       type: "scores", id: event_key,
-      payload: { matched: matched.length, unmatched: unmatched.length, invalid: invalid.length },
+      payload: {
+        matched: matched.length, autoEnrolled: autoEnrolledRows.length,
+        unmatched: unmatched.length, invalid: invalid.length,
+        autoEnrolledIds: autoEnrolledRows.map((r) => r.member_id),
+      },
     });
   }
 
   return c.json({
     ok: true, committed: commit,
-    summary: { matched: matched.length, unmatched: unmatched.length, invalid: invalid.length },
-    matched, unmatched, invalid,
+    summary: { matched: matched.length, autoEnrolled: autoEnrolledRows.length, unmatched: unmatched.length, invalid: invalid.length },
+    matched, autoEnrolled: autoEnrolledRows, unmatched, invalid,
   });
 });
 
