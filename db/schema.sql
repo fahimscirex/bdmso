@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS guardian_accounts (
   phone TEXT,
   email_verified INTEGER NOT NULL DEFAULT 0,
   member_id TEXT,
-  role TEXT NOT NULL DEFAULT 'guardian',   -- 'guardian' | 'admin' | 'editor' | 'mentor'
+  role TEXT NOT NULL DEFAULT 'guardian' CHECK (role IN ('guardian','admin','editor','mentor')),
   created_at TEXT NOT NULL,
   updated_at TEXT                          -- last change; maintained by trigger (see bottom)
 );
@@ -90,13 +90,16 @@ CREATE TABLE IF NOT EXISTS registrations (
   preferred_subject TEXT,         -- Olympiad only: 'math' | 'science' | 'both'
   program_options TEXT,           -- JSON array of option ids selected at registration (Mock Test sessions, Prep Course subjects, etc.)
   terms_accepted INTEGER NOT NULL DEFAULT 0,
-  status TEXT NOT NULL DEFAULT 'submitted',
+  status TEXT NOT NULL DEFAULT 'submitted' CHECK (status IN ('submitted','payment_pending','paid','confirmed','cancelled')),
   source_page TEXT,
   member_id TEXT UNIQUE,           -- BdMSOYY0C-XXX; assigned on first paid receipt
+  cohort_key TEXT,                 -- the program run this registration belongs to (cohorts.cohort_key); stamped at signup
+  reminded_at TEXT,                -- last bulk payment-reminder email; powers the 24h remind cooldown
   created_at TEXT NOT NULL,
   updated_at TEXT,                         -- last change; maintained by trigger (see bottom)
   FOREIGN KEY (guardian_account_id) REFERENCES guardian_accounts (id)
 );
+CREATE INDEX IF NOT EXISTS idx_registrations_cohort ON registrations (cohort_key);
 
 -- Atomic counter for human-readable BdMSO IDs.
 -- Format: BdMSO + 2-digit-year + 0 + 1-digit-class + - + 3-digit-seq
@@ -120,6 +123,12 @@ ON registrations (guardian_account_id);
 CREATE INDEX IF NOT EXISTS idx_registrations_guardian_account_status
 ON registrations (guardian_account_id, status);
 
+-- Admin list/triage/analytics filter + sort globally on status/created_at.
+CREATE INDEX IF NOT EXISTS idx_registrations_status_created
+ON registrations (status, created_at);
+CREATE INDEX IF NOT EXISTS idx_registrations_created
+ON registrations (created_at);
+
 CREATE TABLE IF NOT EXISTS sponsorship_enquiries (
   id TEXT PRIMARY KEY,
   organization TEXT NOT NULL,
@@ -128,7 +137,7 @@ CREATE TABLE IF NOT EXISTS sponsorship_enquiries (
   phone TEXT,
   interest TEXT NOT NULL,
   message TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'new',
+  status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new','contacted','converted','closed')),
   source_page TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT                          -- last change; maintained by trigger (see bottom)
@@ -148,6 +157,10 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS idx_sessions_account_id
 ON sessions (account_id);
 
+-- Session cleanup scans by expiry.
+CREATE INDEX IF NOT EXISTS idx_sessions_expires
+ON sessions (expires_at);
+
 -- Gateway column mapping (shurjoPay):
 --   tran_id        = merchant order_id      (we generate; sent as order_id to /api/secret-pay)
 --   val_id         = sp_order_id            (from secret-pay response; used to look up the row in /payment-callback because shurjoPay's redirect identifies the txn by sp_order_id, not by our id)
@@ -155,20 +168,26 @@ ON sessions (account_id);
 CREATE TABLE IF NOT EXISTS payments (
   id TEXT PRIMARY KEY,
   registration_id TEXT NOT NULL,
-  amount REAL NOT NULL,
+  amount REAL NOT NULL CHECK (amount >= 0),
   currency TEXT NOT NULL DEFAULT 'BDT',
   tran_id TEXT UNIQUE,       -- merchant order_id
   val_id TEXT,               -- shurjoPay sp_order_id (set at create-payment time)
   gateway_status TEXT,       -- shurjoPay transaction_status
   method TEXT,               -- shurjoPay payment method (card brand, bKash, Nagad, ...)
+  account_number TEXT,       -- shurjoPay payer account/wallet/card number (from verification)
+  channel TEXT NOT NULL DEFAULT 'online',  -- 'online' (shurjoPay) | 'manual' (cash/bank/offline)
+  invoice_no TEXT,           -- 'INV-YYYY-NNNN' generated for manual payments
   coupon_code TEXT,          -- coupon applied at checkout (used_count incremented on success)
-  status TEXT NOT NULL DEFAULT 'pending',
-  purpose TEXT NOT NULL DEFAULT 'initial',  -- 'initial' (first registration payment) | 'option-upgrade' (top-up for switching to a more expensive option)
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','paid','failed','cancelled','expired','refunded')),
+  purpose TEXT NOT NULL DEFAULT 'initial' CHECK (purpose IN ('initial','option-upgrade')),  -- 'initial' (first registration payment) | 'option-upgrade' (top-up for switching to a more expensive option)
   proposed_options TEXT,                    -- JSON array of option ids this payment is buying; null on 'initial' rows. On 'option-upgrade' success, copied into registrations.program_options.
+  cohort_key TEXT,           -- the program run this payment is for (= registration's cohort_key); stamped at creation
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
-  FOREIGN KEY (registration_id) REFERENCES registrations (id)
+  FOREIGN KEY (registration_id) REFERENCES registrations (id),
+  FOREIGN KEY (coupon_code) REFERENCES coupons (code)
 );
+CREATE INDEX IF NOT EXISTS idx_payments_cohort ON payments (cohort_key);
 
 CREATE INDEX IF NOT EXISTS idx_payments_registration_id
 ON payments (registration_id);
@@ -179,6 +198,14 @@ ON payments (tran_id);
 CREATE INDEX IF NOT EXISTS idx_payments_val_id
 ON payments (val_id);
 
+-- Admin payments list filters by status + sorts by updated_at; revenue/triage too.
+CREATE INDEX IF NOT EXISTS idx_payments_status_updated
+ON payments (status, updated_at);
+
+-- Manual-payment lookups filter by channel; coupon usage queries filter by coupon_code.
+CREATE INDEX IF NOT EXISTS idx_payments_channel ON payments (channel);
+CREATE INDEX IF NOT EXISTS idx_payments_coupon ON payments (coupon_code);
+
 -- At most one in-flight option-upgrade payment per registration. The
 -- /options/upgrade route also checks this in code, but two parallel
 -- requests can both pass the SELECT before either INSERT; the unique
@@ -188,6 +215,14 @@ ON payments (val_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_one_pending_upgrade
 ON payments (registration_id)
 WHERE status = 'pending' AND purpose = 'option-upgrade';
+
+-- Atomic per-year counter for human-readable invoice numbers (manual payments).
+-- Format: INV-YYYY-NNNN. One row per year; a single INSERT … ON CONFLICT DO
+-- UPDATE … RETURNING reserves + increments without a read-modify-write race.
+CREATE TABLE IF NOT EXISTS invoice_seq (
+  year INTEGER PRIMARY KEY,
+  next_seq INTEGER NOT NULL DEFAULT 1
+);
 
 -- shurjoPay /api/get_token returns a bearer token valid for ~1 hour plus
 -- the store_id we need on every /api/secret-pay call. Cached in this
@@ -203,8 +238,8 @@ CREATE TABLE IF NOT EXISTS shurjopay_token_cache (
 
 CREATE TABLE IF NOT EXISTS coupons (
   code TEXT PRIMARY KEY,
-  discount_type TEXT NOT NULL DEFAULT 'percent', -- 'percent' or 'fixed'
-  discount_value REAL NOT NULL,
+  discount_type TEXT NOT NULL DEFAULT 'percent' CHECK (discount_type IN ('percent','fixed')), -- 'percent' or 'fixed'
+  discount_value REAL NOT NULL CHECK (discount_value >= 0),
   max_uses INTEGER,               -- NULL = unlimited
   used_count INTEGER NOT NULL DEFAULT 0,
   applies_to TEXT,                -- NULL = all programs; comma-separated slugs otherwise
@@ -252,7 +287,7 @@ CREATE TABLE IF NOT EXISTS registration_option_changes (
   from_price REAL NOT NULL,
   to_price REAL NOT NULL,
   delta REAL NOT NULL,              -- to_price - from_price (negative for downgrade)
-  action TEXT NOT NULL,             -- 'same' | 'upgrade' | 'downgrade'
+  action TEXT NOT NULL CHECK (action IN ('same','upgrade','downgrade')),
   payment_id TEXT,                  -- non-null only when action='upgrade' (links the top-up payment that committed this change)
   actor_account_id TEXT NOT NULL,
   acknowledged_no_refund INTEGER NOT NULL DEFAULT 0,  -- 1 when guardian confirmed they won't be refunded on a downgrade
@@ -402,12 +437,13 @@ CREATE TABLE IF NOT EXISTS attendance (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   registration_id TEXT NOT NULL,
   event_key TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'absent',       -- 'absent' | 'present' | 'late' | 'no_show'
+  status TEXT NOT NULL DEFAULT 'absent' CHECK (status IN ('absent','present','late','no_show')),       -- 'absent' | 'present' | 'late' | 'no_show'
   checked_in_at TEXT,
   checked_in_by TEXT,
   notes TEXT,
   FOREIGN KEY (registration_id) REFERENCES registrations (id),
   FOREIGN KEY (checked_in_by) REFERENCES guardian_accounts (id),
+  FOREIGN KEY (event_key) REFERENCES cohorts (cohort_key),
   UNIQUE (registration_id, event_key)
 );
 CREATE INDEX IF NOT EXISTS idx_attendance_event
@@ -428,10 +464,41 @@ CREATE TABLE IF NOT EXISTS scores (
   entered_by TEXT,
   FOREIGN KEY (registration_id) REFERENCES registrations (id),
   FOREIGN KEY (entered_by) REFERENCES guardian_accounts (id),
+  FOREIGN KEY (event_key) REFERENCES cohorts (cohort_key),
   UNIQUE (registration_id, event_key, section)
 );
 CREATE INDEX IF NOT EXISTS idx_scores_event_section
 ON scores (event_key, section, score DESC);
+
+-- Cohort/run = a scheduled instance of a program. Registrations bind to a
+-- cohort (registrations.cohort_key), results bind via scores.event_key =
+-- cohorts.cohort_key, and reports group by it. cohort_key is INTERNAL only
+-- (never in public URLs); format {program}-{YYYY}-b{N}. status lifecycle:
+-- draft -> upcoming -> enrolling -> running -> ended -> archived. price_override
+-- null = use the program's catalog price. sections/results_published are used
+-- by exam-bearing cohorts only.
+CREATE TABLE IF NOT EXISTS cohorts (
+  cohort_key        TEXT PRIMARY KEY,
+  program_slug      TEXT NOT NULL,
+  label             TEXT NOT NULL,
+  status            TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','upcoming','enrolling','running','ended','archived')),
+  enroll_opens      TEXT,
+  enroll_closes     TEXT,
+  starts_on         TEXT,
+  ends_on           TEXT,
+  price_override    INTEGER,
+  capacity          INTEGER,
+  sections          TEXT NOT NULL DEFAULT '[]',
+  results_published INTEGER NOT NULL DEFAULT 0,  -- released to guardians (private scores)
+  public_featured   INTEGER NOT NULL DEFAULT 0,  -- this run's winners shown on the public /results page
+  published_at      TEXT,
+  created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at        TEXT,                         -- last change; maintained by trigger (see migration 0021)
+  FOREIGN KEY (program_slug) REFERENCES programs (slug)
+);
+CREATE INDEX IF NOT EXISTS idx_cohorts_program ON cohorts (program_slug);
+CREATE INDEX IF NOT EXISTS idx_cohorts_program_status ON cohorts (program_slug, status);
+CREATE INDEX IF NOT EXISTS idx_cohorts_status ON cohorts (status);
 
 -- Keep updated_at current on the mutable tables that carry it. The WHEN guard
 -- only touches the row when the write did not already change updated_at, so it
@@ -459,6 +526,12 @@ AFTER UPDATE ON sponsorship_enquiries FOR EACH ROW
 WHEN NEW.updated_at IS OLD.updated_at
 BEGIN
   UPDATE sponsorship_enquiries SET updated_at = datetime('now') WHERE rowid = NEW.rowid;
+END;
+CREATE TRIGGER IF NOT EXISTS trg_cohorts_updated_at
+AFTER UPDATE ON cohorts FOR EACH ROW
+WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE cohorts SET updated_at = datetime('now') WHERE rowid = NEW.rowid;
 END;
 
 -- ─── Homepage / marketing datasets (editable from the admin dashboard) ───────
@@ -509,11 +582,13 @@ CREATE TABLE IF NOT EXISTS medalists (
   school TEXT,                                         -- free-form detail, e.g. "St. Joseph HSS · 5"
   sort_order INTEGER NOT NULL DEFAULT 0,
   published INTEGER NOT NULL DEFAULT 0,
+  cohort_key TEXT,                                     -- set when generated from a cohort's scores; NULL = hand-entered/historical archive
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_by TEXT,
   FOREIGN KEY (updated_by) REFERENCES guardian_accounts (id)
 );
+CREATE INDEX IF NOT EXISTS idx_medalists_cohort ON medalists (cohort_key);
 CREATE INDEX IF NOT EXISTS idx_medalists_published
 ON medalists (published, year, category, medal, sort_order);
 
@@ -562,4 +637,57 @@ AFTER UPDATE ON team_members FOR EACH ROW
 WHEN NEW.updated_at IS OLD.updated_at
 BEGIN
   UPDATE team_members SET updated_at = datetime('now') WHERE rowid = NEW.rowid;
+END;
+
+-- Staged review-and-publish. Content edits stage a pending_publish row instead
+-- of pushing to GitHub; a single admin "publish" action commits them all in one
+-- GitHub commit. (Migration 0013.)
+--
+--   entity_type  - 'post' | 'program' | 'press' | 'halloffame' | 'medalist' | 'team'
+--   entity_id    - slug for posts/programs; the dataset name for the whole-file
+--                  JSON datasets, so all row edits of that dataset dedupe to one
+--                  pending row.
+--   action       - 'create' | 'update' | 'delete'
+CREATE TABLE IF NOT EXISTS pending_publish (
+  id TEXT PRIMARY KEY,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  action TEXT NOT NULL,                                -- 'create' | 'update' | 'delete'
+  materialized_path TEXT,
+  materialized_content TEXT,
+  d1_after_json TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',              -- 'pending' | 'published'
+  staged_by TEXT REFERENCES guardian_accounts(id),
+  staged_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pending_publish_entity
+ON pending_publish (entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_pending_publish_status
+ON pending_publish (status);
+
+-- Revert baseline for discard: each entity's D1 row(s) as of the last publish.
+-- entity_id matches pending_publish (slug for posts/programs, dataset name for
+-- the JSON datasets). d1_json is the whole table for datasets, the single row
+-- for per-file entities.
+CREATE TABLE IF NOT EXISTS publish_snapshots (
+  entity_type TEXT NOT NULL,
+  entity_id   TEXT NOT NULL,
+  d1_json     TEXT NOT NULL,
+  updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (entity_type, entity_id)
+);
+
+CREATE TRIGGER IF NOT EXISTS trg_pending_publish_updated_at
+AFTER UPDATE ON pending_publish FOR EACH ROW
+WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE pending_publish SET updated_at = datetime('now') WHERE rowid = NEW.rowid;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_publish_snapshots_updated_at
+AFTER UPDATE ON publish_snapshots FOR EACH ROW
+WHEN NEW.updated_at IS OLD.updated_at
+BEGIN
+  UPDATE publish_snapshots SET updated_at = datetime('now') WHERE rowid = NEW.rowid;
 END;
