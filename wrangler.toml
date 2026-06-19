@@ -78,7 +78,10 @@ SHURJOPAY_SANDBOX = "false"
 # GITHUB_TOKEN is a SECRET - set it via `wrangler secret put GITHUB_TOKEN
 # --env production` (a fine-grained PAT with contents:write on this repo).
 GITHUB_REPO = "fahimscirex/bdmso"
-GITHUB_BRANCH = "main"
+# Publish target: the branch the admin "Publish" flow commits to AND the branch
+# Cloudflare Workers Build watches to redeploy. Currently "refactor" while the
+# rewrite is staged; flip back to "main" at go-live.
+GITHUB_BRANCH = "refactor"
 
 [[env.production.d1_databases]]
 binding = "DB"
