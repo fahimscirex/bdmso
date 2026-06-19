@@ -74,6 +74,13 @@ DASHBOARD-PLAN.md
 # Local notes
 notes
 
+# Real DB dumps carry production PII (guardian accounts, hashes, phones) - never
+# commit them. Use synthetic fixtures for shareable seed data.
+db/dump.sql
+*.dump.sql
+*.sqlite
+*.db
+
 # Scratch / prototype HTML + handover docs - working artifacts, never committed.
 .kimchi/
 .mcp.json
