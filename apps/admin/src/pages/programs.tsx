@@ -124,8 +124,8 @@ export function ProgramsPage() {
                         <TableCell className="text-right font-mono font-medium tabular-nums">{bdt(p.fee)}</TableCell>
                         <TableCell>
                           <Switch
-                            defaultChecked={p.status !== 'closed'}
-                            onCheckedChange={(v) => run(api.programPublish(p.slug, v), `${p.title} ${v ? 'published' : 'unpublished'}`)}
+                            checked={p.published}
+                            onCheckedChange={(v) => run(api.programPublish(p.slug, v), `${p.title} ${v ? 'published' : 'unpublished'}`, reload)}
                           />
                         </TableCell>
                         <TableCell>
