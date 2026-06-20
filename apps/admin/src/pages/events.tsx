@@ -152,15 +152,36 @@ function ScoresTab({ eventKey, sections, roster, onChanged }: {
                   <div className="font-medium">{p.name}</div>
                   <div className="font-mono text-xs text-muted-foreground">{p.memberId || p.id}</div>
                 </TableCell>
-                {sections.map((s) => (
-                  <TableCell key={s.id} className="text-right">
-                    <Input
-                      type="number" min={0} max={s.max} defaultValue={p.scores[s.id]?.score ?? ''}
-                      onBlur={(e) => save(p.id, s, e.target.value)}
-                      className="ml-auto h-8 w-20 text-right font-mono tabular-nums" placeholder="—"
-                    />
-                  </TableCell>
-                ))}
+                {sections.map((s) => {
+                  const cell = p.scores[s.id];
+                  // Sections with a breakdown are entered via CSV import; show the
+                  // total + parts read-only so the total can't drift from its parts.
+                  if (s.parts?.length) {
+                    return (
+                      <TableCell key={s.id} className="text-right">
+                        {cell ? (
+                          <div className="flex flex-col items-end gap-0.5">
+                            <span className="font-mono text-sm font-medium tabular-nums">{cell.score}<span className="text-muted-foreground">/{s.max}</span></span>
+                            {cell.detail && (
+                              <span className="text-[11px] text-muted-foreground">
+                                {s.parts.map((pt) => `${pt} ${cell.detail?.[pt] ?? '–'}`).join(' · ')}
+                              </span>
+                            )}
+                          </div>
+                        ) : <span className="text-xs text-muted-foreground">— import CSV</span>}
+                      </TableCell>
+                    );
+                  }
+                  return (
+                    <TableCell key={s.id} className="text-right">
+                      <Input
+                        type="number" min={0} max={s.max} defaultValue={cell?.score ?? ''}
+                        onBlur={(e) => save(p.id, s, e.target.value)}
+                        className="ml-auto h-8 w-20 text-right font-mono tabular-nums" placeholder="—"
+                      />
+                    </TableCell>
+                  );
+                })}
                 <TableCell className="text-right">
                   {ranks.length ? (
                     <span className="inline-flex items-center gap-1.5 tabular-nums">

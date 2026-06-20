@@ -25,7 +25,7 @@ type RegRow = {
 };
 type PayRow = {
   id: string; amount: number; tran_id: string; status: 'pending' | 'paid' | 'failed';
-  method: string | null; account_number: string | null;
+  method: string | null; account_number: string | null; channel: string | null;
   coupon_code: string | null; created_at: string; registration_id: string | null;
   student_full_name: string | null; program_label: string | null;
 };
@@ -41,7 +41,7 @@ type DetailRow = {
 };
 type DetailPayRow = {
   id: string; amount: number; tran_id: string | null; status: 'pending' | 'paid' | 'failed';
-  method: string | null; account_number: string | null; coupon_code: string | null; purpose: string; program: string; created_at: string;
+  method: string | null; account_number: string | null; channel: string | null; coupon_code: string | null; purpose: string; program: string; created_at: string;
 };
 type ProgRow = {
   slug: string; title: string; category: string; registration_status: string;
@@ -158,13 +158,22 @@ function adaptReg(r: RegRow): Registration {
     status: regStatus(r.status), createdAt: r.created_at,
   };
 }
+// Gateway-qualified method label: online rails read "shurjoPay: bKash" so they
+// can't be mistaken for an offline "bKash" transfer ("Manual: bKash"). 'manual'
+// as a method value (the offline-invoice placeholder) is treated as no rail.
+function formatMethod(channel: string | null, method: string | null, coupon: string | null): string {
+  const rail = method && method.toLowerCase() !== 'manual' ? method : null;
+  if (!rail) return coupon ? 'Coupon' : channel === 'manual' ? 'Manual' : 'shurjoPay';
+  return channel === 'manual' ? `Manual: ${rail}` : `shurjoPay: ${rail}`;
+}
 function adaptPay(r: PayRow): Payment {
-  return { id: r.id, regId: r.registration_id ?? '—', student: r.student_full_name ?? '—', program: r.program_label ?? '—', amount: r.amount, method: r.method || (r.coupon_code ? 'Coupon' : 'shurjoPay'), accountNumber: r.account_number || null, status: r.status, txnId: r.tran_id || null, createdAt: r.created_at };
+  return { id: r.id, regId: r.registration_id ?? '—', student: r.student_full_name ?? '—', program: r.program_label ?? '—', amount: r.amount, method: r.method || (r.coupon_code ? 'Coupon' : 'shurjoPay'), methodLabel: formatMethod(r.channel, r.method, r.coupon_code), accountNumber: r.account_number || null, status: r.status, txnId: r.tran_id || null, createdAt: r.created_at };
 }
 function adaptRegPayment(r: DetailPayRow): RegistrationPayment {
   return {
     id: r.id, amount: r.amount,
     method: r.method || (r.coupon_code ? 'Coupon' : 'shurjoPay'),
+    methodLabel: formatMethod(r.channel, r.method, r.coupon_code),
     accountNumber: r.account_number || null,
     status: r.status, txnId: r.tran_id || null, couponCode: r.coupon_code,
     purpose: r.purpose, program: r.program, createdAt: r.created_at,

@@ -508,7 +508,7 @@ admin.get("/payments", async (c) => {
   const rows = await c.env.DB.prepare(`
     SELECT
       p.id, p.amount, p.currency, p.tran_id, p.val_id, p.gateway_status,
-      p.method, p.account_number,
+      p.method, p.account_number, p.channel,
       p.status, p.coupon_code, p.created_at, p.updated_at,
       r.id                AS registration_id,
       r.registration_type,
@@ -2128,14 +2128,15 @@ admin.get("/events/:event/roster", async (c) => {
     LIMIT 5000
   `).bind(event_key, ...binds).all();
 
-  // Scores entered for this event, grouped by registration -> { section: {score,max,rank,tier} }.
+  // Scores entered for this event, grouped by registration -> { section: {score,max,rank,tier,detail} }.
   const scoreRows = (await c.env.DB.prepare(
-    "SELECT registration_id, section, score, max_score, rank, tier FROM scores WHERE event_key = ?"
+    "SELECT registration_id, section, score, max_score, rank, tier, detail_json FROM scores WHERE event_key = ?"
   ).bind(event_key).all()).results || [];
+  const parseDetail = (j) => { try { return j ? JSON.parse(j) : null; } catch { return null; } };
   const scoreMap = {};
   for (const s of scoreRows) {
     (scoreMap[s.registration_id] ??= {})[s.section] =
-      { score: s.score, max: s.max_score, rank: s.rank, tier: s.tier };
+      { score: s.score, max: s.max_score, rank: s.rank, tier: s.tier, detail: parseDetail(s.detail_json) };
   }
 
   return c.json({

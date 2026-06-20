@@ -33,7 +33,8 @@ export interface Payment {
   student: string;
   program: string;
   amount: number;
-  method: string;
+  method: string;            // raw rail (bKash/card/...) - used by the per-method breakdown
+  methodLabel: string;       // gateway-qualified for display: "shurjoPay: bKash" / "Manual: cash"
   accountNumber: string | null;
   status: PaymentStatus;
   txnId: string | null;
@@ -44,6 +45,7 @@ export interface RegistrationPayment {
   id: string;
   amount: number;
   method: string;
+  methodLabel: string;       // gateway-qualified for display
   accountNumber: string | null;
   status: PaymentStatus;
   txnId: string | null;
@@ -145,7 +147,7 @@ export type ExamEvent = {
   eventKey: string; label: string; programSlug: string;
   sections: ExamSection[]; resultsPublished: boolean; publishedAt: string | null; scored: number;
 };
-export type ScoreCell = { score: number; max: number; rank: number | null; tier: string | null };
+export type ScoreCell = { score: number; max: number; rank: number | null; tier: string | null; detail: Record<string, number> | null };
 export type RosterEntry = {
   id: string; memberId: string | null; name: string; className: string;
   venue: string; school: string; district: string;

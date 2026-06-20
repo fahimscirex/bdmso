@@ -342,7 +342,7 @@ export function RegistrationDetailPage({ id }: { id: string }) {
                     <TableCell className="font-mono text-xs">{p.txnId || '—'}</TableCell>
                     <TableCell className="text-muted-foreground">{p.program.replace('BdMSO ', '')}</TableCell>
                     <TableCell>
-                      {p.method}
+                      {p.methodLabel}
                       {p.accountNumber && <div className="font-mono text-xs text-muted-foreground">{p.accountNumber}</div>}
                     </TableCell>
                     <TableCell className="text-right font-mono tabular-nums">{bdt(p.amount)}</TableCell>

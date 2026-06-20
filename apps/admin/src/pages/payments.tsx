@@ -50,7 +50,7 @@ const makeColumns = (reload: () => void): ColumnDef<Payment>[] => [
     header: ({ column }) => <DataTableColumnHeader column={column} title="Method" />,
     cell: ({ row }) => (
       <div>
-        <div className="text-sm">{row.original.method}</div>
+        <div className="text-sm">{row.original.methodLabel}</div>
         {row.original.accountNumber && (
           <div className="font-mono text-xs text-muted-foreground">{row.original.accountNumber}</div>
         )}
