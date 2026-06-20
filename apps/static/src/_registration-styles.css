@@ -118,6 +118,10 @@
      reclaiming the doubled-up horizontal space. */
   #program-options-panel { margin: 16px 0 0; padding: 0; background: none; border: none; }
   #program-options-panel .opt-item { background: white; }
+  /* The panel lost its padding above, so indent the header + help line to match
+     the cards' content inset instead of sitting flush against the edge. */
+  #program-options-panel .opt-head,
+  #program-options-panel .opt-help { padding-inline: 14px; }
 }
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .field label { font-size: 13px; font-weight: 600; color: var(--navy-900); }
