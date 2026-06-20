@@ -1,6 +1,6 @@
 import { postJson } from "./api.js";
 import { BD_DISTRICTS, canonicalDistrict } from "./bd-districts.js";
-import { PROGRAM_OPTIONS, programHasOptions, computeOptionsTotal } from "./program-options.js";
+import { PROGRAM_OPTIONS, programHasOptions, computeOptionsTotal, initProgramOptions } from "./program-options.js";
 
 // Option ids already taken by another non-cancelled registration on
 // this account for the current program. Populated by loadTakenOptions
@@ -119,12 +119,15 @@ function renderProgramOptions() {
     </label>`;
   }).join("");
 
+  // The catalog options config may omit label/help - fall back so the header
+  // never shows the literal "undefined".
+  const optTitle = cfg.label || "Select an option";
   panel.innerHTML = `
     <div class="opt-head">
-      <div class="opt-title">${cfg.label}</div>
+      <div class="opt-title">${optTitle}</div>
       <div class="opt-total"><span class="l">Total</span><span id="opt-total-amount">৳ 0</span></div>
     </div>
-    <p class="opt-help">${cfg.help}</p>
+    ${cfg.help ? `<p class="opt-help">${cfg.help}</p>` : ""}
     <div class="opt-list">${items}</div>
   `;
   panel.hidden = false;
@@ -290,7 +293,7 @@ function validateStep(step) {
     const picked = getSelectedOptions();
     if (picked.length === 0) {
       const cfg = PROGRAM_OPTIONS[effectiveCompetition()];
-      setMessage(`Please pick at least one ${cfg.label.toLowerCase()} option above.`, "error");
+      setMessage(`Please pick at least one ${(cfg.label || "").toLowerCase()} option above.`.replace(/\s+/g, " ").trim(), "error");
       document.querySelector('#program-options-panel input[name="program-option"]')?.focus();
       return false;
     }
@@ -888,10 +891,20 @@ function init() {
   // Olympiad and Quiz.
   syncConditionalFields();
   renderProgramOptions();
+  // PROGRAM_OPTIONS is populated ASYNCHRONOUSLY from the catalog (the shared
+  // helper, also used by registration-page.js). The render above runs before
+  // that resolves, so the picker starts empty - for NEW (signed-out) users it
+  // would otherwise never appear and Continue could never be satisfied. Re-render
+  // and re-gate once the catalog has loaded. initProgramOptions() is cached, so
+  // this shares the same fetch.
+  initProgramOptions().then(() => {
+    renderProgramOptions();
+    syncConditionalFields();
+    refreshStepButtons();
+  });
   // Async refresh once we know what the guardian already holds (only
-  // happens when signed in). The initial render above used the empty
-  // default so the form isn't blocked on the round-trip; this just
-  // greys out taken slots after the fact.
+  // happens when signed in). Greys out slots they already have; the render
+  // reads the up-to-date PROGRAM_OPTIONS so it's safe whenever it resolves.
   loadTakenOptions().then(() => {
     if (takenOptionIds.size > 0) renderProgramOptions();
   });
