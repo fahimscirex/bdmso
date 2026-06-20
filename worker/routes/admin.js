@@ -1344,8 +1344,10 @@ function broadcastFilters(src) {
 function broadcastRecipientSql(src) {
   if (src.status === "unpaid") {
     const binds = [];
-    let paidSub = "SELECT guardian_account_id FROM registrations WHERE status = 'paid'";
-    if (src.program) { paidSub += " AND registration_type = ?"; binds.push(src.program); }
+    // Exclude anyone with a SUCCESSFUL payment for the program - even if they
+    // also have failed/pending attempts. Keyed on the payment, not reg status.
+    let paidSub = "SELECT r.guardian_account_id FROM registrations r JOIN payments p ON p.registration_id = r.id AND p.status = 'paid'";
+    if (src.program) { paidSub += " WHERE r.registration_type = ?"; binds.push(src.program); }
     return {
       sql: `SELECT DISTINCT a.email FROM guardian_accounts a WHERE a.email IS NOT NULL AND a.email != '' AND a.id NOT IN (${paidSub})`,
       binds,
