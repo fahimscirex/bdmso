@@ -20,6 +20,27 @@ import { checkActionRateLimit, recordActionAttempt, clientIpFor } from "../lib/r
 
 const admin = new Hono();
 
+// Short edge-cache for read-heavy GLOBAL aggregates (analytics, reports) to cut
+// D1 rows-read. The data is not per-admin, so one cached copy is shared across
+// admins in a colo. 60s staleness is fine for dashboard/report numbers; writes
+// just surface up to a minute later. Keyed by a synthetic URL so all admins hit
+// the same entry regardless of auth headers.
+const cacheReq = (key) => new Request(`https://d1cache.local/${encodeURIComponent(key)}`);
+async function cacheGet(key) {
+  try { return (await caches.default.match(cacheReq(key))) || null; } catch { return null; }
+}
+function cacheHit(hit) { const r = new Response(hit.body, hit); r.headers.set("x-cache", "HIT"); return r; }
+async function cachePut(c, key, ttl, data) {
+  const res = c.json(data);
+  res.headers.set("Cache-Control", `max-age=${ttl}`);
+  res.headers.set("x-cache", "MISS");
+  // Await the put so the entry is stored before we respond (the write is cheap
+  // next to the aggregates we just ran). Errors are non-fatal - still serve data.
+  try { await caches.default.put(cacheReq(key), res.clone()); }
+  catch (e) { console.log("[cache] put failed:", e?.message || e); }
+  return res;
+}
+
 admin.use("*", sessionMiddleware);
 admin.use("*", requireRole("admin"));
 // Per-IP cap across the entire admin namespace. Each dashboard/list page fires
@@ -1215,6 +1236,7 @@ admin.get("/audit", async (c) => {
 // Aggregate breakdowns for the dashboard overview: the submitted->paid
 // funnel, registrations per exam venue, and registrations per program.
 admin.get("/analytics", async (c) => {
+  const hit = await cacheGet("analytics"); if (hit) return cacheHit(hit);
   const catalog = await getCatalog(c);
   // All eight aggregates run in parallel - D1 latency dominates, so
   // sequential awaits would compound badly.
@@ -1328,7 +1350,7 @@ admin.get("/analytics", async (c) => {
     `).all(),
   ]);
 
-  return c.json({
+  return cachePut(c, "analytics", 60, {
     ok: true,
     funnel: {
       total:     Number(funnel?.total)     || 0,
@@ -1425,8 +1447,10 @@ function broadcastRecipientSql(src) {
 // totals reconcile exactly to SUM(paid payments), and only programs that
 // actually have registrations appear (no empty rows).
 admin.get("/reports", async (c) => {
-  const catalog = await getCatalog(c);
   const cohort = (c.req.query("cohort") || "").trim();
+  const ckey = `reports:${cohort || "all"}`;
+  const hit = await cacheGet(ckey); if (hit) return cacheHit(hit);
+  const catalog = await getCatalog(c);
   const where = cohort ? "WHERE r.cohort_key = ?" : "";
   const bind = cohort ? [cohort] : [];
   // "Paid" counts registrations with a real money payment (amount > 0), so free
@@ -1452,7 +1476,7 @@ admin.get("/reports", async (c) => {
     c.env.DB.prepare(agg("r.registration_type", "type")).bind(...bind).all(),
     c.env.DB.prepare(agg("COALESCE(NULLIF(TRIM(r.preferred_venue), ''), 'Not set')", "venue")).bind(...bind).all(),
   ]);
-  return c.json({
+  return cachePut(c, ckey, 60, {
     totals: {
       participants: Number(totals?.total) || 0,
       paid: Number(totals?.paid) || 0,

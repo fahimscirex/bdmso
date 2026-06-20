@@ -46,13 +46,14 @@ export function PublishBar() {
     api.getPendingPublish().then((p) => setCount(p.count)).catch(() => {});
   }, []);
 
-  // Re-check the pending count on mount, on every navigation, every 30s, and
-  // immediately after any admin mutation (so the bar appears as soon as a
-  // content edit stages a change, on whatever page you are on - not only on the
-  // content page where the edit happened).
+  // Re-check the pending count on mount, on every navigation, immediately after
+  // any admin mutation (so the bar appears as soon as a content edit stages a
+  // change, on whatever page you are on), and on a slow 2-min safety interval.
+  // Staged changes are already caught by the 'admin:mutated' event + navigation,
+  // so the interval is just a backstop - keep it long to spare D1 rows-read.
   useEffect(() => {
     refreshCount();
-    const id = setInterval(refreshCount, 30_000);
+    const id = setInterval(refreshCount, 120_000);
     window.addEventListener('admin:mutated', refreshCount);
     return () => { clearInterval(id); window.removeEventListener('admin:mutated', refreshCount); };
   }, [refreshCount, path]);
