@@ -49,6 +49,11 @@ import Img from "../../components/Img.astro";
       .inv-col h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); margin: 0 0 8px; }
       .inv-col .nm { font-weight: 700; color: var(--navy-900); margin-bottom: 2px; }
       .inv-col .ln { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+      .inv-detail { display: flex; flex-wrap: wrap; gap: 14px 32px; margin-bottom: 24px; padding: 14px 16px; background: var(--bg-alt); border: 1px solid var(--line); border-radius: 10px; }
+      .inv-detail > div { display: flex; flex-direction: column; gap: 2px; }
+      .inv-detail .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); }
+      .inv-detail .v { font-size: 13.5px; color: var(--navy-900); font-weight: 600; }
+      .inv-detail .v.mono { font-family: var(--font-mono, monospace); font-size: 12.5px; }
       table.inv-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
       table.inv-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); border-bottom: 1px solid var(--line); padding: 0 0 10px; }
       table.inv-table th.amt, table.inv-table td.amt { text-align: right; }
@@ -62,6 +67,7 @@ import Img from "../../components/Img.astro";
       .inv-pay h2 { font-size: 13px; margin: 0 0 8px; color: var(--navy-900); }
       .inv-pay p { font-size: 13px; color: var(--ink-2); line-height: 1.6; margin: 0 0 6px; }
       .inv-pay .ref { font-family: var(--font-mono, monospace); font-weight: 600; color: var(--navy-700); }
+      .inv-pay-addr { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; color: var(--navy-900) !important; }
       .inv-foot { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-3); text-align: center; }
       .inv-msg { max-width: 720px; margin: 40px auto; text-align: center; color: var(--ink-3); font-size: 15px; line-height: 1.6; }
       .inv-msg.err { color: #dc2626; }
@@ -84,7 +90,7 @@ import Img from "../../components/Img.astro";
           <div>
             <Img class="inv-logo" src="/images/logo.webp" alt="BdMSO" loading="eager" fetchpriority="high" />
             <div class="inv-org">
-              Bangladesh Math &amp; Science Olympiad<br />
+              Bangladesh Mathematics and Science Olympiad<br />
               support@bdmso.org · bdmso.org
             </div>
           </div>
@@ -107,6 +113,12 @@ import Img from "../../components/Img.astro";
             <div class="nm" id="inv-student"></div>
             <div class="ln" id="inv-student-detail"></div>
           </div>
+        </div>
+
+        <div class="inv-detail">
+          <div><span class="k">Program</span><span class="v" id="inv-d-program"></span></div>
+          <div id="inv-d-subject-wrap"><span class="k">Subject</span><span class="v" id="inv-d-subject"></span></div>
+          <div><span class="k">Payment ID</span><span class="v mono" id="inv-d-payid"></span></div>
         </div>
 
         <table class="inv-table">
@@ -135,7 +147,12 @@ import Img from "../../components/Img.astro";
 
         <div class="inv-pay">
           <h2>How to pay</h2>
-          <p>Please settle this invoice by cash or bank transfer. Quote your invoice number <span class="ref" id="inv-ref"></span> on the payment so we can match it to your registration.</p>
+          <p>Pay by cash in person at our office, or by bank transfer. Quote your invoice number <span class="ref" id="inv-ref"></span> on the payment so we can match it to your registration.</p>
+          <p class="inv-pay-addr">
+            <strong>Pay at:</strong> BdMSO Office<br />
+            Level 12, Building #758, Green City Center,<br />
+            Sat Masjid Road, Dhanmondi, Dhaka 1209
+          </p>
           <p>Once we receive your payment we confirm it from our end and your BdMSO ID is issued automatically. Questions? Email <a href="mailto:support@bdmso.org">support@bdmso.org</a>.</p>
         </div>
 
@@ -231,6 +248,13 @@ import Img from "../../components/Img.astro";
             setText('inv-program', inv.programName || 'BdMSO Registration');
             var opts = Array.isArray(inv.programOptions) ? inv.programOptions.filter(Boolean) : [];
             setText('inv-options', opts.length ? opts.join(', ') : '');
+
+            // Details strip: program, subject (hidden if none), payment id.
+            setText('inv-d-program', inv.programName || '');
+            var subjWrap = document.getElementById('inv-d-subject-wrap');
+            if (inv.subject) { setText('inv-d-subject', inv.subject); if (subjWrap) subjWrap.hidden = false; }
+            else if (subjWrap) { subjWrap.hidden = true; }
+            setText('inv-d-payid', inv.paymentId || inv.tranId || '');
 
             setText('inv-line-amount', fmtBdt(inv.amount));
             setText('inv-amount', fmtBdt(inv.amount));

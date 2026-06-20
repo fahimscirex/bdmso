@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts';
 import { Download, TrendingUp, Users, Wallet } from 'lucide-react';
 import { api, type ReportRow } from '@/lib/api';
@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -22,36 +23,61 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function ReportsPage() {
-  const { data, error, reload } = useList(api.getReports);
   const [metric, setMetric] = useState<'participants' | 'revenue'>('participants');
+  const [cohort, setCohort] = useState('all'); // 'all' = everything (lifetime)
+  const { data: cohorts } = useList(api.listCohorts);
+  const [data, setData] = useState<Awaited<ReturnType<typeof api.getReports>> | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  if (error) return <ListError message={error} onRetry={reload} />;
+  const load = useCallback(() => {
+    setData(null);
+    setError(null);
+    return api.getReports(cohort === 'all' ? undefined : cohort)
+      .then(setData)
+      .catch((e: Error) => setError(e.message));
+  }, [cohort]);
+  useEffect(() => { load(); }, [load]);
 
-  const totals = (data?.region ?? []).reduce(
-    (a, r) => ({ total: a.total + r.total, paid: a.paid + r.paid, revenue: a.revenue + r.revenue }),
-    { total: 0, paid: 0, revenue: 0 },
-  );
+  if (error) return <ListError message={error} onRetry={load} />;
+
+  const totals = data?.totals ?? { participants: 0, paid: 0, revenue: 0 };
+  // Newest runs first; each labelled with its start date so repeat programs are
+  // distinguishable (e.g. two mock tests).
+  const cohortOpts = [...(cohorts ?? [])].sort((a, b) => (b.startsOn ?? '').localeCompare(a.startsOn ?? ''));
 
   return (
     <>
       <PageHeader
         title="Reports"
-        description="Participation and revenue, broken down by program and by region."
+        description="Participation and revenue. Defaults to everything; pick a single run to scope it."
         actions={
-          <ToggleGroup type="single" value={metric} onValueChange={(v) => v && setMetric(v as typeof metric)} variant="outline" size="sm">
-            <ToggleGroupItem value="participants"><Users className="size-3.5" /> Participants</ToggleGroupItem>
-            <ToggleGroupItem value="revenue"><Wallet className="size-3.5" /> Revenue</ToggleGroupItem>
-          </ToggleGroup>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={cohort} onValueChange={setCohort}>
+              <SelectTrigger size="sm" className="w-[230px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Everything (all time)</SelectItem>
+                {cohortOpts.map((c) => (
+                  <SelectItem key={c.cohortKey} value={c.cohortKey}>
+                    {c.label}{c.startsOn ? ` · ${c.startsOn}` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <ToggleGroup type="single" value={metric} onValueChange={(v) => v && setMetric(v as typeof metric)} variant="outline" size="sm">
+              <ToggleGroupItem value="participants"><Users className="size-3.5" /> Participants</ToggleGroupItem>
+              <ToggleGroupItem value="revenue"><Wallet className="size-3.5" /> Revenue</ToggleGroupItem>
+            </ToggleGroup>
+          </div>
         }
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {!data ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[88px] rounded-xl" />) : (
           <>
-            <Kpi icon={Users} label="Total participants" value={num(totals.total)} />
+            <Kpi icon={Users} label="Total participants" value={num(totals.participants)} />
             <Kpi icon={TrendingUp} label="Paid" value={num(totals.paid)} />
             <Kpi icon={Wallet} label="Revenue" value={bdt(totals.revenue)} />
-            <Kpi icon={TrendingUp} label="Conversion" value={`${totals.total ? Math.round((totals.paid / totals.total) * 100) : 0}%`} />
+            <Kpi icon={TrendingUp} label="Conversion" value={`${totals.participants ? Math.round((totals.paid / totals.participants) * 100) : 0}%`} />
           </>
         )}
       </div>
@@ -109,7 +135,18 @@ function Breakdown({ title, rows, metric, file }: { title: string; rows: ReportR
             <BarChart accessibilityLayer data={sorted} layout="vertical" margin={{ left: 8, right: 16 }}>
               <CartesianGrid horizontal={false} strokeDasharray="3 3" />
               <XAxis type="number" tickLine={false} axisLine={false} tickFormatter={(v) => (metric === 'revenue' ? compactBdt(v) : num(v))} />
-              <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} width={110} tick={{ fontSize: 12 }} />
+              <YAxis
+                type="category" dataKey="name" tickLine={false} axisLine={false} width={150} interval={0}
+                tick={(props) => {
+                  const { x, y, payload } = props as { x: number; y: number; payload: { value: string } };
+                  const v = payload.value;
+                  return (
+                    <text x={x} y={y} dy={4} textAnchor="end" fontSize={11} className="fill-muted-foreground">
+                      {v.length > 22 ? v.slice(0, 21) + '…' : v}
+                    </text>
+                  );
+                }}
+              />
               <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
               {metric === 'revenue' ? (
                 <Bar dataKey="revenue" radius={4}>
@@ -133,7 +170,7 @@ function Breakdown({ title, rows, metric, file }: { title: string; rows: ReportR
         </div>
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent">
+            <TableRow className="border-b bg-muted/50 hover:bg-muted/50">
               <TableHead>{title.slice(0, -1)}</TableHead>
               <TableHead className="text-right">Paid / Total</TableHead>
               <TableHead className="text-right">Revenue</TableHead>

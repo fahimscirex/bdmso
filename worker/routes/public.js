@@ -227,7 +227,7 @@ export async function handleMe(request, env) {
   const regIds = (rows.results || []).map((r) => r.id);
   if (regIds.length) {
     const pubEvents = (await env.DB.prepare(
-      "SELECT cohort_key AS event_key, label, program_slug, sections FROM cohorts WHERE results_published = 1"
+      "SELECT cohort_key AS event_key, label, program_slug, sections, starts_on, ends_on FROM cohorts WHERE results_published = 1"
     ).all()).results || [];
     if (pubEvents.length) {
       const eventByProgram = {};
@@ -236,7 +236,7 @@ export async function handleMe(request, env) {
       const regPh = regIds.map(() => "?").join(",");
       const keyPh = pubKeys.map(() => "?").join(",");
       const scoreRows = (await env.DB.prepare(
-        `SELECT registration_id, event_key, section, score, max_score, rank, tier
+        `SELECT registration_id, event_key, section, score, max_score, rank, tier, detail_json
          FROM scores WHERE registration_id IN (${regPh}) AND event_key IN (${keyPh})`
       ).bind(...regIds, ...pubKeys).all()).results || [];
       const byRegEvent = {};
@@ -250,13 +250,16 @@ export async function handleMe(request, env) {
         let defs = [];
         try { defs = JSON.parse(e.sections || "[]"); } catch { defs = []; }
         const labelById = Object.fromEntries((Array.isArray(defs) ? defs : []).map((d) => [d.id, d.label]));
+        const parseDetail = (j) => { try { return j ? JSON.parse(j) : null; } catch { return null; } };
         const sections = sList.map((s) => ({
           section: s.section, label: labelById[s.section] || s.section,
           score: s.score, max: s.max_score, rank: s.rank, tier: s.tier,
+          detail: parseDetail(s.detail_json),
         }));
         const ranks = sections.map((s) => s.rank).filter((x) => x != null);
         resultByReg[r.id] = {
           event_label: e.label,
+          event_date: e.starts_on || null,
           sections,
           total: sections.reduce((n, s) => n + Number(s.score || 0), 0),
           max_total: sections.reduce((n, s) => n + Number(s.max || 0), 0),
@@ -955,7 +958,7 @@ export async function handleInvoice(request, env, url, registrationId) {
   if (!reg) return badRequest("Registration not found.", 404);
 
   const payment = await env.DB.prepare(
-    "SELECT amount, status, created_at FROM payments WHERE registration_id = ? AND invoice_no = ? LIMIT 1"
+    "SELECT id, tran_id, amount, status, created_at FROM payments WHERE registration_id = ? AND invoice_no = ? LIMIT 1"
   ).bind(registrationId, invoiceNo).first();
   if (!payment) return badRequest("Invoice not found.", 404);
 
@@ -966,11 +969,18 @@ export async function handleInvoice(request, env, url, registrationId) {
     ? catalog.getOptionLabels(reg.registration_type, storedOptions)
     : [];
 
+  // Olympiad-style subject, spelled out (no '&', matching the org name style).
+  const SUBJECT_LABEL = { math: "Mathematics", science: "Science", both: "Mathematics and Science" };
+  const subject = reg.preferred_subject ? (SUBJECT_LABEL[reg.preferred_subject] || reg.preferred_subject) : null;
+
   return jsonResponse({
     invoiceNo,
+    paymentId:       payment.id,
+    tranId:          payment.tran_id,
     createdAt:       payment.created_at,
     status:          payment.status,
     programName:     catalog.nameFor(reg.registration_type),
+    subject,
     studentName:     reg.student_full_name,
     studentClass:    reg.student_class_name,
     studentDistrict: reg.student_district,

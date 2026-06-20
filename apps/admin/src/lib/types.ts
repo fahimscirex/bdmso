@@ -20,7 +20,8 @@ export interface Registration {
   guardian: string;
   phone: string;
   email: string;
-  amount: number;
+  amount: number;     // amount actually paid (0 when no payment yet)
+  fee: number | null; // program's expected fee (null for option-priced/on-enquiry)
   payment: PaymentStatus;
   status: RegStatus;
   createdAt: string;
@@ -136,7 +137,10 @@ export type HofPhoto = { id: string; caption: string; year: number; published: b
 export type TeamMember = { id: string; name: string; role: string; section: string; affiliation: string; image: string; published: boolean };
 export type User = { id: string; name: string; email: string; role: 'admin' | 'editor' | 'mentor' | 'viewer' | 'guardian'; verified: boolean; lastActive: string };
 export type AuditEntry = { id: string; actor: string; action: string; target: string; at: string; payload: Record<string, unknown> };
-export type ExamSection = { id: string; label: string; max: number };
+// parts: optional per-section breakdown (e.g. ["Short Q", "Essay Q"]). When set,
+// the CSV template emits one column per part, the section score is the sum of its
+// parts, and the breakdown is stored/shown to guardians as detail.
+export type ExamSection = { id: string; label: string; max: number; parts?: string[] };
 export type ExamEvent = {
   eventKey: string; label: string; programSlug: string;
   sections: ExamSection[]; resultsPublished: boolean; publishedAt: string | null; scored: number;
@@ -168,3 +172,4 @@ export type BroadcastRun = { id: string; subject: string; audience: string; reci
 export type EmailTemplate = { id: string; name: string; subject: string; body: string; category: string; updatedAt: string };
 export type Service = { name: string; status: 'ok' | 'degraded' | 'down'; hint: string; lastActivity: string };
 export type ReportRow = { name: string; total: number; paid: number; revenue: number };
+export type ReportTotals = { participants: number; paid: number; revenue: number };

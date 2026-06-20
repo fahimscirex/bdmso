@@ -30,12 +30,14 @@ export function PaymentActions({ payment, onDone }: { payment: { id: string; sta
           </DropdownMenuItem>
         )}
         {payment.status !== 'paid' && (
-          <DropdownMenuItem onClick={() => run(api.paymentComplete(payment.id, 'cash'), `${payment.id} completed (cash)`, onDone)}>
-            Complete as cash payment
+          <DropdownMenuItem onClick={() => run(api.paymentComplete(payment.id, 'cash'), `${payment.id} recorded as cash`, onDone)}>
+            Record cash payment
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
-        {payment.status !== 'paid' && <DropdownMenuItem onClick={() => setStatus('paid', 'paid')}>Mark as paid</DropdownMenuItem>}
+        {/* Status-only corrections (re-open a wrongly-settled payment). "Paid" is
+            intentionally not here - use "Record cash payment" so the receipt,
+            member id, and Cash-collection tally all happen. */}
         {payment.status !== 'pending' && <DropdownMenuItem onClick={() => setStatus('pending', 'pending')}>Mark as pending</DropdownMenuItem>}
         {payment.status !== 'failed' && <DropdownMenuItem onClick={() => setStatus('failed', 'failed')}>Mark as failed</DropdownMenuItem>}
       </DropdownMenuContent>

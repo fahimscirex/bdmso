@@ -462,6 +462,7 @@ CREATE TABLE IF NOT EXISTS scores (
   tier TEXT,                                   -- 'champion' | 'all-round' | 'math' | 'science' | NULL
   entered_at TEXT NOT NULL DEFAULT (datetime('now')),
   entered_by TEXT,
+  detail_json TEXT,                            -- optional per-question breakdown, e.g. {"Short Q":11,"Essay Q":2}
   FOREIGN KEY (registration_id) REFERENCES registrations (id),
   FOREIGN KEY (entered_by) REFERENCES guardian_accounts (id),
   FOREIGN KEY (event_key) REFERENCES cohorts (cohort_key),

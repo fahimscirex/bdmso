@@ -181,34 +181,55 @@ function ScoresTab({ eventKey, sections, roster, onChanged }: {
 function ImportTab({ eventKey, sections, roster, onCommitted }: { eventKey: string; sections: ExamSection[]; roster: RosterEntry[] | null; onCommitted: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Pre-filled template: every participant's BdMSO ID + name, with one empty
-  // column per section. Staff fill the scores and re-import this file.
+  // Pre-filled template: every participant's BdMSO ID + name. One empty column
+  // per section - or per part when the section has a breakdown. Staff fill the
+  // scores and re-import this file.
   const downloadTemplate = () => {
     exportCsv(`results-template-${eventKey}.csv`, roster ?? [], [
       { header: 'BdMSO ID', value: (p) => p.memberId || p.id },
       { header: 'Name', value: (p) => p.name },
-      ...sections.map((s) => ({ header: s.label, value: () => '' })),
+      ...sections.flatMap((s) => (s.parts?.length
+        ? s.parts.map((p) => ({ header: p, value: () => '' }))
+        : [{ header: s.label, value: () => '' }])),
     ]);
   };
-  const [parsed, setParsed] = useState<{ member_id: string; scores: Record<string, string> }[] | null>(null);
+  const [parsed, setParsed] = useState<{ member_id: string; scores: Record<string, string>; detail: Record<string, Record<string, number>> }[] | null>(null);
   const [preview, setPreview] = useState<ImportResult | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // Map a CSV header to a section id: match by id or label, case-insensitive.
-  const sectionFor = (header: string) => {
+  // Map a CSV header to its target: a flat section, or one part of a section.
+  // Matched by section id/label, or part label, case-insensitive.
+  const targetFor = (header: string): { section: string; part?: string } | undefined => {
     const h = header.trim().toLowerCase();
-    return sections.find((s) => s.id.toLowerCase() === h || s.label.toLowerCase() === h)?.id;
+    for (const s of sections) {
+      if (s.parts?.length) {
+        const part = s.parts.find((p) => p.toLowerCase() === h);
+        if (part) return { section: s.id, part };
+      } else if (s.id.toLowerCase() === h || s.label.toLowerCase() === h) {
+        return { section: s.id };
+      }
+    }
+    return undefined;
   };
 
   const onFile = async (file: File) => {
     const { headers, rows } = parseCsv(await file.text());
     const idCol = headers.findIndex((h) => /member|bdmso|id/i.test(h));
     if (idCol < 0) { toast.error('No BdMSO ID column found (header must contain "ID").'); return; }
-    const colMap = headers.map((h, i) => (i === idCol ? null : sectionFor(h)));
+    const colMap = headers.map((h, i) => (i === idCol ? null : targetFor(h)));
     const recs = rows.map((cells) => {
       const scores: Record<string, string> = {};
-      colMap.forEach((sec, i) => { if (sec && cells[i] != null && cells[i] !== '') scores[sec] = cells[i]; });
-      return { member_id: cells[idCol] || '', scores };
+      const detail: Record<string, Record<string, number>> = {};
+      colMap.forEach((t, i) => {
+        if (!t || cells[i] == null || cells[i] === '') return;
+        if (t.part) (detail[t.section] ??= {})[t.part] = Number(cells[i]);
+        else scores[t.section] = cells[i];
+      });
+      // A section built from parts: its score is the sum of those parts.
+      for (const [sec, parts] of Object.entries(detail)) {
+        scores[sec] = String(Object.values(parts).reduce((n, x) => n + (Number(x) || 0), 0));
+      }
+      return { member_id: cells[idCol] || '', scores, detail };
     }).filter((r) => r.member_id);
     setParsed(recs);
     setPreview(null);
@@ -231,7 +252,7 @@ function ImportTab({ eventKey, sections, roster, onCommitted }: { eventKey: stri
         <CardTitle className="text-base">Import scores from CSV</CardTitle>
         <CardDescription>
           One row per student, keyed by BdMSO ID. Columns: a <strong>BdMSO ID</strong> column plus one per section
-          ({sections.map((s) => s.label).join(', ') || 'no sections defined'}). Blank cells are skipped.
+          ({sections.flatMap((s) => (s.parts?.length ? s.parts : [s.label])).join(', ') || 'no sections defined'}). Blank cells are skipped.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">

@@ -5,6 +5,10 @@
 import { useEffect, useState } from 'preact/hooks';
 import { loadMe, tierLabel, type ResultReg } from '../me';
 
+// dd Mon yyyy (en-GB) - distinguishes which sitting when a program repeats.
+const fmtDate = (d: string) =>
+  new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
 export function Results() {
   const [regs, setRegs] = useState<ResultReg[] | null>(null);
 
@@ -37,14 +41,24 @@ export function Results() {
                   <div class="result-info">
                     <div class="result-student">{r.student_full_name}</div>
                     <div class="result-event">{res.event_label}</div>
+                    {res.event_date && <div class="result-date">{fmtDate(res.event_date)}</div>}
                   </div>
                   {res.tier && <span class="result-tier">{tierLabel(res.tier)}</span>}
                 </div>
                 <div class="result-sections">
                   {res.sections.map((s) => (
                     <div class="result-sec" key={s.section}>
-                      <span class="result-sec-label">{s.label}</span>
-                      <span class="result-sec-score">{s.score}<span class="result-sec-max">/{s.max}</span></span>
+                      <div class="result-sec-main">
+                        <span class="result-sec-label">{s.label}</span>
+                        <span class="result-sec-score">{s.score}<span class="result-sec-max">/{s.max}</span></span>
+                      </div>
+                      {s.detail && Object.keys(s.detail).length > 0 && (
+                        <div class="result-sec-detail">
+                          {Object.entries(s.detail).map(([k, v]) => (
+                            <span class="result-detail-item" key={k}>{k}: <strong>{v}</strong></span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

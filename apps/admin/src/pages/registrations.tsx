@@ -3,6 +3,7 @@ import type { ColumnDef, Table } from '@tanstack/react-table';
 import { Mail, MoreHorizontal } from 'lucide-react';
 import type { Registration } from '@/lib/types';
 import { api } from '@/lib/api';
+import { RecordPaymentDialog } from '@/components/record-payment-dialog';
 import { inArray, cap } from '@/lib/table';
 import { useList } from '@/hooks/use-list';
 import { renderMarkdown } from '@/lib/markdown';
@@ -153,12 +154,20 @@ const makeColumns = (reload: () => void): ColumnDef<Registration>[] => [
   {
     accessorKey: 'amount',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Amount" className="justify-end" />,
-    cell: ({ row }) => (
-      <div className="flex flex-col items-end gap-1">
-        <span className="font-mono font-medium tabular-nums">{bdt(row.original.amount)}</span>
-        <StatusBadge status={row.original.payment} />
-      </div>
-    ),
+    cell: ({ row }) => {
+      const r = row.original;
+      // Paid: show what was collected. Unpaid: show what's owed - the pending
+      // payment's amount if one exists, else the program fee - as muted "due".
+      const due = r.amount > 0 ? r.amount : r.fee;
+      return (
+        <div className="flex flex-col items-end gap-1">
+          {r.payment === 'paid'
+            ? <span className="font-mono font-medium tabular-nums">{bdt(r.amount)}</span>
+            : <span className="font-mono tabular-nums text-muted-foreground">{due != null ? `${bdt(due)} due` : '—'}</span>}
+          <StatusBadge status={r.payment} />
+        </div>
+      );
+    },
     meta: { title: 'Amount', className: 'text-right' },
   },
   {
@@ -193,20 +202,26 @@ const makeColumns = (reload: () => void): ColumnDef<Registration>[] => [
 
 function RowActions({ row, onChanged }: { row: Registration; onChanged: () => void }) {
   const { navigate } = useRouter();
+  const [payOpen, setPayOpen] = useState(false);
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="size-8" aria-label={`Actions for ${row.student}`}><MoreHorizontal className="size-4" /></Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44">
-        <DropdownMenuItem onClick={() => navigate(`/registrations/${row.id}`)}>View details</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => run(api.registrationStatus(row.id, 'paid'), `${row.student} marked paid`, onChanged)}>Mark as paid</DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <ConfirmDeleteItem name={`${row.student}'s registration`} onConfirm={() => run(api.registrationStatus(row.id, 'cancelled'), `${row.student} cancelled`, onChanged)}>
-          Cancel registration
-        </ConfirmDeleteItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="size-8" aria-label={`Actions for ${row.student}`}><MoreHorizontal className="size-4" /></Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-44">
+          <DropdownMenuItem onClick={() => navigate(`/registrations/${row.id}`)}>View details</DropdownMenuItem>
+          {row.payment !== 'paid' && row.status !== 'cancelled' && (
+            <DropdownMenuItem onClick={() => setPayOpen(true)}>Record payment</DropdownMenuItem>
+          )}
+          <DropdownMenuSeparator />
+          <ConfirmDeleteItem name={`${row.student}'s registration`} onConfirm={() => run(api.registrationStatus(row.id, 'cancelled'), `${row.student} cancelled`, onChanged)}>
+            Cancel registration
+          </ConfirmDeleteItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <RecordPaymentDialog open={payOpen} onOpenChange={setPayOpen} regId={row.id} defaultAmount={row.amount} onDone={onChanged} />
+    </>
   );
 }
 
@@ -334,7 +349,7 @@ export function RegistrationsPage() {
         columns={columns}
         data={data}
         loading={!rows}
-        getSearchText={(r) => `${r.student} ${r.bdmsoId} ${r.id} ${r.phone} ${r.guardian} ${r.email}`}
+        getSearchText={(r) => `${r.student} ${r.bdmsoId} ${(r.bdmsoId || '').replace(/[-\s]/g, '')} ${r.id} ${r.phone} ${r.guardian} ${r.email}`}
         searchPlaceholder="Search name, ID, phone..."
         initialSort={[{ id: 'createdAt', desc: true }]}
         initialColumnFilters={initialColumnFilters}

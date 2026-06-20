@@ -5,7 +5,8 @@ import { api } from './api';
 
 export type ExamResult = {
   event_label: string;
-  sections: { section: string; label: string; score: number; max: number; rank: number | null; tier: string | null }[];
+  event_date: string | null;
+  sections: { section: string; label: string; score: number; max: number; rank: number | null; tier: string | null; detail: Record<string, number> | null }[];
   total: number;
   max_total: number;
   rank: number | null;

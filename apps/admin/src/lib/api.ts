@@ -7,7 +7,7 @@ import type {
   AuditEntry, BroadcastRun, Coupon, DashboardData, EmailTemplate,
   ExamEvent, ExamSection, RosterEntry, ScoreCell, ImportResult, Cohort,
   HofPhoto, Payment, Post, Press, Program, Registration, RegistrationDetail,
-  RegistrationPayment, ReportRow, Service, Sponsorship, TeamMember, TriageItem, User,
+  RegistrationPayment, ReportRow, ReportTotals, Service, Sponsorship, TeamMember, TriageItem, User,
 } from './types';
 import { bdt, num } from './format';
 import { http } from './http';
@@ -21,7 +21,7 @@ type RegRow = {
   preferred_venue: string | null; preferred_subject: string | null; program_options: string | null;
   guardian_full_name: string; guardian_phone: string; guardian_email: string | null;
   status: 'submitted' | 'paid' | 'cancelled'; created_at: string;
-  payment_status: 'pending' | 'paid' | 'failed' | null; payment_amount: number | null;
+  payment_status: 'pending' | 'paid' | 'failed' | null; payment_amount: number | null; fee_amount: number | null;
 };
 type PayRow = {
   id: string; amount: number; tran_id: string; status: 'pending' | 'paid' | 'failed';
@@ -154,7 +154,7 @@ function adaptReg(r: RegRow): Registration {
     subject: deriveSubject(r.preferred_subject, r.program_options),
     preferredSubject: r.preferred_subject || '',
     guardian: r.guardian_full_name, phone: r.guardian_phone, email: r.guardian_email ?? '—',
-    amount: r.payment_amount ?? 0, payment: r.payment_status ?? 'pending',
+    amount: r.payment_amount ?? 0, fee: r.fee_amount ?? null, payment: r.payment_status ?? 'pending',
     status: regStatus(r.status), createdAt: r.created_at,
   };
 }
@@ -328,14 +328,12 @@ export const api = {
   async listBroadcasts(): Promise<BroadcastRun[]> { return (await http.get<{ rows: BroadcastLogRow[] }>('/api/admin/broadcast/log')).rows.map(adaptBroadcast); },
   async listEmailTemplates(): Promise<EmailTemplate[]> { return (await http.get<{ rows: TemplateRow[] }>('/api/admin/templates')).rows.map(adaptTemplate); },
   async listServices(): Promise<Service[]> { return adaptHealth(await http.get<SystemHealthResp>('/api/admin/system')); },
-  async getReports(): Promise<{ program: ReportRow[]; region: ReportRow[] }> {
-    // Use actual collected revenue (and active-run scope) from analytics so the
-    // report matches the dashboard, instead of estimating paid x fee.
-    const an = await http.get<Analytics>('/api/admin/analytics');
-    return {
-      program: an.byProgram.map((p) => ({ name: p.label, total: p.total, paid: p.paid, revenue: p.revenue })),
-      region: an.byVenue.map((v) => ({ name: v.venue, total: v.total, paid: v.paid, revenue: v.revenue })),
-    };
+  async getReports(cohort?: string): Promise<{ totals: ReportTotals; program: ReportRow[]; region: ReportRow[] }> {
+    // Lifetime ledger by default; a cohort key scopes every figure to one run.
+    // Totals reconcile to SUM(paid payments); only programs with regs appear.
+    const qs = cohort ? `?cohort=${encodeURIComponent(cohort)}` : '';
+    const r = await http.get<{ totals: ReportTotals; byProgram: ReportRow[]; byVenue: ReportRow[] }>(`/api/admin/reports${qs}`);
+    return { totals: r.totals, program: r.byProgram, region: r.byVenue };
   },
 
   // Live sidebar badge counts, keyed by nav url.
@@ -363,6 +361,11 @@ export const api = {
   paymentReconcile: (id: string) => http.post(`/api/admin/payments/${id}/reconcile`),
   reverifyAllPending: () => http.post<{ ok: true; checked: number; paid: number; failed: number }>('/api/admin/payments/reconcile-stale', { all: true }),
   paymentComplete: (id: string, method = 'cash', accountNumber?: string) => http.patch(`/api/admin/payments/${id}/complete`, { method, accountNumber }),
+  // Record an offline payment against a registration: completes its pending
+  // payment or creates a paid one if there is none. Confirms the reg, mints the
+  // BdMSO id, sends the receipt, and counts as Cash collection.
+  recordPayment: (regId: string, body: { method: string; amount?: number; accountNumber?: string }) =>
+    http.post(`/api/admin/registrations/${regId}/record-payment`, body),
   registrationUpdate: (id: string, body: Record<string, unknown>) => http.patch(`/api/admin/registrations/${id}`, body),
   userUpdate: (id: string, body: Record<string, unknown>) => http.patch(`/api/admin/users/${id}`, body),
   programPublish: (slug: string, published: boolean) => http.patch(`/api/admin/programs/${encodeURIComponent(slug)}`, { published }),
@@ -385,7 +388,7 @@ export const api = {
   eventCheckin: (key: string, regId: string, status: string) => http.post(`/api/admin/events/${encodeURIComponent(key)}/checkin`, { registration_id: regId, status }),
   saveScore: (key: string, body: { registration_id: string; section: string; score: number; max_score: number }) =>
     http.post(`/api/admin/events/${encodeURIComponent(key)}/scores`, body),
-  importScores: (key: string, rows: { member_id: string; scores: Record<string, number | string> }[], commit: boolean) =>
+  importScores: (key: string, rows: { member_id: string; scores: Record<string, number | string>; detail?: Record<string, Record<string, number>> }[], commit: boolean) =>
     http.post<ImportResult>(`/api/admin/events/${encodeURIComponent(key)}/scores/import`, { rows, commit }),
   finalizeSection: (key: string, section: string, tierTop: number) =>
     http.post(`/api/admin/events/${encodeURIComponent(key)}/scores/finalize`, { section, tier_top: tierTop }),

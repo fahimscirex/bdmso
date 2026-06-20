@@ -10,6 +10,7 @@ import { Link } from '@/router';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
 import { PaymentActions } from '@/components/payment-actions';
+import { RecordPaymentDialog } from '@/components/record-payment-dialog';
 import { EditorDialog, EditorSection, EditorField, DateField } from '@/components/editor/editor-kit';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -189,6 +190,7 @@ function RegistrationEditDialog({ reg, onSaved }: { reg: RegistrationDetail; onS
 export function RegistrationDetailPage({ id }: { id: string }) {
   const [reg, setReg] = useState<RegistrationDetail | null>(null);
   const [error, setError] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
 
   // Refetch after a payment mutation so statuses/methods reflect the change.
   const reload = useCallback(() => api.getRegistrationDetail(id).then(setReg).catch(() => setError(true)), [id]);
@@ -232,7 +234,19 @@ export function RegistrationDetailPage({ id }: { id: string }) {
       <PageHeader
         title={reg.student}
         description={`${reg.bdmsoId} · ${reg.program.replace('BdMSO ', '')}`}
-        actions={<RegistrationEditDialog reg={reg} onSaved={reload} />}
+        actions={
+          <div className="flex items-center gap-2">
+            {reg.status !== 'confirmed' && reg.status !== 'cancelled' && (
+              <Button size="sm" onClick={() => setPayOpen(true)}><BadgeCheck className="size-4" /> Record payment</Button>
+            )}
+            <RegistrationEditDialog reg={reg} onSaved={reload} />
+          </div>
+        }
+      />
+      <RecordPaymentDialog
+        open={payOpen} onOpenChange={setPayOpen} regId={reg.id}
+        defaultAmount={reg.payments.find((p) => p.status !== 'paid')?.amount}
+        onDone={reload}
       />
 
       <div className="grid gap-4 lg:grid-cols-3">

@@ -174,6 +174,7 @@ admin.get("/registrations", async (c) => {
   const enriched = (rowsRes.results || []).map((r) => ({
     ...r,
     program_label: catalog.nameFor(r.registration_type),
+    fee_amount: catalog.priceFor(r.registration_type), // expected fee, for "amount due" on unpaid rows
     stuck: Number(r.stuck) === 1,
     notes_count: Number(r.notes_count) || 0,
   }));
@@ -398,7 +399,7 @@ admin.patch("/payments/:id/complete", async (c) => {
   // Atomic: settle the payment and cascade the registration to paid in one batch.
   const stmts = [
     c.env.DB.prepare(
-      "UPDATE payments SET status = 'paid', method = ?, account_number = COALESCE(?, account_number), gateway_status = 'Manual (admin)', updated_at = datetime('now') WHERE id = ?"
+      "UPDATE payments SET status = 'paid', method = ?, account_number = COALESCE(?, account_number), channel = 'manual', gateway_status = 'Manual (admin)', updated_at = datetime('now') WHERE id = ?"
     ).bind(method, accountNumber, id),
   ];
   if (row.registration_id) {
@@ -414,6 +415,62 @@ admin.patch("/payments/:id/complete", async (c) => {
     type: "payment", id, payload: { from: row.status, to: "paid", method },
   });
   return c.json({ ok: true, status: "paid" });
+});
+
+// POST /api/admin/registrations/:id/record-payment  { method?, amount?, accountNumber? }
+// The one true "they paid offline" action. Completes the registration's pending
+// payment, or CREATES a paid one if it never started payment (e.g. a 'submitted'
+// reg with no payment row). Either way it tags channel='manual' (so it lands in
+// Cash collection, not shurjoPay), confirms the registration, mints the BdMSO
+// ID, and emails the receipt. Replaces the old status-only "Mark as paid",
+// which silently skipped the payment, receipt, member id, and revenue.
+admin.post("/registrations/:id/record-payment", async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req.json().catch(() => ({}));
+  const method = (typeof body.method === "string" && body.method.trim()) ? body.method.trim() : "cash";
+  const accountNumber = typeof body.accountNumber === "string" && body.accountNumber.trim() ? body.accountNumber.trim() : null;
+
+  const reg = await c.env.DB.prepare(
+    "SELECT id, registration_type, status, cohort_key FROM registrations WHERE id = ? LIMIT 1"
+  ).bind(id).first();
+  if (!reg) return c.json({ error: "Registration not found." }, 404);
+
+  // Prefer completing an existing unpaid payment (pending before failed).
+  const existing = await c.env.DB.prepare(
+    "SELECT id, tran_id FROM payments WHERE registration_id = ? AND status != 'paid' ORDER BY CASE status WHEN 'pending' THEN 0 ELSE 1 END, created_at DESC LIMIT 1"
+  ).bind(id).first();
+
+  let tranId;
+  const stmts = [];
+  if (existing) {
+    tranId = existing.tran_id;
+    stmts.push(c.env.DB.prepare(
+      "UPDATE payments SET status = 'paid', method = ?, account_number = COALESCE(?, account_number), channel = 'manual', gateway_status = 'Manual (admin)', updated_at = datetime('now') WHERE id = ?"
+    ).bind(method, accountNumber, existing.id));
+  } else {
+    // No payment row yet: create a paid one. Amount = explicit override, else the
+    // program's flat fee (admin passes amount for option-priced programs).
+    const catalog = await getCatalog(c);
+    const amount = Number.isFinite(Number(body.amount)) && Number(body.amount) >= 0
+      ? Number(body.amount)
+      : (catalog.priceFor(reg.registration_type) || 0);
+    const now = new Date().toISOString();
+    tranId = createId("txn");
+    stmts.push(c.env.DB.prepare(
+      "INSERT INTO payments (id, registration_id, amount, currency, tran_id, channel, method, account_number, status, cohort_key, gateway_status, created_at, updated_at) VALUES (?, ?, ?, 'BDT', ?, 'manual', ?, ?, 'paid', ?, 'Manual (admin)', ?, ?)"
+    ).bind(createId("pay"), id, amount, tranId, method, accountNumber, reg.cohort_key, now, now));
+  }
+  stmts.push(c.env.DB.prepare("UPDATE registrations SET status = 'paid' WHERE id = ?").bind(id));
+  await c.env.DB.batch(stmts);
+
+  // Mint the BdMSO member id + send the receipt (idempotent on the mint).
+  await assignMemberIdAndSendReceipt(c.env, tranId, getBaseUrl(c.req.raw));
+
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "payment.record_manual", {
+    type: "registration", id, payload: { method, created: !existing },
+  });
+  return c.json({ ok: true });
 });
 
 // POST /api/admin/payments/:id/resend-receipt
@@ -1184,16 +1241,17 @@ admin.get("/analytics", async (c) => {
       GROUP BY venue
       ORDER BY total DESC
     `).all(),
+    // Lifetime, grouped by program - same definition as GET /reports so the
+    // dashboard's by-program block and the Reports page never disagree. "Paid"
+    // = registrations with a real money payment (free ৳0 grants excluded).
     c.env.DB.prepare(`
-      SELECT c.cohort_key, c.program_slug, c.label,
-             COUNT(r.id)                                         AS total,
-             SUM(CASE WHEN r.status = 'paid' THEN 1 ELSE 0 END)  AS paid,
-             COALESCE((SELECT SUM(p.amount) FROM payments p
-                       WHERE p.cohort_key = c.cohort_key AND p.status = 'paid'), 0) AS revenue
-      FROM cohorts c
-      LEFT JOIN registrations r ON r.cohort_key = c.cohort_key
-      WHERE ${cohortStageSQL("c")} IN ('enrolling', 'upcoming', 'running')
-      GROUP BY c.cohort_key
+      SELECT r.registration_type AS program_slug,
+             COUNT(DISTINCT r.id)                                                       AS total,
+             COUNT(DISTINCT CASE WHEN p.status = 'paid' AND p.amount > 0 THEN r.id END) AS paid,
+             COALESCE(SUM(CASE WHEN p.status = 'paid' THEN p.amount ELSE 0 END), 0)     AS revenue
+      FROM registrations r
+      LEFT JOIN payments p ON p.registration_id = r.id
+      GROUP BY r.registration_type
       ORDER BY total DESC
     `).all(),
     // Lifetime gateway (online) collection - the shurjoPay KPI tile. Lifetime,
@@ -1279,16 +1337,16 @@ admin.get("/analytics", async (c) => {
       cancelled: Number(funnel?.cancelled) || 0,
     },
     byVenue: (byVenue.results || []).map((r) => ({
-      venue: r.venue, total: Number(r.total), paid: Number(r.paid),
+      venue: r.venue, total: Number(r.total), paid: Number(r.paid), revenue: Number(r.revenue) || 0,
     })),
     byProgram: (byProgram.results || []).map((r) => ({
       type:    r.program_slug,
       program_label: catalog.nameFor(r.program_slug),
-      cohort:  r.cohort_key,
-      label:   r.label,
+      cohort:  r.program_slug,                 // group key (lifetime: one row per program)
+      label:   catalog.nameFor(r.program_slug),
       total:   Number(r.total),
       paid:    Number(r.paid),
-      revenue: Number(r.revenue),
+      revenue: Number(r.revenue) || 0,
     })),
     revenue: Number(revenue?.total) || 0,
     cashCollected: Number(cashCollected?.total) || 0,
@@ -1359,6 +1417,55 @@ function broadcastRecipientSql(src) {
     binds,
   };
 }
+
+// GET /api/admin/reports?cohort=<key>
+// Lifetime business totals + per-program + per-region breakdowns. No cohort =
+// everything (all-time); a cohort key scopes every figure to that one run.
+// Unlike /analytics (operational, active-runs scoped), this is the true ledger:
+// totals reconcile exactly to SUM(paid payments), and only programs that
+// actually have registrations appear (no empty rows).
+admin.get("/reports", async (c) => {
+  const catalog = await getCatalog(c);
+  const cohort = (c.req.query("cohort") || "").trim();
+  const where = cohort ? "WHERE r.cohort_key = ?" : "";
+  const bind = cohort ? [cohort] : [];
+  // "Paid" counts registrations with a real money payment (amount > 0), so free
+  // ৳0 grants (e.g. prep students' complimentary mock test) are NOT counted as
+  // paid - they still appear in the total participant count.
+  const agg = (groupExpr, nameAs) => `
+    SELECT ${groupExpr} AS ${nameAs},
+           COUNT(DISTINCT r.id)                                                       AS total,
+           COUNT(DISTINCT CASE WHEN p.status = 'paid' AND p.amount > 0 THEN r.id END) AS paid,
+           COALESCE(SUM(CASE WHEN p.status = 'paid' THEN p.amount ELSE 0 END), 0)     AS revenue
+    FROM registrations r
+    LEFT JOIN payments p ON p.registration_id = r.id
+    ${where}
+    GROUP BY ${nameAs}
+    ORDER BY total DESC`;
+  const [totals, byProgram, byVenue] = await Promise.all([
+    c.env.DB.prepare(`
+      SELECT COUNT(DISTINCT r.id) AS total,
+             COUNT(DISTINCT CASE WHEN p.status = 'paid' AND p.amount > 0 THEN r.id END) AS paid,
+             COALESCE(SUM(CASE WHEN p.status = 'paid' THEN p.amount ELSE 0 END), 0) AS revenue
+      FROM registrations r LEFT JOIN payments p ON p.registration_id = r.id ${where}
+    `).bind(...bind).first(),
+    c.env.DB.prepare(agg("r.registration_type", "type")).bind(...bind).all(),
+    c.env.DB.prepare(agg("COALESCE(NULLIF(TRIM(r.preferred_venue), ''), 'Not set')", "venue")).bind(...bind).all(),
+  ]);
+  return c.json({
+    totals: {
+      participants: Number(totals?.total) || 0,
+      paid: Number(totals?.paid) || 0,
+      revenue: Number(totals?.revenue) || 0,
+    },
+    byProgram: (byProgram.results || []).map((r) => ({
+      name: catalog.nameFor(r.type), total: Number(r.total), paid: Number(r.paid), revenue: Number(r.revenue) || 0,
+    })),
+    byVenue: (byVenue.results || []).map((r) => ({
+      name: r.venue, total: Number(r.total), paid: Number(r.paid), revenue: Number(r.revenue) || 0,
+    })),
+  });
+});
 
 // GET /api/admin/broadcast/recipients?program=&venue=&status=
 // How many distinct guardians a broadcast with these filters would reach.
@@ -2223,6 +2330,7 @@ admin.post("/events/:event/scores/import", async (c) => {
     if (!reg) { unmatched.push({ member_id: memberId, reason: "no paid registration for this event" }); continue; }
 
     const scores = raw.scores && typeof raw.scores === "object" ? raw.scores : {};
+    const detailBySection = raw.detail && typeof raw.detail === "object" ? raw.detail : {};
     const cleaned = [];
     let bad = null;
     for (const [sectionId, val] of Object.entries(scores)) {
@@ -2231,7 +2339,8 @@ admin.post("/events/:event/scores/import", async (c) => {
       if (max == null) { bad = `unknown section "${sectionId}"`; break; }
       const num = Number(val);
       if (!Number.isFinite(num) || num < 0 || num > max) { bad = `${sectionId}=${val} out of 0..${max}`; break; }
-      cleaned.push({ section: sectionId, score: num, max });
+      const detail = detailBySection[sectionId] && typeof detailBySection[sectionId] === "object" ? detailBySection[sectionId] : null;
+      cleaned.push({ section: sectionId, score: num, max, detail });
     }
     if (bad) { invalid.push({ member_id: memberId, student: reg.student_full_name, reason: bad }); continue; }
     if (cleaned.length === 0) { invalid.push({ member_id: memberId, student: reg.student_full_name, reason: "no scores" }); continue; }
@@ -2240,13 +2349,14 @@ admin.post("/events/:event/scores/import", async (c) => {
     if (commit) {
       for (const cs of cleaned) {
         writes.push(c.env.DB.prepare(`
-          INSERT INTO scores (registration_id, event_key, section, score, max_score, entered_by)
-          VALUES (?, ?, ?, ?, ?, ?)
+          INSERT INTO scores (registration_id, event_key, section, score, max_score, entered_by, detail_json)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(registration_id, event_key, section) DO UPDATE SET
             score = excluded.score, max_score = excluded.max_score,
+            detail_json = excluded.detail_json,
             entered_at = datetime('now'), entered_by = excluded.entered_by,
             rank = NULL, tier = NULL
-        `).bind(reg.id, event_key, cs.section, cs.score, cs.max, session.account_id));
+        `).bind(reg.id, event_key, cs.section, cs.score, cs.max, session.account_id, cs.detail ? JSON.stringify(cs.detail) : null));
       }
     }
   }
