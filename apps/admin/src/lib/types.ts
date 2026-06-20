@@ -82,6 +82,7 @@ export interface Program {
   category: string;
   status: ProgramStatus;
   fee: number;
+  published: boolean;
 }
 
 export interface TriageItem {

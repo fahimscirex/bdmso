@@ -186,7 +186,7 @@ function adaptRegDetail(r: DetailRow, payments: DetailPayRow[]): RegistrationDet
 }
 function adaptProg(r: ProgRow): Program {
   const status: Program['status'] = r.registration_status === 'open' ? 'open' : r.registration_status === 'coming_soon' ? 'coming_soon' : 'closed';
-  return { slug: r.slug, title: r.title, category: r.category || '—', status, fee: r.fee_amount ?? 0 };
+  return { slug: r.slug, title: r.title, category: r.category || '—', status, fee: r.fee_amount ?? 0, published: !!r.published };
 }
 function adaptTriage(i: TriageItemRow): TriageItem {
   return { id: i.id, kind: i.kind, urgency: i.urgency, title: i.title, detail: i.detail, link: i.link, createdAt: i.timestamp ?? new Date().toISOString() };
