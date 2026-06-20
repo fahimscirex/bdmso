@@ -473,6 +473,14 @@ select { color-scheme: light; }
   .nav-drawer:not(.open) .nav-menu a { transition-delay: 0ms !important; }
 
   .nav-cta {
+    /* Fill the drawer like .nav-menu does. Without this the CTA shrink-wraps
+       to its content and the desktop `justify-self: end` pushes it to the
+       right, so Log in / Register Now appeared right-aligned instead of as
+       full-width stacked buttons. */
+    width: 100%;
+    box-sizing: border-box;
+    justify-self: stretch;
+    margin: 0;
     padding: 8px 10px 10px;
     gap: 6px;
     border-top: 1px solid var(--line-2);
