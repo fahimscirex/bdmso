@@ -646,11 +646,11 @@ export async function handleForgotEmail(request, env) {
 
   let row;
   if (memberIdRaw) {
-    // Member IDs look like "BdMSO2604-001"; case-insensitive match,
-    // tolerate stray spaces. Stored as-issued in guardian_accounts.member_id.
-    const id = memberIdRaw.replace(/\s+/g, "").toUpperCase();
+    // Member IDs look like "BdMSO2604-001"; case-insensitive match, tolerate
+    // stray spaces AND a missing/extra hyphen (compare both sides hyphen-free).
+    const id = memberIdRaw.replace(/[\s-]/g, "").toUpperCase();
     row = await env.DB.prepare(
-      "SELECT email FROM guardian_accounts WHERE UPPER(member_id) = ? LIMIT 1"
+      "SELECT email FROM guardian_accounts WHERE REPLACE(UPPER(member_id), '-', '') = ? LIMIT 1"
     ).bind(id).first();
   } else if (phoneRaw) {
     // Match on the 10-digit subscriber number (drop any 880 country code).

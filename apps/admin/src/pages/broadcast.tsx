@@ -146,7 +146,7 @@ export function BroadcastPage() {
                     <SelectContent>
                       <SelectItem value="all">Everyone</SelectItem>
                       <SelectItem value="paid">Paid only</SelectItem>
-                      <SelectItem value="pending">Pending only</SelectItem>
+                      <SelectItem value="unpaid">Unpaid / not enrolled</SelectItem>
                     </SelectContent>
                   </Select>
                 </Field>

@@ -1174,10 +1174,13 @@ admin.get("/analytics", async (c) => {
       WHERE cohort_key IN (SELECT cohort_key FROM cohorts WHERE ${cohortStageSQL("")} IN ('enrolling', 'upcoming', 'running'))
     `).first(),
     c.env.DB.prepare(`
-      SELECT COALESCE(NULLIF(TRIM(preferred_venue), ''), 'Not set') AS venue,
-             COUNT(*)                                          AS total,
-             SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END)  AS paid
-      FROM registrations
+      SELECT COALESCE(NULLIF(TRIM(r.preferred_venue), ''), 'Not set')         AS venue,
+             COUNT(DISTINCT r.id)                                             AS total,
+             COUNT(DISTINCT CASE WHEN r.status = 'paid' THEN r.id END)        AS paid,
+             COALESCE(SUM(CASE WHEN p.status = 'paid' THEN p.amount ELSE 0 END), 0) AS revenue
+      FROM registrations r
+      LEFT JOIN payments p ON p.registration_id = r.id
+      WHERE r.cohort_key IN (SELECT cohort_key FROM cohorts WHERE ${cohortStageSQL("")} IN ('enrolling', 'upcoming', 'running'))
       GROUP BY venue
       ORDER BY total DESC
     `).all(),
@@ -1334,20 +1337,36 @@ function broadcastFilters(src) {
   return { whereSql: `WHERE ${wheres.join(" AND ")}`, binds };
 }
 
+// Resolve the DISTINCT recipient-email query for a broadcast audience. The
+// 'unpaid' audience targets everyone who has NOT paid for the program - unpaid
+// registrants AND guardians who never enrolled in it (account-based; venue does
+// not apply). Other statuses filter matching registrations as before.
+function broadcastRecipientSql(src) {
+  if (src.status === "unpaid") {
+    const binds = [];
+    let paidSub = "SELECT guardian_account_id FROM registrations WHERE status = 'paid'";
+    if (src.program) { paidSub += " AND registration_type = ?"; binds.push(src.program); }
+    return {
+      sql: `SELECT DISTINCT a.email FROM guardian_accounts a WHERE a.email IS NOT NULL AND a.email != '' AND a.id NOT IN (${paidSub})`,
+      binds,
+    };
+  }
+  const { whereSql, binds } = broadcastFilters(src);
+  return {
+    sql: `SELECT DISTINCT a.email FROM registrations r JOIN guardian_accounts a ON a.id = r.guardian_account_id ${whereSql}`,
+    binds,
+  };
+}
+
 // GET /api/admin/broadcast/recipients?program=&venue=&status=
 // How many distinct guardians a broadcast with these filters would reach.
 admin.get("/broadcast/recipients", async (c) => {
-  const { whereSql, binds } = broadcastFilters({
+  const { sql, binds } = broadcastRecipientSql({
     program: c.req.query("program"),
     venue:   c.req.query("venue"),
     status:  c.req.query("status"),
   });
-  const row = await c.env.DB.prepare(`
-    SELECT COUNT(DISTINCT a.email) AS n
-    FROM registrations r
-    JOIN guardian_accounts a ON a.id = r.guardian_account_id
-    ${whereSql}
-  `).bind(...binds).first();
+  const row = await c.env.DB.prepare(`SELECT COUNT(*) AS n FROM (${sql})`).bind(...binds).first();
   return c.json({ ok: true, count: Number(row?.n) || 0 });
 });
 
@@ -1405,13 +1424,8 @@ admin.post("/broadcast", async (c) => {
     if (bad.length) return c.json({ error: `Invalid email address: ${bad[0]}` }, 400);
     recipients = manual;
   } else {
-    const { whereSql, binds } = broadcastFilters(body);
-    const rows = await c.env.DB.prepare(`
-      SELECT DISTINCT a.email
-      FROM registrations r
-      JOIN guardian_accounts a ON a.id = r.guardian_account_id
-      ${whereSql}
-    `).bind(...binds).all();
+    const { sql, binds } = broadcastRecipientSql(body);
+    const rows = await c.env.DB.prepare(sql).bind(...binds).all();
     recipients = (rows.results || []).map((r) => r.email).filter(Boolean);
   }
   if (recipients.length === 0) {

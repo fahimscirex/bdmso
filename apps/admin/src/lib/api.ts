@@ -90,7 +90,7 @@ type RegSummary = { total: number; paid: number; pending: number; cancelled: num
 type PaySummary = { total: number; paid: number; pending: number; failed: number; revenue: number };
 type Analytics = {
   byProgram: { type: string; program_label: string; cohort: string; label: string; total: number; paid: number; revenue: number }[];
-  byVenue: { venue: string; total: number; paid: number }[];
+  byVenue: { venue: string; total: number; paid: number; revenue: number }[];
   attention: { stuck_unpaid: number; recent_failed: number; unread_sponsorships: number; expiring_coupons: number };
   deltas: { reg_today: number; reg_yesterday: number; paid_today: number; paid_yesterday: number; rev_today: number; rev_yesterday: number; pending_today: number; pending_yesterday: number };
   series: { registrations: { day: string; total: number; paid: number }[]; payments: { day: string; count: number; revenue: number }[] };
@@ -329,15 +329,12 @@ export const api = {
   async listEmailTemplates(): Promise<EmailTemplate[]> { return (await http.get<{ rows: TemplateRow[] }>('/api/admin/templates')).rows.map(adaptTemplate); },
   async listServices(): Promise<Service[]> { return adaptHealth(await http.get<SystemHealthResp>('/api/admin/system')); },
   async getReports(): Promise<{ program: ReportRow[]; region: ReportRow[] }> {
-    const [an, progs] = await Promise.all([
-      http.get<Analytics>('/api/admin/analytics'),
-      http.get<{ rows: ProgRow[] }>('/api/admin/programs'),
-    ]);
-    const feeBySlug = new Map(progs.rows.map((p) => [p.slug, p.fee_amount ?? 0]));
-    const avgFee = progs.rows.length ? Math.round(progs.rows.reduce((s, p) => s + (p.fee_amount ?? 0), 0) / progs.rows.length) : 1000;
+    // Use actual collected revenue (and active-run scope) from analytics so the
+    // report matches the dashboard, instead of estimating paid x fee.
+    const an = await http.get<Analytics>('/api/admin/analytics');
     return {
-      program: an.byProgram.map((p) => ({ name: p.label, total: p.total, paid: p.paid, revenue: p.paid * (feeBySlug.get(p.type) ?? avgFee) })),
-      region: an.byVenue.map((v) => ({ name: v.venue, total: v.total, paid: v.paid, revenue: v.paid * avgFee })),
+      program: an.byProgram.map((p) => ({ name: p.label, total: p.total, paid: p.paid, revenue: p.revenue })),
+      region: an.byVenue.map((v) => ({ name: v.venue, total: v.total, paid: v.paid, revenue: v.revenue })),
     };
   },
 
