@@ -29,16 +29,29 @@ const cacheReq = (key) => new Request(`https://d1cache.local/${encodeURIComponen
 async function cacheGet(key) {
   try { return (await caches.default.match(cacheReq(key))) || null; } catch { return null; }
 }
-function cacheHit(hit) { const r = new Response(hit.body, hit); r.headers.set("x-cache", "HIT"); return r; }
+// Only the EDGE copy (stored in caches.default) carries max-age so the cache
+// honours the TTL; the copy returned to the browser is always `private, no-store`
+// so authenticated admin data is never kept in the browser or a shared proxy.
+// Safe to share one entry across admins because these endpoints return GLOBAL
+// data only - do not cache anything per-admin through here.
+function cacheHit(hit) {
+  const r = new Response(hit.body, hit);
+  r.headers.set("Cache-Control", "private, no-store");
+  r.headers.set("x-cache", "HIT");
+  return r;
+}
 async function cachePut(c, key, ttl, data) {
-  const res = c.json(data);
-  res.headers.set("Cache-Control", `max-age=${ttl}`);
-  res.headers.set("x-cache", "MISS");
+  const stored = new Response(JSON.stringify(data), {
+    headers: { "content-type": "application/json", "cache-control": `max-age=${ttl}` },
+  });
   // Await the put so the entry is stored before we respond (the write is cheap
   // next to the aggregates we just ran). Errors are non-fatal - still serve data.
-  try { await caches.default.put(cacheReq(key), res.clone()); }
+  try { await caches.default.put(cacheReq(key), stored.clone()); }
   catch (e) { console.log("[cache] put failed:", e?.message || e); }
-  return res;
+  const out = c.json(data);
+  out.headers.set("Cache-Control", "private, no-store");
+  out.headers.set("x-cache", "MISS");
+  return out;
 }
 
 admin.use("*", sessionMiddleware);
