@@ -367,7 +367,7 @@ export const api = {
   bulkCancel: (ids: string[]) => http.post<{ cancelled: number }>('/api/admin/registrations/bulk/cancel', { ids }),
   paymentSetStatus: (id: string, status: 'paid' | 'pending' | 'failed') => http.patch(`/api/admin/payments/${id}/status`, { status }),
   paymentResendReceipt: (id: string) => http.post(`/api/admin/payments/${id}/resend-receipt`),
-  paymentReconcile: (id: string) => http.post(`/api/admin/payments/${id}/reconcile`),
+  paymentReconcile: (id: string) => http.post<{ ok: true; status: 'paid' | 'pending' | 'failed'; method?: string | null; error?: string }>(`/api/admin/payments/${id}/reconcile`),
   reverifyAllPending: () => http.post<{ ok: true; checked: number; paid: number; failed: number }>('/api/admin/payments/reconcile-stale', { all: true }),
   paymentComplete: (id: string, method = 'cash', accountNumber?: string) => http.patch(`/api/admin/payments/${id}/complete`, { method, accountNumber }),
   // Record an offline payment against a registration: completes its pending

@@ -1,4 +1,5 @@
 import { MoreHorizontal } from 'lucide-react';
+import { toast } from 'sonner';
 import type { PaymentStatus } from '@/lib/types';
 import { api } from '@/lib/api';
 import { run } from '@/lib/run';
@@ -15,13 +16,28 @@ export function PaymentActions({ payment, onDone }: { payment: { id: string; sta
   const setStatus = (status: 'paid' | 'pending' | 'failed', label: string) =>
     run(api.paymentSetStatus(payment.id, status), `${payment.id} marked ${label}`, onDone);
 
+  // Reconcile reflects the GATEWAY's verdict, not just "request succeeded": a
+  // payment the customer abandoned comes back still 'pending' (e.g. gateway
+  // "Initiated"), so a flat success toast would falsely imply it was collected.
+  const onReconcile = async () => {
+    try {
+      const r = await api.paymentReconcile(payment.id);
+      if (r.status === 'paid') toast.success('Gateway confirmed paid - member ID issued, receipt sent');
+      else if (r.status === 'failed') toast.error('Gateway reports payment failed', { description: r.error });
+      else toast.warning('Gateway has not collected this payment', { description: `Still pending${r.error ? ` (${r.error})` : ''}. Customer likely didn't finish checkout.` });
+      onDone();
+    } catch (e) {
+      toast.error('Action failed', { description: (e as Error).message });
+    }
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="size-8" aria-label={`Actions for payment ${payment.id}`}><MoreHorizontal className="size-4" /></Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuItem onClick={() => run(api.paymentReconcile(payment.id), `${payment.id} reconciled with gateway`, onDone)}>
+        <DropdownMenuItem onClick={onReconcile}>
           Reconcile with gateway
         </DropdownMenuItem>
         {payment.status === 'paid' && (
