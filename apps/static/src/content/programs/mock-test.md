@@ -6,7 +6,7 @@ metaDescription: "BdMSO Mock Tests on 19 and 26 June 2026 - on-site simulated ex
 startsOn: "2026-06-19"
 endsOn: "2026-06-26"
 registrationStarts: "2026-05-15"
-registrationEnds: "2026-06-18"
+registrationEnds: "2026-06-25"
 eyebrow: "Year-round · Testing"
 image: "/images/exam.webp"
 audience: "All BdMSO aspirants"
