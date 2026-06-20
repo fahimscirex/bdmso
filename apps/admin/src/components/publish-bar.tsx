@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { UploadCloud } from 'lucide-react';
+import { UploadCloud, Loader2 } from 'lucide-react';
 import type { PendingPublish } from '@/lib/api';
 import { api } from '@/lib/api';
 import { useRouter } from '@/router';
@@ -39,6 +39,7 @@ export function PublishBar() {
   const [pending, setPending] = useState<PendingPublish | null>(null);
   const [message, setMessage] = useState('');
   const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const { path } = useRouter();
 
@@ -71,6 +72,14 @@ export function PublishBar() {
     setOpen(false);
     setPending(null);
     refreshCount();
+  };
+
+  // Commit + push can take a few seconds (GitHub API); show a spinner and lock
+  // the buttons so it's clear it's working and can't be double-submitted.
+  const doPublish = async () => {
+    setBusy(true);
+    try { await run(api.publishChanges(message), 'Published', afterAction); }
+    finally { setBusy(false); }
   };
 
   if (count <= 0) return null;
@@ -128,13 +137,14 @@ export function PublishBar() {
             <div className="flex items-center gap-2">
               <Button
                 className="flex-1"
-                onClick={() => run(api.publishChanges(message), 'Published', afterAction)}
+                onClick={doPublish}
+                disabled={busy}
               >
-                Publish
+                {busy ? <><Loader2 className="size-4 animate-spin" /> Publishing…</> : 'Publish'}
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive">Discard all</Button>
+                  <Button variant="destructive" disabled={busy}>Discard all</Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent size="sm">
                   <AlertDialogHeader>
