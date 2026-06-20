@@ -75,7 +75,7 @@ run_worker_first = true
 ENVIRONMENT = "production"
 # Maintenance mode (toggle in dashboard during cutover). MAINTENANCE_KEY is a
 # SECRET: wrangler secret put MAINTENANCE_KEY --env production
-MAINTENANCE = "true"
+MAINTENANCE = "false"
 # Flip to "false" to hit ShurjoPay's live endpoint. The committed value
 # is safe-by-default; the dashboard's "Variables and Secrets" panel can
 # override per-environment without touching this file.
