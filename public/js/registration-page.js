@@ -486,14 +486,18 @@ async function initQuickEnroll() {
     // Add a slim back link + program label above the form. Built with
     // DOM methods (not innerHTML) since `programName` is catalog text
     // but defense-in-depth: never trust strings into innerHTML.
+    // Stacked: back link on top (left), program name centered on its own line
+    // below with breathing room above and between. Top margin separates it from
+    // the site nav.
     const backBar = document.createElement('div');
-    backBar.style.cssText = 'margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;';
+    backBar.style.cssText = 'margin:18px 0 18px;';
     const backLink = document.createElement('a');
     backLink.href = '/programs';
-    backLink.style.cssText = 'font-size:14px;color:var(--navy-700);font-weight:600;text-decoration:none;';
+    backLink.style.cssText = 'display:inline-block;font-size:14px;line-height:1.2;color:var(--navy-700);font-weight:600;text-decoration:none;';
     backLink.textContent = '← Back to programs';
-    const tag = document.createElement('span');
-    tag.style.cssText = 'font-size:12px;color:var(--ink-3);font-weight:600;letter-spacing:0.04em;text-transform:uppercase;';
+    // Program being enrolled in: a centered navy pill below the back link.
+    const tag = document.createElement('div');
+    tag.style.cssText = 'width:fit-content;max-width:100%;margin:12px auto 0;font-size:12px;line-height:1.2;color:var(--navy-800,#1e3a8a);font-weight:700;letter-spacing:0.04em;text-transform:uppercase;background:var(--navy-50,#f0f4ff);border:1px solid var(--navy-200,#c7d5f5);padding:7px 16px;border-radius:999px;text-align:center;';
     tag.textContent = programName;
     backBar.append(backLink, tag);
     formShell.parentElement.insertBefore(backBar, formShell);
