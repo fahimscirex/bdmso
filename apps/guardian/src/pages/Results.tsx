@@ -16,34 +16,31 @@ export function Results() {
     loadMe().then((d) => setRegs(d.registrations)).catch(() => setRegs([]));
   }, []);
 
-  const withResults = (regs ?? []).filter((r) => r.result);
+  // One card per (child × published sitting): a registration can carry several
+  // results once multiple runs of its program are published (e.g. mock sittings).
+  const items = (regs ?? []).flatMap((r) => (r.results ?? []).map((res) => ({ reg: r, res })));
 
   return (
     <div class="results-page">
-      <div class="page-header">
-        <h1>Results</h1>
-      </div>
       {regs === null ? (
         <div class="results-grid">
           {[0, 1, 2].map((i) => <div key={i} class="result-card result-card--skeleton" />)}
         </div>
-      ) : withResults.length === 0 ? (
-        <p class="muted" style="margin-top: -8px;">
+      ) : items.length === 0 ? (
+        <p class="muted">
           No results have been published yet. They'll appear here once your child's exam is graded and released.
         </p>
       ) : (
         <div class="results-grid">
-          {withResults.map((r) => {
-            const res = r.result!;
+          {items.map(({ reg: r, res }) => {
             return (
-              <div class="result-card" key={r.id}>
+              <div class="result-card" key={`${r.id}|${res.event_key}`}>
                 <div class="result-card-head">
                   <div class="result-info">
                     <div class="result-student">{r.student_full_name}</div>
                     <div class="result-event">{res.event_label}</div>
                     {res.event_date && <div class="result-date">{fmtDate(res.event_date)}</div>}
                   </div>
-                  {res.tier && <span class="result-tier">{tierLabel(res.tier)}</span>}
                 </div>
                 <div class="result-sections">
                   {res.sections.map((s) => (
@@ -52,6 +49,12 @@ export function Results() {
                         <span class="result-sec-label">{s.label}</span>
                         <span class="result-sec-score">{s.score}<span class="result-sec-max">/{s.max}</span></span>
                       </div>
+                      {s.rank != null && (
+                        <div class="result-sec-meta">
+                          <span class="result-sec-rank">Rank #{s.rank}</span>
+                          {s.tier && s.rank <= 3 && <span class="result-tier">{tierLabel(s.tier)}</span>}
+                        </div>
+                      )}
                       {s.detail && Object.keys(s.detail).length > 0 && (
                         <div class="result-sec-detail">
                           {Object.entries(s.detail).map(([k, v]) => (
@@ -64,7 +67,6 @@ export function Results() {
                 </div>
                 <div class="result-foot">
                   <span class="result-total">Total <strong>{res.total}</strong> / {res.max_total}</span>
-                  {res.rank != null && <span class="result-rank">Rank #{res.rank}</span>}
                 </div>
               </div>
             );

@@ -223,15 +223,19 @@ export async function handleMe(request, env) {
   };
   // Published exam results, attached per registration. Only events with
   // results_published = 1 surface here, so guardians never see draft scores.
-  const resultByReg = {};
+  const resultsByReg = {};
   const regIds = (rows.results || []).map((r) => r.id);
   if (regIds.length) {
     const pubEvents = (await env.DB.prepare(
       "SELECT cohort_key AS event_key, label, program_slug, sections, starts_on, ends_on FROM cohorts WHERE results_published = 1"
     ).all()).results || [];
     if (pubEvents.length) {
-      const eventByProgram = {};
-      for (const e of pubEvents) eventByProgram[e.program_slug] = e;
+      // Key events by cohort, NOT program: a program can have several published
+      // runs (e.g. multiple mock-test sittings), and one registration can hold
+      // scores in more than one of them. So results are a LIST per registration,
+      // each matched to the event its score rows actually belong to.
+      const eventByKey = {};
+      for (const e of pubEvents) eventByKey[e.event_key] = e;
       const pubKeys = pubEvents.map((e) => e.event_key);
       const regPh = regIds.map(() => "?").join(",");
       const keyPh = pubKeys.map(() => "?").join(",");
@@ -242,22 +246,25 @@ export async function handleMe(request, env) {
       const byRegEvent = {};
       for (const s of scoreRows) (byRegEvent[`${s.registration_id}|${s.event_key}`] ??= []).push(s);
 
-      for (const r of rows.results) {
-        const e = eventByProgram[r.registration_type];
+      const parseDetail = (j) => { try { return j ? JSON.parse(j) : null; } catch { return null; } };
+      for (const mapKey of Object.keys(byRegEvent)) {
+        const sep = mapKey.indexOf("|");
+        const regId = mapKey.slice(0, sep);
+        const eventKey = mapKey.slice(sep + 1);
+        const e = eventByKey[eventKey];
         if (!e) continue;
-        const sList = byRegEvent[`${r.id}|${e.event_key}`];
-        if (!sList || !sList.length) continue;
+        const sList = byRegEvent[mapKey];
         let defs = [];
         try { defs = JSON.parse(e.sections || "[]"); } catch { defs = []; }
         const labelById = Object.fromEntries((Array.isArray(defs) ? defs : []).map((d) => [d.id, d.label]));
-        const parseDetail = (j) => { try { return j ? JSON.parse(j) : null; } catch { return null; } };
         const sections = sList.map((s) => ({
           section: s.section, label: labelById[s.section] || s.section,
           score: s.score, max: s.max_score, rank: s.rank, tier: s.tier,
           detail: parseDetail(s.detail_json),
         }));
         const ranks = sections.map((s) => s.rank).filter((x) => x != null);
-        resultByReg[r.id] = {
+        (resultsByReg[regId] ??= []).push({
+          event_key: eventKey,
           event_label: e.label,
           event_date: e.starts_on || null,
           sections,
@@ -265,7 +272,11 @@ export async function handleMe(request, env) {
           max_total: sections.reduce((n, s) => n + Number(s.max || 0), 0),
           rank: ranks.length ? Math.min(...ranks) : null,
           tier: sections.map((s) => s.tier).find(Boolean) || null,
-        };
+        });
+      }
+      // Latest sitting first within each registration.
+      for (const regId of Object.keys(resultsByReg)) {
+        resultsByReg[regId].sort((a, b) => String(b.event_date || "").localeCompare(String(a.event_date || "")));
       }
     }
   }
@@ -273,7 +284,7 @@ export async function handleMe(request, env) {
   const registrations = (rows.results || []).map((r) => {
     return {
       ...r,
-      result: resultByReg[r.id] || null,
+      results: resultsByReg[r.id] || [],
       program_label: catalog.nameFor(r.registration_type),
       program_price: catalog.effectiveProgramPrice(r),
       option_labels: optionLabelsFor(r),

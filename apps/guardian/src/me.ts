@@ -4,6 +4,7 @@
 import { api } from './api';
 
 export type ExamResult = {
+  event_key: string;
   event_label: string;
   event_date: string | null;
   sections: { section: string; label: string; score: number; max: number; rank: number | null; tier: string | null; detail: Record<string, number> | null }[];
@@ -25,7 +26,7 @@ export type ResultReg = {
   created_at: string;
   registration_ends: string | null;
   edit_window_open: boolean;
-  result: ExamResult | null;
+  results: ExamResult[];
 };
 export type MeLite = {
   account: { fullName: string; email: string; emailVerified: boolean };

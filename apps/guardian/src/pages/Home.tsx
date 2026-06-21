@@ -52,9 +52,9 @@ type Registration = {
   payment_method: string | null;
   preferred_venue: string | null;
   preferred_subject: string | null;
-  // Published exam result, or null until the org releases it. Attached by
-  // /api/me only for events with results_published = 1.
-  result: ExamResult | null;
+  // Published exam results (one per published run; empty until released).
+  // Attached by /api/me only for events with results_published = 1.
+  results: ExamResult[];
 };
 
 type Response = {

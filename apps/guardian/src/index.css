@@ -1584,6 +1584,8 @@ body.bdmso-pay-banner { padding-top: calc(70px + var(--pay-banner-h, 48px)); }
 .result-sec-detail { display: flex; flex-wrap: wrap; gap: 2px 14px; padding-top: 4px; border-top: 1px solid var(--line-1); }
 .result-detail-item { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .result-sec-label { font-size: 13px; color: var(--navy-900); }
+.result-sec-meta { display: flex; align-items: center; gap: 8px; }
+.result-sec-rank { font-size: 12px; font-weight: 600; color: var(--ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .result-sec-score { font-weight: 700; color: var(--navy-900); font-size: 14px; font-variant-numeric: tabular-nums; }
 .result-sec-max { font-weight: 500; color: var(--ink-3); }
 .result-foot {

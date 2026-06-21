@@ -52,7 +52,7 @@ export function Shell({ currentRoute, children }: Props) {
   const [hasResults, setHasResults] = useState(currentRoute.startsWith('/results'));
   useEffect(() => {
     loadMe()
-      .then((d) => { if (d.registrations.some((r) => r.result)) setHasResults(true); })
+      .then((d) => { if (d.registrations.some((r) => r.results && r.results.length)) setHasResults(true); })
       .catch(() => {});
   }, []);
   const sections = hasResults ? [HOME, RESULTS, PROFILE] : [HOME, PROFILE];
