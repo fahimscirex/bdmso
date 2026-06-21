@@ -29,6 +29,7 @@ export function EventsPage() {
   const [events, setEvents] = useState<ExamEvent[] | null>(null);
   const [eventKey, setEventKey] = useState<string>('');
   const [sections, setSections] = useState<ExamSection[]>([]);
+  const [sectionId, setSectionId] = useState<string>('');
   const [roster, setRoster] = useState<RosterEntry[] | null>(null);
 
   const reloadEvents = () => api.listExamEvents().then((evs) => {
@@ -41,11 +42,22 @@ export function EventsPage() {
 
   const loadRoster = (key: string) => {
     setRoster(null);
-    api.getRoster(key).then((r) => { setSections(r.sections); setRoster(r.rows); });
+    api.getRoster(key).then((r) => {
+      setSections(r.sections);
+      // Keep the current subject if it still exists (roster reloads after every
+      // save), else default to the first section.
+      setSectionId((cur) => (r.sections.some((s) => s.id === cur) ? cur : r.sections[0]?.id || ''));
+      setRoster(r.rows);
+    });
   };
   useEffect(() => { if (eventKey) loadRoster(eventKey); }, [eventKey]);
 
   const event = useMemo(() => events?.find((e) => e.eventKey === eventKey), [events, eventKey]);
+  // Math and science have different participants, so score entry and import are
+  // scoped to one subject at a time - the tabs render a single-section column
+  // and an import that only ever writes that section.
+  const activeSection = sections.find((s) => s.id === sectionId);
+  const tabSections = activeSection ? [activeSection] : sections;
 
   const togglePublish = (next: boolean) =>
     run(api.publishResults(eventKey, next), next ? 'Results published to guardians' : 'Results hidden from guardians', reloadEvents);
@@ -83,17 +95,31 @@ export function EventsPage() {
       )}
 
       <Tabs defaultValue="scores" className="gap-4">
-        <TabsList>
-          <TabsTrigger value="scores">Score entry</TabsTrigger>
-          <TabsTrigger value="import">Import CSV</TabsTrigger>
-          <TabsTrigger value="roster">Roster &amp; check-in</TabsTrigger>
-        </TabsList>
+        <div className="flex flex-wrap items-center gap-3">
+          <TabsList>
+            <TabsTrigger value="scores">Score entry</TabsTrigger>
+            <TabsTrigger value="import">Import CSV</TabsTrigger>
+            <TabsTrigger value="roster">Roster &amp; check-in</TabsTrigger>
+          </TabsList>
+          {/* Math and science have different participants, so score entry and
+              CSV import work one subject at a time - importing one never touches
+              the other's scores. */}
+          {sections.length > 1 && (
+            <div className="ml-auto flex items-center gap-2">
+              <Label className="text-sm text-muted-foreground">Subject</Label>
+              <Select value={sectionId} onValueChange={setSectionId}>
+                <SelectTrigger size="sm" className="w-[160px]"><SelectValue /></SelectTrigger>
+                <SelectContent>{sections.map((s) => <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
 
         <TabsContent value="scores">
-          <ScoresTab eventKey={eventKey} sections={sections} roster={roster} onChanged={() => { loadRoster(eventKey); reloadEvents(); }} />
+          <ScoresTab eventKey={eventKey} sections={tabSections} roster={roster} onChanged={() => { loadRoster(eventKey); reloadEvents(); }} />
         </TabsContent>
         <TabsContent value="import">
-          <ImportTab eventKey={eventKey} sections={sections} roster={roster} onCommitted={() => { loadRoster(eventKey); reloadEvents(); }} />
+          <ImportTab eventKey={eventKey} sections={tabSections} roster={roster} onCommitted={() => { loadRoster(eventKey); reloadEvents(); }} />
         </TabsContent>
         <TabsContent value="roster">
           <RosterTab eventKey={eventKey} roster={roster} onChanged={() => loadRoster(eventKey)} />
@@ -204,9 +230,11 @@ function ImportTab({ eventKey, sections, roster, onCommitted }: { eventKey: stri
 
   // Pre-filled template: every participant's BdMSO ID + name. One empty column
   // per section - or per part when the section has a breakdown. Staff fill the
-  // scores and re-import this file.
+  // scores and re-import this file. Scoped to the selected subject, so the
+  // filename names it to keep the Math and Science templates distinct.
+  const subjectSlug = sections.length === 1 ? `-${sections[0].label.toLowerCase().replace(/\s+/g, '-')}` : '';
   const downloadTemplate = () => {
-    exportCsv(`results-template-${eventKey}.csv`, roster ?? [], [
+    exportCsv(`results-template-${eventKey}${subjectSlug}.csv`, roster ?? [], [
       { header: 'BdMSO ID', value: (p) => p.memberId || p.id },
       { header: 'Name', value: (p) => p.name },
       ...sections.flatMap((s) => (s.parts?.length
