@@ -533,6 +533,7 @@ async function submitRegistration() {
       dashLink.href = `/dashboard?focus=${encodeURIComponent(response.applicationId)}`;
     }
     createdRegistrationId = response.applicationId || null;
+    if (window.fbq) window.fbq("track", "CompleteRegistration");
     setStep(4);
     setMessage("", "neutral");
   } catch (error) {
@@ -576,6 +577,7 @@ async function payNow() {
       return;
     }
     if (response.checkoutURL) {
+      if (window.fbq) window.fbq("track", "InitiateCheckout");
       location.href = response.checkoutURL;
       return;
     }
