@@ -54,7 +54,10 @@ function readContentHash() {
   try {
     const stdout = execFileSync(
       'pnpm',
-      ['exec', 'wrangler', 'd1', 'execute', 'bdmso', '--local', '--json', '--command', sql],
+      // Must match the binding the worker runs under (dev-one.mjs: --env
+      // production -> bdmso-v2 -> its own local sqlite). Querying plain `bdmso`
+      // reads a DIFFERENT local DB, so admin edits would never trigger a rebuild.
+      ['exec', 'wrangler', 'd1', 'execute', 'bdmso-v2', '--env', 'production', '--local', '--json', '--command', sql],
       { cwd: repoRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
     );
     // Hash ONLY the row data. The raw --json output also carries a per-call
