@@ -94,9 +94,10 @@ async function serveAdminImg(request, env, url) {
 const CSP = [
   "default-src 'self'",
   // static.cloudflareinsights.com - Cloudflare Web Analytics beacon.
+  // connect.facebook.net - Meta Pixel (fbevents.js).
   // Zaraz loads its own scripts first-party via /cdn-cgi/zaraz/ so no
   // extra script-src host is needed for it.
-  "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
+  "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://connect.facebook.net",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: https:",
@@ -105,7 +106,8 @@ const CSP = [
   //   google-analytics.com + analytics.google.com - Zaraz forwards
   //     these GA4 client-side beacons through the browser
   //   stats.g.doubleclick.net - GA4 Google Signals (cross-device)
-  "connect-src 'self' https://cloudflareinsights.com https://www.google-analytics.com https://*.analytics.google.com https://*.google-analytics.com https://stats.g.doubleclick.net",
+  //   facebook.com / connect.facebook.net - Meta Pixel event beacons (fbevents)
+  "connect-src 'self' https://cloudflareinsights.com https://www.google-analytics.com https://*.analytics.google.com https://*.google-analytics.com https://stats.g.doubleclick.net https://www.facebook.com https://connect.facebook.net",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
