@@ -300,10 +300,19 @@ export async function diffEntityFields(env, entityType, entityId, action) {
   let before = null;
   try { before = snap ? (JSON.parse(snap.d1_json)[0] || null) : null; } catch { before = null; }
   if (!before) return [];
+  // Short scalar values are shown inline as before -> after; long ones (body,
+  // pricing JSON) are flagged by field name only (from/to null) to avoid noise.
+  const SHOW_MAX = 48;
+  const shortVal = (v) => {
+    const s = v == null ? "" : String(v);
+    if (s.length > SHOW_MAX) return null;
+    return s === "" ? "—" : s;
+  };
   const changed = [];
   for (const k of Object.keys(after)) {
     if (DIFF_IGNORE.has(k)) continue;
-    if (String(after[k] ?? "") !== String(before[k] ?? "")) changed.push(prettyField(k));
+    if (String(after[k] ?? "") === String(before[k] ?? "")) continue;
+    changed.push({ field: prettyField(k), from: shortVal(before[k]), to: shortVal(after[k]) });
   }
   return changed;
 }

@@ -83,7 +83,7 @@ type SystemHealthResp = {
 export type PendingPublish = {
   ok: boolean;
   count: number;
-  changes: { id: string; entity_type: string; entity_id: string; action: 'create' | 'update' | 'delete'; title: string; path: string; staged_at: string; changed?: string[] }[];
+  changes: { id: string; entity_type: string; entity_id: string; action: 'create' | 'update' | 'delete'; title: string; path: string; staged_at: string; changed?: { field: string; from: string | null; to: string | null }[] }[];
   suggestedMessage: string;
 };
 type RegSummary = { total: number; paid: number; pending: number; cancelled: number };

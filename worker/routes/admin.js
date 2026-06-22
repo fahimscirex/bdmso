@@ -3448,13 +3448,14 @@ admin.get("/publish/pending", async (c) => {
   const byType = {};
   for (const ch of changes) {
     const label = PENDING_LABELS[ch.entity_type] || ch.entity_type;
-    const desc = ch.changed && ch.changed.length ? `${ch.title} (${ch.changed.join(", ")})` : ch.title;
+    const desc = ch.changed && ch.changed.length ? `${ch.title} (${ch.changed.map((d) => d.field).join(", ")})` : ch.title;
     (byType[label] ??= []).push(desc);
   }
   const parts = Object.entries(byType).map(([label, items]) =>
     `${items.length} ${label}${items.length > 1 && !label.includes(" ") ? "s" : ""}: ${items.join(", ")}`
   );
-  const suggestedMessage = parts.length ? `Update ${parts.join("; ")}` : "Publish content changes";
+  // Conventional-commit style so the published GitHub history stays consistent.
+  const suggestedMessage = parts.length ? `chore(content): update ${parts.join("; ")}` : "chore(content): publish content changes";
 
   return c.json({ ok: true, count: rows.length, changes, suggestedMessage });
 });

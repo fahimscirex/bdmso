@@ -118,9 +118,22 @@ export function PublishBar() {
                         <div className="min-w-0 flex-1">
                           <div className="truncate">{c.title}</div>
                           {c.changed && c.changed.length > 0 && (
-                            <div className="truncate text-xs text-muted-foreground">
-                              {c.changed.join(' · ')}
-                            </div>
+                            <ul className="mt-1 space-y-0.5">
+                              {c.changed.map((d, i) => (
+                                <li key={i} className="text-xs">
+                                  <span className="text-muted-foreground">{d.field}</span>
+                                  {d.to != null && (
+                                    <>
+                                      {': '}
+                                      <span className="font-semibold text-foreground">{d.to}</span>
+                                      {d.from != null && d.from !== '—' && (
+                                        <span className="ml-1 text-muted-foreground/70">(was {d.from})</span>
+                                      )}
+                                    </>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
                           )}
                         </div>
                       </li>
