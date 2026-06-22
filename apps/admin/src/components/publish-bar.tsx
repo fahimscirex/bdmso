@@ -113,9 +113,16 @@ export function PublishBar() {
                   <div className="text-xs font-medium text-muted-foreground">{entityLabel(type)}</div>
                   <ul className="space-y-1.5">
                     {items.map((c) => (
-                      <li key={c.id} className="flex items-center gap-2 rounded-md border p-2 text-sm">
-                        <Badge variant={actionVariant[c.action]} className="shrink-0">{actionLabel[c.action]}</Badge>
-                        <span className="min-w-0 flex-1 truncate">{c.title}</span>
+                      <li key={c.id} className="flex items-start gap-2 rounded-md border p-2 text-sm">
+                        <Badge variant={actionVariant[c.action]} className="mt-0.5 shrink-0">{actionLabel[c.action]}</Badge>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate">{c.title}</div>
+                          {c.changed && c.changed.length > 0 && (
+                            <div className="truncate text-xs text-muted-foreground">
+                              {c.changed.join(' · ')}
+                            </div>
+                          )}
+                        </div>
                       </li>
                     ))}
                   </ul>

@@ -12,7 +12,7 @@ import { getCatalog } from "../lib/programs.js";
 import { deriveCohortStage } from "../lib/program-options.js";
 import { writeRepoAsset } from "../lib/repoAssets.js";
 import { reconcilePayment, reconcileStalePayments } from "../lib/reconcile.js";
-import { materializeEntity, titleFor, pathFor, isDataset, publishFiles, captureSnapshot, restoreSnapshot } from "../lib/publish.js";
+import { materializeEntity, titleFor, pathFor, isDataset, publishFiles, captureSnapshot, restoreSnapshot, diffEntityFields } from "../lib/publish.js";
 import { createId } from "../lib/util.js";
 import { createVerificationToken, sendVerificationEmail, createPasswordResetToken, sendPasswordResetEmail, assignMemberIdAndSendReceipt, sendBroadcastEmail } from "../lib/email.js";
 import { getBaseUrl } from "../lib/util.js";
@@ -3438,17 +3438,23 @@ admin.get("/publish/pending", async (c) => {
       title: await titleFor(c.env, r.entity_type, r.entity_id),
       path: r.materialized_path,
       staged_at: r.staged_at,
+      // Which fields changed since last publish (updates only; [] otherwise).
+      changed: await diffEntityFields(c.env, r.entity_type, r.entity_id, r.action),
     });
   }
 
-  // Suggested commit message: "Update 3 posts, 1 program".
-  const counts = {};
-  for (const r of rows) {
-    const label = PENDING_LABELS[r.entity_type] || r.entity_type;
-    counts[label] = (counts[label] || 0) + 1;
+  // Suggested commit message describes WHAT changed, grouped by type, e.g.
+  // "Update 2 programs: Mock Test (price, schedule), STEM Masterclass (body)".
+  const byType = {};
+  for (const ch of changes) {
+    const label = PENDING_LABELS[ch.entity_type] || ch.entity_type;
+    const desc = ch.changed && ch.changed.length ? `${ch.title} (${ch.changed.join(", ")})` : ch.title;
+    (byType[label] ??= []).push(desc);
   }
-  const parts = Object.entries(counts).map(([label, n]) => `${n} ${label}${n > 1 && !label.includes(" ") ? "s" : ""}`);
-  const suggestedMessage = parts.length ? `Update ${parts.join(", ")}` : "Publish content changes";
+  const parts = Object.entries(byType).map(([label, items]) =>
+    `${items.length} ${label}${items.length > 1 && !label.includes(" ") ? "s" : ""}: ${items.join(", ")}`
+  );
+  const suggestedMessage = parts.length ? `Update ${parts.join("; ")}` : "Publish content changes";
 
   return c.json({ ok: true, count: rows.length, changes, suggestedMessage });
 });

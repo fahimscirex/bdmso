@@ -274,6 +274,40 @@ async function snapshotRowsFor(env, entityType, entityId) {
   return row ? [row] : [];
 }
 
+// Fields that never count as a meaningful "change" in the review diff.
+const DIFF_IGNORE = new Set(["id", "slug", "created_at", "updated_at", "updated_by", "published_at"]);
+// Friendly labels for the noisier column names; everything else is de-snaked.
+const FIELD_LABEL = {
+  registration_status: "status", schedule_label: "schedule", price_label: "price",
+  fee_amount: "fee", pricing_json: "pricing/options", body_md: "body",
+  meta_description: "meta description", register_url: "register link", register_label: "register button",
+  home_order: "home order", registration_opens: "registration opens", registration_closes: "registration closes",
+  starts_on: "start date", ends_on: "end date",
+};
+const prettyField = (k) => FIELD_LABEL[k] || k.replace(/_/g, " ");
+
+// Which fields changed since the entity was last published. Compares the live
+// D1 row against publish_snapshots (the post-publish baseline). Only meaningful
+// for single-row entities being updated; datasets/creates/deletes return [].
+export async function diffEntityFields(env, entityType, entityId, action) {
+  const cfg = ENTITY_TABLES[entityType];
+  if (!cfg || cfg.dataset || action !== "update") return [];
+  const after = (await snapshotRowsFor(env, entityType, entityId))[0];
+  if (!after) return [];
+  const snap = await env.DB.prepare(
+    "SELECT d1_json FROM publish_snapshots WHERE entity_type = ? AND entity_id = ? LIMIT 1"
+  ).bind(entityType, entityId).first();
+  let before = null;
+  try { before = snap ? (JSON.parse(snap.d1_json)[0] || null) : null; } catch { before = null; }
+  if (!before) return [];
+  const changed = [];
+  for (const k of Object.keys(after)) {
+    if (DIFF_IGNORE.has(k)) continue;
+    if (String(after[k] ?? "") !== String(before[k] ?? "")) changed.push(prettyField(k));
+  }
+  return changed;
+}
+
 function insertStmt(env, table, row) {
   const cols = Object.keys(row);
   const sql = `INSERT INTO ${table} (${cols.join(", ")}) VALUES (${cols.map(() => "?").join(", ")})`;
