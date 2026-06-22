@@ -2,10 +2,11 @@
 home_order: "09"
 feeAmount: 3000
 title: "STEM Foundation Program"
+tagline: "Build up foundational knowledge"
 metaDescription: "The BdMSO STEM Foundation Program is a 3-month journey through Science, Technology, Engineering and Math for classes 3 to 5."
 startsOn: "2026-08-09"
 endsOn: "2026-10-27"
-registrationStarts: "2026-07-03"
+registrationStarts: "2026-06-30"
 registrationEnds: "2026-08-07"
 eyebrow: "Year-round · Foundation"
 image: "/images/stem.webp"

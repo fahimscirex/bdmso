@@ -2,11 +2,11 @@
 home_order: "04"
 feeAmount: 500
 title: "BdMSO Mock Test"
-metaDescription: "BdMSO Mock Tests on 19 and 26 June 2026 - on-site simulated exams in Math and Science that mirror the real Olympiad and benchmark your child's readiness."
+metaDescription: "On-site simulated exams in Math and Science that mirror the real Olympiad and benchmark your child's readiness."
 startsOn: "2026-06-19"
-endsOn: "2026-06-26"
+endsOn: "2026-07-03"
 registrationStarts: "2026-05-15"
-registrationEnds: "2026-06-25"
+registrationEnds: "2026-06-30"
 eyebrow: "Year-round · Testing"
 image: "/images/exam.webp"
 audience: "All BdMSO aspirants"
@@ -14,12 +14,12 @@ duration: "1 hour per subject"
 format: "On-site mock exam · MASLab, Dhaka"
 outcome: "Exam confidence and competitive leaderboard placement"
 level: "All aspirants"
-schedule: "Mock 1: 19 June 2026 · Mock 2: 26 June 2026"
+schedule: "19 June 2026 · 26 June 2026  · 3 July 2026"
 price: "৳ 500"
 register_url: "/registration?program=mock-test"
 register_label: "Sign up for a mock"
 repeatable: true
-options: {"kind":"checkbox","items":[{"id":"mt2-math","label":"Mock Test 2 - Math","sub":"Fri 26 Jun 2026 - 3-4 PM - MASLab, Dhaka","price":500},{"id":"mt2-sci","label":"Mock Test 2 - Science","sub":"Fri 26 Jun 2026 - 5-6 PM - MASLab, Dhaka","price":500}]}
+options: {"kind":"radio","items":[{"id":"f","label":"Final Mock Test (Online)","sub":"Fri  3 July 2026 - 10 AM to 12 PM - Both Math and Science","price":700},{"id":"final-mock-test-online","label":"Final Mock Test (In person)","sub":"Fri  3 July 2026 - 10 AM to 12 PM - Both Math and Science","price":900}]}
 category: "advanced"
 ---
 
@@ -31,9 +31,9 @@ Hosted at MASLab in Dhaka, these monthly tests help students master their time m
 
 ## What you'll do
 
-- BdMSO Mock Test 1 - Friday, 19 June 2026 · 3:00–4:00 PM (Math)
-- BdMSO Mock Test 1 - Friday, 19 June 2026 · 5:00–6:00 PM (Science)
-- BdMSO Mock Test 2 - Friday, 26 June 2026 · 3:00–4:00 PM (Math)
-- BdMSO Mock Test 2 - Friday, 26 June 2026 · 5:00–6:00 PM (Science)
-- Venue: MASLab, Dhaka
-- Detailed leaderboards and personal score breakdowns published after each test
+- BdMSO Mock Test 1 - Friday, 19 June 2026 · 3:00 PM – 4:00 PM (Math)
+- BdMSO Mock Test 1 - Friday, 19 June 2026 · 5:00 PM – 6:00 PM (Science)
+- BdMSO Mock Test 2 - Friday, 26 June 2026 · 3:00 PM – 4:00 PM (Math)
+- BdMSO Mock Test 2 - Friday, 26 June 2026 · 5:00 PM – 6:00 PM (Science)
+- Final Mock Test - Friday, 3 July 2026 . 10:00 AM - 12:00 PM (Online & In-person)
+- Detailed personal score breakdowns published after each test

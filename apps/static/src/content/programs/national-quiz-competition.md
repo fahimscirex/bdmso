@@ -45,3 +45,18 @@ Quiz Competition does not lead to the camp or International Participation. It is
 - Duration: 60 minutes
 - Format: Mix of MCQ and Short Question
 - Topics: Basic Elementary Mathematics and Science
+
+## Quiz Syllabus 
+ 
+Mathematics
+- Arithmetic and Number Theory
+- Geometry and Spatial Sense
+- Pattern Recognition
+- Recreational Mathematics
+
+ Science
+- Scientific Method
+- Life Science
+- Physical Science
+- Earth and Solar System
+- Geography and Environment
