@@ -22,7 +22,7 @@ category: "residential"
 
 ## About this program
 
-the International STEM Camp (ISC) 2026, an international program designed to help students learn and grow through activities in Science, Technology, Engineering, and Mathematics (STEM). Through this program, students will have opportunities to improve their STEM knowledge, practice communication skills, build friendships with participants from different countries, and develop leadership, creativity, and critical thinking skills.
+The International STEM Camp (ISC) 2026, an international program designed to help students learn and grow through activities in Science, Technology, Engineering, and Mathematics (STEM). Through this program, students will have opportunities to improve their STEM knowledge, practice communication skills, build friendships with participants from different countries, and develop leadership, creativity, and critical thinking skills.
 
 ISC provides a fun and meaningful learning experience through interactive activities, collaboration, and cultural exchange. We hope this program can inspire students to explore new ideas, gain international
 experience, and prepare for a brighter future.
@@ -33,7 +33,6 @@ This time, the program will take place in the beautiful island of Langkawi, Mala
 
 - Date: August 12th – August 16th, 2026
 - Venue: Langkawi, Malaysia
-- Accommodation & Activities: Langkasuka Hotel
 - Participants: Students of Grade 5–6 and Grade 7–9
 
 
