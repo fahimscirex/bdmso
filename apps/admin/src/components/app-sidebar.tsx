@@ -46,7 +46,12 @@ export function AppSidebar() {
                 const count = counts[item.url] ?? 0;
                 return (
                   <SidebarMenuItem key={item.url}>
-                    <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.url)}
+                      tooltip={item.title}
+                      className="[&>svg]:text-muted-foreground hover:[&>svg]:text-primary data-[active=true]:bg-primary/10 data-[active=true]:font-medium data-[active=true]:text-primary data-[active=true]:[&>svg]:text-primary"
+                    >
                       <Link href={item.url}>
                         <Icon />
                         <span>{item.title}</span>

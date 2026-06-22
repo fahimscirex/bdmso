@@ -296,7 +296,17 @@ admin.get("/registrations/:id", async (c) => {
      ORDER BY p.created_at DESC`
   ).bind(reg.guardian_account_id).all();
 
-  return c.json({ ok: true, registration: reg, payments: payments.results });
+  // The guardian's other registrations (e.g. they registered for the Olympiad
+  // and a mock test separately) - shown so this per-registration page makes
+  // clear what else the student is signed up for.
+  const siblings = await c.env.DB.prepare(
+    `SELECT id, registration_type, status, preferred_subject, preferred_venue, program_options, cohort_key, created_at
+     FROM registrations
+     WHERE guardian_account_id = ? AND id != ?
+     ORDER BY created_at DESC`
+  ).bind(reg.guardian_account_id, id).all();
+
+  return c.json({ ok: true, registration: reg, payments: payments.results, siblings: siblings.results });
 });
 
 // PATCH /api/admin/registrations/:id/status

@@ -55,6 +55,16 @@ export interface RegistrationPayment {
   createdAt: string;
 }
 
+export interface SiblingRegistration {
+  id: string;
+  program: string;
+  status: RegStatus;
+  subject: string;
+  venue: string;
+  cohort: string;
+  createdAt: string;
+}
+
 export interface RegistrationDetail {
   id: string;
   bdmsoId: string;
@@ -73,10 +83,12 @@ export interface RegistrationDetail {
   emailVerified: boolean;
   venue: string;
   subject: string;
+  cohort: string;
   program: string;
   status: RegStatus;
   createdAt: string;
   payments: RegistrationPayment[];
+  siblings: SiblingRegistration[];
 }
 
 export interface Program {

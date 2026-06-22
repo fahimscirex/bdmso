@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { ArrowLeft, BadgeCheck, Check, ChevronsUpDown, Pencil } from 'lucide-react';
+import { ArrowLeft, BadgeCheck, Check, ChevronsUpDown, GraduationCap, Pencil, Receipt, ClipboardList, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { RegistrationDetail } from '@/lib/types';
@@ -228,6 +228,20 @@ export function RegistrationDetailPage({ id }: { id: string }) {
     );
   }
 
+  // The current registration plus the guardian's others, oldest first - so the
+  // summary can show how many programs they enrolled in and when they first
+  // registered for BdMSO, and the Enrollments section lists them all.
+  const enrollments = [
+    { id: reg.id, program: reg.program, status: reg.status, subject: reg.subject, venue: reg.venue, cohort: reg.cohort, createdAt: reg.createdAt, current: true },
+    ...reg.siblings.map((s) => ({ id: s.id, program: s.program, status: s.status, subject: s.subject, venue: s.venue, cohort: s.cohort, createdAt: s.createdAt, current: false })),
+  ].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const firstRegisteredAt = enrollments[0]?.createdAt ?? reg.createdAt;
+  const paidPayments = reg.payments.filter((p) => p.status === 'paid');
+  const paidTotal = paidPayments.reduce((sum, p) => sum + p.amount, 0);
+  const lastPaymentAt = paidPayments.map((p) => p.createdAt).sort().at(-1) ?? null;
+  const pendingCount = enrollments.filter((e) => e.status === 'pending').length;
+  const subjects = [...new Set(enrollments.map((e) => e.subject).filter((s) => s && s !== '—'))];
+
   return (
     <div className="space-y-6">
       <BackLink />
@@ -250,9 +264,9 @@ export function RegistrationDetailPage({ id }: { id: string }) {
       />
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Student</CardTitle>
+        <Card className="overflow-hidden">
+          <CardHeader className="-mt-6 flex items-center rounded-t-xl bg-primary py-2.5 text-primary-foreground">
+            <CardTitle className="flex items-center gap-2 text-base"><GraduationCap className="size-4" />Student</CardTitle>
           </CardHeader>
           <CardContent>
             <dl className="grid gap-4 sm:grid-cols-2">
@@ -267,9 +281,9 @@ export function RegistrationDetailPage({ id }: { id: string }) {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Guardian</CardTitle>
+        <Card className="overflow-hidden">
+          <CardHeader className="-mt-6 flex items-center rounded-t-xl bg-primary py-2.5 text-primary-foreground">
+            <CardTitle className="flex items-center gap-2 text-base"><Users className="size-4" />Guardian</CardTitle>
           </CardHeader>
           <CardContent>
             <dl className="grid gap-4 sm:grid-cols-2">
@@ -294,25 +308,49 @@ export function RegistrationDetailPage({ id }: { id: string }) {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Registration</CardTitle>
+        <Card className="overflow-hidden">
+          <CardHeader className="-mt-6 flex items-center rounded-t-xl bg-primary py-2.5 text-primary-foreground">
+            <CardTitle className="flex items-center gap-2 text-base"><ClipboardList className="size-4" />Summary</CardTitle>
           </CardHeader>
           <CardContent>
             <dl className="grid gap-4 sm:grid-cols-2">
-              <Field label="Program">{reg.program.replace('BdMSO ', '')}</Field>
-              <Field label="Status"><StatusBadge status={reg.status} /></Field>
-              <Field label="Venue">{reg.venue}</Field>
-              <Field label="Subject">{reg.subject}</Field>
-              <div className="sm:col-span-2"><Field label="Registered on">{dateUK(reg.createdAt)}</Field></div>
+              <Field label="Enrolled programs">{enrollments.length}</Field>
+              <Field label="Pending payment">{pendingCount}</Field>
+              <Field label="Total paid">{bdt(paidTotal)}</Field>
+              <Field label="Last payment">{lastPaymentAt ? dateUK(lastPaymentAt) : '—'}</Field>
+              <Field label="Subjects"><span className="capitalize">{subjects.join(', ') || '—'}</span></Field>
+              <Field label="Registered on">{dateUK(firstRegisteredAt)}</Field>
             </dl>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Payment history</CardTitle>
+      <section className="space-y-3">
+        <h2 className="text-base font-semibold">Enrollments</h2>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {enrollments.map((e) => (
+            <div
+              key={e.id}
+              className="space-y-2 rounded-lg border p-3"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium">{e.program.replace('BdMSO ', '')}</span>
+                <StatusBadge status={e.status} />
+              </div>
+              <dl className="grid grid-cols-2 gap-2">
+                <Field label="Subject"><span className="capitalize">{e.subject}</span></Field>
+                <Field label="Venue"><span className="capitalize">{e.venue}</span></Field>
+                <div className="col-span-2"><Field label="Cohort"><span className="font-mono text-xs">{e.cohort}</span></Field></div>
+              </dl>
+              <div className="text-xs text-muted-foreground">Registered {dateUK(e.createdAt)}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <Card className="overflow-hidden">
+        <CardHeader className="-mt-6 flex items-center rounded-t-xl bg-primary py-2.5 text-primary-foreground">
+          <CardTitle className="flex items-center gap-2 text-base"><Receipt className="size-4" />Payment history</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
