@@ -19,7 +19,7 @@ price: "৳ 500"
 register_url: "/registration?program=mock-test"
 register_label: "Sign up for a mock"
 repeatable: true
-options: {"kind":"radio","items":[{"id":"f","label":"Final Mock Test (Online)","sub":"Fri  3 July 2026 - 10 AM to 12 PM - Both Math and Science","price":700},{"id":"final-mock-test-online","label":"Final Mock Test (In person)","sub":"Fri  3 July 2026 - 10 AM to 12 PM - Both Math and Science","price":900}]}
+options: {"kind":"radio","items":[{"id":"f","label":"Final Mock Test (Online)","sub":"Fri  3 July 2026 - 10 AM to 12 PM - Both Math and Science","price":600},{"id":"final-mock-test-online","label":"Final Mock Test (In person)","sub":"Fri  3 July 2026 - 10 AM to 12 PM - Both Math and Science","price":800}]}
 category: "advanced"
 ---
 
