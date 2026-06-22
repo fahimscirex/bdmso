@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { CircleDollarSign, Clock, RefreshCw, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
 
 const makeColumns = (reload: () => void): ColumnDef<Payment>[] => [
   {
@@ -92,6 +93,20 @@ const makeColumns = (reload: () => void): ColumnDef<Payment>[] => [
 export function PaymentsPage() {
   const { data: rows, error, reload } = useList(api.listPayments);
 
+  // Offline/cash payment toggle (controls the registration pay step).
+  const [offlinePay, setOfflinePay] = useState<boolean | null>(null);
+  useEffect(() => { api.getSettings().then((s) => setOfflinePay(s.offlinePaymentEnabled)).catch(() => {}); }, []);
+  const toggleOfflinePay = async (next: boolean) => {
+    setOfflinePay(next);
+    try {
+      await api.setOfflinePayment(next);
+      toast.success(next ? 'Offline / cash payment enabled' : 'Offline / cash payment turned off');
+    } catch (e) {
+      setOfflinePay(!next);
+      toast.error('Could not update setting', { description: (e as Error).message });
+    }
+  };
+
   const data = useMemo(() => rows ?? [], [rows]);
   const columns = useMemo(() => makeColumns(reload), [reload]);
 
@@ -133,7 +148,21 @@ export function PaymentsPage() {
         title="Payments"
         description="Reconcile transactions, then report on revenue."
         actions={
-          <Button size="sm" onClick={reverifyAll}><RefreshCw className="size-4" /> Reconcile pending</Button>
+          <>
+            <label
+              className="flex h-8 items-center gap-2 rounded-md border bg-card px-3 text-sm whitespace-nowrap"
+              title='When off, the registration pay step hides "Pay manually / cash" and the server rejects it.'
+            >
+              <span className="text-muted-foreground">Offline pay</span>
+              <Switch
+                checked={offlinePay ?? false}
+                disabled={offlinePay === null}
+                onCheckedChange={toggleOfflinePay}
+                aria-label="Toggle offline / cash payment at registration"
+              />
+            </label>
+            <Button size="sm" onClick={reverifyAll}><RefreshCw className="size-4" /> Reconcile pending</Button>
+          </>
         }
       />
 

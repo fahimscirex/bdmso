@@ -369,6 +369,8 @@ export const api = {
   paymentResendReceipt: (id: string) => http.post(`/api/admin/payments/${id}/resend-receipt`),
   paymentReconcile: (id: string) => http.post<{ ok: true; status: 'paid' | 'pending' | 'failed'; method?: string | null; error?: string }>(`/api/admin/payments/${id}/reconcile`),
   reverifyAllPending: () => http.post<{ ok: true; checked: number; paid: number; failed: number }>('/api/admin/payments/reconcile-stale', { all: true }),
+  getSettings: () => http.get<{ ok: true; offlinePaymentEnabled: boolean }>('/api/admin/settings'),
+  setOfflinePayment: (enabled: boolean) => http.patch<{ ok: true; offlinePaymentEnabled: boolean }>('/api/admin/settings', { offlinePaymentEnabled: enabled }),
   paymentComplete: (id: string, method = 'cash', accountNumber?: string) => http.patch(`/api/admin/payments/${id}/complete`, { method, accountNumber }),
   // Record an offline payment against a registration: completes its pending
   // payment or creates a paid one if there is none. Confirms the reg, mints the

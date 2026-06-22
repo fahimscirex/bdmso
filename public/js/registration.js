@@ -887,6 +887,20 @@ function init() {
   document.getElementById("pay-now-btn")?.addEventListener("click", payNow);
   initDob();
 
+  // Offline/cash payment can be turned off by admins. When it's off, hide that
+  // option and force the online radio (the server rejects manual anyway).
+  fetch("/api/settings", { cache: "no-cache" })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((cfg) => {
+      if (cfg && cfg.offlinePaymentEnabled === false) {
+        const manual = document.getElementById("pay-opt-manual");
+        if (manual) manual.hidden = true;
+        const online = document.querySelector('input[name="pay-method"][value="online"]');
+        if (online) online.checked = true;
+      }
+    })
+    .catch(() => {});
+
   // The competition is now decided by the URL, not a dropdown - so we
   // just apply the conditional-field visibility once on load. Preferred
   // Subject shows for the Olympiad; Preferred Venue shows for both

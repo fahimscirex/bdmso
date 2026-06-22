@@ -692,3 +692,10 @@ WHEN NEW.updated_at IS OLD.updated_at
 BEGIN
   UPDATE publish_snapshots SET updated_at = datetime('now') WHERE rowid = NEW.rowid;
 END;
+
+-- Key/value app settings (runtime toggles, e.g. offline_payment_enabled).
+CREATE TABLE IF NOT EXISTS settings (
+  key        TEXT PRIMARY KEY,
+  value      TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

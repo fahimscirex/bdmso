@@ -17,6 +17,7 @@ import {
   handleVerifyEmail, handleResendVerification,
   handleForgotPassword, handleForgotEmail, handleResetPassword,
   handleCatalog,
+  handlePublicSettings,
 } from "./routes/public.js";
 import guardianRoutes from "./routes/guardian.js";
 import adminRoutes from "./routes/admin.js";
@@ -40,6 +41,7 @@ api.post("/login",                 (c) => handleLogin(c.req.raw, c.env));
 api.post("/logout",                (c) => handleLogout(c.req.raw, c.env));
 api.get ("/me",                    (c) => handleMe(c.req.raw, c.env));
 api.get ("/catalog",               (c) => handleCatalog(c.req.raw, c.env));
+api.get ("/settings",              (c) => handlePublicSettings(c.req.raw, c.env));
 api.post("/submit-registration",   (c) => handleRegistration(c.req.raw, c.env));
 api.post("/add-enrollment",        (c) => handleAddEnrollment(c.req.raw, c.env));
 api.get ("/validate-coupon",       (c) => handleValidateCoupon(c.req.raw, c.env, new URL(c.req.url)));

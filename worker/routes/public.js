@@ -10,7 +10,17 @@ import { checkLoginRateLimit, recordLoginAttempt, checkActionRateLimit, recordAc
 import { createVerificationToken, sendVerificationEmail, sendSponsorshipNotification, assignMemberIdAndSendReceipt, createPasswordResetToken, sendPasswordResetEmail, sendUpdatedReceiptForRegistration } from "../lib/email.js";
 import { recordAudit } from "../lib/audit-log.js";
 import { loadCatalog } from "../lib/programs.js";
+import { getBoolSetting } from "../lib/settings.js";
 import { deriveRegState, deriveCohortStage } from "../lib/program-options.js";
+
+// Public runtime config the registration page reads (no auth). Currently just
+// the offline/cash payment toggle so the pay step can hide that option.
+export async function handlePublicSettings(request, env) {
+  return jsonResponse({
+    ok: true,
+    offlinePaymentEnabled: await getBoolSetting(env, "offline_payment_enabled", true),
+  });
+}
 // Program catalog now comes from D1 via loadCatalog(env). registrationOpenFor,
 // effectiveProgramPrice, names/prices and the option logic are catalog methods
 // (see lib/programs.js) - each handler does `const catalog = await loadCatalog(env)`
@@ -868,6 +878,11 @@ export async function handleCreatePayment(request, env) {
   // and hand the guardian an invoice to settle; an admin later marks it paid.
   const paymentMethod = normalizeString(payload.paymentMethod) || "online";
   if (paymentMethod === "manual") {
+    // Server-side guard: even if the option is forced in the client, honour the
+    // admin toggle and refuse to mint a manual/offline invoice when it's off.
+    if (!(await getBoolSetting(env, "offline_payment_enabled", true))) {
+      return badRequest("Offline / cash payment is currently unavailable. Please pay online.");
+    }
     const invoiceNo = await generateInvoiceNo(env);
     const paymentId = createId("pay");
     await env.DB.prepare(

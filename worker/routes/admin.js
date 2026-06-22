@@ -17,6 +17,7 @@ import { createId } from "../lib/util.js";
 import { createVerificationToken, sendVerificationEmail, createPasswordResetToken, sendPasswordResetEmail, assignMemberIdAndSendReceipt, sendBroadcastEmail } from "../lib/email.js";
 import { getBaseUrl } from "../lib/util.js";
 import { checkActionRateLimit, recordActionAttempt, clientIpFor } from "../lib/rate-limit.js";
+import { getBoolSetting, setSetting } from "../lib/settings.js";
 
 const admin = new Hono();
 
@@ -82,6 +83,26 @@ admin.get("/health", (c) => {
     role: session.role,
     serverTime: new Date().toISOString(),
   });
+});
+
+// ─── Runtime settings (admin toggles) ──────────────────────────────────────
+// Declared AFTER the session/requireRole middleware above, so these are
+// auth-gated and `session` is available. GET reads, PATCH flips a known toggle.
+admin.get("/settings", async (c) => {
+  return c.json({ ok: true, offlinePaymentEnabled: await getBoolSetting(c.env, "offline_payment_enabled", true) });
+});
+
+admin.patch("/settings", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  if (typeof body.offlinePaymentEnabled === "boolean") {
+    await setSetting(c.env, "offline_payment_enabled", body.offlinePaymentEnabled ? "1" : "0");
+    const session = c.get("session");
+    await recordAudit(c.env, session.account_id, "settings.update", {
+      type: "settings", id: "offline_payment_enabled",
+      payload: { offlinePaymentEnabled: body.offlinePaymentEnabled },
+    });
+  }
+  return c.json({ ok: true, offlinePaymentEnabled: await getBoolSetting(c.env, "offline_payment_enabled", true) });
 });
 
 // ─── Registrations ────────────────────────────────────────────────────────────

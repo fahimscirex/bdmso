@@ -13,6 +13,20 @@ import DashboardSkeleton from '../components/DashboardSkeleton';
 import { ErrorPanel } from '../components/ErrorPanel';
 import { formatBdt, formatDate } from '../format';
 
+// Whether the offline/cash payment option is offered. Admin-controlled
+// (settings.offline_payment_enabled); the server also rejects manual when off.
+// Fetched once and shared across all pay cards. Defaults to true on error.
+let offlinePayPromise: Promise<boolean> | null = null;
+function loadOfflinePayEnabled(): Promise<boolean> {
+  if (!offlinePayPromise) {
+    offlinePayPromise = fetch('/api/settings', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d?.offlinePaymentEnabled !== false)
+      .catch(() => true);
+  }
+  return offlinePayPromise;
+}
+
 type Registration = {
   id: string;
   registration_type: string;
@@ -841,6 +855,8 @@ function RegistrationCard({ reg, allRegs, account, onChanged, onNotice }: { reg:
   const [paying, setPaying]             = useState(false);
   const [payError, setPayError]         = useState<string | null>(null);
   const [payMethod, setPayMethod]       = useState<'online' | 'manual'>('online');
+  const [offlinePayEnabled, setOfflinePayEnabled] = useState(true);
+  useEffect(() => { loadOfflinePayEnabled().then(setOfflinePayEnabled); }, []);
   const [showEdit, setShowEdit] = useState(false);
 
   // Olympiad / Quiz have per-program meta (preferred_subject for
@@ -1183,7 +1199,7 @@ function RegistrationCard({ reg, allRegs, account, onChanged, onNotice }: { reg:
             </a>
           ) : (
             <>
-              {!coupon?.free && (
+              {!coupon?.free && offlinePayEnabled && (
                 <div class="reg-card-pay-method">
                   <label class={`reg-card-pay-method-opt${payMethod === 'online' ? ' selected' : ''}`}>
                     <input
