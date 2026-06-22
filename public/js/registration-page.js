@@ -177,8 +177,8 @@ function renderQuickEnrollOptions(slug, onChange, takenIds) {
   if (items.length === 0) { panel.hidden = true; return false; }
   const inputType = cfg.kind === 'radio' ? 'radio' : 'checkbox';
   panel.innerHTML = `
-    <div class="opt-head"><div class="opt-title">${cfg.label}</div></div>
-    <p class="opt-help">${cfg.help}</p>
+    <div class="opt-head"><div class="opt-title">${cfg.label || 'Choose an option'}</div></div>
+    ${cfg.help ? `<p class="opt-help">${cfg.help}</p>` : ''}
     <div class="opt-list">${items.map((it) => `
       <label class="opt-item">
         <input type="${inputType}" name="qe-program-option" value="${it.id}">
@@ -347,7 +347,7 @@ async function initQuickEnroll() {
       }
     } catch {
       panel.hidden = true;
-      fullReg.hidden = false;
+      fullReg.hidden = true; // program is set, never show the chooser grid
       formShell.hidden = false;
       return;
     }
