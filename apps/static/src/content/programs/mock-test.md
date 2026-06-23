@@ -1,6 +1,5 @@
 ---
 home_order: "04"
-feeAmount: 500
 title: "BdMSO Mock Test"
 metaDescription: "On-site simulated exams in Math and Science that mirror the real Olympiad and benchmark your child's readiness."
 startsOn: "2026-06-19"
@@ -15,7 +14,7 @@ format: "On-site mock exam · MASLab, Dhaka"
 outcome: "Exam confidence and competitive leaderboard placement"
 level: "All aspirants"
 schedule: "19 June 2026 · 26 June 2026  · 3 July 2026"
-price: "৳ 500"
+price: "৳ On enquiry"
 register_url: "/registration?program=mock-test"
 register_label: "Sign up for a mock"
 repeatable: true
