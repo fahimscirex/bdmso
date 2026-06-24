@@ -35,6 +35,60 @@ function registrationState(slug) {
   return 'open';
 }
 
+// Keep the program-choice cards (#full-reg-section) in sync with live program
+// data from /api/catalog (the D1 source of truth) so an admin edit - close
+// date, fee, or open/closed - shows here without a site rebuild. Progressive
+// enhancement: the server-rendered card HTML is the fallback if the fetch fails.
+async function syncRegCards() {
+  const cards = document.querySelectorAll('#full-reg-section .reg-card[data-program]');
+  if (!cards.length) return;
+  const catalog = await loadCatalog();
+  if (!catalog.length) return; // offline / error: keep the server HTML as-is
+  CATALOG_BY_SLUG = Object.fromEntries(catalog.map((p) => [p.slug, p]));
+
+  const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const fmtFee = (n) => Number(n).toLocaleString('en-BD');
+
+  cards.forEach((card) => {
+    const slug = card.dataset.program;
+    const p = CATALOG_BY_SLUG[slug];
+    if (!p) return; // program missing from catalog: leave the fallback HTML
+    const state = registrationState(slug);
+
+    const statusEl = card.querySelector('.status');
+    if (statusEl) {
+      const word = state === 'open' ? 'Open' : state === 'upcoming' ? 'Upcoming' : 'Closed';
+      const audience = card.dataset.audience || '';
+      statusEl.textContent = audience ? `${word} · ${audience}` : word;
+      // Only `open` and `locked-s` styles exist; reuse `locked-s` for non-open.
+      statusEl.className = `status ${state === 'open' ? 'open' : 'locked-s'}`;
+    }
+
+    const metaEl = card.querySelector('.meta');
+    if (metaEl) {
+      const feePrefix = card.dataset.feePrefix || '';
+      const feeStr = p.feeAmount != null ? `${feePrefix}${fmtFee(p.feeAmount)} BDT` : '';
+      let when = '';
+      if (state === 'upcoming' && p.registrationStarts) when = `Opens ${fmtDate(p.registrationStarts)}`;
+      else if (state === 'closed') when = 'Registration closed';
+      else if (p.registrationEnds) when = `Closes ${fmtDate(p.registrationEnds)}`;
+      metaEl.textContent = [when, feeStr].filter(Boolean).join(' · ');
+    }
+
+    // A non-open program shouldn't show a live Register CTA - mute the card and
+    // neutralise the button (clicking through would only hit the closed screen).
+    card.classList.toggle('locked', state !== 'open');
+    const btn = card.querySelector('a.btn');
+    if (btn && state !== 'open') {
+      btn.removeAttribute('href');
+      btn.textContent = state === 'upcoming' ? 'Opening soon' : 'Registration closed';
+      btn.setAttribute('aria-disabled', 'true');
+      btn.style.pointerEvents = 'none';
+      btn.style.opacity = '0.55';
+    }
+  });
+}
+
 // Per-program hero + step instructions. When `?program=` is present we
 // swap the generic "pick one of two competitions" copy for content that
 // matches the specific program the user came from. Step 1 in particular
@@ -561,6 +615,7 @@ function applyConditionalFields() {
 
 document.addEventListener('DOMContentLoaded', () => {
   initQuickEnroll();
+  syncRegCards();
 
   document.getElementById('f-medium').addEventListener('change', () => {
     updateClassOptions();
