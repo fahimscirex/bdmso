@@ -41,7 +41,7 @@ The structured training focuses on problem-solving, critical thinking, and Olymp
 - Class 7 · Sat 20 Jun 2026 · 7-9 PM
 - Class 8 · Mon 22 Jun 2026 · 7-9 PM
 - Class 9 · Wed 24 Jun 2026 · 7-9 PM
-- Class 10 · Fri 26 Jun 2026 · 4-6 PM
+- Class 10 · Fri 26 Jun 2026 · 7-9 PM
 
 ### Math classes
 
@@ -54,7 +54,7 @@ The structured training focuses on problem-solving, critical thinking, and Olymp
 - Class 7 · Sun 21 Jun 2026 · 7-9 PM
 - Class 8 · Tue 23 Jun 2026 · 7-9 PM
 - Class 9 · Thu 25 Jun 2026 · 7-9 PM
-- Class 10 · Fri 26 Jun 2026 · 7-9 PM
+- Class 10 · Sat 27 Jun 2026 · 7-9 PM
 
 ## Mock Test Dates
 
