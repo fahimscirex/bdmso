@@ -187,4 +187,4 @@ export type BroadcastRun = { id: string; subject: string; audience: string; reci
 export type EmailTemplate = { id: string; name: string; subject: string; body: string; category: string; updatedAt: string };
 export type Service = { name: string; status: 'ok' | 'degraded' | 'down'; hint: string; lastActivity: string };
 export type ReportRow = { name: string; total: number; paid: number; revenue: number };
-export type ReportTotals = { participants: number; paid: number; revenue: number; adDriven: number; adDrivenPaid: number };
+export type ReportTotals = { participants: number; paid: number; revenue: number; adPaid: number; adPaidPaid: number; fbOrganic: number; fbOrganicPaid: number };

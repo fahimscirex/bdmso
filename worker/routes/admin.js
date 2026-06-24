@@ -1497,11 +1497,6 @@ admin.get("/reports", async (c) => {
   const catalog = await getCatalog(c);
   const where = cohort ? "WHERE r.cohort_key = ?" : "";
   const bind = cohort ? [cohort] : [];
-  // Ad-driven slice: same scope, narrowed to registrations carrying an fbclid
-  // (Meta auto-appends it to ad clicks; captured first-party at registration).
-  const adWhere = where
-    ? `${where} AND json_extract(r.attribution, '$.fbclid') IS NOT NULL`
-    : `WHERE json_extract(r.attribution, '$.fbclid') IS NOT NULL`;
   // "Paid" counts registrations with a real money payment (amount > 0), so free
   // ৳0 grants (e.g. prep students' complimentary mock test) are NOT counted as
   // paid - they still appear in the total participant count.
@@ -1515,7 +1510,7 @@ admin.get("/reports", async (c) => {
     ${where}
     GROUP BY ${nameAs}
     ORDER BY total DESC`;
-  const [totals, byProgram, byVenue, adDriven] = await Promise.all([
+  const [totals, byProgram, byVenue, acq] = await Promise.all([
     c.env.DB.prepare(`
       SELECT COUNT(DISTINCT r.id) AS total,
              COUNT(DISTINCT CASE WHEN p.status = 'paid' AND p.amount > 0 THEN r.id END) AS paid,
@@ -1524,10 +1519,17 @@ admin.get("/reports", async (c) => {
     `).bind(...bind).first(),
     c.env.DB.prepare(agg("r.registration_type", "type")).bind(...bind).all(),
     c.env.DB.prepare(agg("COALESCE(NULLIF(TRIM(r.preferred_venue), ''), 'Not set')", "venue")).bind(...bind).all(),
+    // Acquisition split, same cohort scope. "Paid ads" = utm_medium='paid' (tag
+    // the ad link URLs). "FB/IG organic" = an fbclid click that isn't paid-tagged
+    // (organic posts, shares, or paid ads not yet utm-tagged). 'paid' counts =
+    // real money (amount > 0), matching the other report figures.
     c.env.DB.prepare(`
-      SELECT COUNT(DISTINCT r.id) AS total,
-             COUNT(DISTINCT CASE WHEN p.status = 'paid' AND p.amount > 0 THEN r.id END) AS paid
-      FROM registrations r LEFT JOIN payments p ON p.registration_id = r.id ${adWhere}
+      SELECT
+        COUNT(DISTINCT CASE WHEN json_extract(r.attribution,'$.utm_medium')='paid' THEN r.id END) AS ad_total,
+        COUNT(DISTINCT CASE WHEN json_extract(r.attribution,'$.utm_medium')='paid' AND p.status='paid' AND p.amount>0 THEN r.id END) AS ad_paid,
+        COUNT(DISTINCT CASE WHEN json_extract(r.attribution,'$.fbclid') IS NOT NULL AND COALESCE(json_extract(r.attribution,'$.utm_medium'),'')<>'paid' THEN r.id END) AS org_total,
+        COUNT(DISTINCT CASE WHEN json_extract(r.attribution,'$.fbclid') IS NOT NULL AND COALESCE(json_extract(r.attribution,'$.utm_medium'),'')<>'paid' AND p.status='paid' AND p.amount>0 THEN r.id END) AS org_paid
+      FROM registrations r LEFT JOIN payments p ON p.registration_id = r.id ${where}
     `).bind(...bind).first(),
   ]);
   return cachePut(c, ckey, 60, {
@@ -1535,8 +1537,10 @@ admin.get("/reports", async (c) => {
       participants: Number(totals?.total) || 0,
       paid: Number(totals?.paid) || 0,
       revenue: Number(totals?.revenue) || 0,
-      adDriven: Number(adDriven?.total) || 0,
-      adDrivenPaid: Number(adDriven?.paid) || 0,
+      adPaid: Number(acq?.ad_total) || 0,
+      adPaidPaid: Number(acq?.ad_paid) || 0,
+      fbOrganic: Number(acq?.org_total) || 0,
+      fbOrganicPaid: Number(acq?.org_paid) || 0,
     },
     byProgram: (byProgram.results || []).map((r) => ({
       name: catalog.nameFor(r.type), total: Number(r.total), paid: Number(r.paid), revenue: Number(r.revenue) || 0,

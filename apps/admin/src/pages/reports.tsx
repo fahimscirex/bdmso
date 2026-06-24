@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from 'recharts';
-import { Download, Megaphone, TrendingUp, Users, Wallet } from 'lucide-react';
+import { Download, Megaphone, Share2, TrendingUp, Users, Wallet } from 'lucide-react';
 import { api, type ReportRow } from '@/lib/api';
 import { bdt, compactBdt, num } from '@/lib/format';
 import { exportCsv } from '@/lib/export-csv';
@@ -40,7 +40,7 @@ export function ReportsPage() {
 
   if (error) return <ListError message={error} onRetry={load} />;
 
-  const totals = data?.totals ?? { participants: 0, paid: 0, revenue: 0, adDriven: 0, adDrivenPaid: 0 };
+  const totals = data?.totals ?? { participants: 0, paid: 0, revenue: 0, adPaid: 0, adPaidPaid: 0, fbOrganic: 0, fbOrganicPaid: 0 };
   // Newest runs first; each labelled with its start date so repeat programs are
   // distinguishable (e.g. two mock tests).
   const cohortOpts = [...(cohorts ?? [])].sort((a, b) => (b.startsOn ?? '').localeCompare(a.startsOn ?? ''));
@@ -71,16 +71,28 @@ export function ReportsPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {!data ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-[88px] rounded-xl" />) : (
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {!data ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[88px] rounded-xl" />) : (
           <>
             <Kpi icon={Users} label="Total participants" value={num(totals.participants)} />
             <Kpi icon={TrendingUp} label="Paid" value={num(totals.paid)} />
             <Kpi icon={Wallet} label="Revenue" value={bdt(totals.revenue)} />
             <Kpi icon={TrendingUp} label="Conversion" value={`${totals.participants ? Math.round((totals.paid / totals.participants) * 100) : 0}%`} />
-            <Kpi icon={Megaphone} label={`Ad-driven · ${num(totals.adDrivenPaid)} paid`} value={num(totals.adDriven)} />
           </>
         )}
+      </div>
+
+      {/* Acquisition: where registrations came from (first-party fbclid / utm) */}
+      <div className="space-y-2">
+        <h2 className="text-sm font-medium text-muted-foreground">Acquisition source</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {!data ? Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-[88px] rounded-xl" />) : (
+            <>
+              <Kpi icon={Megaphone} label={`Paid ads · ${num(totals.adPaidPaid)} paid`} value={num(totals.adPaid)} />
+              <Kpi icon={Share2} label={`FB/IG organic · ${num(totals.fbOrganicPaid)} paid`} value={num(totals.fbOrganic)} />
+            </>
+          )}
+        </div>
       </div>
 
       <Tabs defaultValue="program">
