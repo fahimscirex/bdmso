@@ -320,6 +320,7 @@ export function RegistrationDetailPage({ id }: { id: string }) {
               <Field label="Last payment">{lastPaymentAt ? dateUK(lastPaymentAt) : '—'}</Field>
               <Field label="Subjects"><span className="capitalize">{subjects.join(', ') || '—'}</span></Field>
               <Field label="Registered on">{dateUK(firstRegisteredAt)}</Field>
+              <div className="sm:col-span-2"><Field label="Source">{reg.source}</Field></div>
             </dl>
           </CardContent>
         </Card>

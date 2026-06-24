@@ -37,6 +37,7 @@ type DetailRow = {
   guardian_email: string; guardian_address: string; guardian_email_verified: number;
   preferred_venue: string | null; preferred_subject: string | null; program_options: string | null;
   status: 'submitted' | 'paid' | 'cancelled'; created_at: string; cohort_key: string | null;
+  attribution: string | null;
   member_id: string | null; account_member_id: string | null;
 };
 type DetailPayRow = {
@@ -185,6 +186,16 @@ function adaptRegPayment(r: DetailPayRow): RegistrationPayment {
     purpose: r.purpose, program: r.program, createdAt: r.created_at,
   };
 }
+// Turn the stored first-touch attribution JSON into a human label for admins.
+function deriveSource(attribution: string | null): string {
+  if (!attribution) return 'Direct / organic';
+  try {
+    const a = JSON.parse(attribution) as Record<string, string>;
+    if (a.fbclid) return a.utm_campaign ? `Facebook/Instagram ad · ${a.utm_campaign}` : 'Facebook/Instagram ad';
+    if (a.utm_source) return a.utm_campaign ? `${a.utm_source} · ${a.utm_campaign}` : a.utm_source;
+    return 'Direct / organic';
+  } catch { return 'Direct / organic'; }
+}
 function adaptRegDetail(r: DetailRow, payments: DetailPayRow[], siblings: DetailSiblingRow[]): RegistrationDetail {
   return {
     id: r.id, bdmsoId: r.account_member_id ?? r.member_id ?? '—',
@@ -196,6 +207,7 @@ function adaptRegDetail(r: DetailRow, payments: DetailPayRow[], siblings: Detail
     emailVerified: r.guardian_email_verified === 1,
     venue: r.preferred_venue || '—', subject: deriveSubject(r.preferred_subject, r.program_options),
     cohort: r.cohort_key || '—',
+    source: deriveSource(r.attribution),
     program: r.registration_type, status: regStatus(r.status), createdAt: r.created_at,
     payments: payments.map(adaptRegPayment),
     siblings: siblings.map((s) => ({

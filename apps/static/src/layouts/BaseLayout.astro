@@ -61,6 +61,18 @@ const FONT_HREF =
     <noscript><img height="1" width="1" style="display:none" alt=""
       src="https://www.facebook.com/tr?id=2031727993749391&ev=PageView&noscript=1"/></noscript>
     <!-- End Meta Pixel -->
+    <!-- First-touch ad attribution: stash fbclid / utm_* so a registration started
+         on another page can still be tied back to the ad click that landed here. -->
+    <script is:inline>
+      try {
+        if (!localStorage.getItem('bdmso_attribution')) {
+          var p = new URLSearchParams(location.search), d = {}, fb = p.get('fbclid');
+          if (fb) d.fbclid = fb;
+          ['utm_source','utm_medium','utm_campaign','utm_content','utm_term'].forEach(function(k){var v=p.get(k);if(v)d[k]=v;});
+          if (Object.keys(d).length) { d.landing = location.pathname; d.ts = new Date().toISOString(); localStorage.setItem('bdmso_attribution', JSON.stringify(d)); }
+        }
+      } catch (e) {}
+    </script>
     <title>{title}</title>
     {description && <meta name="description" content={description} />}
     {robots && <meta name="robots" content={robots} />}

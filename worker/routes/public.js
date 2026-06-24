@@ -386,6 +386,19 @@ export async function handleCatalog(request, env) {
   });
 }
 
+// Sanitise the first-touch attribution the client captured (fbclid / utm_* /
+// landing). Keep only known keys, cap each value, and drop empties so we never
+// store an arbitrary blob. Returns a JSON string or null.
+function sanitizeAttribution(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const out = {};
+  for (const k of ["fbclid", "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "landing", "ts"]) {
+    const v = raw[k];
+    if (typeof v === "string" && v.trim()) out[k] = v.trim().slice(0, 256);
+  }
+  return Object.keys(out).length ? JSON.stringify(out) : null;
+}
+
 export async function handleRegistration(request, env) {
   // Per-IP cap. Legitimate guardians register once per child; this gives
   // generous headroom for a family registering 4-5 kids from the same
@@ -467,6 +480,7 @@ export async function handleRegistration(request, env) {
   }
 
   const sourcePage         = normalizeString(payload.sourcePage);
+  const attribution        = sanitizeAttribution(payload.attribution);
   const termsAccepted      = Boolean(payload.termsAccepted);
 
   if (!termsAccepted) return badRequest("Rules and regulations must be accepted.");
@@ -528,13 +542,13 @@ export async function handleRegistration(request, env) {
         id, registration_type, student_full_name, student_date_of_birth, student_class_name,
         student_gender, student_medium, student_school, student_district, guardian_account_id, guardian_full_name,
         guardian_relationship, guardian_phone, guardian_email, guardian_address,
-        preferred_venue, preferred_subject, program_options, terms_accepted, status, source_page, cohort_key, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        preferred_venue, preferred_subject, program_options, terms_accepted, status, source_page, attribution, cohort_key, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       applicationId, registrationType, studentFullName, studentDateOfBirth, studentClassName,
       studentGender, studentMedium || null, studentSchool, districtCanonical, guardianAccountId, guardianFullName,
       guardianRelationship, guardianPhone, guardianEmail, guardianAddress,
-      preferredVenue, preferredSubject, programOptions, termsAccepted ? 1 : 0, "submitted", sourcePage, cohortKey, createdAt
+      preferredVenue, preferredSubject, programOptions, termsAccepted ? 1 : 0, "submitted", sourcePage, attribution, cohortKey, createdAt
     )
   ]);
 

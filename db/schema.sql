@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS registrations (
   terms_accepted INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'submitted' CHECK (status IN ('submitted','payment_pending','paid','confirmed','cancelled')),
   source_page TEXT,
+  attribution TEXT,                -- JSON: first-touch fbclid / utm_* / landing - ties a signup to a paid ad click
   member_id TEXT UNIQUE,           -- BdMSOYY0C-XXX; assigned on first paid receipt
   cohort_key TEXT,                 -- the program run this registration belongs to (cohorts.cohort_key); stamped at signup
   reminded_at TEXT,                -- last bulk payment-reminder email; powers the 24h remind cooldown

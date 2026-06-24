@@ -468,6 +468,31 @@ function setStep(step) {
   document.getElementById("form").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+// First-touch ad attribution: stash fbclid / utm_* from the landing URL so it
+// survives the walk to the registration form, then submit it with the signup.
+// First touch wins so a later organic visit doesn't overwrite the ad click.
+function captureAttribution() {
+  try {
+    if (localStorage.getItem("bdmso_attribution")) return;
+    var p = new URLSearchParams(location.search);
+    var data = {};
+    var fbclid = p.get("fbclid"); if (fbclid) data.fbclid = fbclid;
+    ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"].forEach(function (k) {
+      var v = p.get(k); if (v) data[k] = v;
+    });
+    if (!Object.keys(data).length) return;
+    data.landing = location.pathname;
+    data.ts = new Date().toISOString();
+    localStorage.setItem("bdmso_attribution", JSON.stringify(data));
+  } catch (e) { /* storage blocked - non-fatal */ }
+}
+captureAttribution();
+
+function getAttribution() {
+  try { return JSON.parse(localStorage.getItem("bdmso_attribution") || "null"); }
+  catch (e) { return null; }
+}
+
 function registrationPayload() {
   return {
     registrationType: effectiveCompetition(),
@@ -497,6 +522,7 @@ function registrationPayload() {
     },
     termsAccepted: document.getElementById("terms").checked,
     sourcePage: window.location.pathname,
+    ...(getAttribution() ? { attribution: getAttribution() } : {}),
     // Programs with selectable options (Mock Test, Prep Course)
     // carry the picks - server validates + derives price.
     ...(programHasOptions(effectiveCompetition()) ? { programOptions: getSelectedOptions() } : {})

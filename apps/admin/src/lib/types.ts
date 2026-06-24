@@ -84,6 +84,7 @@ export interface RegistrationDetail {
   venue: string;
   subject: string;
   cohort: string;
+  source: string;
   program: string;
   status: RegStatus;
   createdAt: string;
