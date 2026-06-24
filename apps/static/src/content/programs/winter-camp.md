@@ -1,11 +1,12 @@
 ---
 home_order: "11"
 title: "International STEM Camp"
+tagline: "ISC provides a fun and meaningful learning experience through interactive activities, collaboration, and cultural exchange."
 metaDescription: "A 5-day international residential camp outside Bangladesh connecting young learners with global STEM experts and BdMSO alumni for mentorship and cross-cultural projects."
 startsOn: "2026-08-12"
 endsOn: "2026-08-18"
 registrationStarts: "2026-07-11"
-registrationEnds: "2026-07-18"
+registrationEnds: "2026-07-25"
 eyebrow: "Langkawi · Malaysia"
 image: "/images/winter_camp.webp"
 audience: "By Application Only"

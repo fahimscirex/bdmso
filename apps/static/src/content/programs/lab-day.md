@@ -6,7 +6,7 @@ metaDescription: "A hands-on 8-hour Lab Day Workshop for Class 5 or below at MAS
 startsOn: "2026-07-31"
 endsOn: "2026-07-31"
 registrationStarts: "2026-07-01"
-registrationEnds: "2026-06-27"
+registrationEnds: "2026-07-26"
 eyebrow: "Single-day · Lab"
 image: "/images/lab.webp"
 audience: "Class 5 or below"
@@ -25,7 +25,7 @@ category: "beginner"
 
 Step out of the textbook and into the laboratory! The Lab Day Workshop is a thrilling hands-on session where students get to act like real scientists. Covering essential experiments in Physics, Biology and Chemistry, this workshop emphasizes safety, precise measurements and the joy of witnessing science happen right before your eyes.
 
-Date: 31 July 2026 · 10 AM to 6 PM at MASLab.
+Date: Friday, 31 July 2026, 10:00 AM - 6:00 PM
 Lunch, snacks and a certificate are included in the fee.
 
 ## What you'll do
