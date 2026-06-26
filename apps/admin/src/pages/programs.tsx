@@ -15,7 +15,6 @@ import { EditorDialog, EditorSection, EditorField, SwitchField, DateField, Image
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -524,7 +523,6 @@ function ProgramRuns({ program, runs, onChange }: { program: Program; runs: Coho
 function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void }) {
   // c.status is the DERIVED stage. Manual overrides are only draft/archived;
   // upcoming/enrolling/running/ended are computed from the run's dates.
-  const [settingSessions, setSettingSessions] = useState(false);
   const setStatus = (status: CohortStatus, msg: string) =>
     run(api.cohortUpdate(c.cohortKey, { status }), msg, onChange);
   const isDraft = c.status === 'draft';
@@ -535,17 +533,14 @@ function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void 
         <div className="flex items-center gap-2">
           <span className="truncate text-sm font-medium">{c.label}</span>
           <span className="font-mono text-xs text-muted-foreground">{c.cohortKey}</span>
-          {c.resultsPublished && <Badge className="border-transparent bg-emerald-500/15 text-[10px] text-emerald-700 dark:text-emerald-400">Released</Badge>}
-          {c.publicFeatured && <Badge className="border-transparent bg-violet-500/15 text-[10px] text-violet-700 dark:text-violet-400">On results page</Badge>}
+          {c.publicFeatured && <Badge className="border-transparent bg-violet-500/15 text-[10px] text-violet-700 dark:text-violet-400">Public</Badge>}
         </div>
         <div className="text-xs text-muted-foreground">
           Enrol {dateRange(c.enrollOpens, c.enrollCloses)} · Session {dateRange(c.startsOn, c.endsOn)}
         </div>
       </div>
       <div className="text-sm tabular-nums">
-        {c.sessionOptions.length > 0
-          ? <><span className="font-semibold">{c.sessionRegs}</span><span className="text-muted-foreground"> registered</span></>
-          : <><span className="font-semibold">{c.paid}</span><span className="text-muted-foreground"> / {c.regs} paid</span></>}
+        <span className="font-semibold">{c.paid}</span><span className="text-muted-foreground"> / {c.regs} paid</span>
       </div>
       <Badge className={cn('border-transparent font-medium', RUN_TONE[c.status])}>{cap(c.status)}</Badge>
       <DropdownMenu>
@@ -555,11 +550,10 @@ function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void 
           {isArchived && <DropdownMenuItem onClick={() => setStatus('enrolling', `${c.label} restored`)}>Restore (make live)</DropdownMenuItem>}
           {!isDraft && !isArchived && <DropdownMenuItem onClick={() => setStatus('draft', `${c.label} moved to draft`)}>Move to draft</DropdownMenuItem>}
           {c.sections.length > 0 && (
-            <DropdownMenuItem onClick={() => run(api.cohortFeature(c.cohortKey, !c.publicFeatured), c.publicFeatured ? 'Removed from results page' : 'Winners shown on results page', onChange)}>
-              {c.publicFeatured ? 'Hide from results page' : 'Show winners on results page'}
+            <DropdownMenuItem onClick={() => run(api.cohortFeature(c.cohortKey, !c.publicFeatured), c.publicFeatured ? 'Removed from public results' : 'Winners featured (publish to go live)', onChange)}>
+              {c.publicFeatured ? 'Unfeature from public site' : 'Feature winners publicly'}
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem onClick={() => setSettingSessions(true)}>Set sessions (date scope)</DropdownMenuItem>
           {!isArchived && <DropdownMenuItem onClick={() => setStatus('archived', `${c.label} archived`)}>Archive run</DropdownMenuItem>}
           <DropdownMenuSeparator />
           <ConfirmDeleteItem name={c.label} onConfirm={() => run(api.cohortDelete(c.cohortKey), 'Run deleted', onChange)}>
@@ -567,60 +561,7 @@ function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void 
           </ConfirmDeleteItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      {settingSessions && <SessionOptionsDialog cohort={c} onClose={() => setSettingSessions(false)} onDone={() => { setSettingSessions(false); onChange(); }} />}
     </div>
-  );
-}
-
-// Pick which program booking options this dated run covers. Stored as the
-// cohort's session_options; the roster/counts then scope to who selected them
-// (plus anyone already scored). No selection = whole paid roster.
-function SessionOptionsDialog({ cohort, onClose, onDone }: { cohort: Cohort; onClose: () => void; onDone: () => void }) {
-  const [choices, setChoices] = useState<{ id: string; label: string }[] | null>(null);
-  const [selected, setSelected] = useState<Set<string>>(new Set(cohort.sessionOptions));
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    api.getProgramBody(cohort.programSlug)
-      .then((p) => setChoices((p.pricing?.choices ?? []).map((ch) => ({ id: ch.id, label: ch.label }))))
-      .catch(() => setChoices([]));
-  }, [cohort.programSlug]);
-
-  const toggle = (id: string) => setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
-
-  const submit = async () => {
-    setBusy(true);
-    await run(api.cohortUpdate(cohort.cohortKey, { session_options: [...selected] }), 'Sessions updated', onDone);
-    setBusy(false);
-  };
-
-  return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Sessions for {cohort.label}</DialogTitle>
-          <DialogDescription>
-            Pick the booking options this date covers. Its roster &amp; count then show only students who
-            selected these (plus anyone already scored). Leave all unchecked to show the whole paid roster.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-2">
-          {choices === null ? <div className="text-sm text-muted-foreground">Loading…</div>
-            : choices.length === 0 ? <div className="text-sm text-muted-foreground">This program has no selectable booking options.</div>
-            : choices.map((ch) => (
-              <label key={ch.id} className="flex cursor-pointer items-center gap-2 rounded-md border p-2 text-sm">
-                <Checkbox checked={selected.has(ch.id)} onCheckedChange={() => toggle(ch.id)} />
-                <span className="flex-1">{ch.label}</span>
-                <span className="font-mono text-xs text-muted-foreground">{ch.id}</span>
-              </label>
-            ))}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={busy}>Cancel</Button>
-          <Button onClick={submit} disabled={busy || choices === null}>{busy ? 'Saving…' : 'Save'}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
 

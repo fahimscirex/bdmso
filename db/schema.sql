@@ -493,7 +493,6 @@ CREATE TABLE IF NOT EXISTS cohorts (
   sections          TEXT NOT NULL DEFAULT '[]',
   results_published INTEGER NOT NULL DEFAULT 0,  -- released to guardians (private scores)
   public_featured   INTEGER NOT NULL DEFAULT 0,  -- this run's winners shown on the public /results page
-  session_options   TEXT,                         -- JSON option ids this dated event covers (e.g. ["mt2-math","mt2-sci"]); NULL = whole roster
   published_at      TEXT,
   created_at        TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at        TEXT,                         -- last change; maintained by trigger (see migration 0021)

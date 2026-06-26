@@ -71,7 +71,6 @@ type CohortRow = {
   cohort_key: string; program_slug: string; label: string; status: Cohort['status'];
   enroll_opens: string | null; enroll_closes: string | null; starts_on: string | null; ends_on: string | null;
   price_override: number | null; capacity: number | null; sections: ExamSection[]; results_published: boolean; public_featured: boolean;
-  session_options: string[]; session_regs: number;
   regs: number; paid: number;
 };
 type RosterRow = {
@@ -79,7 +78,6 @@ type RosterRow = {
   preferred_venue: string | null; student_school: string | null; student_district: string | null;
   attendance_status: 'present' | 'absent' | 'late' | 'no_show';
   scores: Record<string, ScoreCell>;
-  enrolled: boolean;
 };
 type HealthService = { ok: boolean; hint: string };
 type SystemHealthResp = {
@@ -286,9 +284,7 @@ function adaptCohort(r: CohortRow): Cohort {
     cohortKey: r.cohort_key, programSlug: r.program_slug, label: r.label, status: r.status,
     enrollOpens: r.enroll_opens, enrollCloses: r.enroll_closes, startsOn: r.starts_on, endsOn: r.ends_on,
     priceOverride: r.price_override, capacity: r.capacity, sections: r.sections || [],
-    resultsPublished: r.results_published, publicFeatured: r.public_featured,
-    sessionOptions: r.session_options || [], sessionRegs: r.session_regs || 0,
-    regs: r.regs, paid: r.paid,
+    resultsPublished: r.results_published, publicFeatured: r.public_featured, regs: r.regs, paid: r.paid,
   };
 }
 function adaptRoster(r: RosterRow): RosterEntry {
@@ -296,7 +292,6 @@ function adaptRoster(r: RosterRow): RosterEntry {
     id: r.id, memberId: r.member_id, name: r.student_full_name, className: r.student_class_name,
     venue: r.preferred_venue || '—', school: r.student_school || '—', district: r.student_district || '—',
     attendanceStatus: r.attendance_status, scores: r.scores || {},
-    enrolled: r.enrolled !== false,
   };
 }
 function adaptHealth(s: SystemHealthResp): Service[] {
