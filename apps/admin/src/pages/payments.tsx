@@ -62,6 +62,14 @@ const makeColumns = (reload: () => void): ColumnDef<Payment>[] => [
     meta: { title: 'Method', className: 'whitespace-nowrap', filterVariant: 'facet' },
   },
   {
+    accessorKey: 'source',
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Source" />,
+    cell: ({ row }) => <span className="text-sm">{row.original.source}</span>,
+    enableSorting: false,
+    filterFn: inArray,
+    meta: { title: 'Source', filterVariant: 'facet' },
+  },
+  {
     accessorKey: 'amount',
     header: ({ column }) => <DataTableColumnHeader column={column} title="Amount" className="justify-end" />,
     cell: ({ row }) => <div className="text-right font-mono font-medium tabular-nums">{bdt(row.original.amount)}</div>,

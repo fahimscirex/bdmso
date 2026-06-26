@@ -174,7 +174,11 @@ function formatMethod(channel: string | null, method: string | null, coupon: str
   return channel === 'manual' ? `Manual: ${rail}` : `shurjoPay: ${rail}`;
 }
 function adaptPay(r: PayRow): Payment {
-  return { id: r.id, regId: r.registration_id ?? '—', student: r.student_full_name ?? '—', program: r.program_label ?? '—', amount: r.amount, method: r.method || (r.coupon_code ? 'Coupon' : 'shurjoPay'), methodLabel: formatMethod(r.channel, r.method, r.coupon_code, r.amount), accountNumber: r.account_number || null, status: r.status, txnId: r.tran_id || null, createdAt: r.created_at };
+  // Source is the online-vs-cash split, keyed off `channel` (the canonical field
+  // the dashboard/reports use) - NOT `method`, which can be 'manual' on an online
+  // ShurjoPay row and was wrongly bucketing those under cash in the filter.
+  const source = r.channel === 'manual' ? 'Cash' : r.coupon_code ? 'Coupon' : r.amount === 0 ? 'Free' : 'ShurjoPay';
+  return { id: r.id, regId: r.registration_id ?? '—', student: r.student_full_name ?? '—', program: r.program_label ?? '—', amount: r.amount, method: r.method || (r.coupon_code ? 'Coupon' : 'shurjoPay'), methodLabel: formatMethod(r.channel, r.method, r.coupon_code, r.amount), source, accountNumber: r.account_number || null, status: r.status, txnId: r.tran_id || null, createdAt: r.created_at };
 }
 function adaptRegPayment(r: DetailPayRow): RegistrationPayment {
   return {

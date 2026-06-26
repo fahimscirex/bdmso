@@ -35,6 +35,7 @@ export interface Payment {
   amount: number;
   method: string;            // raw rail (bKash/card/...) - used by the per-method breakdown
   methodLabel: string;       // gateway-qualified for display: "shurjoPay: bKash" / "Manual: cash"
+  source: string;            // ShurjoPay | Cash | Coupon | Free - from channel, for the source filter
   accountNumber: string | null;
   status: PaymentStatus;
   txnId: string | null;
