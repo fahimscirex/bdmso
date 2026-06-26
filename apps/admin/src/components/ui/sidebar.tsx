@@ -187,7 +187,11 @@ function Sidebar({
           data-sidebar="sidebar"
           data-slot="sidebar"
           data-mobile="true"
-          className="w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+          // Pin to the dynamic viewport (top-0 + h-dvh, dropping inset-y's
+          // bottom:0): on mobile the layout viewport is taller than the visible
+          // area, so the default h-full left the lower nav items below the
+          // browser chrome with no scroll. h-dvh bounds the scroll container.
+          className="top-0 bottom-auto h-dvh w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
           style={
             {
               "--sidebar-width": SIDEBAR_WIDTH_MOBILE,

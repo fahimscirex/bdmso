@@ -215,7 +215,7 @@ export function DashboardPage() {
 
       {/* Trend + payment breakdown */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <Card className="min-w-0 lg:col-span-2">
           <CardHeader>
             <CardTitle>Registrations trend</CardTitle>
             <CardDescription>Confirmed vs pending, last {range} days</CardDescription>
@@ -257,7 +257,7 @@ export function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="min-w-0">
           <CardHeader>
             <CardTitle>Payment status</CardTitle>
             <CardDescription>This season's registrations</CardDescription>
@@ -295,7 +295,7 @@ export function DashboardPage() {
 
       {/* Triage preview */}
       <div className="grid gap-4">
-        <Card className="flex flex-col">
+        <Card className="flex min-w-0 flex-col">
           <CardHeader>
             <CardTitle>Triage queue</CardTitle>
             <CardDescription>Top items needing action</CardDescription>
@@ -328,7 +328,7 @@ export function DashboardPage() {
 
       {/* Activity + system health */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <Card className="min-w-0 lg:col-span-2">
           <CardHeader>
             <CardTitle>Recent activity</CardTitle>
             <CardDescription>Latest admin and system actions</CardDescription>
@@ -342,7 +342,7 @@ export function DashboardPage() {
                       {a.actor === 'system' ? 'SY' : a.actor.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <p className="flex-1 truncate">
+                  <p className="min-w-0 flex-1 truncate">
                     <span className="font-medium">{a.actor === 'system' ? 'System' : a.actor}</span>{' '}
                     <span className="text-muted-foreground">{a.action}</span>{' '}
                     <span className="font-medium">{a.target}</span>
@@ -354,7 +354,7 @@ export function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="min-w-0">
           <CardHeader>
             <CardTitle>System health</CardTitle>
             <CardDescription>Service status</CardDescription>
