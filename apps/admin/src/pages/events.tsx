@@ -58,6 +58,10 @@ export function EventsPage() {
   // and an import that only ever writes that section.
   const activeSection = sections.find((s) => s.id === sectionId);
   const tabSections = activeSection ? [activeSection] : sections;
+  // Score entry + roster show only who's enrolled in this date (or already
+  // scored); Import keeps the full roster so it can still match free-mock
+  // students by ID. Non-dated events flag everyone enrolled, so this is a no-op.
+  const shown = roster ? roster.filter((r) => r.enrolled) : null;
 
   const togglePublish = (next: boolean) =>
     run(api.publishResults(eventKey, next), next ? 'Results published to guardians' : 'Results hidden from guardians', reloadEvents);
@@ -81,7 +85,7 @@ export function EventsPage() {
             <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">Scored</span>
               <span className="font-semibold tabular-nums">{event.scored}</span>
-              <span className="text-muted-foreground">of {roster?.length ?? '—'} participants</span>
+              <span className="text-muted-foreground">of {shown?.length ?? '—'} enrolled</span>
             </div>
             <div className="ml-auto flex items-center gap-3">
               {event.resultsPublished
@@ -116,13 +120,13 @@ export function EventsPage() {
         </div>
 
         <TabsContent value="scores">
-          <ScoresTab eventKey={eventKey} sections={tabSections} roster={roster} onChanged={() => { loadRoster(eventKey); reloadEvents(); }} />
+          <ScoresTab eventKey={eventKey} sections={tabSections} roster={shown} onChanged={() => { loadRoster(eventKey); reloadEvents(); }} />
         </TabsContent>
         <TabsContent value="import">
           <ImportTab eventKey={eventKey} sections={tabSections} roster={roster} onCommitted={() => { loadRoster(eventKey); reloadEvents(); }} />
         </TabsContent>
         <TabsContent value="roster">
-          <RosterTab eventKey={eventKey} roster={roster} onChanged={() => loadRoster(eventKey)} />
+          <RosterTab eventKey={eventKey} roster={shown} onChanged={() => loadRoster(eventKey)} />
         </TabsContent>
       </Tabs>
     </>
