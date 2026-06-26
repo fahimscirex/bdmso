@@ -16,6 +16,12 @@ import { assignMemberIdAndSendReceipt, sendUpdatedReceiptForRegistration } from 
 // treated as terminal — the user abandoned checkout.
 const TRANSIENT_TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2 hours
 
+// Also re-verify recently-'expired' rows: a retry supersedes the prior pending
+// attempt to 'expired', but that attempt may have actually succeeded at the
+// gateway (callback missed). Re-checking recent expired rows recovers them.
+// Bounded to a few days so the sweep doesn't re-hit the gateway for ancient rows.
+const RECENT_EXPIRED_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+
 // Verify a single payment and update the DB if the gateway confirms it.
 // Returns { status, method, error? }.
 export async function reconcilePayment(env, payment, baseUrl) {
@@ -62,7 +68,9 @@ export async function reconcilePayment(env, payment, baseUrl) {
   // Atomically claim — same pattern as the callback handler. account_number
   // mirrors the live callback (method + masked wallet/card identifier).
   const claim = await env.DB.prepare(
-    "UPDATE payments SET status = 'paid', gateway_status = 'Success', method = ?, account_number = ?, updated_at = ? WHERE id = ? AND status = 'pending'"
+    // status != 'paid' (not just 'pending') so reconcile can recover a payment
+    // that a retry already buried as 'expired' - the gateway says it succeeded.
+    "UPDATE payments SET status = 'paid', gateway_status = 'Success', method = ?, account_number = ?, updated_at = ? WHERE id = ? AND status != 'paid'"
   ).bind(
     result.method || null,
     result.account_number || result.card_number || result.phone_no || null,
@@ -110,9 +118,10 @@ export async function reconcileStalePayments(env, baseUrl, ageMs = 30 * 60 * 100
   // return a summary carrying the error instead of throwing out of the cron.
   let stale;
   try {
+    const recentCutoff = new Date(Date.now() - RECENT_EXPIRED_MS).toISOString();
     stale = await env.DB.prepare(
-      "SELECT id, tran_id, val_id, amount, created_at, registration_id, coupon_code, purpose, proposed_options FROM payments WHERE status = 'pending' AND created_at < ?"
-    ).bind(cutoff).all();
+      "SELECT id, tran_id, val_id, amount, created_at, registration_id, coupon_code, purpose, proposed_options FROM payments WHERE (status = 'pending' AND created_at < ?) OR (status = 'expired' AND created_at < ? AND created_at > ?)"
+    ).bind(cutoff, cutoff, recentCutoff).all();
   } catch (err) {
     return { checked: 0, paid: 0, failed: 0, errors: [{ tran_id: null, error: `query: ${err.message}` }] };
   }

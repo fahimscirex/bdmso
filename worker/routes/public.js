@@ -1130,7 +1130,10 @@ export async function handlePaymentCallback(request, env, url) {
     // to paid. meta.changes tells us whether THIS call won the race, so
     // the side effects (member id, receipt, coupon count) run exactly once.
     const claim = await env.DB.prepare(
-      "UPDATE payments SET status = 'paid', gateway_status = 'Success', method = ?, account_number = ?, updated_at = ? WHERE val_id = ? AND status = 'pending'"
+      // status != 'paid' (not just 'pending'): a success must win even if a
+      // later retry already superseded this attempt to 'expired'. Otherwise a
+      // real gateway success whose callback lands after the retry is lost.
+      "UPDATE payments SET status = 'paid', gateway_status = 'Success', method = ?, account_number = ?, updated_at = ? WHERE val_id = ? AND status != 'paid'"
     ).bind(result.method || null, result.account_number || result.card_number || result.phone_no || null, now, spOrderId).run();
 
     if (!claim?.meta || claim.meta.changes === 0) {
