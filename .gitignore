@@ -59,9 +59,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # AI-assistant / external tooling files - never committed. .codesight/
-# is the only external project context kept tracked (and only while it
-# carries no sensitive data).
-.codesight/wiki/
+# is generated project context (AST/wiki) - kept local, never tracked.
+.codesight/
 .claude/
 CLAUDE.md
 CLAUDE.original.md
