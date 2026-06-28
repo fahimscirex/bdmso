@@ -6,7 +6,6 @@ date: 2026-05-17
 author: BdMSO Team
 excerpt: A 3-day foundational program for primary students (Grade 5 and below), inspired by the playful, visual problem-solving of Maryam Mirzakhani - the first woman to win the Fields Medal. 23–25 May 2026 at MASLab, Dhanmondi.
 image: /images/maryam-mirzakhani-school.webp
-featured: true
 ---
 
 When we think of advanced mathematics and science, we often picture rigid rules and dry memorization. But for Maryam Mirzakhani, the first woman to win the Fields Medal - the highest honor in mathematics - it was an entirely different world.
