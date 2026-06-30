@@ -548,6 +548,17 @@ function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void 
     run(api.cohortUpdate(c.cohortKey, { price_override: next }), 'Run price updated', onChange);
   };
 
+  // Choice group: options sharing a group name are "choose one" (mutually
+  // exclusive, e.g. Math/Science/Both); blank = "choose any" (combinable).
+  const [groupDraft, setGroupDraft] = useState(c.choiceGroup ?? '');
+  const [editingGroup, setEditingGroup] = useState(false);
+  const commitGroup = () => {
+    setEditingGroup(false);
+    const next = groupDraft.trim();
+    if (next === (c.choiceGroup ?? '')) return;
+    run(api.cohortUpdate(c.cohortKey, { choice_group: next }), 'Run group updated', onChange);
+  };
+
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2.5">
       <div className="min-w-0 flex-1">
@@ -578,6 +589,25 @@ function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void 
         ) : (
           <button type="button" className="rounded px-1 py-0.5 hover:bg-accent" title="Set this run's price" onClick={() => { setPriceDraft(c.priceOverride == null ? '' : String(c.priceOverride)); setEditingPrice(true); }}>
             {c.priceOverride == null ? <span className="text-muted-foreground">flat fee</span> : <span>৳{c.priceOverride}</span>}
+          </button>
+        )}
+      </div>
+      <div className="text-sm">
+        {editingGroup ? (
+          <input
+            autoFocus
+            type="text" placeholder="group"
+            className="w-24 rounded border border-input bg-background px-1.5 py-0.5 text-sm"
+            value={groupDraft}
+            onChange={(e) => setGroupDraft(e.target.value)}
+            onBlur={commitGroup}
+            onKeyDown={(e) => { if (e.key === 'Enter') commitGroup(); if (e.key === 'Escape') { setGroupDraft(c.choiceGroup ?? ''); setEditingGroup(false); } }}
+          />
+        ) : (
+          <button type="button" className="rounded px-1 py-0.5 hover:bg-accent" title="Options sharing a group name are 'choose one'; blank = 'choose any'" onClick={() => { setGroupDraft(c.choiceGroup ?? ''); setEditingGroup(true); }}>
+            {c.choiceGroup
+              ? <span className="text-amber-700 dark:text-amber-400">one of: {c.choiceGroup}</span>
+              : <span className="text-muted-foreground">choose any</span>}
           </button>
         )}
       </div>

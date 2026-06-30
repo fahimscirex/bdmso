@@ -173,7 +173,7 @@ export type Cohort = {
   cohortKey: string; programSlug: string; label: string; status: CohortStatus;
   enrollOpens: string | null; enrollCloses: string | null;
   startsOn: string | null; endsOn: string | null;
-  priceOverride: number | null; capacity: number | null;
+  priceOverride: number | null; choiceGroup: string | null; capacity: number | null;
   sections: ExamSection[]; resultsPublished: boolean; publicFeatured: boolean;
   regs: number; paid: number;
 };

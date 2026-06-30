@@ -2571,7 +2571,7 @@ function cohortStageSQL(pfx) {
 admin.get("/cohorts", async (c) => {
   const rows = (await c.env.DB.prepare(`
     SELECT c.cohort_key, c.program_slug, c.label, c.status, c.enroll_opens, c.enroll_closes,
-           c.starts_on, c.ends_on, c.price_override, c.capacity, c.sections,
+           c.starts_on, c.ends_on, c.price_override, c.choice_group, c.capacity, c.sections,
            c.results_published, c.public_featured, c.published_at, c.created_at,
            COUNT(r.id)                                        AS regs,
            SUM(CASE WHEN r.status = 'paid' THEN 1 ELSE 0 END) AS paid
@@ -2651,6 +2651,12 @@ admin.patch("/cohorts/:key", async (c) => {
       if (!Number.isInteger(num) || num < 0) return c.json({ error: "price_override must be a non-negative whole number or empty." }, 400);
       sets.push("price_override = ?"); binds.push(num);
     }
+  }
+  // choice_group: options sharing a non-empty group are mutually exclusive
+  // ("choose one"); empty/null clears it ("choose any").
+  if (b.choice_group !== undefined) {
+    const g = typeof b.choice_group === "string" ? b.choice_group.trim() : "";
+    sets.push("choice_group = ?"); binds.push(g || null);
   }
   if (!sets.length) return c.json({ error: "No editable fields." }, 400);
 
