@@ -334,6 +334,7 @@ CREATE TABLE IF NOT EXISTS programs (
   hidden INTEGER NOT NULL DEFAULT 0,
   repeatable INTEGER NOT NULL DEFAULT 0,
   always_open INTEGER NOT NULL DEFAULT 0,              -- 1 = year-round, registration always open (ignore dates)
+  enroll_by_run INTEGER NOT NULL DEFAULT 0,            -- 1 = priced by runs (cohorts) instead of pricing_json; program_options holds cohort_keys
   published INTEGER NOT NULL DEFAULT 0,
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_by TEXT,
@@ -488,7 +489,8 @@ CREATE TABLE IF NOT EXISTS cohorts (
   enroll_closes     TEXT,
   starts_on         TEXT,
   ends_on           TEXT,
-  price_override    INTEGER,
+  price_override    INTEGER,                       -- this option's price (falls back to programs.fee_amount when null)
+  choice_group      TEXT,                           -- options sharing a non-null value are mutually exclusive ("choose one"); NULL = freely combinable ("choose any")
   capacity          INTEGER,
   sections          TEXT NOT NULL DEFAULT '[]',
   results_published INTEGER NOT NULL DEFAULT 0,  -- released to guardians (private scores)
@@ -502,6 +504,19 @@ CREATE TABLE IF NOT EXISTS cohorts (
 CREATE INDEX IF NOT EXISTS idx_cohorts_program ON cohorts (program_slug);
 CREATE INDEX IF NOT EXISTS idx_cohorts_program_status ON cohorts (program_slug, status);
 CREATE INDEX IF NOT EXISTS idx_cohorts_status ON cohorts (status);
+
+-- The "receipt": which options (cohorts) each registration bought, price frozen
+-- at purchase. One row per option. See migration 0033 and plan.md.
+CREATE TABLE IF NOT EXISTS registration_cohorts (
+  registration_id TEXT NOT NULL,
+  cohort_key      TEXT NOT NULL,
+  price_paid      INTEGER NOT NULL DEFAULT 0,
+  created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (registration_id, cohort_key),
+  FOREIGN KEY (registration_id) REFERENCES registrations (id),
+  FOREIGN KEY (cohort_key) REFERENCES cohorts (cohort_key)
+);
+CREATE INDEX IF NOT EXISTS idx_registration_cohorts_cohort ON registration_cohorts (cohort_key);
 
 -- Keep updated_at current on the mutable tables that carry it. The WHEN guard
 -- only touches the row when the write did not already change updated_at, so it
