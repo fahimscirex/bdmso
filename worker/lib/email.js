@@ -381,9 +381,7 @@ export async function assignMemberIdAndSendReceipt(env, tranId, baseUrl) {
   // Receipts go to the account's current (verified) email - the guardian
   // may have changed it since this registration row was first created.
   const catalog = await loadCatalog(env);
-  const optionLabels = catalog.programHasOptions(row.registration_type)
-    ? catalog.getOptionLabels(row.registration_type, safeParseIds(row.program_options))
-    : [];
+  const optionLabels = catalog.labelsFor(row);
   await sendReceiptEmail(
     env,
     {
@@ -400,14 +398,6 @@ export async function assignMemberIdAndSendReceipt(env, tranId, baseUrl) {
     baseUrl,
     { kind: "initial", optionLabels }
   );
-}
-
-function safeParseIds(json) {
-  if (!json) return [];
-  try {
-    const v = JSON.parse(json);
-    return Array.isArray(v) ? v : [];
-  } catch { return []; }
 }
 
 // Re-issue a receipt after a guardian option change. Reads the current
@@ -444,9 +434,7 @@ export async function sendUpdatedReceiptForRegistration(env, registrationId, bas
   const latest = rows[0];
 
   const catalog = await loadCatalog(env);
-  const optionLabels = catalog.programHasOptions(row.registration_type)
-    ? catalog.getOptionLabels(row.registration_type, safeParseIds(row.program_options))
-    : [];
+  const optionLabels = catalog.labelsFor(row);
 
   await sendReceiptEmail(
     env,

@@ -58,10 +58,8 @@ export function EventsPage() {
   // and an import that only ever writes that section.
   const activeSection = sections.find((s) => s.id === sectionId);
   const tabSections = activeSection ? [activeSection] : sections;
-  // Score entry + roster show only who's enrolled in this date (or already
-  // scored); Import keeps the full roster so it can still match free-mock
-  // students by ID. Non-dated events flag everyone enrolled, so this is a no-op.
-  const shown = roster ? roster.filter((r) => r.enrolled) : null;
+  // Score entry + roster show the whole paid roster for the event.
+  const shown = roster;
 
   const togglePublish = (next: boolean) =>
     run(api.publishResults(eventKey, next), next ? 'Results published to guardians' : 'Results hidden from guardians', reloadEvents);
@@ -85,7 +83,7 @@ export function EventsPage() {
             <div className="flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">Scored</span>
               <span className="font-semibold tabular-nums">{event.scored}</span>
-              <span className="text-muted-foreground">of {shown?.length ?? '—'} enrolled</span>
+              <span className="text-muted-foreground">of {shown?.length ?? '—'} in roster</span>
             </div>
             <div className="ml-auto flex items-center gap-3">
               {event.resultsPublished

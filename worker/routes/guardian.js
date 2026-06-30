@@ -318,7 +318,7 @@ async function loadOptionContext(c, registrationId) {
     return { error: c.json({ error: "This registration was cancelled." }, 409) };
   }
   const catalog = await getCatalog(c);
-  if (!catalog.programHasOptions(reg.registration_type)) {
+  if (!catalog.hasEditableSelection(reg.registration_type)) {
     return { error: c.json({ error: "This program has no editable selection." }, 400) };
   }
   if (!catalog.withinEditWindow(reg.registration_type)) {
@@ -340,7 +340,7 @@ guardian.patch("/registrations/:id/options", async (c) => {
   const ctx = await loadOptionContext(c, c.req.param("id"));
   if (ctx.error) return ctx.error;
   const body = await c.req.json().catch(() => ({}));
-  const diff = ctx.catalog.computeOptionDiff(ctx.reg.registration_type, ctx.currentIds, body.options);
+  const diff = ctx.catalog.diffSelection(ctx.reg.registration_type, ctx.currentIds, body.options);
   if (!diff.ok) return c.json({ error: diff.error }, 400);
 
   // Duplicate guard: refuse if any newly-picked id is already on a
@@ -349,7 +349,7 @@ guardian.patch("/registrations/:id/options", async (c) => {
   const taken = await getSiblingTakenIds(c.env, ctx.session.account_id, ctx.reg.registration_type, ctx.reg.id);
   const overlap = diff.normalizedTo.filter((id) => taken.has(id));
   if (overlap.length) {
-    const labels = ctx.catalog.getOptionLabels(ctx.reg.registration_type, overlap).join(", ");
+    const labels = ctx.catalog.selectionLabels(ctx.reg.registration_type, overlap).join(", ");
     return c.json({
       error: `Already enrolled in: ${labels}. Pick a different selection or cancel the other registration first.`,
       conflict: overlap,
@@ -449,7 +449,7 @@ guardian.post("/registrations/:id/options/upgrade", async (c) => {
     return c.json({ error: "This registration isn't paid yet - update options directly via PATCH." }, 409);
   }
   const body = await c.req.json().catch(() => ({}));
-  const diff = ctx.catalog.computeOptionDiff(ctx.reg.registration_type, ctx.currentIds, body.options);
+  const diff = ctx.catalog.diffSelection(ctx.reg.registration_type, ctx.currentIds, body.options);
   if (!diff.ok) return c.json({ error: diff.error }, 400);
   if (diff.action !== "upgrade") {
     return c.json({ error: "This endpoint is for upgrades only.", action: diff.action }, 400);
@@ -459,7 +459,7 @@ guardian.post("/registrations/:id/options/upgrade", async (c) => {
   const taken = await getSiblingTakenIds(c.env, ctx.session.account_id, ctx.reg.registration_type, ctx.reg.id);
   const overlap = diff.normalizedTo.filter((id) => taken.has(id));
   if (overlap.length) {
-    const labels = ctx.catalog.getOptionLabels(ctx.reg.registration_type, overlap).join(", ");
+    const labels = ctx.catalog.selectionLabels(ctx.reg.registration_type, overlap).join(", ");
     return c.json({
       error: `Already enrolled in: ${labels}. Pick a different selection or cancel the other registration first.`,
       conflict: overlap,

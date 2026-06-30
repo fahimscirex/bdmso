@@ -15,7 +15,6 @@ import { EditorDialog, EditorSection, EditorField, SwitchField, DateField, Image
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -195,6 +194,7 @@ type Form = {
   hidden: boolean;
   repeatable: boolean;
   always_open: boolean;
+  enroll_by_run: boolean;
 };
 
 const blankForm: Form = {
@@ -203,7 +203,7 @@ const blankForm: Form = {
   outcome: '', level: '', schedule_label: '', starts_on: '', ends_on: '',
   registration_opens: '', registration_closes: '', price_label: '', fee_amount: '',
   meta_description: '', home_order: '', register_url: '', register_label: '', body_md: '',
-  published: false, hidden: false, repeatable: false, always_open: false,
+  published: false, hidden: false, repeatable: false, always_open: false, enroll_by_run: false,
 };
 
 const str = (v: unknown) => (v == null ? '' : String(v));
@@ -254,6 +254,7 @@ function ProgramEditor({ item, trigger, onSaved }: { item?: Program; trigger: Re
       hidden: !!p.hidden,
       repeatable: !!p.repeatable,
       always_open: !!p.always_open,
+      enroll_by_run: !!p.enroll_by_run,
       });
     });
   }, [open, item]);
@@ -287,6 +288,7 @@ function ProgramEditor({ item, trigger, onSaved }: { item?: Program; trigger: Re
       hidden: form.hidden,
       repeatable: form.repeatable,
       always_open: form.always_open,
+      enroll_by_run: form.enroll_by_run,
       pricing: choices.length
         ? { selection, choices: choices.map((c) => ({ id: c.id || slugify(c.label), label: c.label, note: c.note, price: Number(c.price) || 0 })) }
         : null,
@@ -379,6 +381,7 @@ function ProgramEditor({ item, trigger, onSaved }: { item?: Program; trigger: Re
         <div className="grid gap-3 sm:grid-cols-2">
           <SwitchField label="Always open" hint="When on, ignore the open/close dates and always accept signups." checked={form.always_open} onChange={(v) => set('always_open', v)} />
           <SwitchField label="Repeatable" hint="When on, a guardian may register more than once." checked={form.repeatable} onChange={(v) => set('repeatable', v)} />
+          <SwitchField label="Enroll by run" hint="When on, students pick one or more runs (cohorts) and pay the sum of their prices. Set each run's price on its row. Leave off to use pricing options or the flat fee." checked={form.enroll_by_run} onChange={(v) => set('enroll_by_run', v)} />
         </div>
       </EditorSection>
 
@@ -493,8 +496,10 @@ function ProgramEditor({ item, trigger, onSaved }: { item?: Program; trigger: Re
 
 // ---- Runs (cohorts) -------------------------------------------------------
 // A run is one scheduled instance of a program that students enrol into.
-// Dates & fee live on the program; opening a run snapshots them for history,
-// results, and reporting. Lifecycle and featuring are managed per run here.
+// Dates live on the program; opening a run snapshots them for history,
+// results, and reporting. A run may override the program's flat fee with its
+// own price (editable on the row) - this is the price students pay for
+// run-priced programs. Lifecycle and featuring are managed per run here.
 
 function ProgramRuns({ program, runs, onChange }: { program: Program; runs: Cohort[]; onChange: () => void }) {
   const [opening, setOpening] = useState(false);
@@ -524,11 +529,25 @@ function ProgramRuns({ program, runs, onChange }: { program: Program; runs: Coho
 function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void }) {
   // c.status is the DERIVED stage. Manual overrides are only draft/archived;
   // upcoming/enrolling/running/ended are computed from the run's dates.
-  const [settingSessions, setSettingSessions] = useState(false);
   const setStatus = (status: CohortStatus, msg: string) =>
     run(api.cohortUpdate(c.cohortKey, { status }), msg, onChange);
   const isDraft = c.status === 'draft';
   const isArchived = c.status === 'archived';
+
+  // Per-run price (price_override). Empty/blank = fall back to the program's
+  // flat fee. Editable inline; saved on blur or Enter.
+  const [priceDraft, setPriceDraft] = useState(c.priceOverride == null ? '' : String(c.priceOverride));
+  const [editingPrice, setEditingPrice] = useState(false);
+  const commitPrice = () => {
+    setEditingPrice(false);
+    const trimmed = priceDraft.trim();
+    const next = trimmed === '' ? null : Number(trimmed);
+    const current = c.priceOverride == null ? null : c.priceOverride;
+    if ((next == null ? null : next) === current) return;
+    if (next !== null && (!Number.isInteger(next) || next < 0)) return;
+    run(api.cohortUpdate(c.cohortKey, { price_override: next }), 'Run price updated', onChange);
+  };
+
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2.5">
       <div className="min-w-0 flex-1">
@@ -543,9 +562,27 @@ function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void 
         </div>
       </div>
       <div className="text-sm tabular-nums">
-        {c.sessionOptions.length > 0
-          ? <><span className="font-semibold">{c.sessionRegs}</span><span className="text-muted-foreground"> registered</span></>
-          : <><span className="font-semibold">{c.paid}</span><span className="text-muted-foreground"> / {c.regs} paid</span></>}
+        {editingPrice ? (
+          <span className="flex items-center gap-1">
+            <span className="text-muted-foreground">৳</span>
+            <input
+              autoFocus
+              type="number" min={0} step={1}
+              className="w-20 rounded border border-input bg-background px-1.5 py-0.5 text-sm"
+              value={priceDraft}
+              onChange={(e) => setPriceDraft(e.target.value)}
+              onBlur={commitPrice}
+              onKeyDown={(e) => { if (e.key === 'Enter') commitPrice(); if (e.key === 'Escape') { setPriceDraft(c.priceOverride == null ? '' : String(c.priceOverride)); setEditingPrice(false); } }}
+            />
+          </span>
+        ) : (
+          <button type="button" className="rounded px-1 py-0.5 hover:bg-accent" title="Set this run's price" onClick={() => { setPriceDraft(c.priceOverride == null ? '' : String(c.priceOverride)); setEditingPrice(true); }}>
+            {c.priceOverride == null ? <span className="text-muted-foreground">flat fee</span> : <span>৳{c.priceOverride}</span>}
+          </button>
+        )}
+      </div>
+      <div className="text-sm tabular-nums">
+        <span className="font-semibold">{c.paid}</span><span className="text-muted-foreground"> / {c.regs} paid</span>
       </div>
       <Badge className={cn('border-transparent font-medium', RUN_TONE[c.status])}>{cap(c.status)}</Badge>
       <DropdownMenu>
@@ -559,7 +596,6 @@ function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void 
               {c.publicFeatured ? 'Hide from results page' : 'Show winners on results page'}
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem onClick={() => setSettingSessions(true)}>Set sessions (date scope)</DropdownMenuItem>
           {!isArchived && <DropdownMenuItem onClick={() => setStatus('archived', `${c.label} archived`)}>Archive run</DropdownMenuItem>}
           <DropdownMenuSeparator />
           <ConfirmDeleteItem name={c.label} onConfirm={() => run(api.cohortDelete(c.cohortKey), 'Run deleted', onChange)}>
@@ -567,60 +603,7 @@ function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void 
           </ConfirmDeleteItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      {settingSessions && <SessionOptionsDialog cohort={c} onClose={() => setSettingSessions(false)} onDone={() => { setSettingSessions(false); onChange(); }} />}
     </div>
-  );
-}
-
-// Pick which program booking options this dated run covers. Stored as the
-// cohort's session_options; the roster/counts then scope to who selected them
-// (plus anyone already scored). No selection = whole paid roster.
-function SessionOptionsDialog({ cohort, onClose, onDone }: { cohort: Cohort; onClose: () => void; onDone: () => void }) {
-  const [choices, setChoices] = useState<{ id: string; label: string }[] | null>(null);
-  const [selected, setSelected] = useState<Set<string>>(new Set(cohort.sessionOptions));
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    api.getProgramBody(cohort.programSlug)
-      .then((p) => setChoices((p.pricing?.choices ?? []).map((ch) => ({ id: ch.id, label: ch.label }))))
-      .catch(() => setChoices([]));
-  }, [cohort.programSlug]);
-
-  const toggle = (id: string) => setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
-
-  const submit = async () => {
-    setBusy(true);
-    await run(api.cohortUpdate(cohort.cohortKey, { session_options: [...selected] }), 'Sessions updated', onDone);
-    setBusy(false);
-  };
-
-  return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Sessions for {cohort.label}</DialogTitle>
-          <DialogDescription>
-            Pick the booking options this date covers. Its roster &amp; count then show only students who
-            selected these (plus anyone already scored). Leave all unchecked to show the whole paid roster.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-2">
-          {choices === null ? <div className="text-sm text-muted-foreground">Loading…</div>
-            : choices.length === 0 ? <div className="text-sm text-muted-foreground">This program has no selectable booking options.</div>
-            : choices.map((ch) => (
-              <label key={ch.id} className="flex cursor-pointer items-center gap-2 rounded-md border p-2 text-sm">
-                <Checkbox checked={selected.has(ch.id)} onCheckedChange={() => toggle(ch.id)} />
-                <span className="flex-1">{ch.label}</span>
-                <span className="font-mono text-xs text-muted-foreground">{ch.id}</span>
-              </label>
-            ))}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={busy}>Cancel</Button>
-          <Button onClick={submit} disabled={busy || choices === null}>{busy ? 'Saving…' : 'Save'}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
 

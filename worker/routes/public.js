@@ -84,6 +84,22 @@ async function getTakenOptionIds(env, accountId, registrationType, exceptRegistr
   return taken;
 }
 
+// Receipt rows for an options-priced registration: one registration_cohorts row
+// per chosen option (cohort), price frozen at purchase. Returns [] for legacy
+// (pricing_json / flat-fee) programs, which don't use the receipt table. Callers
+// spread the result into their env.DB.batch([...]) so it's atomic with the
+// registration insert. Dual-written alongside program_options during the
+// transition; program_options stays the read path until the data is migrated.
+function receiptInserts(env, catalog, registrationId, programSlug, keys, createdAt) {
+  if (!catalog.isRunPriced(programSlug)) return [];
+  const priceByKey = Object.fromEntries(catalog.runsFor(programSlug).map((r) => [r.key, r.price || 0]));
+  return (keys || []).map((k) =>
+    env.DB.prepare(
+      "INSERT INTO registration_cohorts (registration_id, cohort_key, price_paid, created_at) VALUES (?, ?, ?, ?)"
+    ).bind(registrationId, k, priceByKey[k] ?? 0, createdAt)
+  );
+}
+
 
 export async function handleLogin(request, env) {
   const payload = await parseJson(request);
@@ -225,12 +241,9 @@ export async function handleMe(request, env) {
   // D1 catalog. The SPA never hard-codes program names or prices.
   const catalog = await loadCatalog(env);
   // option_labels resolves the chosen option ids (e.g. mock-test sessions,
-  // prep-course subject) to human labels so cards/receipts can show which.
-  const optionLabelsFor = (r) => {
-    let ids = [];
-    try { ids = JSON.parse(r.program_options || "[]"); } catch { return []; }
-    return catalog.getOptionLabels(r.registration_type, Array.isArray(ids) ? ids : []);
-  };
+  // prep-course subject, or run cohort_keys) to human labels so cards/receipts
+  // can show which. The run-vs-option branch lives in the catalog (labelsFor).
+  const optionLabelsFor = (r) => catalog.labelsFor(r);
   // Published exam results, attached per registration. Only events with
   // results_published = 1 surface here, so guardians never see draft scores.
   const resultsByReg = {};
@@ -300,9 +313,12 @@ export async function handleMe(request, env) {
       option_labels: optionLabelsFor(r),
       // The SPA renders the unified edit modal entirely from these fields, so it
       // never fetches the catalog. options_config is the legacy client shape
-      // (kind/items) and is null for option-less programs. edit_window_open
-      // gates every guardian edit and is true while today <= registration_closes.
-      options_config: catalog.clientOptions(r.registration_type),
+      // (kind/items) and is null for option-less programs. Run-priced programs
+      // serve their enrolling runs here. edit_window_open gates every guardian
+      // edit and is true while today <= registration_closes.
+      options_config: catalog.isRunPriced(r.registration_type)
+        ? catalog.clientRuns(r.registration_type)
+        : catalog.clientOptions(r.registration_type),
       edit_window_open: catalog.withinEditWindow(r.registration_type),
       // Date fields the dashboard's "Key dates" card derives from (ISO; null if absent).
       registration_ends:       catalog.registrationClosesFor(r.registration_type),
@@ -328,6 +344,7 @@ export async function handleMe(request, env) {
 // shape so consumers only swap their fetch URL. Rich per-program prose now
 // lives in each program's markdown body (rendered by Astro), so it is not here.
 export async function handleCatalog(request, env) {
+  const catalog = await loadCatalog(env);
   const { results } = await env.DB.prepare(`
     SELECT slug, title, category, eyebrow, image, audience, duration, format, outcome,
            level, price_label, fee_amount, pricing_json, schedule_label, starts_on, ends_on,
@@ -340,15 +357,21 @@ export async function handleCatalog(request, env) {
 
   const programs = (results || []).map((r) => {
     let options = null;
-    try {
-      const p = r.pricing_json ? JSON.parse(r.pricing_json) : null;
-      if (p && Array.isArray(p.choices) && p.choices.length) {
-        options = {
-          kind: p.selection === "single" ? "radio" : "checkbox",
-          items: p.choices.map((c) => ({ id: c.id, label: c.label, sub: c.note || "", price: c.price })),
-        };
-      }
-    } catch { /* ignore bad json */ }
+    if (catalog.isRunPriced(r.slug)) {
+      // Run-priced: runs are the picker items (catalog-as-adapter). Null when
+      // no runs are currently enrolling, so the form behaves as option-less.
+      options = catalog.clientRuns(r.slug);
+    } else {
+      try {
+        const p = r.pricing_json ? JSON.parse(r.pricing_json) : null;
+        if (p && Array.isArray(p.choices) && p.choices.length) {
+          options = {
+            kind: p.selection === "single" ? "radio" : "checkbox",
+            items: p.choices.map((c) => ({ id: c.id, label: c.label, sub: c.note || "", price: c.price })),
+          };
+        }
+      } catch { /* ignore bad json */ }
+    }
     return {
       slug: r.slug,
       title: r.title,
@@ -447,10 +470,16 @@ export async function handleRegistration(request, env) {
   // Program options (Mock Test sessions, Prep Course subjects, and the
   // Olympiad's Math/Science/Both subject pick). These drive the actual price
   // at checkout, so we validate against the shared options config and store
-  // the normalised id list.
+  // the normalised id list. Run-priced programs instead take chosen run
+  // (cohort) keys here.
   let programOptions = null;
   let normalizedOptions = [];
-  if (catalog.programHasOptions(registrationType)) {
+  if (catalog.isRunPriced(registrationType)) {
+    const opt = catalog.validateAndPriceRuns(registrationType, payload.programOptions);
+    if (!opt.ok) return badRequest(opt.error);
+    normalizedOptions = opt.normalized;
+    programOptions = JSON.stringify(opt.normalized);
+  } else if (catalog.programHasOptions(registrationType)) {
     const opt = catalog.validateAndPriceOptions(registrationType, payload.programOptions);
     if (!opt.ok) return badRequest(opt.error);
     normalizedOptions = opt.normalized;
@@ -528,9 +557,23 @@ export async function handleRegistration(request, env) {
   const createdAt         = new Date().toISOString();
   const passwordSalt      = crypto.randomUUID();
   const passwordHash      = await hashPassword(password, passwordSalt, PBKDF2_ITERATIONS_CURRENT);
-  const cohortKey         = await resolveCohortKey(env, registrationType);
-  if (await cohortAtCapacity(env, cohortKey)) {
-    return badRequest("This programme run is full. Please check back later or contact us.", 409);
+  // Bind to a run (cohort). Run-priced programs stamp the earliest chosen run
+  // as the primary cohort_key; legacy programs auto-resolve the single
+  // enrolling run. Capacity is checked per chosen run (run-priced) or the
+  // single resolved run (legacy).
+  let cohortKey;
+  if (catalog.isRunPriced(registrationType)) {
+    cohortKey = catalog.primaryRunKey(registrationType, normalizedOptions);
+    for (const k of normalizedOptions) {
+      if (await cohortAtCapacity(env, k)) {
+        return badRequest("One of the selected runs is full. Please check back later or contact us.", 409);
+      }
+    }
+  } else {
+    cohortKey = await resolveCohortKey(env, registrationType);
+    if (await cohortAtCapacity(env, cohortKey)) {
+      return badRequest("This programme run is full. Please check back later or contact us.", 409);
+    }
   }
 
   await env.DB.batch([
@@ -549,7 +592,10 @@ export async function handleRegistration(request, env) {
       studentGender, studentMedium || null, studentSchool, districtCanonical, guardianAccountId, guardianFullName,
       guardianRelationship, guardianPhone, guardianEmail, guardianAddress,
       preferredVenue, preferredSubject, programOptions, termsAccepted ? 1 : 0, "submitted", sourcePage, attribution, cohortKey, createdAt
-    )
+    ),
+    // Receipt (options model): one row per chosen option, price frozen. No-op for
+    // legacy programs. Atomic with the registration insert.
+    ...receiptInserts(env, catalog, applicationId, registrationType, normalizedOptions, createdAt)
   ]);
 
   const verifyToken = await createVerificationToken(env, guardianAccountId);
@@ -846,11 +892,19 @@ export async function handleCreatePayment(request, env) {
   ).bind(new Date().toISOString(), registrationId).run();
 
   // Programs with selectable options (Mock Test sessions, Prep Course
-  // subjects) derive their price from the stored options list; the rest use the
-  // flat catalog fee. null fee = "on enquiry".
+  // subjects) derive their price from the stored options list; run-priced
+  // programs sum the stored run keys; the rest use the flat catalog fee.
+  // null fee = "on enquiry".
   const catalog = await loadCatalog(env);
   let baseAmount;
-  if (catalog.programHasOptions(reg.registration_type)) {
+  if (catalog.isRunPriced(reg.registration_type)) {
+    let stored = [];
+    try { stored = JSON.parse(reg.program_options || "[]"); } catch {}
+    if (!Array.isArray(stored) || stored.length === 0) {
+      return badRequest("This registration is missing its run selection. Please re-register or contact support.");
+    }
+    baseAmount = catalog.priceRuns(reg.registration_type, stored);
+  } else if (catalog.programHasOptions(reg.registration_type)) {
     let stored = [];
     try { stored = JSON.parse(reg.program_options || "[]"); } catch {}
     const opt = catalog.validateAndPriceOptions(reg.registration_type, stored);
@@ -1275,9 +1329,22 @@ export async function handleAddEnrollment(request, env) {
   // Program options (Mock Test sessions, Prep Course subjects) carry
   // the per-program selection. Without them programs that price by
   // option would charge ৳0 at checkout, so we enforce the same
-  // validation as the full submit-registration flow.
+  // validation as the full submit-registration flow. Run-priced programs
+  // validate chosen run keys instead.
   let programOptions = null;
-  if (catalog.programHasOptions(registrationType)) {
+  let normalizedRunKeys = [];
+  if (catalog.isRunPriced(registrationType)) {
+    const opt = catalog.validateAndPriceRuns(registrationType, payload.programOptions);
+    if (!opt.ok) return badRequest(opt.error);
+    normalizedRunKeys = opt.normalized;
+    const taken = await getTakenOptionIds(env, account.account_id, registrationType);
+    const overlap = opt.normalized.filter((id) => taken.has(id));
+    if (overlap.length) {
+      const labels = catalog.getRunLabels(registrationType, overlap).join(", ");
+      return badRequest(`Already enrolled in: ${labels}. Pick a different selection or edit the existing registration instead.`, 409);
+    }
+    programOptions = JSON.stringify(opt.normalized);
+  } else if (catalog.programHasOptions(registrationType)) {
     const opt = catalog.validateAndPriceOptions(registrationType, payload.programOptions);
     if (!opt.ok) return badRequest(opt.error);
     // Duplicate guard: if any of the proposed ids are already held by
@@ -1296,34 +1363,48 @@ export async function handleAddEnrollment(request, env) {
 
   const applicationId = createId("app");
   const createdAt     = new Date().toISOString();
-  const cohortKey     = await resolveCohortKey(env, registrationType);
-  if (await cohortAtCapacity(env, cohortKey)) {
-    return badRequest("This programme run is full. Please check back later or contact us.", 409);
+  let cohortKey;
+  if (catalog.isRunPriced(registrationType)) {
+    cohortKey = catalog.primaryRunKey(registrationType, normalizedRunKeys);
+    for (const k of normalizedRunKeys) {
+      if (await cohortAtCapacity(env, k)) {
+        return badRequest("One of the selected runs is full. Please check back later or contact us.", 409);
+      }
+    }
+  } else {
+    cohortKey = await resolveCohortKey(env, registrationType);
+    if (await cohortAtCapacity(env, cohortKey)) {
+      return badRequest("This programme run is full. Please check back later or contact us.", 409);
+    }
   }
 
   // The BdMSO ID lives on the guardian account, not on registration
   // rows - so a new enrollment doesn't carry one; the account's ID
   // already covers this student across every program.
-  await env.DB.prepare(`
-    INSERT INTO registrations (
-      id, registration_type, student_full_name, student_date_of_birth, student_class_name,
-      student_gender, student_medium, student_school, student_district, guardian_account_id, guardian_full_name,
-      guardian_relationship, guardian_phone, guardian_email, guardian_address,
-      program_options, terms_accepted, status, source_page, cohort_key, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'submitted', 'programs.html', ?, ?)
-  `).bind(
-    applicationId, registrationType,
-    existing.student_full_name, existing.student_date_of_birth,
-    existing.student_class_name, existing.student_gender,
-    existing.student_medium || null,
-    existing.student_school, existing.student_district,
-    account.account_id, existing.guardian_full_name,
-    existing.guardian_relationship, existing.guardian_phone,
-    account.email, existing.guardian_address,
-    programOptions,
-    cohortKey,
-    createdAt
-  ).run();
+  await env.DB.batch([
+    env.DB.prepare(`
+      INSERT INTO registrations (
+        id, registration_type, student_full_name, student_date_of_birth, student_class_name,
+        student_gender, student_medium, student_school, student_district, guardian_account_id, guardian_full_name,
+        guardian_relationship, guardian_phone, guardian_email, guardian_address,
+        program_options, terms_accepted, status, source_page, cohort_key, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'submitted', 'programs.html', ?, ?)
+    `).bind(
+      applicationId, registrationType,
+      existing.student_full_name, existing.student_date_of_birth,
+      existing.student_class_name, existing.student_gender,
+      existing.student_medium || null,
+      existing.student_school, existing.student_district,
+      account.account_id, existing.guardian_full_name,
+      existing.guardian_relationship, existing.guardian_phone,
+      account.email, existing.guardian_address,
+      programOptions,
+      cohortKey,
+      createdAt
+    ),
+    // Receipt (options model): one row per chosen option, price frozen.
+    ...receiptInserts(env, catalog, applicationId, registrationType, normalizedRunKeys, createdAt)
+  ]);
 
   return jsonResponse({ ok: true, applicationId });
 }

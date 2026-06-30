@@ -167,7 +167,6 @@ export type RosterEntry = {
   venue: string; school: string; district: string;
   attendanceStatus: 'present' | 'absent' | 'late' | 'no_show';
   scores: Record<string, ScoreCell>;
-  enrolled: boolean;   // selected this date (or already scored); false = other-date registrant
 };
 export type CohortStatus = 'draft' | 'upcoming' | 'enrolling' | 'running' | 'ended' | 'archived';
 export type Cohort = {
@@ -176,7 +175,6 @@ export type Cohort = {
   startsOn: string | null; endsOn: string | null;
   priceOverride: number | null; capacity: number | null;
   sections: ExamSection[]; resultsPublished: boolean; publicFeatured: boolean;
-  sessionOptions: string[]; sessionRegs: number;
   regs: number; paid: number;
 };
 export type ImportSummary = { matched: number; unmatched: number; invalid: number };

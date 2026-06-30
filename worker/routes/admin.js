@@ -2187,7 +2187,7 @@ admin.get("/events/:event/roster", async (c) => {
   const klass = c.req.query("class");
 
   const ev = await c.env.DB.prepare(
-    "SELECT program_slug, sections, session_options FROM cohorts WHERE cohort_key = ? LIMIT 1"
+    "SELECT program_slug, sections FROM cohorts WHERE cohort_key = ? LIMIT 1"
   ).bind(event_key).first();
   if (!ev) return c.json({ error: "Unknown event." }, 404);
 
@@ -2195,6 +2195,25 @@ admin.get("/events/:event/roster", async (c) => {
   const binds  = [ev.program_slug];
   if (venue) { wheres.push("r.preferred_venue = ?");    binds.push(venue); }
   if (klass) { wheres.push("r.student_class_name = ?"); binds.push(klass); }
+  // Run-priced programs: a registration's primary cohort_key may be a different
+  // run, so scope the roster to regs actually enrolled in THIS run (their
+  // program_options holds event_key) or already scored for it (covers the
+  // free-mock auto-enroll tie-in). Legacy programs keep showing every paid reg
+  // of the program, as today.
+  if (catalog.isRunPriced(ev.program_slug)) {
+    // Source of truth is the receipt (registration_cohorts); the program_options
+    // LIKE clause is the transition fallback for regs not yet migrated to the
+    // receipt and is removed once the backfill runs (plan.md Phase 6). "scored"
+    // keeps free-mock auto-enrolled students on the roster.
+    wheres.push(
+      "(r.id IN (SELECT registration_id FROM registration_cohorts WHERE cohort_key = ?)" +
+      " OR r.program_options LIKE ?" +
+      " OR r.id IN (SELECT registration_id FROM scores WHERE event_key = ?))",
+    );
+    binds.push(event_key);
+    binds.push('%"' + event_key + '"%');
+    binds.push(event_key);
+  }
   const whereSql = `WHERE ${wheres.join(" AND ")}`;
 
   const rows = await c.env.DB.prepare(`
@@ -2223,27 +2242,16 @@ admin.get("/events/:event/roster", async (c) => {
       { score: s.score, max: s.max_score, rank: s.rank, tier: s.tier, detail: parseDetail(s.detail_json) };
   }
 
-  // Dated events (session_options set) scope "enrolled" to who selected that
-  // session OR already has a score (so free-mock students tie in once imported).
-  // No session_options = whole paid roster (olympiad/quiz/etc.), unchanged.
-  const sessionOpts = safeJsonArray(ev.session_options);
-  const isDated = sessionOpts.length > 0;
   return c.json({
     ok: true,
     event_key, program_slug: ev.program_slug, sections: safeJsonArray(ev.sections),
-    session_options: sessionOpts,
     venue: venue || null, class: klass || null,
-    rows: (rows.results || []).map((r) => {
-      const opts = safeJsonArray(r.program_options);
-      const enrolled = !isDated || !!scoreMap[r.id] || opts.some((o) => sessionOpts.includes(o));
-      return {
-        ...r,
-        program_label: catalog.nameFor(r.registration_type),
-        attendance_status: r.attendance_status || "absent",
-        scores: scoreMap[r.id] || {},
-        enrolled,
-      };
-    }),
+    rows: (rows.results || []).map((r) => ({
+      ...r,
+      program_label: catalog.nameFor(r.registration_type),
+      attendance_status: r.attendance_status || "absent",
+      scores: scoreMap[r.id] || {},
+    })),
   });
 });
 
@@ -2564,18 +2572,9 @@ admin.get("/cohorts", async (c) => {
   const rows = (await c.env.DB.prepare(`
     SELECT c.cohort_key, c.program_slug, c.label, c.status, c.enroll_opens, c.enroll_closes,
            c.starts_on, c.ends_on, c.price_override, c.capacity, c.sections,
-           c.results_published, c.public_featured, c.session_options, c.published_at, c.created_at,
+           c.results_published, c.public_featured, c.published_at, c.created_at,
            COUNT(r.id)                                        AS regs,
-           SUM(CASE WHEN r.status = 'paid' THEN 1 ELSE 0 END) AS paid,
-           -- Dated events bind all their registrations to one cohort, so the
-           -- per-run reg count is meaningless. session_regs = who actually
-           -- selected this date (program_options ∩ session_options).
-           (SELECT COUNT(*) FROM registrations rr
-              WHERE rr.registration_type = c.program_slug AND rr.status = 'paid'
-                AND rr.program_options IS NOT NULL
-                AND EXISTS (SELECT 1 FROM json_each(rr.program_options) je
-                            WHERE je.value IN (SELECT value FROM json_each(c.session_options)))
-           ) AS session_regs
+           SUM(CASE WHEN r.status = 'paid' THEN 1 ELSE 0 END) AS paid
     FROM cohorts c
     LEFT JOIN registrations r ON r.cohort_key = c.cohort_key
     GROUP BY c.cohort_key
@@ -2591,8 +2590,6 @@ admin.get("/cohorts", async (c) => {
       sections: safeJsonArray(r.sections),
       results_published: r.results_published === 1,
       public_featured: r.public_featured === 1,
-      session_options: safeJsonArray(r.session_options),
-      session_regs: Number(r.session_regs) || 0,
     })),
   });
 });
@@ -2633,8 +2630,10 @@ admin.post("/cohorts", async (c) => {
   return c.json({ ok: true, cohort_key: key });
 });
 
-// PATCH /api/admin/cohorts/:key - lifecycle (status) + label. Dates/price are a
-// program-page concern; a new run re-snapshots them.
+// PATCH /api/admin/cohorts/:key - lifecycle (status) + label + price_override.
+// For run-priced programs the per-run price is what students pay, so the price
+// is editable here; dates are still a program-page concern (re-snapshotted on
+// new run).
 admin.patch("/cohorts/:key", async (c) => {
   const key = c.req.param("key");
   const b   = await c.req.json();
@@ -2644,11 +2643,14 @@ admin.patch("/cohorts/:key", async (c) => {
   const sets = [], binds = [];
   if (typeof b.label === "string" && b.label.trim()) { sets.push("label = ?"); binds.push(b.label.trim()); }
   if (COHORT_STATUSES.includes(b.status)) { sets.push("status = ?"); binds.push(b.status); }
-  if (Array.isArray(b.session_options)) {
-    // The program option ids this dated event covers (e.g. ["mt2-math","mt2-sci"]).
-    // Empty array clears it -> back to the whole paid roster.
-    const clean = b.session_options.filter((x) => typeof x === "string" && x.trim()).map((x) => x.trim());
-    sets.push("session_options = ?"); binds.push(clean.length ? JSON.stringify(clean) : null);
+  if (b.price_override !== undefined) {
+    if (b.price_override === null || b.price_override === "") {
+      sets.push("price_override = ?"); binds.push(null);
+    } else {
+      const num = Number(b.price_override);
+      if (!Number.isInteger(num) || num < 0) return c.json({ error: "price_override must be a non-negative whole number or empty." }, 400);
+      sets.push("price_override = ?"); binds.push(num);
+    }
   }
   if (!sets.length) return c.json({ error: "No editable fields." }, 400);
 
@@ -3132,6 +3134,7 @@ function normaliseProgramRow(r, { withBody = false } = {}) {
     hidden:              r.hidden === 1,
     repeatable:          r.repeatable === 1,
     always_open:         r.always_open === 1,
+    enroll_by_run:       r.enroll_by_run === 1,
     published:           r.published === 1,
     updated_at:          r.updated_at,
     updated_by:          r.updated_by || null,
@@ -3184,7 +3187,7 @@ function sanitiseProgramInput(input, { partial = false } = {}) {
     if (res.error) return { error: res.error };
     v.pricing_json = res.json;
   }
-  for (const k of ["hidden", "repeatable", "always_open", "published"]) {
+  for (const k of ["hidden", "repeatable", "always_open", "enroll_by_run", "published"]) {
     if (has(k)) v[k] = input[k] ? 1 : 0;
   }
   return { values: v };
