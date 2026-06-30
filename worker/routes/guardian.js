@@ -12,6 +12,7 @@ import { createVerificationToken, sendVerificationEmail, sendUpdatedReceiptForRe
 import { canonicalDistrict } from "../lib/districts.js";
 import { isPhoneLike } from "../lib/validation.js";
 import { getCatalog } from "../lib/programs.js";
+import { receiptSyncStatements } from "../lib/receipt.js";
 import {
   getShurjopayConfig,
   shurjopayGetToken,
@@ -406,6 +407,8 @@ guardian.patch("/registrations/:id/options", async (c) => {
       paid && diff.action === "downgrade" ? 1 : 0,
       now,
     ),
+    // Keep the receipt in step with the new selection (run-priced only).
+    ...receiptSyncStatements(c.env, ctx.catalog, ctx.reg.id, ctx.reg.registration_type, diff.normalizedTo, now),
   ]);
 
   // Receipts only exist for paid registrations - skip the email on an

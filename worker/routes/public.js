@@ -10,6 +10,7 @@ import { checkLoginRateLimit, recordLoginAttempt, checkActionRateLimit, recordAc
 import { createVerificationToken, sendVerificationEmail, sendSponsorshipNotification, assignMemberIdAndSendReceipt, createPasswordResetToken, sendPasswordResetEmail, sendUpdatedReceiptForRegistration } from "../lib/email.js";
 import { recordAudit } from "../lib/audit-log.js";
 import { loadCatalog } from "../lib/programs.js";
+import { receiptInsertStatements, receiptSyncStatements } from "../lib/receipt.js";
 import { getBoolSetting } from "../lib/settings.js";
 import { deriveRegState, deriveCohortStage } from "../lib/program-options.js";
 
@@ -84,21 +85,6 @@ async function getTakenOptionIds(env, accountId, registrationType, exceptRegistr
   return taken;
 }
 
-// Receipt rows for an options-priced registration: one registration_cohorts row
-// per chosen option (cohort), price frozen at purchase. Returns [] for legacy
-// (pricing_json / flat-fee) programs, which don't use the receipt table. Callers
-// spread the result into their env.DB.batch([...]) so it's atomic with the
-// registration insert. Dual-written alongside program_options during the
-// transition; program_options stays the read path until the data is migrated.
-function receiptInserts(env, catalog, registrationId, programSlug, keys, createdAt) {
-  if (!catalog.isRunPriced(programSlug)) return [];
-  const priceByKey = Object.fromEntries(catalog.runsFor(programSlug).map((r) => [r.key, r.price || 0]));
-  return (keys || []).map((k) =>
-    env.DB.prepare(
-      "INSERT INTO registration_cohorts (registration_id, cohort_key, price_paid, created_at) VALUES (?, ?, ?, ?)"
-    ).bind(registrationId, k, priceByKey[k] ?? 0, createdAt)
-  );
-}
 
 
 export async function handleLogin(request, env) {
@@ -595,7 +581,7 @@ export async function handleRegistration(request, env) {
     ),
     // Receipt (options model): one row per chosen option, price frozen. No-op for
     // legacy programs. Atomic with the registration insert.
-    ...receiptInserts(env, catalog, applicationId, registrationType, normalizedOptions, createdAt)
+    ...receiptInsertStatements(env, catalog, applicationId, registrationType, normalizedOptions, createdAt)
   ]);
 
   const verifyToken = await createVerificationToken(env, guardianAccountId);
@@ -1221,7 +1207,7 @@ export async function handlePaymentCallback(request, env, url) {
         regType = r?.registration_type || null;
       } catch {}
       const catalog = await loadCatalog(env);
-      const diff = regType ? catalog.computeOptionDiff(regType, fromIds, toIds) : null;
+      const diff = regType ? catalog.diffSelection(regType, fromIds, toIds) : null;
 
       const ops = [
         env.DB.prepare("UPDATE registrations SET program_options = ? WHERE id = ?")
@@ -1244,6 +1230,8 @@ export async function handlePaymentCallback(request, env, url) {
           payment.registration_id,
           now,
         ),
+        // Keep the receipt in step with the new selection (run-priced only).
+        ...receiptSyncStatements(env, catalog, payment.registration_id, regType, toIds, now),
       ];
       await env.DB.batch(ops);
 
@@ -1403,7 +1391,7 @@ export async function handleAddEnrollment(request, env) {
       createdAt
     ),
     // Receipt (options model): one row per chosen option, price frozen.
-    ...receiptInserts(env, catalog, applicationId, registrationType, normalizedRunKeys, createdAt)
+    ...receiptInsertStatements(env, catalog, applicationId, registrationType, normalizedRunKeys, createdAt)
   ]);
 
   return jsonResponse({ ok: true, applicationId });

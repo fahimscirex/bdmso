@@ -10,6 +10,8 @@
 
 import { getShurjopayConfig, shurjopayGetToken, shurjopayVerify, shurjopayOutcome } from "./shurjopay.js";
 import { amountCoversBilled } from "./util.js";
+import { loadCatalog } from "./programs.js";
+import { receiptSyncStatements } from "./receipt.js";
 import { assignMemberIdAndSendReceipt, sendUpdatedReceiptForRegistration } from "./email.js";
 
 // Transient states (Initiated/Pending) that are older than this are
@@ -84,8 +86,18 @@ export async function reconcilePayment(env, payment, baseUrl) {
   // Post-payment side effects — mirror the callback handler exactly.
   if (payment.purpose === "option-upgrade") {
     const proposed = payment.proposed_options || "[]";
-    await env.DB.prepare("UPDATE registrations SET program_options = ? WHERE id = ?")
-      .bind(proposed, payment.registration_id).run();
+    // Mirror the callback: update program_options and keep the receipt in step
+    // (run-priced only). Re-frozen price is fine; the gateway already charged.
+    const reg = await env.DB.prepare(
+      "SELECT registration_type FROM registrations WHERE id = ? LIMIT 1"
+    ).bind(payment.registration_id).first();
+    const catalog = await loadCatalog(env);
+    let toIds = []; try { toIds = JSON.parse(proposed); } catch {}
+    await env.DB.batch([
+      env.DB.prepare("UPDATE registrations SET program_options = ? WHERE id = ?")
+        .bind(proposed, payment.registration_id),
+      ...receiptSyncStatements(env, catalog, payment.registration_id, reg?.registration_type || null, toIds, new Date().toISOString()),
+    ]);
 
     try { await sendUpdatedReceiptForRegistration(env, payment.registration_id, baseUrl); }
     catch (err) { console.log("[reconcile/option-upgrade] receipt error:", err.message); }
