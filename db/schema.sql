@@ -490,7 +490,8 @@ CREATE TABLE IF NOT EXISTS cohorts (
   enroll_closes     TEXT,
   starts_on         TEXT,
   ends_on           TEXT,
-  price_override    INTEGER,                       -- this option's price (falls back to programs.fee_amount when null)
+  price_override    INTEGER,                       -- this run's flat price (used when options_json is empty); falls back to programs.fee_amount when null
+  options_json      TEXT,                           -- per-run priced options [{id,label,price}]; parent picks one. Empty/NULL = flat price_override (see migration 0035)
   choice_group      TEXT,                           -- reserved/unused; pick-one is driven by programs.pick_one (see migration 0034)
   capacity          INTEGER,
   sections          TEXT NOT NULL DEFAULT '[]',
@@ -510,6 +511,7 @@ CREATE INDEX IF NOT EXISTS idx_cohorts_status ON cohorts (status);
 CREATE TABLE IF NOT EXISTS registration_cohorts (
   registration_id TEXT NOT NULL,
   cohort_key      TEXT NOT NULL,
+  option_id       TEXT,                             -- which per-run option was bought (NULL for flat runs); see migration 0035
   price_paid      INTEGER NOT NULL DEFAULT 0,
   created_at      TEXT NOT NULL DEFAULT (datetime('now')),
   PRIMARY KEY (registration_id, cohort_key),

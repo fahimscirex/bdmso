@@ -169,11 +169,13 @@ export type RosterEntry = {
   scores: Record<string, ScoreCell>;
 };
 export type CohortStatus = 'draft' | 'upcoming' | 'enrolling' | 'running' | 'ended' | 'archived';
+export type RunOption = { id: string; label: string; price: number };
 export type Cohort = {
   cohortKey: string; programSlug: string; label: string; status: CohortStatus;
   enrollOpens: string | null; enrollCloses: string | null;
   startsOn: string | null; endsOn: string | null;
   priceOverride: number | null; choiceGroup: string | null; capacity: number | null;
+  options: RunOption[];
   sections: ExamSection[]; resultsPublished: boolean; publicFeatured: boolean;
   regs: number; paid: number;
 };

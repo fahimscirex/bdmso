@@ -552,8 +552,8 @@ export async function handleRegistration(request, env) {
   let cohortKey;
   if (catalog.isRunPriced(registrationType)) {
     cohortKey = catalog.primaryRunKey(registrationType, normalizedOptions);
-    for (const k of normalizedOptions) {
-      if (await cohortAtCapacity(env, k)) {
+    for (const row of catalog.selectionRows(registrationType, normalizedOptions)) {
+      if (await cohortAtCapacity(env, row.cohortKey)) {
         return badRequest("One of the selected runs is full. Please check back later or contact us.", 409);
       }
     }
@@ -1356,8 +1356,8 @@ export async function handleAddEnrollment(request, env) {
   let cohortKey;
   if (catalog.isRunPriced(registrationType)) {
     cohortKey = catalog.primaryRunKey(registrationType, normalizedRunKeys);
-    for (const k of normalizedRunKeys) {
-      if (await cohortAtCapacity(env, k)) {
+    for (const row of catalog.selectionRows(registrationType, normalizedRunKeys)) {
+      if (await cohortAtCapacity(env, row.cohortKey)) {
         return badRequest("One of the selected runs is full. Please check back later or contact us.", 409);
       }
     }

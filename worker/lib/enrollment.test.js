@@ -76,6 +76,28 @@ test("computeSelectionDiff: upgrade / downgrade / same", () => {
   assert.equal(up.delta, 600);
 });
 
+// Per-run options (Option C): the catalog expands each run's options into flat
+// items keyed "cohortKey::optionId", grouped by the run so one option per run is
+// enforced while different runs combine. Bundle prices are explicit, not summed.
+const RUN_OPTS = [
+  { key: "mt1::s1", label: "Mock 1 - 1 subject",  price: 500, enrolling: true, choiceGroup: "mt1", startsOn: "2026-06-19" },
+  { key: "mt1::s2", label: "Mock 1 - 2 subjects", price: 800, enrolling: true, choiceGroup: "mt1", startsOn: "2026-06-19" },
+  { key: "mt2::s1", label: "Mock 2 - 1 subject",  price: 500, enrolling: true, choiceGroup: "mt2", startsOn: "2026-06-26" },
+  { key: "mt2::s2", label: "Mock 2 - 2 subjects", price: 800, enrolling: true, choiceGroup: "mt2", startsOn: "2026-06-26" },
+];
+
+test("run-options: one option per run, but runs combine (bundle prices explicit)", () => {
+  const v = validateAndPriceSelection(RUN_OPTS, ["mt1::s2", "mt2::s1"]);
+  assert.equal(v.ok, true);
+  assert.equal(v.price, 1300); // 800 + 500, not a sum of subjects
+});
+
+test("run-options: two options from the same run is rejected", () => {
+  const v = validateAndPriceSelection(RUN_OPTS, ["mt1::s1", "mt1::s2"]);
+  assert.equal(v.ok, false);
+  assert.match(v.error, /one option/i);
+});
+
 test("pickPrimaryCohort: earliest date wins, undated sorts last, key tiebreak", () => {
   assert.equal(pickPrimaryCohort(DATES, ["mt-3jul", "mt-19jun"]), "mt-19jun");
   assert.equal(pickPrimaryCohort(SUBJECTS, ["oly-sci", "oly-math"]), "oly-math"); // both undated -> key asc

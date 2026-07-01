@@ -71,6 +71,7 @@ type CohortRow = {
   cohort_key: string; program_slug: string; label: string; status: Cohort['status'];
   enroll_opens: string | null; enroll_closes: string | null; starts_on: string | null; ends_on: string | null;
   price_override: number | null; choice_group: string | null; capacity: number | null; sections: ExamSection[]; results_published: boolean; public_featured: boolean;
+  options: { id: string; label: string; price: number }[];
   regs: number; paid: number;
 };
 type RosterRow = {
@@ -285,6 +286,7 @@ function adaptCohort(r: CohortRow): Cohort {
     cohortKey: r.cohort_key, programSlug: r.program_slug, label: r.label, status: r.status,
     enrollOpens: r.enroll_opens, enrollCloses: r.enroll_closes, startsOn: r.starts_on, endsOn: r.ends_on,
     priceOverride: r.price_override, choiceGroup: r.choice_group, capacity: r.capacity, sections: r.sections || [],
+    options: r.options || [],
     resultsPublished: r.results_published, publicFeatured: r.public_featured,
     regs: r.regs, paid: r.paid,
   };

@@ -2571,7 +2571,7 @@ function cohortStageSQL(pfx) {
 admin.get("/cohorts", async (c) => {
   const rows = (await c.env.DB.prepare(`
     SELECT c.cohort_key, c.program_slug, c.label, c.status, c.enroll_opens, c.enroll_closes,
-           c.starts_on, c.ends_on, c.price_override, c.choice_group, c.capacity, c.sections,
+           c.starts_on, c.ends_on, c.price_override, c.choice_group, c.options_json, c.capacity, c.sections,
            c.results_published, c.public_featured, c.published_at, c.created_at,
            COUNT(r.id)                                        AS regs,
            SUM(CASE WHEN r.status = 'paid' THEN 1 ELSE 0 END) AS paid
@@ -2588,6 +2588,7 @@ admin.get("/cohorts", async (c) => {
       ...r,
       status: deriveCohortStage(r.status, r.enroll_opens, r.enroll_closes, r.starts_on, r.ends_on),
       sections: safeJsonArray(r.sections),
+      options: safeJsonArray(r.options_json),
       results_published: r.results_published === 1,
       public_featured: r.public_featured === 1,
     })),
@@ -2657,6 +2658,26 @@ admin.patch("/cohorts/:key", async (c) => {
   if (b.choice_group !== undefined) {
     const g = typeof b.choice_group === "string" ? b.choice_group.trim() : "";
     sets.push("choice_group = ?"); binds.push(g || null);
+  }
+  // Per-run priced options [{id,label,price}]. Empty array clears them (run
+  // falls back to its flat price). Each option needs a non-empty label and a
+  // non-negative whole price; ids are slugged from the label when missing.
+  if (b.options !== undefined) {
+    if (!Array.isArray(b.options)) return c.json({ error: "options must be an array." }, 400);
+    const clean = [];
+    const seen = new Set();
+    for (const o of b.options) {
+      const label = (o && typeof o.label === "string" ? o.label.trim() : "");
+      if (!label) return c.json({ error: "Each option needs a label." }, 400);
+      const price = Number(o.price);
+      if (!Number.isInteger(price) || price < 0) return c.json({ error: "Each option price must be a non-negative whole number." }, 400);
+      let id = (typeof o.id === "string" && o.id.trim()) ? o.id.trim() : label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+      id = id.replace(/:/g, "");           // '::' is the run/option key separator
+      if (!id || seen.has(id)) id = `opt-${clean.length + 1}`;
+      seen.add(id);
+      clean.push({ id, label, price });
+    }
+    sets.push("options_json = ?"); binds.push(clean.length ? JSON.stringify(clean) : null);
   }
   // Per-run dates (options model): each run owns its enrol window + session
   // dates, edited here rather than inherited from the program. ISO or empty.

@@ -97,34 +97,49 @@ export async function loadCatalog(env) {
   const names = Object.fromEntries(rows.map((r) => [r.slug, r.title]));
   const prices = Object.fromEntries(rows.map((r) => [r.slug, r.fee_amount ?? null]));
 
-  // Run-pricing index: for each program, its cohorts as pickable runs. A run's
-  // price is its price_override else the program's flat fee; `enrolling` is the
-  // derived stage so only currently-open runs are selectable at signup. All
-  // cohorts are loaded (not just enrolling) so labels/prices still resolve for
-  // existing registrations whose runs have since moved to running/ended.
+  // Run-pricing index: each program's cohorts expanded into flat SELECTABLE
+  // ITEMS. A run with no options_json is one item (its flat price). A run WITH
+  // options is one item per option (composite key "cohortKey::optionId", the
+  // option's price + name). enrollment.js treats each item as a pickable unit.
+  //
+  // choiceGroup makes the selection rules work with no change to enrollment.js:
+  //   - program pick_one -> every item shares group "_" (pick exactly one total)
+  //   - otherwise        -> items share their run's group (one option per run),
+  //                          different runs are different groups (combine across)
+  // All cohorts load (not just enrolling) so labels/prices resolve for existing
+  // registrations whose runs have since moved on.
   const runsBySlug = {};
   const { results: cohortRows } = await env.DB.prepare(
     `SELECT cohort_key, program_slug, label, starts_on, ends_on,
-            status, enroll_opens, enroll_closes, price_override, choice_group
+            status, enroll_opens, enroll_closes, price_override, options_json
        FROM cohorts`
   ).all();
   for (const c of (cohortRows || [])) {
     const fee = prices[c.program_slug] ?? null;
-    const price = c.price_override != null ? c.price_override : fee;
+    const flatPrice = c.price_override != null ? c.price_override : fee;
     const stage = deriveCohortStage(
       c.status, c.enroll_opens, c.enroll_closes, c.starts_on, c.ends_on,
     );
-    // Pick-one is a per-program setting: when programs.pick_one is on, all the
-    // program's options share one group so enrollment.js enforces "pick exactly
-    // one"; otherwise they combine freely. (Supersedes per-run choice_group.)
-    const choiceGroup = bySlug[c.program_slug]?.pick_one === 1 ? "_" : null;
-    (runsBySlug[c.program_slug] ||= []).push({
-      key: c.cohort_key, label: c.label, price, enrolling: stage === "enrolling", stage,
-      // camelCase fields are the shape enrollment.js consumes; starts_on/ends_on
-      // stay for runDateRange/clientRuns below.
-      choiceGroup, startsOn: c.starts_on || null,
-      starts_on: c.starts_on || null, ends_on: c.ends_on || null,
-    });
+    const enrolling = stage === "enrolling";
+    const group = bySlug[c.program_slug]?.pick_one === 1 ? "_" : c.cohort_key;
+    const common = {
+      cohortKey: c.cohort_key, enrolling, stage, choiceGroup: group,
+      startsOn: c.starts_on || null, starts_on: c.starts_on || null, ends_on: c.ends_on || null,
+    };
+    let opts = [];
+    try { const v = JSON.parse(c.options_json || "[]"); if (Array.isArray(v)) opts = v; } catch { /* ignore */ }
+    const list = (runsBySlug[c.program_slug] ||= []);
+    if (opts.length) {
+      for (const o of opts) {
+        if (!o || typeof o.id !== "string") continue;
+        list.push({
+          ...common, key: `${c.cohort_key}::${o.id}`, optionId: o.id,
+          label: `${c.label} - ${o.label}`, price: Number(o.price) || 0,
+        });
+      }
+    } else {
+      list.push({ ...common, key: c.cohort_key, optionId: null, label: c.label, price: flatPrice });
+    }
   }
 
   return {
@@ -166,7 +181,9 @@ export async function loadCatalog(env) {
       const runs = (runsBySlug[slug] || []).filter((r) => r.enrolling);
       if (runs.length === 0) return null;
       return {
-        kind: "checkbox",
+        // pick_one -> radio (pick exactly one). Otherwise checkbox (combine
+        // runs); one-option-per-run is still enforced server-side.
+        kind: bySlug[slug]?.pick_one === 1 ? "radio" : "checkbox",
         items: runs.map((r) => ({
           id: r.key,
           label: r.label,
@@ -187,22 +204,35 @@ export async function loadCatalog(env) {
     computeOptionDiff(slug, fromIds, toIds) {
       return computeDiff(optionsBySlug[slug] || null, fromIds, toIds);
     },
-    // Run-pricing bindings (mirror the option methods). runsFor returns the raw
-    // array for handleCatalog to build picker items.
+    // Run-pricing bindings (mirror the option methods). runsFor returns the flat
+    // selectable items for handleCatalog to build picker items.
     runsFor(slug) {
       return runsBySlug[slug] || [];
     },
-    // Auto-generated schedule for a run-priced program: session dates of the
-    // runs that are enrolling or upcoming, in date order (e.g.
+    // Receipt rows for a selection: map chosen item keys -> { cohortKey,
+    // optionId, price } so the caller writes registration_cohorts. Unknown keys
+    // are skipped.
+    selectionRows(slug, keys) {
+      const byKey = new Map((runsBySlug[slug] || []).map((r) => [r.key, r]));
+      const rows = [];
+      for (const k of (Array.isArray(keys) ? keys : [])) {
+        const it = byKey.get(k);
+        if (it) rows.push({ cohortKey: it.cohortKey, optionId: it.optionId || null, price: it.price || 0 });
+      }
+      return rows;
+    },
+    // Auto-generated schedule for a run-priced program: the DISTINCT session
+    // dates of runs that are enrolling or upcoming, in date order (e.g.
     // "19 June 2026 · 26 June 2026 · 3 July 2026"). Empty string if none.
     scheduleLabel(slug) {
-      return (runsBySlug[slug] || [])
-        .filter((r) => r.stage === "enrolling" || r.stage === "upcoming")
-        .slice()
-        .sort((a, b) => ((a.startsOn || "9999-12-31") < (b.startsOn || "9999-12-31") ? -1 : 1))
-        .map((r) => formatLongDate(r.startsOn))
-        .filter(Boolean)
-        .join(" · ");
+      const seen = new Set();
+      const dates = [];
+      for (const r of (runsBySlug[slug] || [])) {
+        if (r.stage !== "enrolling" && r.stage !== "upcoming") continue;
+        if (!r.startsOn || seen.has(r.startsOn)) continue;
+        seen.add(r.startsOn); dates.push(r.startsOn);
+      }
+      return dates.sort().map(formatLongDate).filter(Boolean).join(" · ");
     },
     validateAndPriceRuns(slug, keys) {
       return validateAndPriceSelection(runsBySlug[slug] || [], keys);
@@ -240,7 +270,11 @@ export async function loadCatalog(env) {
     // readers (payments, reports, scores) keep working. Returns null if none of
     // the keys resolve to a run of this program.
     primaryRunKey(slug, keys) {
-      return pickPrimaryCohort(runsBySlug[slug] || [], keys);
+      const items = runsBySlug[slug] || [];
+      // pickPrimaryCohort returns the earliest chosen item's key (which may be a
+      // composite "cohortKey::optionId"); map it back to the real cohort_key.
+      const pk = pickPrimaryCohort(items, keys);
+      return items.find((it) => it.key === pk)?.cohortKey ?? pk;
     },
     withinEditWindow(slug, todayISO = null) {
       const r = bySlug[slug];

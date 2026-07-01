@@ -8,13 +8,14 @@
 // Phase 6 backfill. The roster already reads the receipt.
 
 // Insert statements for a brand-new registration (no existing receipt rows).
+// `keys` are the chosen selection keys ("cohortKey" or "cohortKey::optionId");
+// the catalog resolves them to one row per run with its option + frozen price.
 export function receiptInsertStatements(env, catalog, registrationId, programSlug, keys, createdAt) {
   if (!catalog.isRunPriced(programSlug)) return [];
-  const priceByKey = Object.fromEntries(catalog.runsFor(programSlug).map((r) => [r.key, r.price || 0]));
-  return (keys || []).map((k) =>
+  return catalog.selectionRows(programSlug, keys).map((row) =>
     env.DB.prepare(
-      "INSERT INTO registration_cohorts (registration_id, cohort_key, price_paid, created_at) VALUES (?, ?, ?, ?)"
-    ).bind(registrationId, k, priceByKey[k] ?? 0, createdAt)
+      "INSERT INTO registration_cohorts (registration_id, cohort_key, option_id, price_paid, created_at) VALUES (?, ?, ?, ?, ?)"
+    ).bind(registrationId, row.cohortKey, row.optionId, row.price, createdAt)
   );
 }
 

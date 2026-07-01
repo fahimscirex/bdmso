@@ -569,7 +569,8 @@ function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void 
   const dateInput = 'rounded border border-input bg-background px-1 py-0.5 text-xs';
 
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2.5">
+    <div className="px-3 py-2.5">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate text-sm font-medium">{c.label}</span>
@@ -588,6 +589,7 @@ function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void 
           <input type="date" className={dateInput} value={c.endsOn ?? ''} onChange={(e) => saveDate('ends_on', e.target.value)} aria-label="Session ends" />
         </div>
       </div>
+      {c.options.length === 0 ? (
       <div className="text-sm tabular-nums">
         {editingPrice ? (
           <span className="flex items-center gap-1">
@@ -608,6 +610,9 @@ function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void 
           </button>
         )}
       </div>
+      ) : (
+        <div className="text-sm text-muted-foreground">priced by options</div>
+      )}
       <div className="text-sm tabular-nums">
         <span className="font-semibold">{c.paid}</span><span className="text-muted-foreground"> / {c.regs} paid</span>
       </div>
@@ -630,6 +635,59 @@ function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void 
           </ConfirmDeleteItem>
         </DropdownMenuContent>
       </DropdownMenu>
+    </div>
+    <RunOptionsEditor cohort={c} onChange={onChange} />
+    </div>
+  );
+}
+
+// Per-run priced options (name + price). Parents pick one per run; a run with
+// options ignores its flat price. Saved as a whole array on each edit; empty =
+// back to the flat price. IDs are assigned server-side from the label.
+function RunOptionsEditor({ cohort, onChange }: { cohort: Cohort; onChange: () => void }) {
+  const [opts, setOpts] = useState<{ id: string; label: string; price: number | string }[]>(cohort.options);
+  const save = (next: typeof opts) => {
+    const clean = next.filter((o) => String(o.label).trim()).map((o) => ({ id: o.id, label: String(o.label).trim(), price: Number(o.price) || 0 }));
+    run(api.cohortUpdate(cohort.cohortKey, { options: clean }), 'Run options updated', onChange);
+  };
+  const add = () => setOpts([...opts, { id: '', label: '', price: 0 }]);
+  const removeAt = (i: number) => { const next = opts.filter((_, j) => j !== i); setOpts(next); save(next); };
+  const patch = (i: number, p: Partial<{ label: string; price: number | string }>) =>
+    setOpts(opts.map((o, j) => (j === i ? { ...o, ...p } : o)));
+
+  if (opts.length === 0) {
+    return (
+      <button type="button" className="mt-1 ml-1 text-xs text-muted-foreground hover:text-foreground" onClick={add}>
+        + Add priced options (e.g. 1 subject / 2 subjects)
+      </button>
+    );
+  }
+  return (
+    <div className="mt-2 ml-1 space-y-1.5 border-l pl-3">
+      <div className="text-xs font-medium text-muted-foreground">Options (parent picks one)</div>
+      {opts.map((o, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <input
+            type="text" placeholder="Option name (e.g. 2 subjects)"
+            className="w-56 rounded border border-input bg-background px-1.5 py-0.5 text-sm"
+            value={o.label}
+            onChange={(e) => patch(i, { label: e.target.value })}
+            onBlur={() => save(opts)}
+          />
+          <span className="text-muted-foreground">৳</span>
+          <input
+            type="number" min={0} step={1} placeholder="0"
+            className="w-24 rounded border border-input bg-background px-1.5 py-0.5 text-sm"
+            value={o.price}
+            onChange={(e) => patch(i, { price: e.target.value })}
+            onBlur={() => save(opts)}
+          />
+          <Button variant="ghost" size="icon" className="size-7" aria-label="Remove option" onClick={() => removeAt(i)}>
+            <Trash2 className="size-3.5" />
+          </Button>
+        </div>
+      ))}
+      <button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={add}>+ Add option</button>
     </div>
   );
 }
