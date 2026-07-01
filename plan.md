@@ -2,10 +2,11 @@
 
 Plain-language design. One idea runs through pricing, dates, and results.
 
-> This **replaces** the earlier flag-based approach (`enroll_by_run` + reusing
-> `program_options` for run keys) that was built locally. That approach worked but kept
-> two pricing models side by side - the source of the messiness. This plan uses one
-> model. See "What's already built" at the end.
+> **Status (2026-07-01): Phases 1-5 built and committed on `refactor`, all green (44/44
+> tests, typecheck + admin build clean). Nothing pushed/deployed. Only Phase 6 (the prod
+> data cutover) remains, and it is gated to after the 3 Jul mock cycle + explicit
+> go-ahead.** Everything is additive behind `enroll_by_run` (default off), so prod is
+> unchanged until a program is switched on at Phase 6. See "What's built" at the end.
 
 ---
 
@@ -148,28 +149,41 @@ silently change, rosters are clean lookups. Bigger now, clean for good.
 
 ---
 
-## Build order (each step verified before the next)
+## Build order (status)
 
-- **Phase 1 - foundation (additive, cannot break prod):** migration (receipt table +
-  `choice_group`); a pure selection/basket library (validate picks, enforce choose-one,
-  sum prices, labels) with tests. Nothing live changes yet.
-- **Phase 2 - read paths:** catalog lists a program's on-sale options; `/api/me`,
-  receipts/emails show option labels + total. Still no behaviour change for non-migrated
-  programs.
-- **Phase 3 - write paths:** registration + payment + add-enrollment write receipt rows;
-  per-option capacity.
-- **Phase 4 - results & admin:** roster from the receipt table; admin Program → Options
-  screen (price, dates, choose-any/one, results per option).
-- **Phase 5 - guardian editing:** change/add options after signup (top-up payment).
-- **Phase 6 - migrate data + switch over** (after 3 Jul, with go-ahead), then drop old columns.
+- [x] **Phase 1 - foundation** (`6023d86`): migration 0033 (receipt table
+  `registration_cohorts` + `cohorts.choice_group`); pure selection/basket lib
+  `worker/lib/enrollment.js` (validate, choose-one, sum, labels, diff, primary) + tests.
+  Additive; nothing live changed.
+- [x] **Phase 2-3 - pricing + write paths** (`c6da475`): catalog priced via `enrollment.js`
+  with choose-one enforcement (flag's `program-runs.js` deleted); registration +
+  add-enrollment **dual-write the receipt** (price frozen); per-option capacity; roster
+  reads the receipt (with a `program_options` fallback removed at Phase 6).
+- [x] **Phase 4 - admin** (`2c0cf2a`): Programs → Options shows each option with inline
+  editable **price** and **choice group** (choose any / choose one); wired through
+  `GET`/`PATCH /cohorts`.
+- [x] **Phase 5 - guardian editing + upgrades** (`293b3f6`): every selection-write path
+  (guardian PATCH, payment-callback upgrade, cron reconcile) keeps the receipt in sync via
+  the shared `worker/lib/receipt.js` helper. Receipt never drifts from `program_options`.
+- [ ] **Phase 6 - data cutover** (after 3 Jul, with go-ahead): backfill existing
+  registrations into the receipt; flip the remaining readers (`/api/me`, reports, receipts)
+  off `program_options`; drop `program_options` / `pricing_json` / `enroll_by_run` and the
+  roster's transition fallback. Needs the confirmed old-id -> run map (§Migration) and the
+  Math/Science/Both decision for the Olympiad.
+
+Deferred simplifications (intentional): the admin choice-group control is **per-option
+inline**, not the grouped-heading mockup above; and the catalog still uses the
+`enroll_by_run` flag as the run-priced signal until the Phase 6 drop.
 
 ---
 
-## What's already built (to be replaced)
+## What's built (folded in, not replaced)
 
-The flag-based version (~51 passing tests) is in the working tree: `enroll_by_run`,
-`worker/lib/program-runs.js`, run branches across `public.js` / `admin.js` / `guardian.js`,
-`scripts/migrate-mock-runs.mjs`. Reusable: the selection-pricing math and the "catalog
-feeds the existing front-end picker" trick. Dropped: the flag and the reuse of
-`program_options` - replaced by the receipt table. This is a redo of the data model, not a
-tweak of the built version.
+The earlier flag-based work was **folded into** this one model rather than thrown away:
+its selection-pricing math became `worker/lib/enrollment.js` (with choose-one added), and
+the "catalog feeds the existing front-end picker" trick is retained, so the static
+registration form needs no change. `program-runs.js` was deleted and the overloaded
+`program_options` was replaced as the source of truth by the `registration_cohorts` receipt
+table. The old `scripts/migrate-mock-runs.mjs` (flag-era) is obsolete; Phase 6 gets a fresh
+receipt-backfill script. `enroll_by_run` remains as the transition signal and is dropped at
+Phase 6.
