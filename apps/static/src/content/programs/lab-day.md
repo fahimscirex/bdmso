@@ -2,7 +2,7 @@
 home_order: "06"
 feeAmount: 2000
 title: "Lab Day Workshop"
-tagline: "Spend your whole day in a laboratory!"
+tagline: "A full day in a laboratory with hands-on session where students train like real scientists."
 metaDescription: "A hands-on 8-hour Lab Day Workshop for Class 5 or below at MASLab, with real Physics, Biology and Chemistry experiments. Lunch, snacks and certificate included."
 startsOn: "2026-07-31"
 endsOn: "2026-07-31"

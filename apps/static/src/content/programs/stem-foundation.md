@@ -2,7 +2,7 @@
 home_order: "09"
 feeAmount: 3000
 title: "STEM Foundation Program"
-tagline: "Build up foundational knowledge this STEM Foundation Program, designed for students from Class 3 to 5."
+tagline: "Build up foundational knowledge with this STEM Foundation Program, designed for students from Class 3 to 5."
 metaDescription: "The BdMSO STEM Foundation Program is a 3-month journey through Science, Technology, Engineering and Math for classes 3 to 5."
 startsOn: "2026-08-15"
 endsOn: "2026-11-15"
@@ -16,7 +16,7 @@ format: "In-person"
 outcome: "Foundational knowledge and analytical thinking"
 level: "Beginner"
 schedule: "3 Month long program · Starts 15 August 2026"
-price: "৳ 3,000 per month"
+price: "৳ 3,000/Month"
 register_url: "/registration?program=stem-foundation"
 register_label: "Enroll now"
 repeatable: true
@@ -48,14 +48,14 @@ Rather than rote memorization, the program nurtures natural curiosity through in
 Every Saturday and Tuesday, 5pm to 7pm at MASLab, Dhanmondi, Dhaka
 
 Month 1 Class Dates: 
-- Class#1: Sat, 15 August, 5pm - 7pm 
-- Class#2: Sat, 15 August, 5pm - 7pm 
-- Class#3: Sat, 15 August, 5pm - 7pm 
-- Class#4: Sat, 15 August, 5pm - 7pm 
-- Class#5: Sat, 15 August, 5pm - 7pm 
-- Class#6: Sat, 15 August, 5pm - 7pm 
-- Class#7: Sat, 15 August, 5pm - 7pm 
-- Class#8: Sat, 15 August, 5pm - 7pm 
+- Class#1: Sat, 15 Aug, 5pm - 7pm 
+- Class#2: Tue, 18 Aug, 5pm - 7pm 
+- Class#3: Sat, 22 Aug, 5pm - 7pm 
+- Class#4: Tue, 25 Aug, 5pm - 7pm 
+- Class#5: Sat, 29 Aug, 5pm - 7pm 
+- Class#6: Tue, 01 Sep, 5pm - 7pm 
+- Class#7: Sat, 05 Sep, 5pm - 7pm 
+- Class#8: Tue, 08 Sep, 5pm - 7pm 
 
 Month 2 Class Dates: Will be Published
 Month 3 Class Dates: Will be Published
