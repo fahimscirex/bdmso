@@ -335,6 +335,7 @@ CREATE TABLE IF NOT EXISTS programs (
   repeatable INTEGER NOT NULL DEFAULT 0,
   always_open INTEGER NOT NULL DEFAULT 0,              -- 1 = year-round, registration always open (ignore dates)
   enroll_by_run INTEGER NOT NULL DEFAULT 0,            -- 1 = priced by runs (cohorts) instead of pricing_json; program_options holds cohort_keys
+  pick_one      INTEGER NOT NULL DEFAULT 0,            -- run-priced only: 1 = parents pick exactly one option; 0 = combine any (prices sum)
   published INTEGER NOT NULL DEFAULT 0,
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_by TEXT,
@@ -490,7 +491,7 @@ CREATE TABLE IF NOT EXISTS cohorts (
   starts_on         TEXT,
   ends_on           TEXT,
   price_override    INTEGER,                       -- this option's price (falls back to programs.fee_amount when null)
-  choice_group      TEXT,                           -- options sharing a non-null value are mutually exclusive ("choose one"); NULL = freely combinable ("choose any")
+  choice_group      TEXT,                           -- reserved/unused; pick-one is driven by programs.pick_one (see migration 0034)
   capacity          INTEGER,
   sections          TEXT NOT NULL DEFAULT '[]',
   results_published INTEGER NOT NULL DEFAULT 0,  -- released to guardians (private scores)

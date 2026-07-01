@@ -193,6 +193,7 @@ type Form = {
   repeatable: boolean;
   always_open: boolean;
   enroll_by_run: boolean;
+  pick_one: boolean;
 };
 
 const blankForm: Form = {
@@ -201,7 +202,7 @@ const blankForm: Form = {
   outcome: '', level: '', schedule_label: '', starts_on: '', ends_on: '',
   registration_opens: '', registration_closes: '', price_label: '', fee_amount: '',
   meta_description: '', home_order: '', register_url: '', register_label: '', body_md: '',
-  published: false, hidden: false, repeatable: false, always_open: false, enroll_by_run: false,
+  published: false, hidden: false, repeatable: false, always_open: false, enroll_by_run: false, pick_one: false,
 };
 
 const str = (v: unknown) => (v == null ? '' : String(v));
@@ -253,6 +254,7 @@ function ProgramEditor({ item, trigger, onSaved }: { item?: Program; trigger: Re
       repeatable: !!p.repeatable,
       always_open: !!p.always_open,
       enroll_by_run: !!p.enroll_by_run,
+      pick_one: !!p.pick_one,
       });
     });
   }, [open, item]);
@@ -287,6 +289,7 @@ function ProgramEditor({ item, trigger, onSaved }: { item?: Program; trigger: Re
       repeatable: form.repeatable,
       always_open: form.always_open,
       enroll_by_run: form.enroll_by_run,
+      pick_one: form.pick_one,
       pricing: choices.length
         ? { selection, choices: choices.map((c) => ({ id: c.id || slugify(c.label), label: c.label, note: c.note, price: Number(c.price) || 0 })) }
         : null,
@@ -359,27 +362,40 @@ function ProgramEditor({ item, trigger, onSaved }: { item?: Program; trigger: Re
             </SelectContent>
           </Select>
         </EditorField>
-        <div className="grid grid-cols-2 gap-3">
-          <EditorField label="Registration opens" htmlFor="registration_opens" hint="When the registration window opens.">
-            <DateField id="registration_opens" value={form.registration_opens} onChange={(v) => set('registration_opens', v)} />
-          </EditorField>
-          <EditorField label="Registration closes" htmlFor="registration_closes" hint="When registration closes.">
-            <DateField id="registration_closes" value={form.registration_closes} onChange={(v) => set('registration_closes', v)} />
-          </EditorField>
-          <EditorField label="Starts on" htmlFor="starts_on" hint="Program start date.">
-            <DateField id="starts_on" value={form.starts_on} onChange={(v) => set('starts_on', v)} />
-          </EditorField>
-          <EditorField label="Ends on" htmlFor="ends_on" hint="Program end date.">
-            <DateField id="ends_on" value={form.ends_on} onChange={(v) => set('ends_on', v)} />
-          </EditorField>
-        </div>
-        <EditorField label="Schedule label" htmlFor="schedule_label" hint="Human-readable schedule, e.g. Every Friday 4-6pm.">
-          <Input id="schedule_label" value={form.schedule_label} onChange={(e) => set('schedule_label', e.target.value)} />
-        </EditorField>
+        {form.enroll_by_run ? (
+          <p className="text-sm text-muted-foreground">
+            Dates are set per run below (each option owns its enrol window and session dates).
+            The schedule shown on the site is generated automatically from the runs that are
+            enrolling or upcoming.
+          </p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <EditorField label="Registration opens" htmlFor="registration_opens" hint="When the registration window opens.">
+                <DateField id="registration_opens" value={form.registration_opens} onChange={(v) => set('registration_opens', v)} />
+              </EditorField>
+              <EditorField label="Registration closes" htmlFor="registration_closes" hint="When registration closes.">
+                <DateField id="registration_closes" value={form.registration_closes} onChange={(v) => set('registration_closes', v)} />
+              </EditorField>
+              <EditorField label="Starts on" htmlFor="starts_on" hint="Program start date.">
+                <DateField id="starts_on" value={form.starts_on} onChange={(v) => set('starts_on', v)} />
+              </EditorField>
+              <EditorField label="Ends on" htmlFor="ends_on" hint="Program end date.">
+                <DateField id="ends_on" value={form.ends_on} onChange={(v) => set('ends_on', v)} />
+              </EditorField>
+            </div>
+            <EditorField label="Schedule label" htmlFor="schedule_label" hint="Human-readable schedule, e.g. Every Friday 4-6pm.">
+              <Input id="schedule_label" value={form.schedule_label} onChange={(e) => set('schedule_label', e.target.value)} />
+            </EditorField>
+          </>
+        )}
         <div className="grid gap-3 sm:grid-cols-2">
           <SwitchField label="Always open" hint="When on, ignore the open/close dates and always accept signups." checked={form.always_open} onChange={(v) => set('always_open', v)} />
           <SwitchField label="Repeatable" hint="When on, a guardian may register more than once." checked={form.repeatable} onChange={(v) => set('repeatable', v)} />
-          <SwitchField label="Enroll by run" hint="When on, students pick one or more runs (cohorts) and pay the sum of their prices. Set each run's price on its row. Leave off to use pricing options or the flat fee." checked={form.enroll_by_run} onChange={(v) => set('enroll_by_run', v)} />
+          <SwitchField label="Enroll by run" hint="When on, students pick from this program's runs (below) and pay per run. Set each run's price and dates on its row. Leave off to use pricing options or the flat fee." checked={form.enroll_by_run} onChange={(v) => set('enroll_by_run', v)} />
+          {form.enroll_by_run && (
+            <SwitchField label="Parents pick one option" hint="On: parents choose exactly one run (e.g. Math / Science / Both). Off: they can combine runs and the prices add up (e.g. several Mock Test dates)." checked={form.pick_one} onChange={(v) => set('pick_one', v)} />
+          )}
         </div>
       </EditorSection>
 
@@ -546,17 +562,6 @@ function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void 
     run(api.cohortUpdate(c.cohortKey, { price_override: next }), 'Run price updated', onChange);
   };
 
-  // Choice group: options sharing a group name are "choose one" (mutually
-  // exclusive, e.g. Math/Science/Both); blank = "choose any" (combinable).
-  const [groupDraft, setGroupDraft] = useState(c.choiceGroup ?? '');
-  const [editingGroup, setEditingGroup] = useState(false);
-  const commitGroup = () => {
-    setEditingGroup(false);
-    const next = groupDraft.trim();
-    if (next === (c.choiceGroup ?? '')) return;
-    run(api.cohortUpdate(c.cohortKey, { choice_group: next }), 'Run group updated', onChange);
-  };
-
   // Per-run dates: each option owns its enrol window + session dates. Saved on
   // change (native date input gives 'YYYY-MM-DD' or ''). Empty clears the date.
   const saveDate = (field: 'enroll_opens' | 'enroll_closes' | 'starts_on' | 'ends_on', value: string) =>
@@ -600,25 +605,6 @@ function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void 
         ) : (
           <button type="button" className="rounded px-1 py-0.5 hover:bg-accent" title="Set this run's price" onClick={() => { setPriceDraft(c.priceOverride == null ? '' : String(c.priceOverride)); setEditingPrice(true); }}>
             {c.priceOverride == null ? <span className="text-muted-foreground">flat fee</span> : <span>৳{c.priceOverride}</span>}
-          </button>
-        )}
-      </div>
-      <div className="text-sm">
-        {editingGroup ? (
-          <input
-            autoFocus
-            type="text" placeholder="group"
-            className="w-24 rounded border border-input bg-background px-1.5 py-0.5 text-sm"
-            value={groupDraft}
-            onChange={(e) => setGroupDraft(e.target.value)}
-            onBlur={commitGroup}
-            onKeyDown={(e) => { if (e.key === 'Enter') commitGroup(); if (e.key === 'Escape') { setGroupDraft(c.choiceGroup ?? ''); setEditingGroup(false); } }}
-          />
-        ) : (
-          <button type="button" className="rounded px-1 py-0.5 hover:bg-accent" title="Options sharing a group name are 'choose one'; blank = 'choose any'" onClick={() => { setGroupDraft(c.choiceGroup ?? ''); setEditingGroup(true); }}>
-            {c.choiceGroup
-              ? <span className="text-amber-700 dark:text-amber-400">one of: {c.choiceGroup}</span>
-              : <span className="text-muted-foreground">choose any</span>}
           </button>
         )}
       </div>

@@ -116,7 +116,7 @@ type ProgramBody = {
   outcome: string; level: string; meta_description: string; home_order: string;
   register_url: string; register_label: string;
   hidden: boolean; repeatable: boolean; always_open: boolean; published: boolean; body_md: string;
-  enroll_by_run: boolean;
+  enroll_by_run: boolean; pick_one: boolean;
   pricing: ProgramPricing | null;
 };
 type ProgramPricing = {

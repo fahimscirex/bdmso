@@ -3153,6 +3153,7 @@ function normaliseProgramRow(r, { withBody = false } = {}) {
     repeatable:          r.repeatable === 1,
     always_open:         r.always_open === 1,
     enroll_by_run:       r.enroll_by_run === 1,
+    pick_one:            r.pick_one === 1,
     published:           r.published === 1,
     updated_at:          r.updated_at,
     updated_by:          r.updated_by || null,
@@ -3205,7 +3206,7 @@ function sanitiseProgramInput(input, { partial = false } = {}) {
     if (res.error) return { error: res.error };
     v.pricing_json = res.json;
   }
-  for (const k of ["hidden", "repeatable", "always_open", "enroll_by_run", "published"]) {
+  for (const k of ["hidden", "repeatable", "always_open", "enroll_by_run", "pick_one", "published"]) {
     if (has(k)) v[k] = input[k] ? 1 : 0;
   }
   return { values: v };

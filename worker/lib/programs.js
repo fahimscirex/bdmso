@@ -63,12 +63,24 @@ function runDateRange(run) {
   return s || e || "";
 }
 
+const LONG_MONTHS = ["January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"];
+// "19 June 2026" from an ISO date - long form for the auto-generated schedule
+// label of a run-priced program.
+function formatLongDate(iso) {
+  if (!iso) return "";
+  const [y, m, d] = iso.slice(0, 10).split("-");
+  const mi = Number(m) - 1;
+  if (!y || mi < 0 || mi > 11) return "";
+  return `${Number(d)} ${LONG_MONTHS[mi]} ${y}`;
+}
+
 // Read the programs table and build the catalog object.
 export async function loadCatalog(env) {
   const { results } = await env.DB.prepare(
     `SELECT slug, title, fee_amount, pricing_json, registration_status,
             registration_opens, registration_closes, starts_on, hidden, repeatable,
-            always_open, enroll_by_run
+            always_open, enroll_by_run, pick_one
        FROM programs`
   ).all();
   const rows = results || [];
@@ -99,14 +111,18 @@ export async function loadCatalog(env) {
   for (const c of (cohortRows || [])) {
     const fee = prices[c.program_slug] ?? null;
     const price = c.price_override != null ? c.price_override : fee;
-    const enrolling = deriveCohortStage(
+    const stage = deriveCohortStage(
       c.status, c.enroll_opens, c.enroll_closes, c.starts_on, c.ends_on,
-    ) === "enrolling";
+    );
+    // Pick-one is a per-program setting: when programs.pick_one is on, all the
+    // program's options share one group so enrollment.js enforces "pick exactly
+    // one"; otherwise they combine freely. (Supersedes per-run choice_group.)
+    const choiceGroup = bySlug[c.program_slug]?.pick_one === 1 ? "_" : null;
     (runsBySlug[c.program_slug] ||= []).push({
-      key: c.cohort_key, label: c.label, price, enrolling,
+      key: c.cohort_key, label: c.label, price, enrolling: stage === "enrolling", stage,
       // camelCase fields are the shape enrollment.js consumes; starts_on/ends_on
       // stay for runDateRange/clientRuns below.
-      choiceGroup: c.choice_group || null, startsOn: c.starts_on || null,
+      choiceGroup, startsOn: c.starts_on || null,
       starts_on: c.starts_on || null, ends_on: c.ends_on || null,
     });
   }
@@ -175,6 +191,18 @@ export async function loadCatalog(env) {
     // array for handleCatalog to build picker items.
     runsFor(slug) {
       return runsBySlug[slug] || [];
+    },
+    // Auto-generated schedule for a run-priced program: session dates of the
+    // runs that are enrolling or upcoming, in date order (e.g.
+    // "19 June 2026 · 26 June 2026 · 3 July 2026"). Empty string if none.
+    scheduleLabel(slug) {
+      return (runsBySlug[slug] || [])
+        .filter((r) => r.stage === "enrolling" || r.stage === "upcoming")
+        .slice()
+        .sort((a, b) => ((a.startsOn || "9999-12-31") < (b.startsOn || "9999-12-31") ? -1 : 1))
+        .map((r) => formatLongDate(r.startsOn))
+        .filter(Boolean)
+        .join(" · ");
     },
     validateAndPriceRuns(slug, keys) {
       return validateAndPriceSelection(runsBySlug[slug] || [], keys);

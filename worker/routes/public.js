@@ -371,7 +371,9 @@ export async function handleCatalog(request, env) {
       level: r.level || null,
       price: r.price_label || null,
       feeAmount: r.fee_amount ?? null,
-      schedule: r.schedule_label || null,
+      // Run-priced programs auto-generate their schedule from the runs that are
+      // enrolling or upcoming; others use the manual schedule label.
+      schedule: catalog.isRunPriced(r.slug) ? (catalog.scheduleLabel(r.slug) || null) : (r.schedule_label || null),
       startsOn: r.starts_on || null,
       endsOn: r.ends_on || null,
       registrationStatus: r.registration_status,
