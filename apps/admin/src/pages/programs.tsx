@@ -4,7 +4,7 @@ import type { Cohort, CohortStatus, Program } from '@/lib/types';
 import { api } from '@/lib/api';
 import { ApiError } from '@/lib/http';
 import { run } from '@/lib/run';
-import { bdt, dateUK } from '@/lib/format';
+import { bdt } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { cap } from '@/lib/table';
 import { ListError } from '@/components/list-error';
@@ -41,8 +41,6 @@ const RUN_TONE: Record<CohortStatus, string> = {
   ended:     'bg-zinc-500/15 text-zinc-600 dark:text-zinc-400',
   archived:  'bg-zinc-500/10 text-muted-foreground',
 };
-const dateRange = (a: string | null, b: string | null) =>
-  a || b ? `${a ? dateUK(a) : '—'} → ${b ? dateUK(b) : '—'}` : '—';
 
 export function ProgramsPage() {
   const [rows, setRows] = useState<Program[] | null>(null);
@@ -559,6 +557,12 @@ function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void 
     run(api.cohortUpdate(c.cohortKey, { choice_group: next }), 'Run group updated', onChange);
   };
 
+  // Per-run dates: each option owns its enrol window + session dates. Saved on
+  // change (native date input gives 'YYYY-MM-DD' or ''). Empty clears the date.
+  const saveDate = (field: 'enroll_opens' | 'enroll_closes' | 'starts_on' | 'ends_on', value: string) =>
+    run(api.cohortUpdate(c.cohortKey, { [field]: value || null }), 'Run dates updated', onChange);
+  const dateInput = 'rounded border border-input bg-background px-1 py-0.5 text-xs';
+
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2.5">
       <div className="min-w-0 flex-1">
@@ -568,8 +572,15 @@ function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void 
           {c.resultsPublished && <Badge className="border-transparent bg-emerald-500/15 text-[10px] text-emerald-700 dark:text-emerald-400">Released</Badge>}
           {c.publicFeatured && <Badge className="border-transparent bg-violet-500/15 text-[10px] text-violet-700 dark:text-violet-400">On results page</Badge>}
         </div>
-        <div className="text-xs text-muted-foreground">
-          Enrol {dateRange(c.enrollOpens, c.enrollCloses)} · Session {dateRange(c.startsOn, c.endsOn)}
+        <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
+          <span>Enrol</span>
+          <input type="date" className={dateInput} value={c.enrollOpens ?? ''} onChange={(e) => saveDate('enroll_opens', e.target.value)} aria-label="Enrolment opens" />
+          <span>→</span>
+          <input type="date" className={dateInput} value={c.enrollCloses ?? ''} onChange={(e) => saveDate('enroll_closes', e.target.value)} aria-label="Enrolment closes" />
+          <span className="ml-2">Session</span>
+          <input type="date" className={dateInput} value={c.startsOn ?? ''} onChange={(e) => saveDate('starts_on', e.target.value)} aria-label="Session starts" />
+          <span>→</span>
+          <input type="date" className={dateInput} value={c.endsOn ?? ''} onChange={(e) => saveDate('ends_on', e.target.value)} aria-label="Session ends" />
         </div>
       </div>
       <div className="text-sm tabular-nums">

@@ -2658,6 +2658,15 @@ admin.patch("/cohorts/:key", async (c) => {
     const g = typeof b.choice_group === "string" ? b.choice_group.trim() : "";
     sets.push("choice_group = ?"); binds.push(g || null);
   }
+  // Per-run dates (options model): each run owns its enrol window + session
+  // dates, edited here rather than inherited from the program. ISO or empty.
+  for (const col of ["enroll_opens", "enroll_closes", "starts_on", "ends_on"]) {
+    if (b[col] === undefined) continue;
+    const v = b[col];
+    if (v === null || v === "") { sets.push(`${col} = ?`); binds.push(null); }
+    else if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v)) { sets.push(`${col} = ?`); binds.push(v); }
+    else return c.json({ error: `${col} must be an ISO date (YYYY-MM-DD) or empty.` }, 400);
+  }
   if (!sets.length) return c.json({ error: "No editable fields." }, 400);
 
   await c.env.DB.prepare(`UPDATE cohorts SET ${sets.join(", ")} WHERE cohort_key = ?`).bind(...binds, key).run();
@@ -3070,11 +3079,14 @@ admin.patch("/programs/:slug", async (c) => {
     starts_on:           "starts_on",
     ends_on:             "ends_on",
   };
+  // Run-priced programs manage dates per run (each option owns its window), so
+  // the program's dates must NOT clobber them. Only legacy programs re-sync.
+  const rp = await c.env.DB.prepare("SELECT enroll_by_run FROM programs WHERE slug = ? LIMIT 1").bind(slug).first();
   const dateSets = [], dateBinds = [];
   for (const [pk, ck] of Object.entries(COHORT_DATE_MAP)) {
     if (pk in sani.values) { dateSets.push(`${ck} = ?`); dateBinds.push(sani.values[pk]); }
   }
-  if (dateSets.length) {
+  if (dateSets.length && rp?.enroll_by_run !== 1) {
     await c.env.DB.prepare(
       `UPDATE cohorts SET ${dateSets.join(", ")} WHERE program_slug = ? AND status NOT IN ('ended', 'archived')`
     ).bind(...dateBinds, slug).run();

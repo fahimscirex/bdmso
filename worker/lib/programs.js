@@ -239,6 +239,9 @@ export async function loadCatalog(env) {
       const r = bySlug[slug];
       if (!r) return false;
       if (r.hidden) return false;
+      // Run-priced programs are governed by their runs' own enrol windows, not
+      // the program-level dates: open iff at least one run is currently enrolling.
+      if (r.enroll_by_run === 1) return (runsBySlug[slug] || []).some((run) => run.enrolling);
       return deriveRegState(r.always_open === 1, r.registration_opens, r.registration_closes, todayISO) === "open";
     },
     // Effective fee for a registration row: run-priced -> sum of stored run
