@@ -4,10 +4,10 @@ feeAmount: 3000
 title: "STEM Foundation Program"
 tagline: "Build up foundational knowledge this STEM Foundation Program, designed for students from Class 3 to 5."
 metaDescription: "The BdMSO STEM Foundation Program is a 3-month journey through Science, Technology, Engineering and Math for classes 3 to 5."
-startsOn: "2026-08-09"
-endsOn: "2026-10-27"
-registrationStarts: "2026-07-03"
-registrationEnds: "2026-08-07"
+startsOn: "2026-08-15"
+endsOn: "2026-11-15"
+registrationStarts: "2026-07-10"
+registrationEnds: "2026-08-08"
 eyebrow: "Year-round · Foundation"
 image: "/images/stem.webp"
 audience: "Class 3-4-5"
@@ -15,12 +15,12 @@ duration: "2 Classes/Week"
 format: "In-person"
 outcome: "Foundational knowledge and analytical thinking"
 level: "Beginner"
-schedule: "3 Month long program · Starts 9 August 2026"
-price: "৳ 3,000"
+schedule: "3 Month long program · Starts 15 August 2026"
+price: "৳ 3,000 per month"
 register_url: "/registration?program=stem-foundation"
 register_label: "Enroll now"
 repeatable: true
-options: {"kind":"checkbox","items":[{"id":"august-month-1","label":"August | Month 1","sub":"8 Classes, Every Sunday and Tuesday","price":3000},{"id":"september-month-2","label":"September | Month 2","sub":"9 Classes, Every Sunday and Tuesday","price":3000},{"id":"october-month-3","label":"October | Month 3","sub":"8 Classes, Every Sunday and Tuesday","price":3000}]}
+options: {"kind":"checkbox","items":[{"id":"august-month-1","label":"Month 1 | Aug-Sep","sub":"8 Classes, Every Saturday and Tuesday","price":3000},{"id":"september-month-2","label":"Month 2 | Sep-Oct","sub":"8 Classes, Every Saturday and Tuesday","price":3000},{"id":"october-month-3","label":"Month 3 | Oct-Nov","sub":"8 Classes, Every Saturday and Tuesday","price":3000}]}
 category: "beginner"
 ---
 
@@ -45,4 +45,18 @@ Rather than rote memorization, the program nurtures natural curiosity through in
 
 ## Class Schedule
 
-Every Sunday and Tuesday, 5pm to 7pm at MASLab, Dhanmondi, Dhaka
+Every Saturday and Tuesday, 5pm to 7pm at MASLab, Dhanmondi, Dhaka
+
+Month 1 Class Dates: 
+- Class#1: Sat, 15 August, 5pm - 7pm 
+- Class#2: Sat, 15 August, 5pm - 7pm 
+- Class#3: Sat, 15 August, 5pm - 7pm 
+- Class#4: Sat, 15 August, 5pm - 7pm 
+- Class#5: Sat, 15 August, 5pm - 7pm 
+- Class#6: Sat, 15 August, 5pm - 7pm 
+- Class#7: Sat, 15 August, 5pm - 7pm 
+- Class#8: Sat, 15 August, 5pm - 7pm 
+
+Month 2 Class Dates: Will be Published
+Month 3 Class Dates: Will be Published
+
