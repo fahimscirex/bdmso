@@ -7,7 +7,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFile
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
-import { deriveCohortStage } from '../worker/lib/program-options.js';
+import { deriveCohortStage, scheduleLabelFromRuns } from '../worker/lib/program-options.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..');
@@ -96,29 +96,13 @@ function readExistingValue(frontmatter, key) {
   return null;
 }
 
-const LONG_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'];
-function formatLongDate(iso) {
-  if (!iso) return '';
-  const [y, m, d] = String(iso).slice(0, 10).split('-');
-  const mi = Number(m) - 1;
-  if (!y || mi < 0 || mi > 11) return '';
-  return `${Number(d)} ${LONG_MONTHS[mi]} ${y}`;
-}
-
-// Schedule for a run-priced program: distinct session dates of runs that are
-// enrolling or upcoming, in date order. Mirrors catalog.scheduleLabel() so the
-// static page matches the live /api/catalog.
+// Schedule for a run-priced program - the same shared builder the live
+// /api/catalog uses (scheduleLabelFromRuns), so the static page matches it.
 function deriveRunSchedule(cohorts) {
-  const seen = new Set();
-  const dates = [];
-  for (const c of (cohorts || [])) {
-    const stage = deriveCohortStage(c.status, c.enroll_opens, c.enroll_closes, c.starts_on, c.ends_on);
-    if (stage !== 'enrolling' && stage !== 'upcoming') continue;
-    if (!c.starts_on || seen.has(c.starts_on)) continue;
-    seen.add(c.starts_on); dates.push(c.starts_on);
-  }
-  return dates.sort().map(formatLongDate).filter(Boolean).join(' · ');
+  return scheduleLabelFromRuns((cohorts || []).map((c) => ({
+    stage: deriveCohortStage(c.status, c.enroll_opens, c.enroll_closes, c.starts_on, c.ends_on),
+    startsOn: c.starts_on, endsOn: c.ends_on, enrollCloses: c.enroll_closes,
+  })));
 }
 
 function buildProgramFrontmatter(row, existingFrontmatter, runSchedule) {

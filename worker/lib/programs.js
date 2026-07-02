@@ -14,6 +14,7 @@ import {
   computeDiff,
   deriveRegState,
   deriveCohortStage,
+  scheduleLabelFromRuns,
 } from "./program-options.js";
 import {
   validateAndPriceSelection,
@@ -62,17 +63,6 @@ function runDateRange(run) {
   return s || e || "";
 }
 
-const LONG_MONTHS = ["January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"];
-// "19 June 2026" from an ISO date - long form for the auto-generated schedule
-// label of a run-priced program.
-function formatLongDate(iso) {
-  if (!iso) return "";
-  const [y, m, d] = iso.slice(0, 10).split("-");
-  const mi = Number(m) - 1;
-  if (!y || mi < 0 || mi > 11) return "";
-  return `${Number(d)} ${LONG_MONTHS[mi]} ${y}`;
-}
 
 // Read the programs table and build the catalog object.
 export async function loadCatalog(env) {
@@ -125,6 +115,7 @@ export async function loadCatalog(env) {
     const common = {
       cohortKey: c.cohort_key, enrolling, stage, choiceGroup: group,
       startsOn: c.starts_on || null, starts_on: c.starts_on || null, ends_on: c.ends_on || null,
+      endsOn: c.ends_on || null, enrollOpens: c.enroll_opens || null, enrollCloses: c.enroll_closes || null,
     };
     let opts = [];
     try { const v = JSON.parse(c.options_json || "[]"); if (Array.isArray(v)) opts = v; } catch { /* ignore */ }
@@ -239,14 +230,17 @@ export async function loadCatalog(env) {
     // dates of runs that are enrolling or upcoming, in date order (e.g.
     // "19 June 2026 · 26 June 2026 · 3 July 2026"). Empty string if none.
     scheduleLabel(slug) {
-      const seen = new Set();
-      const dates = [];
-      for (const r of (runsBySlug[slug] || [])) {
-        if (r.stage !== "enrolling" && r.stage !== "upcoming") continue;
-        if (!r.startsOn || seen.has(r.startsOn)) continue;
-        seen.add(r.startsOn); dates.push(r.startsOn);
-      }
-      return dates.sort().map(formatLongDate).filter(Boolean).join(" · ");
+      return scheduleLabelFromRuns(runsBySlug[slug] || []);
+    },
+    // Effective enrolment window from the active runs: earliest open, latest
+    // close. Null fields when no run is enrolling/upcoming - callers fall back
+    // to the program-level columns.
+    enrollWindow(slug) {
+      const active = (runsBySlug[slug] || []).filter((r) => r.stage === "enrolling" || r.stage === "upcoming");
+      return {
+        opens: active.map((r) => r.enrollOpens).filter(Boolean).sort()[0] || null,
+        closes: active.map((r) => r.enrollCloses).filter(Boolean).sort().pop() || null,
+      };
     },
     validateAndPriceRuns(slug, keys) {
       return validateAndPriceSelection(runsBySlug[slug] || [], keys);

@@ -116,3 +116,35 @@ export function deriveCohortStage(status, enrollOpens, enrollCloses, startsOn, e
   if (!enrollCloses || today <= enrollCloses) return 'enrolling';
   return 'running';
 }
+
+// ── Schedule label ──────────────────────────────────────────────────────────
+// Human schedule line for a program's runs - what shows under the price on the
+// program cards/pages. Takes [{ stage, startsOn, enrollCloses }] (one per run;
+// per-option duplicates are fine) and states the two facts a parent actually
+// needs, from the runs that are enrolling or upcoming:
+//
+//   both known       "Registration ends 10 July 2026 · Session starts 3 August 2026"
+//   deadline only    "Registration ends 10 July 2026"           (competitions)
+//   session only     "Session starts 19 June 2026"
+//   nothing active   ""   (callers fall back to the manual label)
+//
+// Several runs collapse to the latest deadline + the earliest session start;
+// each option's own dates are shown on its row in the picker.
+const SCHEDULE_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'];
+
+function formatDay(iso) {
+  const [y, m, d] = String(iso || '').slice(0, 10).split('-').map(Number);
+  if (!y || !m || m > 12 || !d) return '';
+  return `${d} ${SCHEDULE_MONTHS[m - 1]} ${y}`;
+}
+
+export function scheduleLabelFromRuns(windows) {
+  const active = (windows || []).filter((w) => w && (w.stage === 'enrolling' || w.stage === 'upcoming'));
+  const closes = active.map((w) => w.enrollCloses).filter(Boolean).sort().pop();
+  const starts = active.map((w) => w.startsOn).filter(Boolean).sort()[0];
+  const parts = [];
+  if (closes) parts.push(`Registration ends ${formatDay(closes)}`);
+  if (starts) parts.push(`Session starts ${formatDay(starts)}`);
+  return parts.join(' · ');
+}

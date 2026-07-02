@@ -50,3 +50,39 @@ test("deriveRegState: year-round is always open; else window-driven", () => {
   assert.equal(deriveRegState(false, "2026-06-01", "2026-06-30", TODAY), "open");
   assert.equal(deriveRegState(false, null, null, TODAY), "closed");
 });
+
+// ── scheduleLabelFromRuns: the descriptive schedule line ────────────────────
+import { scheduleLabelFromRuns } from "./program-options.js";
+const run = (o) => ({ stage: "enrolling", ...o });
+
+test("schedule: deadline + session start, both stated", () => {
+  const label = scheduleLabelFromRuns([run({ startsOn: "2026-08-03", enrollCloses: "2026-07-10" })]);
+  assert.equal(label, "Registration ends 10 July 2026 · Session starts 3 August 2026");
+});
+
+test("schedule: deadline only (undated competitions)", () => {
+  assert.equal(
+    scheduleLabelFromRuns([run({ enrollCloses: "2026-07-10" })]),
+    "Registration ends 10 July 2026",
+  );
+});
+
+test("schedule: session only (no enrolment close set)", () => {
+  assert.equal(
+    scheduleLabelFromRuns([run({ startsOn: "2026-06-19" })]),
+    "Session starts 19 June 2026",
+  );
+});
+
+test("schedule: several runs -> latest deadline + earliest session start", () => {
+  const label = scheduleLabelFromRuns([
+    run({ startsOn: "2026-07-31", enrollCloses: "2026-07-27" }),
+    run({ startsOn: "2026-06-19", enrollCloses: "2026-07-01" }),
+  ]);
+  assert.equal(label, "Registration ends 27 July 2026 · Session starts 19 June 2026");
+});
+
+test("schedule: only ended/archived runs -> empty (caller falls back to manual label)", () => {
+  assert.equal(scheduleLabelFromRuns([{ stage: "ended", startsOn: "2026-06-19", enrollCloses: "2026-06-30" }]), "");
+  assert.equal(scheduleLabelFromRuns([]), "");
+});

@@ -359,6 +359,9 @@ export async function handleCatalog(request, env) {
         }
       } catch { /* ignore bad json */ }
     }
+    // Effective enrolment window: the runs' dates when any run is active,
+    // else the program-level columns.
+    const win = catalog.enrollWindow(r.slug);
     return {
       slug: r.slug,
       title: r.title,
@@ -374,14 +377,14 @@ export async function handleCatalog(request, env) {
       // program label is only the fallback when nothing priced is enrolling.
       price: catalog.priceLabel(r.slug) || r.price_label || null,
       feeAmount: r.fee_amount ?? null,
-      // Run-priced programs auto-generate their schedule from the runs that are
-      // enrolling or upcoming; others use the manual schedule label.
-      schedule: catalog.isRunPriced(r.slug) ? (catalog.scheduleLabel(r.slug) || null) : (r.schedule_label || null),
+      // Auto-generated from the runs that are enrolling or upcoming; the
+      // manual schedule label is the fallback when the runs say nothing.
+      schedule: catalog.scheduleLabel(r.slug) || r.schedule_label || null,
       startsOn: r.starts_on || null,
       endsOn: r.ends_on || null,
       registrationStatus: r.registration_status,
-      registrationStarts: r.registration_opens || null,
-      registrationEnds: r.registration_closes || null,
+      registrationStarts: win.opens || r.registration_opens || null,
+      registrationEnds: win.closes || r.registration_closes || null,
       // Run-based: open iff the program has an enrolling run (matches the
       // server gate in registrationOpenFor), not the legacy program date window.
       registration: catalog.registrationOpenFor(r.slug),
