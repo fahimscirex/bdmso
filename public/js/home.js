@@ -86,7 +86,12 @@ async function renderPrograms() {
 
   const todayISO = new Date().toISOString().slice(0, 10);
   const cardState = (p) => {
-    if (p.registration === false) return 'closed';
+    // `registration` is the run-based gate and authoritative - the program's
+    // own date window must not overrule an open run.
+    if (p.registration === true) return 'open';
+    if (p.registration === false) {
+      return p.registrationStarts && todayISO < p.registrationStarts ? 'upcoming' : 'closed';
+    }
     if (p.registrationStarts && todayISO < p.registrationStarts) return 'upcoming';
     if (p.registrationEnds && todayISO > p.registrationEnds) return 'closed';
     return 'open';

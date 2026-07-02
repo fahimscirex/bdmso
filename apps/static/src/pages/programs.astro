@@ -519,7 +519,15 @@ const cards = programs
       if (starts || ends) return 'open';
       return 'closed';
     }
-    function statusFor(card) {
+    // Live-first: /api/catalog's `registration` boolean is the run-based gate
+    // (the truth since programs went run-based); the baked date window is only
+    // the fallback for when the catalog can't be reached.
+    function statusFor(card, live) {
+      const p = live.get(card.dataset.slug);
+      if (p && typeof p.registration === 'boolean') {
+        if (p.registration) return 'open';
+        return p.registrationStarts && todayISO < p.registrationStarts ? 'soon' : 'closed';
+      }
       const state = deriveRegState(
         card.dataset.yearRound === 'true',
         card.dataset.starts,
@@ -529,48 +537,65 @@ const cards = programs
       return state === 'upcoming' ? 'soon' : state;
     }
 
-    const all = cardEls.map((card) => ({
-      card, status: statusFor(card)
-    })).filter(({ status }) => status !== null);
-
-    // Sort: open → soon → rolling. Stable within group preserves source order.
-    all.sort((a, b) => ORDER[a.status] - ORDER[b.status]);
-
-    // Stamp data-status + apply visual treatment per status:
-    //   open    - green pulsing dot in the topbar's right slot
-    //   soon    - card faded, "Upcoming" overlay centered
-    //   rolling - card faded, "Will be announced" overlay centered
-    for (const { card, status } of all) {
-      card.dataset.status = status;
-      if (status === 'open') {
-        const topbar = card.querySelector('.p-card-topbar');
-        if (topbar && !topbar.querySelector('.p-card-dot')) {
-          const dot = document.createElement('span');
-          dot.className = 'p-card-dot';
-          dot.setAttribute('aria-hidden', 'true');
-          topbar.appendChild(dot);
+    function enhance(live) {
+      // Refresh each card's fee from the live catalog (runs own the price now).
+      for (const card of cardEls) {
+        const p = live.get(card.dataset.slug);
+        if (p && p.price) {
+          const fee = card.querySelector('.p-card-fee');
+          if (fee) fee.textContent = p.price;
         }
-      } else if (status === 'soon') {
-        card.classList.add('p-card--soon');
-        const ov = document.createElement('div');
-        ov.className = 'p-card-overlay';
-        ov.textContent = 'Upcoming';
-        card.appendChild(ov);
-      } else if (status === 'closed') {
-        card.classList.add('p-card--soon');
-        const ov = document.createElement('div');
-        ov.className = 'p-card-overlay';
-        ov.textContent = 'Registration closed';
-        card.appendChild(ov);
       }
+
+      const all = cardEls.map((card) => ({
+        card, status: statusFor(card, live)
+      })).filter(({ status }) => status !== null);
+
+      // Sort: open → soon → rolling. Stable within group preserves source order.
+      all.sort((a, b) => ORDER[a.status] - ORDER[b.status]);
+
+      // Stamp data-status + apply visual treatment per status:
+      //   open    - green pulsing dot in the topbar's right slot
+      //   soon    - card faded, "Upcoming" overlay centered
+      //   rolling - card faded, "Will be announced" overlay centered
+      for (const { card, status } of all) {
+        card.dataset.status = status;
+        if (status === 'open') {
+          const topbar = card.querySelector('.p-card-topbar');
+          if (topbar && !topbar.querySelector('.p-card-dot')) {
+            const dot = document.createElement('span');
+            dot.className = 'p-card-dot';
+            dot.setAttribute('aria-hidden', 'true');
+            topbar.appendChild(dot);
+          }
+        } else if (status === 'soon') {
+          card.classList.add('p-card--soon');
+          const ov = document.createElement('div');
+          ov.className = 'p-card-overlay';
+          ov.textContent = 'Upcoming';
+          card.appendChild(ov);
+        } else if (status === 'closed') {
+          card.classList.add('p-card--soon');
+          const ov = document.createElement('div');
+          ov.className = 'p-card-overlay';
+          ov.textContent = 'Registration closed';
+          card.appendChild(ov);
+        }
+      }
+
+      for (const { card } of all) grid.appendChild(card);
     }
 
-    // Append everything to the single grid. The count line stays hidden
-    // until the user actually filters - no point telling people there
-    // are "12 programs" when 12 cards are right there in front of them.
+    // The count line stays hidden until the user actually filters - no point
+    // telling people there are "12 programs" when 12 cards are right there.
     const count = document.getElementById('all-count');
-    for (const { card } of all) grid.appendChild(card);
-    const total = all.length;
+    const total = cardEls.length;
+
+    fetch('/api/catalog')
+      .then((r) => r.json())
+      .then((d) => new Map((Array.isArray(d) ? d : d.programs || []).map((p) => [p.slug, p])))
+      .catch(() => new Map())
+      .then(enhance);
 
     // ── 2. Modal: open on card click, fetch /programs/<slug> on demand,
     //    inject only the body content so the modal stays small. The static
