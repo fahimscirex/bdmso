@@ -382,6 +382,112 @@ admin.patch("/registrations/:id", async (c) => {
   return c.json({ ok: true, id });
 });
 
+// Resolve a program's run to bind a registration to: prefer the currently
+// 'enrolling' run, else the most recent. Mirrors resolveCohortKey in public.js
+// (kept local - admin needs it only for the competition switch below).
+async function resolveEnrollingCohort(env, programSlug) {
+  const { results } = await env.DB.prepare(
+    `SELECT cohort_key, status, enroll_opens, enroll_closes, starts_on, ends_on
+     FROM cohorts WHERE program_slug = ? ORDER BY created_at DESC`
+  ).bind(programSlug).all();
+  if (!results?.length) return null;
+  const enrolling = results.find(
+    (r) => deriveCohortStage(r.status, r.enroll_opens, r.enroll_closes, r.starts_on, r.ends_on) === "enrolling",
+  );
+  return (enrolling || results[0]).cohort_key;
+}
+
+// POST /api/admin/registrations/:id/change-enrollment
+// Versatile admin correction for one registration. Payments are NEVER touched
+// and the option change never reprices - this repoints what the student is
+// enrolled in, not what they owe. Any subset of:
+//   registrationType  switch between the two competitions (Olympiad <-> Quiz)
+//   preferred_subject  math | science | both | '' (clears)
+//   preferred_venue    exam region
+//   programOptions     re-pick the run/option(s) for a run-priced program; the
+//                      receipt is re-pointed but the paid total is preserved
+admin.post("/registrations/:id/change-enrollment", async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req.json().catch(() => ({}));
+  const catalog = await getCatalog(c);
+  const COMPETITIONS = ["national-olympiad", "national-quiz-competition"];
+  const SUBJECTS = ["math", "science", "both"];
+
+  const reg = await c.env.DB.prepare(
+    "SELECT id, registration_type, guardian_account_id FROM registrations WHERE id = ? LIMIT 1"
+  ).bind(id).first();
+  if (!reg) return c.json({ error: "Registration not found." }, 404);
+
+  const sets = [], binds = [], stmts = [];
+  let program = reg.registration_type;
+  let programSwitched = false;
+
+  // 1) Program switch - competitions only, mutually exclusive.
+  const toType = typeof body.registrationType === "string" ? body.registrationType : null;
+  if (toType && toType !== reg.registration_type) {
+    if (!COMPETITIONS.includes(reg.registration_type) || !COMPETITIONS.includes(toType)) {
+      return c.json({ error: "Program can only be switched between the Olympiad and the Quiz." }, 400);
+    }
+    const clash = await c.env.DB.prepare(
+      "SELECT id FROM registrations WHERE guardian_account_id = ? AND registration_type = ? AND status != 'cancelled' AND id != ? LIMIT 1"
+    ).bind(reg.guardian_account_id, toType, id).first();
+    if (clash) return c.json({ error: "This student is already enrolled in the other competition." }, 409);
+    program = toType;
+    programSwitched = true;
+    sets.push("registration_type = ?", "cohort_key = ?");
+    binds.push(toType, await resolveEnrollingCohort(c.env, toType));
+    // Flat competitions carry no per-run receipt rows.
+    stmts.push(c.env.DB.prepare("DELETE FROM registration_cohorts WHERE registration_id = ?").bind(id));
+  }
+
+  // 2) Subject (explicit value wins; else cleared when the program switched, as
+  // the Olympiad subject is meaningless on the other competition) + venue.
+  let subjectSet = false;
+  if (typeof body.preferred_subject === "string") {
+    const v = body.preferred_subject.trim().toLowerCase();
+    if (v && !SUBJECTS.includes(v)) return c.json({ error: "Subject must be Math, Science, or Both." }, 400);
+    sets.push("preferred_subject = ?"); binds.push(v || null); subjectSet = true;
+  }
+  if (programSwitched && !subjectSet) { sets.push("preferred_subject = ?"); binds.push(null); }
+  if (typeof body.preferred_venue === "string") {
+    sets.push("preferred_venue = ?"); binds.push(body.preferred_venue.trim() || null);
+  }
+
+  // 3) Option/run re-selection for a run-priced program. Re-point the receipt to
+  // the new selection but keep the paid total frozen (no reprice); a reg with no
+  // prior receipt rows is priced from the catalog (establishing one, not changing).
+  if (Array.isArray(body.programOptions) && catalog.isRunPriced(program)) {
+    const priced = catalog.validateAndPriceRuns(program, body.programOptions);
+    if (!priced.ok) return c.json({ error: priced.error }, 400);
+    const rows = catalog.selectionRows(program, priced.normalized);
+    const prev = await c.env.DB.prepare(
+      "SELECT COUNT(*) AS n, COALESCE(SUM(price_paid),0) AS total FROM registration_cohorts WHERE registration_id = ?"
+    ).bind(id).first();
+    const frozen = Number(prev?.n) > 0 ? Number(prev.total) : rows.reduce((s, r) => s + (r.price || 0), 0);
+    const createdAt = new Date().toISOString();
+    stmts.push(c.env.DB.prepare("DELETE FROM registration_cohorts WHERE registration_id = ?").bind(id));
+    rows.forEach((row, i) => stmts.push(c.env.DB.prepare(
+      "INSERT INTO registration_cohorts (registration_id, cohort_key, option_id, price_paid, created_at) VALUES (?, ?, ?, ?, ?)"
+    ).bind(id, row.cohortKey, row.optionId, i === 0 ? frozen : 0, createdAt)));
+    sets.push("program_options = ?"); binds.push(JSON.stringify(priced.normalized));
+    const primary = catalog.primaryRunKey(program, priced.normalized);
+    if (primary) { sets.push("cohort_key = ?"); binds.push(primary); }
+  }
+
+  if (!sets.length && !stmts.length) return c.json({ error: "Nothing to change." }, 400);
+  if (sets.length) {
+    stmts.unshift(c.env.DB.prepare(`UPDATE registrations SET ${sets.join(", ")} WHERE id = ?`).bind(...binds, id));
+  }
+  await c.env.DB.batch(stmts);
+
+  const session = c.get("session");
+  await recordAudit(c.env, session.account_id, "registration.change_enrollment", {
+    type: "registration", id,
+    payload: { from: reg.registration_type, to: program, subject: body.preferred_subject, venue: body.preferred_venue, options: body.programOptions },
+  });
+  return c.json({ ok: true, id, registrationType: program });
+});
+
 // POST /api/admin/registrations/:id/resend-verification
 // Re-sends the email-verification link to the registration's guardian
 // account. Friendly no-op if the address is already verified.

@@ -412,6 +412,10 @@ export const api = {
   recordPayment: (regId: string, body: { method: string; amount?: number; accountNumber?: string }) =>
     http.post(`/api/admin/registrations/${regId}/record-payment`, body),
   registrationUpdate: (id: string, body: Record<string, unknown>) => http.patch(`/api/admin/registrations/${id}`, body),
+  registrationChangeEnrollment: (
+    id: string,
+    body: { registrationType?: string; preferred_subject?: string; preferred_venue?: string; programOptions?: string[] },
+  ) => http.post(`/api/admin/registrations/${id}/change-enrollment`, body),
   userUpdate: (id: string, body: Record<string, unknown>) => http.patch(`/api/admin/users/${id}`, body),
   programPublish: (slug: string, published: boolean) => http.patch(`/api/admin/programs/${encodeURIComponent(slug)}`, { published }),
   postPublish: (slug: string, published: boolean) => http.patch(`/api/admin/posts/${encodeURIComponent(slug)}`, { published }),

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { ArrowLeft, BadgeCheck, Check, ChevronsUpDown, GraduationCap, Pencil, Receipt, ClipboardList, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRightLeft, BadgeCheck, Check, ChevronsUpDown, GraduationCap, Pencil, Receipt, ClipboardList, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { RegistrationDetail } from '@/lib/types';
@@ -187,6 +187,109 @@ function RegistrationEditDialog({ reg, onSaved }: { reg: RegistrationDetail; onS
   );
 }
 
+const COMPETITIONS = ['national-olympiad', 'national-quiz-competition'];
+const COMPETITION_OPTIONS = [
+  { value: 'national-olympiad', label: 'BdMSO National Olympiad' },
+  { value: 'national-quiz-competition', label: 'BdMSO Quiz Competition' },
+];
+const SUBJECT_OPTIONS = [
+  { value: 'math', label: 'Math' },
+  { value: 'science', label: 'Science' },
+  { value: 'both', label: 'Both' },
+];
+
+// Change what a student is enrolled in - never what they paid. Competitions
+// (Olympiad/Quiz) get a program toggle + subject + exam region; run-priced
+// programs get an option picker (fetched from the program's runs). The paid
+// total is preserved server-side, so this is a data correction, not a re-charge.
+function ChangeEnrollmentDialog({ reg, onSaved }: { reg: RegistrationDetail; onSaved: () => void }) {
+  const [open, setOpen] = useState(false);
+  const isCompetition = COMPETITIONS.includes(reg.program);
+  const [program, setProgram] = useState(reg.program);
+  const [subject, setSubject] = useState('');
+  const [venue, setVenue] = useState('');
+  const [runOptions, setRunOptions] = useState<{ value: string; label: string }[]>([]);
+  const [picked, setPicked] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    setProgram(reg.program);
+    setSubject(SUBJECT_OPTIONS.some((o) => o.value === reg.subject) ? reg.subject : '');
+    setVenue(reg.venue === '—' ? '' : reg.venue);
+    setPicked([]);
+    if (!isCompetition) {
+      api.listCohorts().then((cohorts) => {
+        const items: { value: string; label: string }[] = [];
+        for (const co of cohorts.filter((x) => x.programSlug === reg.program)) {
+          if (co.options?.length) {
+            co.options.forEach((o) => items.push({ value: `${co.cohortKey}::${o.id}`, label: `${co.label} — ${o.label} (৳${o.price.toLocaleString('en-BD')})` }));
+          } else {
+            items.push({ value: co.cohortKey, label: co.label });
+          }
+        }
+        setRunOptions(items);
+      }).catch(() => setRunOptions([]));
+    }
+  }, [open, reg, isCompetition]);
+
+  const submit = () => {
+    const body: { registrationType?: string; preferred_subject?: string; preferred_venue?: string; programOptions?: string[] } = {};
+    if (isCompetition) {
+      if (program !== reg.program) body.registrationType = program;
+      body.preferred_subject = subject;
+      body.preferred_venue = venue;
+    } else if (picked.length) {
+      body.programOptions = picked;
+    }
+    run(api.registrationChangeEnrollment(reg.id, body), 'Enrollment updated', () => { onSaved(); setOpen(false); });
+  };
+
+  return (
+    <EditorDialog
+      open={open}
+      onOpenChange={setOpen}
+      trigger={<Button variant="outline" size="sm"><ArrowRightLeft className="size-4" /> Change enrollment</Button>}
+      title="Change enrollment"
+      description="Switch program, subject, or option. The amount paid is never changed."
+      onSubmit={submit}
+      submitLabel="Apply change"
+    >
+      {isCompetition ? (
+        <EditorSection title="Competition">
+          <EditorField label="Program">
+            <OptionSelect value={program} onChange={setProgram} options={COMPETITION_OPTIONS} />
+          </EditorField>
+          <div className="grid grid-cols-2 gap-3">
+            <EditorField label="Subject">
+              <OptionSelect value={subject} onChange={setSubject} options={SUBJECT_OPTIONS} />
+            </EditorField>
+            <EditorField label="Exam region" htmlFor="venue">
+              <Input id="venue" value={venue} onChange={(e) => setVenue(e.target.value)} />
+            </EditorField>
+          </div>
+        </EditorSection>
+      ) : (
+        <EditorSection title="Option">
+          <p className="text-xs text-muted-foreground">Pick the new option(s). The amount paid is preserved — this changes what the student is enrolled in, not the fee.</p>
+          <div className="space-y-2">
+            {runOptions.map((o) => (
+              <label key={o.value} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={picked.includes(o.value)}
+                  onChange={(e) => setPicked((p) => e.target.checked ? [...p, o.value] : p.filter((x) => x !== o.value))}
+                />
+                {o.label}
+              </label>
+            ))}
+            {!runOptions.length && <p className="text-xs text-muted-foreground">No options found for this program.</p>}
+          </div>
+        </EditorSection>
+      )}
+    </EditorDialog>
+  );
+}
+
 export function RegistrationDetailPage({ id }: { id: string }) {
   const [reg, setReg] = useState<RegistrationDetail | null>(null);
   const [error, setError] = useState(false);
@@ -253,6 +356,7 @@ export function RegistrationDetailPage({ id }: { id: string }) {
             {reg.status !== 'confirmed' && reg.status !== 'cancelled' && (
               <Button size="sm" onClick={() => setPayOpen(true)}><BadgeCheck className="size-4" /> Record payment</Button>
             )}
+            <ChangeEnrollmentDialog reg={reg} onSaved={reload} />
             <RegistrationEditDialog reg={reg} onSaved={reload} />
           </div>
         }
