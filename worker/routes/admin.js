@@ -2187,9 +2187,16 @@ admin.get("/events/:event/roster", async (c) => {
   const klass = c.req.query("class");
 
   const ev = await c.env.DB.prepare(
-    "SELECT program_slug, sections FROM cohorts WHERE cohort_key = ? LIMIT 1"
+    "SELECT program_slug, sections, options_json FROM cohorts WHERE cohort_key = ? LIMIT 1"
   ).bind(event_key).first();
   if (!ev) return c.json({ error: "Unknown event." }, 404);
+  // option_id -> the papers that option covers (subset of the run's sections).
+  // A registrant with such an option sits only those papers; no option (or an
+  // option listing none) means the whole run's papers.
+  const sectionsByOption = {};
+  for (const o of safeJsonArray(ev.options_json)) {
+    if (o && typeof o.id === "string" && Array.isArray(o.sections) && o.sections.length) sectionsByOption[o.id] = o.sections;
+  }
 
   const wheres = ["r.status = 'paid'", "r.registration_type = ?"];
   const binds  = [ev.program_slug];
@@ -2220,6 +2227,7 @@ admin.get("/events/:event/roster", async (c) => {
     SELECT r.id, r.student_full_name, r.student_class_name, r.student_gender,
            r.student_school, r.student_district, r.preferred_venue,
            r.registration_type, r.program_options,
+           (SELECT option_id FROM registration_cohorts WHERE registration_id = r.id AND cohort_key = ?) AS option_id,
            a.member_id,
            att.status        AS attendance_status,
            att.checked_in_at AS checked_in_at
@@ -2229,7 +2237,7 @@ admin.get("/events/:event/roster", async (c) => {
     ${whereSql}
     ORDER BY r.preferred_venue, r.student_class_name, r.student_full_name
     LIMIT 5000
-  `).bind(event_key, ...binds).all();
+  `).bind(event_key, event_key, ...binds).all();
 
   // Scores entered for this event, grouped by registration -> { section: {score,max,rank,tier,detail} }.
   const scoreRows = (await c.env.DB.prepare(
@@ -2251,6 +2259,9 @@ admin.get("/events/:event/roster", async (c) => {
       program_label: catalog.nameFor(r.registration_type),
       attendance_status: r.attendance_status || "absent",
       scores: scoreMap[r.id] || {},
+      // Papers this registrant sits (from their chosen option). null = all
+      // papers - the score sheet shows them under every section.
+      covered_sections: (r.option_id && sectionsByOption[r.option_id]) || null,
     })),
   });
 });
@@ -2675,7 +2686,12 @@ admin.patch("/cohorts/:key", async (c) => {
       id = id.replace(/:/g, "");           // '::' is the run/option key separator
       if (!id || seen.has(id)) id = `opt-${clean.length + 1}`;
       seen.add(id);
-      clean.push({ id, label, price });
+      // sections: which exam papers this option covers (subset of the run's
+      // section ids). Drives who sits which paper at scoring. Empty = all papers.
+      const sections = Array.isArray(o.sections)
+        ? o.sections.filter((s) => typeof s === "string" && s.trim()).map((s) => s.trim())
+        : [];
+      clean.push(sections.length ? { id, label, price, sections } : { id, label, price });
     }
     sets.push("options_json = ?"); binds.push(clean.length ? JSON.stringify(clean) : null);
   }

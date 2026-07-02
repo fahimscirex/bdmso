@@ -167,9 +167,10 @@ export type RosterEntry = {
   venue: string; school: string; district: string;
   attendanceStatus: 'present' | 'absent' | 'late' | 'no_show';
   scores: Record<string, ScoreCell>;
+  coveredSections: string[] | null; // papers this student sits (from their option); null = all
 };
 export type CohortStatus = 'draft' | 'upcoming' | 'enrolling' | 'running' | 'ended' | 'archived';
-export type RunOption = { id: string; label: string; price: number };
+export type RunOption = { id: string; label: string; price: number; sections?: string[] };
 export type Cohort = {
   cohortKey: string; programSlug: string; label: string; status: CohortStatus;
   enrollOpens: string | null; enrollCloses: string | null;

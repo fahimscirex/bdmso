@@ -567,47 +567,70 @@ function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void 
 // Per-run priced options (name + price). Parents pick one per run; a run with
 // options ignores its flat price. Saved as a whole array on each edit; empty =
 // back to the flat price. IDs are assigned server-side from the label.
+type RunOpt = { id: string; label: string; price: number | string; sections?: string[] };
 function RunOptionsEditor({ cohort, onChange }: { cohort: Cohort; onChange: () => void }) {
-  const [opts, setOpts] = useState<{ id: string; label: string; price: number | string }[]>(cohort.options);
-  const save = (next: typeof opts) => {
-    const clean = next.filter((o) => String(o.label).trim()).map((o) => ({ id: o.id, label: String(o.label).trim(), price: Number(o.price) || 0 }));
+  const [opts, setOpts] = useState<RunOpt[]>(cohort.options);
+  const papers = cohort.sections; // exam papers this run has (if any)
+  const save = (next: RunOpt[]) => {
+    const clean = next.filter((o) => String(o.label).trim()).map((o) => ({
+      id: o.id, label: String(o.label).trim(), price: Number(o.price) || 0,
+      ...(o.sections && o.sections.length ? { sections: o.sections } : {}),
+    }));
     run(api.cohortUpdate(cohort.cohortKey, { options: clean }), 'Run options updated', onChange);
   };
   const add = () => setOpts([...opts, { id: '', label: '', price: 0 }]);
   const removeAt = (i: number) => { const next = opts.filter((_, j) => j !== i); setOpts(next); save(next); };
-  const patch = (i: number, p: Partial<{ label: string; price: number | string }>) =>
-    setOpts(opts.map((o, j) => (j === i ? { ...o, ...p } : o)));
+  const patch = (i: number, p: Partial<RunOpt>) => setOpts(opts.map((o, j) => (j === i ? { ...o, ...p } : o)));
+  const toggleSection = (i: number, sid: string) => {
+    const cur = opts[i].sections || [];
+    const next = opts.map((o, j) => (j === i ? { ...o, sections: cur.includes(sid) ? cur.filter((x) => x !== sid) : [...cur, sid] } : o));
+    setOpts(next); save(next);
+  };
 
   if (opts.length === 0) {
     return (
       <button type="button" className="mt-1 ml-1 text-xs text-muted-foreground hover:text-foreground" onClick={add}>
-        + Add priced options (e.g. 1 subject / 2 subjects)
+        + Add priced options (e.g. Mathematics / Science / Both)
       </button>
     );
   }
   return (
-    <div className="mt-2 ml-1 space-y-1.5 border-l pl-3">
+    <div className="mt-2 ml-1 space-y-2 border-l pl-3">
       <div className="text-xs font-medium text-muted-foreground">Options (parent picks one)</div>
       {opts.map((o, i) => (
-        <div key={i} className="flex items-center gap-2">
-          <input
-            type="text" placeholder="Option name (e.g. 2 subjects)"
-            className="w-56 rounded border border-input bg-background px-1.5 py-0.5 text-sm"
-            value={o.label}
-            onChange={(e) => patch(i, { label: e.target.value })}
-            onBlur={() => save(opts)}
-          />
-          <span className="text-muted-foreground">৳</span>
-          <input
-            type="number" min={0} step={1} placeholder="0"
-            className="w-24 rounded border border-input bg-background px-1.5 py-0.5 text-sm"
-            value={o.price}
-            onChange={(e) => patch(i, { price: e.target.value })}
-            onBlur={() => save(opts)}
-          />
-          <Button variant="ghost" size="icon" className="size-7" aria-label="Remove option" onClick={() => removeAt(i)}>
-            <Trash2 className="size-3.5" />
-          </Button>
+        <div key={i} className="space-y-1">
+          <div className="flex items-center gap-2">
+            <input
+              type="text" placeholder="Option name (e.g. Both subjects)"
+              className="w-56 rounded border border-input bg-background px-1.5 py-0.5 text-sm"
+              value={o.label}
+              onChange={(e) => patch(i, { label: e.target.value })}
+              onBlur={() => save(opts)}
+            />
+            <span className="text-muted-foreground">৳</span>
+            <input
+              type="number" min={0} step={1} placeholder="0"
+              className="w-24 rounded border border-input bg-background px-1.5 py-0.5 text-sm"
+              value={o.price}
+              onChange={(e) => patch(i, { price: e.target.value })}
+              onBlur={() => save(opts)}
+            />
+            <Button variant="ghost" size="icon" className="size-7" aria-label="Remove option" onClick={() => removeAt(i)}>
+              <Trash2 className="size-3.5" />
+            </Button>
+          </div>
+          {papers.length > 0 && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-1 text-xs text-muted-foreground">
+              <span>Papers:</span>
+              {papers.map((p) => (
+                <label key={p.id} className="flex cursor-pointer items-center gap-1">
+                  <input type="checkbox" checked={(o.sections || []).includes(p.id)} onChange={() => toggleSection(i, p.id)} />
+                  {p.label}
+                </label>
+              ))}
+              {(!o.sections || o.sections.length === 0) && <span className="italic">all papers</span>}
+            </div>
+          )}
         </div>
       ))}
       <button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={add}>+ Add option</button>

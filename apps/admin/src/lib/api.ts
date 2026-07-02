@@ -71,7 +71,7 @@ type CohortRow = {
   cohort_key: string; program_slug: string; label: string; status: Cohort['status'];
   enroll_opens: string | null; enroll_closes: string | null; starts_on: string | null; ends_on: string | null;
   price_override: number | null; choice_group: string | null; capacity: number | null; sections: ExamSection[]; results_published: boolean; public_featured: boolean;
-  options: { id: string; label: string; price: number }[];
+  options: { id: string; label: string; price: number; sections?: string[] }[];
   regs: number; paid: number;
 };
 type RosterRow = {
@@ -79,6 +79,7 @@ type RosterRow = {
   preferred_venue: string | null; student_school: string | null; student_district: string | null;
   attendance_status: 'present' | 'absent' | 'late' | 'no_show';
   scores: Record<string, ScoreCell>;
+  covered_sections: string[] | null;
 };
 type HealthService = { ok: boolean; hint: string };
 type SystemHealthResp = {
@@ -296,6 +297,7 @@ function adaptRoster(r: RosterRow): RosterEntry {
     id: r.id, memberId: r.member_id, name: r.student_full_name, className: r.student_class_name,
     venue: r.preferred_venue || '—', school: r.student_school || '—', district: r.student_district || '—',
     attendanceStatus: r.attendance_status, scores: r.scores || {},
+    coveredSections: r.covered_sections || null,
   };
 }
 function adaptHealth(s: SystemHealthResp): Service[] {

@@ -58,8 +58,13 @@ export function EventsPage() {
   // and an import that only ever writes that section.
   const activeSection = sections.find((s) => s.id === sectionId);
   const tabSections = activeSection ? [activeSection] : sections;
-  // Score entry + roster show the whole paid roster for the event.
-  const shown = roster;
+  // Score entry is scoped to who actually sits the active paper: a registrant
+  // whose option covers this section (or has no per-option restriction). This
+  // is how "Math"/"Both" options land students on the right paper's sheet.
+  // Runs without option-level sections cover everyone (coveredSections null).
+  const shown = roster && sectionId
+    ? roster.filter((r) => !r.coveredSections || r.coveredSections.includes(sectionId))
+    : roster;
 
   const togglePublish = (next: boolean) =>
     run(api.publishResults(eventKey, next), next ? 'Results published to guardians' : 'Results hidden from guardians', reloadEvents);
