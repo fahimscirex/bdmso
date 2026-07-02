@@ -212,6 +212,17 @@ export async function loadCatalog(env) {
     runsFor(slug) {
       return runsBySlug[slug] || [];
     },
+    // Public price label derived from the enrolling items: a single flat
+    // figure - the lowest price on sale (the picker shows each option's exact
+    // price at purchase). Null when nothing enrolling carries a real price -
+    // callers fall back to the manual price_label.
+    priceLabel(slug) {
+      const prices = (runsBySlug[slug] || [])
+        .filter((it) => it.enrolling && Number(it.price) > 0)
+        .map((it) => Number(it.price));
+      if (!prices.length) return null;
+      return `৳ ${Math.min(...prices).toLocaleString("en-BD")}`;
+    },
     // Receipt rows for a selection: map chosen item keys -> { cohortKey,
     // optionId, price } so the caller writes registration_cohorts. Unknown keys
     // are skipped.

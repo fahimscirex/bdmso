@@ -370,7 +370,9 @@ export async function handleCatalog(request, env) {
       format: r.format || null,
       outcome: r.outcome || null,
       level: r.level || null,
-      price: r.price_label || null,
+      // Price label follows the enrolling runs (they own pricing); the manual
+      // program label is only the fallback when nothing priced is enrolling.
+      price: catalog.priceLabel(r.slug) || r.price_label || null,
       feeAmount: r.fee_amount ?? null,
       // Run-priced programs auto-generate their schedule from the runs that are
       // enrolling or upcoming; others use the manual schedule label.
