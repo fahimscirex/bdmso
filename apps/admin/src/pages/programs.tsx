@@ -106,6 +106,12 @@ export function ProgramsPage() {
               : filtered.map((p) => {
                   const runs = cohortsByProgram[p.slug] ?? [];
                   const isOpen = expanded.has(p.slug);
+                  // Price lives on the runs now: show the range across this
+                  // program's run/option prices (— when no run is priced yet).
+                  const runPrices = runs.flatMap((r) => (r.options.length ? r.options.map((o) => o.price) : (r.priceOverride != null ? [r.priceOverride] : [])));
+                  const feeCell = runPrices.length === 0 ? '—'
+                    : Math.min(...runPrices) === Math.max(...runPrices) ? bdt(Math.min(...runPrices))
+                    : `${bdt(Math.min(...runPrices))} - ${bdt(Math.max(...runPrices))}`;
                   return (
                     <Fragment key={p.slug}>
                       <TableRow>
@@ -119,7 +125,7 @@ export function ProgramsPage() {
                           </button>
                         </TableCell>
                         <TableCell><StatusBadge status={p.status} /></TableCell>
-                        <TableCell className="text-right font-mono font-medium tabular-nums">{bdt(p.fee)}</TableCell>
+                        <TableCell className="text-right font-mono font-medium tabular-nums">{feeCell}</TableCell>
                         <TableCell>
                           <Switch
                             checked={p.published}
@@ -414,11 +420,10 @@ function ProgramEditor({ item, trigger, onSaved }: { item?: Program; trigger: Re
 }
 
 // ---- Runs (cohorts) -------------------------------------------------------
-// A run is one scheduled instance of a program that students enrol into.
-// Dates live on the program; opening a run snapshots them for history,
-// results, and reporting. A run may override the program's flat fee with its
-// own price (editable on the row) - this is the price students pay for
-// run-priced programs. Lifecycle and featuring are managed per run here.
+// A run is one scheduled instance of a program that students enrol into. Each
+// run owns its dates, price (or priced options), and capacity - set on the row
+// below. Students pick from the enrolling runs and pay per run. Lifecycle and
+// featuring are managed per run here.
 
 function ProgramRuns({ program, runs, onChange }: { program: Program; runs: Cohort[]; onChange: () => void }) {
   const [opening, setOpening] = useState(false);
@@ -433,7 +438,7 @@ function ProgramRuns({ program, runs, onChange }: { program: Program; runs: Coho
       </div>
       {runs.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No runs yet. Open one to start taking registrations - it snapshots this program's current dates &amp; fee.
+          No runs yet. Open one to start taking registrations, then set its dates and price/options on the row.
         </p>
       ) : (
         <div className="divide-y overflow-hidden rounded-lg border bg-card">
@@ -631,8 +636,8 @@ function OpenRunDialog({ program, onClose, onDone }: { program: Program; onClose
         <DialogHeader>
           <DialogTitle>Open new run - {program.title}</DialogTitle>
           <DialogDescription>
-            Snapshots this program's current registration &amp; session dates into a new run. Its stage
-            (upcoming / enrolling / running / ended) is then derived automatically from those dates.
+            Creates a new run. Set its enrolment window, session dates, and price/options on the row -
+            its stage (upcoming / enrolling / running / ended) is then derived automatically from those dates.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
