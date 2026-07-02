@@ -10,7 +10,7 @@ import { recordAudit } from "../lib/audit-log.js";
 import { getBaseUrl, createId } from "../lib/util.js";
 import { createVerificationToken, sendVerificationEmail, sendUpdatedReceiptForRegistration } from "../lib/email.js";
 import { canonicalDistrict } from "../lib/districts.js";
-import { isPhoneLike } from "../lib/validation.js";
+import { normalizeBdPhone, isBdMobile } from "../lib/validation.js";
 import { getCatalog } from "../lib/programs.js";
 import { receiptSyncStatements } from "../lib/receipt.js";
 import {
@@ -64,9 +64,13 @@ guardian.patch("/profile", async (c) => {
   }
 
   if (typeof body.phone === "string") {
-    const phone = body.phone.trim();
-    if (phone && !isPhoneLike(phone)) {
-      return c.json({ error: "Phone number is not valid." }, 400);
+    const raw = body.phone.trim();
+    // Canonicalise to +8801XXXXXXXXX and reject anything that isn't a valid BD
+    // mobile - keeps self-service fixes consistent with registration and lets a
+    // guardian actually clear the enrollment gate (see missingEnrollmentFields).
+    const phone = raw ? normalizeBdPhone(raw) : "";
+    if (phone && !isBdMobile(phone)) {
+      return c.json({ error: "Enter a valid Bangladesh mobile number, e.g. 01712345678." }, 400);
     }
     sets.push("phone = ?");
     binds.push(phone || null);

@@ -1,6 +1,6 @@
 // Registration page client logic. Ported verbatim from the inline module
 // script in the legacy public/registration.html during the Astro cutover.
-import { postJson } from './api.js';
+import { postJson, patchJson } from './api.js';
 import { PROGRAM_OPTIONS, programHasOptions, computeOptionsTotal, initProgramOptions } from './program-options.js';
 import { loadCatalog, programMaps } from './program-catalog.js';
 // Program names come from the (admin-edited) catalog, so escape before any
@@ -484,23 +484,14 @@ async function initQuickEnroll() {
       priceEl.textContent = 'Select an option';
     }
 
-    document.getElementById('qe-confirm-btn').addEventListener('click', async (e) => {
-      const btn = e.currentTarget;
+    // Attempt the enrollment. If the account/student record is missing required
+    // details the API returns 422 with `missingFields`; we render an inline form
+    // to fix them, then retry - so a returning guardian never carries stale or
+    // incomplete data (e.g. a truncated phone) into a new enrollment.
+    async function enroll(programOptions, btn, readyLabel) {
       const errEl = document.getElementById('qe-error');
-      errEl.style.display = 'none';
-
-      let programOptions;
-      if (hasOpts) {
-        programOptions = getQuickEnrollOptions();
-        if (programOptions.length === 0) {
-          errEl.textContent = 'Please pick at least one option above.';
-          errEl.style.display = 'block';
-          return;
-        }
-      }
-
-      btn.disabled = true;
-      btn.textContent = 'Adding enrollment…';
+      if (errEl) errEl.style.display = 'none';
+      if (btn) { btn.disabled = true; btn.textContent = 'Adding enrollment…'; }
       try {
         const res = await postJson('add-enrollment', {
           registrationType: effectiveProgram,
@@ -512,11 +503,81 @@ async function initQuickEnroll() {
         const focus = res?.applicationId ? `?focus=${encodeURIComponent(res.applicationId)}` : '?enrolled=1';
         window.location.href = `/dashboard${focus}`;
       } catch (err) {
-        errEl.textContent = err.message;
-        errEl.style.display = 'block';
-        btn.disabled = false;
-        btn.textContent = 'Confirm enrollment →';
+        if (err.status === 422 && Array.isArray(err.data?.missingFields) && err.data.missingFields.length) {
+          showCompleteProfile(err.data.missingFields, programOptions);
+          return;
+        }
+        if (errEl) { errEl.textContent = err.message; errEl.style.display = 'block'; }
+        if (btn) { btn.disabled = false; btn.textContent = readyLabel; }
       }
+    }
+
+    // Inline "complete your details" form for the fields the API flagged.
+    // Guardian fields save to /api/me/profile, student fields to
+    // /api/me/registrations; on success we retry the enrollment automatically.
+    function showCompleteProfile(missingFields, programOptions) {
+      const inputStyle = 'width:100%; padding:9px 10px; border:1px solid var(--line,#d9d9d9); border-radius:8px; font:inherit;';
+      const widget = (f) => {
+        const k = escHtml(f.key);
+        if (f.input === 'gender')
+          return `<select data-k="${k}" style="${inputStyle}"><option value="">Select…</option><option>Male</option><option>Female</option><option>Other</option></select>`;
+        if (f.input === 'class')
+          return `<select data-k="${k}" style="${inputStyle}">${['Pre-primary','Class 1','Class 2','Class 3','Class 4','Class 5','Class 6'].map((c) => `<option>${c}</option>`).join('')}</select>`;
+        if (f.input === 'date')
+          return `<input type="date" data-k="${k}" style="${inputStyle}" />`;
+        if (f.input === 'phone')
+          return `<input type="tel" inputmode="numeric" placeholder="01712345678" data-k="${k}" style="${inputStyle}" />`;
+        return `<input type="text" data-k="${k}" style="${inputStyle}" />`;
+      };
+      const rows = missingFields.map((f) => `
+        <label style="display:block; margin-bottom:12px;">
+          <span style="display:block; font-size:13px; color:var(--ink-2); margin-bottom:5px;">${escHtml(f.label)}</span>
+          ${widget(f)}
+        </label>`).join('');
+      document.querySelector('.qe-body').innerHTML = `
+        <p style="margin:0 0 14px; color:var(--ink-2);">Before enrolling in another program, please complete your details:</p>
+        <div class="qe-complete">${rows}</div>
+        <div id="qe-error" style="display:none; color:#c00; margin-top:8px;"></div>`;
+      const foot = document.querySelector('.qe-foot');
+      foot.innerHTML = `<div></div><button class="btn btn-gold" id="qe-save-btn" type="button">Save &amp; continue →</button>`;
+
+      document.getElementById('qe-save-btn').addEventListener('click', async (ev) => {
+        const sbtn = ev.currentTarget;
+        const errEl = document.getElementById('qe-error');
+        errEl.style.display = 'none';
+        const profile = {}, student = {};
+        for (const el of document.querySelectorAll('.qe-complete [data-k]')) {
+          const v = el.value.trim();
+          if (!v) { errEl.textContent = 'Please fill in every field.'; errEl.style.display = 'block'; return; }
+          const f = missingFields.find((m) => m.key === el.getAttribute('data-k'));
+          (f.scope === 'guardian' ? profile : student)[f.key] = v;
+        }
+        sbtn.disabled = true; sbtn.textContent = 'Saving…';
+        try {
+          if (Object.keys(profile).length) await patchJson('me/profile', profile, session?.token);
+          if (Object.keys(student).length) await patchJson('me/registrations', student, session?.token);
+        } catch (err) {
+          errEl.textContent = err.message; errEl.style.display = 'block';
+          sbtn.disabled = false; sbtn.textContent = 'Save & continue →';
+          return;
+        }
+        await enroll(programOptions, sbtn, 'Save & continue →');
+      });
+    }
+
+    document.getElementById('qe-confirm-btn').addEventListener('click', (e) => {
+      const btn = e.currentTarget;
+      let programOptions;
+      if (hasOpts) {
+        programOptions = getQuickEnrollOptions();
+        if (programOptions.length === 0) {
+          const errEl = document.getElementById('qe-error');
+          errEl.textContent = 'Please pick at least one option above.';
+          errEl.style.display = 'block';
+          return;
+        }
+      }
+      enroll(programOptions, btn, 'Confirm enrollment →');
     });
 
   } else if (program) {

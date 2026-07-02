@@ -18,6 +18,8 @@
 // Validate + price a basket of option keys. Only on-sale (enrolling) options are
 // accepted; duplicates are dropped; at most one option per choiceGroup. Returns
 // { ok, price, normalized } or { ok:false, error }.
+import { isBdMobile } from "./validation.js";
+
 export function validateAndPriceSelection(options, rawKeys) {
   const keys = Array.isArray(rawKeys) ? rawKeys.filter((x) => typeof x === "string") : [];
   if (keys.length === 0) return { ok: false, error: "Pick at least one option." };
@@ -98,4 +100,36 @@ export function pickPrimaryCohort(options, keys) {
       return a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
     });
   return chosen.length ? chosen[0].key : null;
+}
+
+// Fields a returning guardian must have on file before we clone their details
+// into a new enrollment (see handleAddEnrollment). Guardian contact is read
+// from the account (guardian_accounts - what the dashboard Profile edits);
+// student details from an existing registration row. `input` tells the
+// quick-enroll form which widget to render; guardian keys are the
+// PATCH /api/me/profile payload keys, student keys are registration columns.
+const ENROLLMENT_FIELDS = [
+  { scope: "guardian", key: "fullName", from: "full_name", label: "Guardian name",  input: "text" },
+  { scope: "guardian", key: "phone",    from: "phone",     label: "Mobile number",  input: "phone" },
+  { scope: "student",  key: "student_full_name",     label: "Student name",   input: "text" },
+  { scope: "student",  key: "student_date_of_birth", label: "Date of birth",  input: "date" },
+  { scope: "student",  key: "student_class_name",    label: "Class",          input: "class" },
+  { scope: "student",  key: "student_gender",        label: "Gender",         input: "gender" },
+  { scope: "student",  key: "student_school",        label: "School",         input: "text" },
+  { scope: "student",  key: "student_district",      label: "District",       input: "text" },
+];
+
+// Returns the subset of ENROLLMENT_FIELDS that are missing/invalid, ready to
+// send to the client as `missingFields`. A field is missing when blank; the
+// phone is additionally missing when it isn't a valid BD mobile (the truncated
+// +8800... numbers count as invalid, so a re-enrolment forces a real fix).
+export function missingEnrollmentFields(account, reg) {
+  const missing = [];
+  for (const f of ENROLLMENT_FIELDS) {
+    const src = f.scope === "guardian" ? account : reg;
+    const val = String(src?.[f.from || f.key] ?? "").trim();
+    const bad = !val || (f.input === "phone" && !isBdMobile(val));
+    if (bad) missing.push({ scope: f.scope, key: f.key, label: f.label, input: f.input });
+  }
+  return missing;
 }

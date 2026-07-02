@@ -8,6 +8,7 @@ import {
   labelsOfSelection,
   computeSelectionDiff,
   pickPrimaryCohort,
+  missingEnrollmentFields,
 } from "./enrollment.js";
 
 // Mock Test: three independent dates (choose any), all on sale.
@@ -102,4 +103,33 @@ test("pickPrimaryCohort: earliest date wins, undated sorts last, key tiebreak", 
   assert.equal(pickPrimaryCohort(DATES, ["mt-3jul", "mt-19jun"]), "mt-19jun");
   assert.equal(pickPrimaryCohort(SUBJECTS, ["oly-sci", "oly-math"]), "oly-math"); // both undated -> key asc
   assert.equal(pickPrimaryCohort(DATES, ["gone"]), null);
+});
+
+// Re-enrollment completeness gate (task: prompt returning enrollers to fill gaps).
+const FULL_ACCT = { full_name: "Rahim Uddin", phone: "+8801712345678" };
+const FULL_REG = {
+  student_full_name: "Karim", student_date_of_birth: "2015-01-01",
+  student_class_name: "Class 3", student_gender: "Male",
+  student_school: "XYZ School", student_district: "Dhaka",
+};
+
+test("missingEnrollmentFields: complete record -> nothing missing", () => {
+  assert.deepEqual(missingEnrollmentFields(FULL_ACCT, FULL_REG), []);
+});
+
+test("missingEnrollmentFields: truncated phone is invalid -> missing", () => {
+  const miss = missingEnrollmentFields({ ...FULL_ACCT, phone: "+8800171234567" }, FULL_REG);
+  assert.deepEqual(miss.map((m) => m.key), ["phone"]);
+  assert.equal(miss[0].scope, "guardian");
+});
+
+test("missingEnrollmentFields: blank student field -> missing", () => {
+  const miss = missingEnrollmentFields(FULL_ACCT, { ...FULL_REG, student_gender: "" });
+  assert.deepEqual(miss.map((m) => m.key), ["student_gender"]);
+  assert.equal(miss[0].scope, "student");
+});
+
+test("missingEnrollmentFields: guardian + student gaps reported together in order", () => {
+  const miss = missingEnrollmentFields({ full_name: "", phone: null }, { ...FULL_REG, student_school: "  " });
+  assert.deepEqual(miss.map((m) => m.key), ["fullName", "phone", "student_school"]);
 });

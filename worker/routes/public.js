@@ -11,6 +11,7 @@ import { createVerificationToken, sendVerificationEmail, sendSponsorshipNotifica
 import { recordAudit } from "../lib/audit-log.js";
 import { loadCatalog } from "../lib/programs.js";
 import { receiptInsertStatements, receiptSyncStatements } from "../lib/receipt.js";
+import { missingEnrollmentFields } from "../lib/enrollment.js";
 import { getBoolSetting } from "../lib/settings.js";
 import { deriveCohortStage } from "../lib/program-options.js";
 
@@ -1296,6 +1297,22 @@ export async function handleAddEnrollment(request, env) {
   ).bind(account.account_id).first();
   if (!existing) return badRequest("No existing registration found. Please complete a full registration first.", 404);
 
+  // Guardian contact is owned by the account (the dashboard Profile edits it);
+  // student details live on the existing registration. Before cloning them into
+  // a new enrollment, make sure nothing required is missing or invalid - older
+  // records may lack a gender or carry a truncated phone. If so, ask the guardian
+  // to complete their details first; the quick-enroll form fixes them inline.
+  const acct = await env.DB.prepare(
+    "SELECT full_name, phone FROM guardian_accounts WHERE id = ?"
+  ).bind(account.account_id).first();
+  const missingFields = missingEnrollmentFields(acct, existing);
+  if (missingFields.length) {
+    return jsonResponse({
+      error: "Please complete your details before enrolling in another program.",
+      missingFields,
+    }, 422);
+  }
+
   // Repeatable programs (e.g. the BdMSO Mock Test) allow more than one
   // enrollment - a guardian can come back later and book additional
   // sessions. Other programs stay one-enrollment-per-student.
@@ -1386,8 +1403,8 @@ export async function handleAddEnrollment(request, env) {
       existing.student_class_name, existing.student_gender,
       existing.student_medium || null,
       existing.student_school, existing.student_district,
-      account.account_id, existing.guardian_full_name,
-      existing.guardian_relationship, existing.guardian_phone,
+      account.account_id, acct.full_name,
+      existing.guardian_relationship, acct.phone,
       account.email, existing.guardian_address,
       programOptions,
       cohortKey,
