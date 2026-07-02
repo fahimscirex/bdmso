@@ -540,6 +540,17 @@ function ProgramRuns({ program, runs, onChange }: { program: Program; runs: Coho
   );
 }
 
+// A labelled field block: small uppercase caption above its control, so each
+// piece of a run reads as its own thing instead of a run-on line.
+function RunField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+      {children}
+    </div>
+  );
+}
+
 function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void }) {
   // c.status is the DERIVED stage. Manual overrides are only draft/archived;
   // upcoming/enrolling/running/ended are computed from the run's dates.
@@ -569,74 +580,76 @@ function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void 
   const dateInput = 'rounded border border-input bg-background px-1 py-0.5 text-xs';
 
   return (
-    <div className="px-3 py-2.5">
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-medium">{c.label}</span>
-          <span className="font-mono text-xs text-muted-foreground">{c.cohortKey}</span>
-          {c.resultsPublished && <Badge className="border-transparent bg-emerald-500/15 text-[10px] text-emerald-700 dark:text-emerald-400">Released</Badge>}
-          {c.publicFeatured && <Badge className="border-transparent bg-violet-500/15 text-[10px] text-violet-700 dark:text-violet-400">On results page</Badge>}
+    <div className="space-y-3 p-4">
+      {/* Identity + status + actions */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="truncate text-sm font-semibold">{c.label}</span>
+            <span className="font-mono text-[11px] text-muted-foreground">{c.cohortKey}</span>
+          </div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <Badge className={cn('border-transparent text-[10px] font-medium', RUN_TONE[c.status])}>{cap(c.status)}</Badge>
+            {c.resultsPublished && <Badge className="border-transparent bg-emerald-500/15 text-[10px] text-emerald-700 dark:text-emerald-400">Results live to guardians</Badge>}
+            {c.publicFeatured && <Badge className="border-transparent bg-violet-500/15 text-[10px] text-violet-700 dark:text-violet-400">On public /results</Badge>}
+          </div>
         </div>
-        <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
-          <span>Enrol</span>
-          <input type="date" className={dateInput} value={c.enrollOpens ?? ''} onChange={(e) => saveDate('enroll_opens', e.target.value)} aria-label="Enrolment opens" />
-          <span>→</span>
-          <input type="date" className={dateInput} value={c.enrollCloses ?? ''} onChange={(e) => saveDate('enroll_closes', e.target.value)} aria-label="Enrolment closes" />
-          <span className="ml-2">Session</span>
-          <input type="date" className={dateInput} value={c.startsOn ?? ''} onChange={(e) => saveDate('starts_on', e.target.value)} aria-label="Session starts" />
-          <span>→</span>
-          <input type="date" className={dateInput} value={c.endsOn ?? ''} onChange={(e) => saveDate('ends_on', e.target.value)} aria-label="Session ends" />
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-8 shrink-0" aria-label={`Actions for ${c.label}`}><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-60">
+            {isDraft && <DropdownMenuItem onClick={() => setStatus('enrolling', `${c.label} is now live`)}>Make live</DropdownMenuItem>}
+            {isArchived && <DropdownMenuItem onClick={() => setStatus('enrolling', `${c.label} restored`)}>Restore (make live)</DropdownMenuItem>}
+            {!isDraft && !isArchived && <DropdownMenuItem onClick={() => setStatus('draft', `${c.label} moved to draft`)}>Move to draft</DropdownMenuItem>}
+            {c.sections.length > 0 && (
+              <DropdownMenuItem onClick={() => run(api.cohortFeature(c.cohortKey, !c.publicFeatured), c.publicFeatured ? 'Removed from public /results' : 'Winners featured on public /results', onChange)}>
+                {c.publicFeatured ? 'Hide winners from public /results' : 'Feature winners on public /results'}
+              </DropdownMenuItem>
+            )}
+            {!isArchived && <DropdownMenuItem onClick={() => setStatus('archived', `${c.label} archived`)}>Archive run</DropdownMenuItem>}
+            <DropdownMenuSeparator />
+            <ConfirmDeleteItem name={c.label} onConfirm={() => run(api.cohortDelete(c.cohortKey), 'Run deleted', onChange)}>
+              Delete run
+            </ConfirmDeleteItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
-      {c.options.length === 0 ? (
-      <div className="text-sm tabular-nums">
-        {editingPrice ? (
-          <span className="flex items-center gap-1">
-            <span className="text-muted-foreground">৳</span>
-            <input
-              autoFocus
-              type="number" min={0} step={1}
-              className="w-20 rounded border border-input bg-background px-1.5 py-0.5 text-sm"
-              value={priceDraft}
-              onChange={(e) => setPriceDraft(e.target.value)}
-              onBlur={commitPrice}
-              onKeyDown={(e) => { if (e.key === 'Enter') commitPrice(); if (e.key === 'Escape') { setPriceDraft(c.priceOverride == null ? '' : String(c.priceOverride)); setEditingPrice(false); } }}
-            />
-          </span>
-        ) : (
-          <button type="button" className="rounded px-1 py-0.5 hover:bg-accent" title="Set this run's price" onClick={() => { setPriceDraft(c.priceOverride == null ? '' : String(c.priceOverride)); setEditingPrice(true); }}>
-            {c.priceOverride == null ? <span className="text-muted-foreground">flat fee</span> : <span>৳{c.priceOverride}</span>}
-          </button>
-        )}
-      </div>
-      ) : (
-        <div className="text-sm text-muted-foreground">priced by options</div>
-      )}
-      <div className="text-sm tabular-nums">
-        <span className="font-semibold">{c.paid}</span><span className="text-muted-foreground"> / {c.regs} paid</span>
-      </div>
-      <Badge className={cn('border-transparent font-medium', RUN_TONE[c.status])}>{cap(c.status)}</Badge>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-8" aria-label={`Actions for ${c.label}`}><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-52">
-          {isDraft && <DropdownMenuItem onClick={() => setStatus('enrolling', `${c.label} is now live`)}>Make live</DropdownMenuItem>}
-          {isArchived && <DropdownMenuItem onClick={() => setStatus('enrolling', `${c.label} restored`)}>Restore (make live)</DropdownMenuItem>}
-          {!isDraft && !isArchived && <DropdownMenuItem onClick={() => setStatus('draft', `${c.label} moved to draft`)}>Move to draft</DropdownMenuItem>}
-          {c.sections.length > 0 && (
-            <DropdownMenuItem onClick={() => run(api.cohortFeature(c.cohortKey, !c.publicFeatured), c.publicFeatured ? 'Removed from results page' : 'Winners shown on results page', onChange)}>
-              {c.publicFeatured ? 'Hide from results page' : 'Show winners on results page'}
-            </DropdownMenuItem>
+
+      {/* Dates, price, registrations - each labelled */}
+      <div className="flex flex-wrap gap-x-8 gap-y-3">
+        <RunField label="Enrolment window">
+          <div className="flex items-center gap-1.5">
+            <input type="date" className={dateInput} value={c.enrollOpens ?? ''} onChange={(e) => saveDate('enroll_opens', e.target.value)} aria-label="Enrolment opens" />
+            <span className="text-muted-foreground">→</span>
+            <input type="date" className={dateInput} value={c.enrollCloses ?? ''} onChange={(e) => saveDate('enroll_closes', e.target.value)} aria-label="Enrolment closes" />
+          </div>
+        </RunField>
+        <RunField label="Session dates">
+          <div className="flex items-center gap-1.5">
+            <input type="date" className={dateInput} value={c.startsOn ?? ''} onChange={(e) => saveDate('starts_on', e.target.value)} aria-label="Session starts" />
+            <span className="text-muted-foreground">→</span>
+            <input type="date" className={dateInput} value={c.endsOn ?? ''} onChange={(e) => saveDate('ends_on', e.target.value)} aria-label="Session ends" />
+          </div>
+        </RunField>
+        <RunField label="Price">
+          {c.options.length > 0 ? (
+            <span className="text-sm text-muted-foreground">Priced by options below</span>
+          ) : editingPrice ? (
+            <span className="flex items-center gap-1">
+              <span className="text-muted-foreground">৳</span>
+              <input autoFocus type="number" min={0} step={1} className="w-24 rounded border border-input bg-background px-1.5 py-0.5 text-sm" value={priceDraft} onChange={(e) => setPriceDraft(e.target.value)} onBlur={commitPrice} onKeyDown={(e) => { if (e.key === 'Enter') commitPrice(); if (e.key === 'Escape') { setPriceDraft(c.priceOverride == null ? '' : String(c.priceOverride)); setEditingPrice(false); } }} />
+            </span>
+          ) : (
+            <button type="button" className="rounded px-1.5 py-0.5 text-sm hover:bg-accent" title="Set this run's price" onClick={() => { setPriceDraft(c.priceOverride == null ? '' : String(c.priceOverride)); setEditingPrice(true); }}>
+              {c.priceOverride == null ? <span className="text-muted-foreground">Program fee</span> : <span className="font-medium">৳{c.priceOverride}</span>}
+            </button>
           )}
-          {!isArchived && <DropdownMenuItem onClick={() => setStatus('archived', `${c.label} archived`)}>Archive run</DropdownMenuItem>}
-          <DropdownMenuSeparator />
-          <ConfirmDeleteItem name={c.label} onConfirm={() => run(api.cohortDelete(c.cohortKey), 'Run deleted', onChange)}>
-            Delete run
-          </ConfirmDeleteItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-    <RunOptionsEditor cohort={c} onChange={onChange} />
+        </RunField>
+        <RunField label="Registrations">
+          <span className="text-sm"><span className="font-semibold tabular-nums">{c.paid}</span> paid <span className="text-muted-foreground">/ {c.regs} total</span></span>
+        </RunField>
+      </div>
+
+      <RunOptionsEditor cohort={c} onChange={onChange} />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFile
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import { deriveCohortStage } from '../worker/lib/program-options.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..');
@@ -95,7 +96,32 @@ function readExistingValue(frontmatter, key) {
   return null;
 }
 
-function buildProgramFrontmatter(row, existingFrontmatter) {
+const LONG_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'];
+function formatLongDate(iso) {
+  if (!iso) return '';
+  const [y, m, d] = String(iso).slice(0, 10).split('-');
+  const mi = Number(m) - 1;
+  if (!y || mi < 0 || mi > 11) return '';
+  return `${Number(d)} ${LONG_MONTHS[mi]} ${y}`;
+}
+
+// Schedule for a run-priced program: distinct session dates of runs that are
+// enrolling or upcoming, in date order. Mirrors catalog.scheduleLabel() so the
+// static page matches the live /api/catalog.
+function deriveRunSchedule(cohorts) {
+  const seen = new Set();
+  const dates = [];
+  for (const c of (cohorts || [])) {
+    const stage = deriveCohortStage(c.status, c.enroll_opens, c.enroll_closes, c.starts_on, c.ends_on);
+    if (stage !== 'enrolling' && stage !== 'upcoming') continue;
+    if (!c.starts_on || seen.has(c.starts_on)) continue;
+    seen.add(c.starts_on); dates.push(c.starts_on);
+  }
+  return dates.sort().map(formatLongDate).filter(Boolean).join(' · ');
+}
+
+function buildProgramFrontmatter(row, existingFrontmatter, runSchedule) {
   const lines = [];
 
   if (!isEmpty(row.home_order)) lines.push(`home_order: ${dq(row.home_order)}`);
@@ -118,7 +144,10 @@ function buildProgramFrontmatter(row, existingFrontmatter) {
   if (!isEmpty(row.format)) lines.push(`format: ${dq(row.format)}`);
   if (!isEmpty(row.outcome)) lines.push(`outcome: ${dq(row.outcome)}`);
   if (!isEmpty(row.level)) lines.push(`level: ${dq(row.level)}`);
-  if (!isEmpty(row.schedule_label)) lines.push(`schedule: ${dq(row.schedule_label)}`);
+  // Run-priced programs auto-generate their schedule from the runs (matches the
+  // live catalog); others use the manual schedule label.
+  const schedule = row.enroll_by_run === 1 ? (runSchedule || '') : row.schedule_label;
+  if (!isEmpty(schedule)) lines.push(`schedule: ${dq(schedule)}`);
   if (!isEmpty(row.price_label)) lines.push(`price: ${dq(row.price_label)}`);
   if (!isEmpty(row.register_url)) lines.push(`register_url: ${dq(row.register_url)}`);
   if (!isEmpty(row.register_label)) lines.push(`register_label: ${dq(row.register_label)}`);
@@ -283,11 +312,18 @@ export async function materialize() {
 
   // === PROGRAMS ===
   const programRows = queryD1('SELECT * FROM programs WHERE published = 1');
+  // Cohorts grouped by program, so run-priced programs can auto-generate their
+  // schedule from the runs (see deriveRunSchedule).
+  const cohortsBySlug = {};
+  for (const c of queryD1('SELECT program_slug, status, enroll_opens, enroll_closes, starts_on, ends_on FROM cohorts')) {
+    (cohortsBySlug[c.program_slug] ||= []).push(c);
+  }
   for (const row of programRows) {
     try {
       const filePath = join(programsDir, `${row.slug}.md`);
       const existingFrontmatter = readExistingFrontmatter(filePath);
-      const frontmatterLines = buildProgramFrontmatter(row, existingFrontmatter);
+      const runSchedule = deriveRunSchedule(cohortsBySlug[row.slug]);
+      const frontmatterLines = buildProgramFrontmatter(row, existingFrontmatter, runSchedule);
       writeContentFile(filePath, frontmatterLines, row.body_md);
       const rel = `apps/static/src/content/programs/${row.slug}.md`;
       written.push(rel);
