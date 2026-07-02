@@ -159,11 +159,11 @@ export async function loadCatalog(env) {
     programHasOptions(slug) {
       return !!optionsBySlug[slug];
     },
-    // Run-priced program? (programs.enroll_by_run = 1). When true, program_options
-    // holds cohort_keys and pricing/labels go through the runs methods below, not
-    // the option methods above.
+    // Every program is run-based now: dates + price live on its runs, and
+    // program_options holds cohort selection keys. (enroll_by_run is retained as
+    // a no-op column during the transition; it no longer gates anything.)
     isRunPriced(slug) {
-      return bySlug[slug]?.enroll_by_run === 1;
+      return !!bySlug[slug];
     },
     // internal new-shape config (or null)
     getProgramOptions(slug) {
@@ -301,9 +301,10 @@ export async function loadCatalog(env) {
       const r = bySlug[slug];
       if (!r) return false;
       if (r.hidden) return false;
-      // Run-priced programs are governed by their runs' own enrol windows, not
-      // the program-level dates: open iff at least one run is currently enrolling.
-      if (r.enroll_by_run === 1) return (runsBySlug[slug] || []).some((run) => run.enrolling);
+      // Run-based: open iff at least one run is currently enrolling. Fall back to
+      // the program's own date window only when it has no runs yet (not migrated).
+      const runs = runsBySlug[slug] || [];
+      if (runs.length) return runs.some((run) => run.enrolling);
       return deriveRegState(r.always_open === 1, r.registration_opens, r.registration_closes, todayISO) === "open";
     },
     // Effective fee for a registration row: run-priced -> sum of stored run

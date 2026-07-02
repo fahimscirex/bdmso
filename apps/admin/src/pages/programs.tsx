@@ -11,7 +11,7 @@ import { ListError } from '@/components/list-error';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
 import { ConfirmDeleteItem } from '@/components/confirm-delete';
-import { EditorDialog, EditorSection, EditorField, SwitchField, DateField, ImageField, MarkdownTextarea, MarkdownPreview } from '@/components/editor/editor-kit';
+import { EditorDialog, EditorSection, EditorField, SwitchField, ImageField, MarkdownTextarea, MarkdownPreview } from '@/components/editor/editor-kit';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -207,23 +207,15 @@ const blankForm: Form = {
 
 const str = (v: unknown) => (v == null ? '' : String(v));
 
-type Choice = { id: string; label: string; note: string; price: string };
-const slugify = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-
 function ProgramEditor({ item, trigger, onSaved }: { item?: Program; trigger: ReactNode; onSaved: () => void }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Form>(blankForm);
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
-  // Priced choices (e.g. selectable sessions/subjects). Empty = flat fee only.
-  const [selection, setSelection] = useState<'single' | 'multiple'>('single');
-  const [choices, setChoices] = useState<Choice[]>([]);
 
   useEffect(() => {
     if (!open) return;
-    if (!item) { setForm(blankForm); setSelection('single'); setChoices([]); return; }
+    if (!item) { setForm(blankForm); return; }
     api.getProgramBody(item.slug).then((p) => {
-      setSelection(p.pricing?.selection ?? 'single');
-      setChoices((p.pricing?.choices ?? []).map((c) => ({ id: c.id, label: c.label, note: c.note ?? '', price: String(c.price) })));
       setForm({
       slug: str(p.slug),
       title: str(p.title),
@@ -260,6 +252,9 @@ function ProgramEditor({ item, trigger, onSaved }: { item?: Program; trigger: Re
   }, [open, item]);
 
   function submit() {
+    // Dates + price live on the runs now, not the program - so they are NOT
+    // sent here (sending them would overwrite/clear the DB columns). The program
+    // editor covers identity, content, and run behaviour (pick_one) only.
     const fields = {
       title: form.title,
       category: form.category,
@@ -272,13 +267,6 @@ function ProgramEditor({ item, trigger, onSaved }: { item?: Program; trigger: Re
       format: form.format,
       outcome: form.outcome,
       level: form.level,
-      schedule_label: form.schedule_label,
-      starts_on: form.starts_on,
-      ends_on: form.ends_on,
-      registration_opens: form.registration_opens,
-      registration_closes: form.registration_closes,
-      price_label: form.price_label,
-      fee_amount: form.fee_amount === '' ? null : Number(form.fee_amount),
       meta_description: form.meta_description,
       home_order: form.home_order,
       register_url: form.register_url,
@@ -287,12 +275,7 @@ function ProgramEditor({ item, trigger, onSaved }: { item?: Program; trigger: Re
       published: form.published,
       hidden: form.hidden,
       repeatable: form.repeatable,
-      always_open: form.always_open,
-      enroll_by_run: form.enroll_by_run,
       pick_one: form.pick_one,
-      pricing: choices.length
-        ? { selection, choices: choices.map((c) => ({ id: c.id || slugify(c.label), label: c.label, note: c.note, price: Number(c.price) || 0 })) }
-        : null,
     };
     const payload = item ? fields : { slug: form.slug, ...fields };
     run(
@@ -362,40 +345,14 @@ function ProgramEditor({ item, trigger, onSaved }: { item?: Program; trigger: Re
             </SelectContent>
           </Select>
         </EditorField>
-        {form.enroll_by_run ? (
-          <p className="text-sm text-muted-foreground">
-            Dates are set per run below (each option owns its enrol window and session dates).
-            The schedule shown on the site is generated automatically from the runs that are
-            enrolling or upcoming.
-          </p>
-        ) : (
-          <>
-            <div className="grid grid-cols-2 gap-3">
-              <EditorField label="Registration opens" htmlFor="registration_opens" hint="When the registration window opens.">
-                <DateField id="registration_opens" value={form.registration_opens} onChange={(v) => set('registration_opens', v)} />
-              </EditorField>
-              <EditorField label="Registration closes" htmlFor="registration_closes" hint="When registration closes.">
-                <DateField id="registration_closes" value={form.registration_closes} onChange={(v) => set('registration_closes', v)} />
-              </EditorField>
-              <EditorField label="Starts on" htmlFor="starts_on" hint="Program start date.">
-                <DateField id="starts_on" value={form.starts_on} onChange={(v) => set('starts_on', v)} />
-              </EditorField>
-              <EditorField label="Ends on" htmlFor="ends_on" hint="Program end date.">
-                <DateField id="ends_on" value={form.ends_on} onChange={(v) => set('ends_on', v)} />
-              </EditorField>
-            </div>
-            <EditorField label="Schedule label" htmlFor="schedule_label" hint="Human-readable schedule, e.g. Every Friday 4-6pm.">
-              <Input id="schedule_label" value={form.schedule_label} onChange={(e) => set('schedule_label', e.target.value)} />
-            </EditorField>
-          </>
-        )}
+        <p className="text-sm text-muted-foreground">
+          Dates and price live on the runs. Expand this program in the Programs list to add runs and set
+          each run's enrolment window, session dates, and price/options. The site schedule is generated
+          from the runs automatically.
+        </p>
         <div className="grid gap-3 sm:grid-cols-2">
-          <SwitchField label="Always open" hint="When on, ignore the open/close dates and always accept signups." checked={form.always_open} onChange={(v) => set('always_open', v)} />
           <SwitchField label="Repeatable" hint="When on, a guardian may register more than once." checked={form.repeatable} onChange={(v) => set('repeatable', v)} />
-          <SwitchField label="Enroll by run" hint="When on, students pick from this program's runs (below) and pay per run. Set each run's price and dates on its row. Leave off to use pricing options or the flat fee." checked={form.enroll_by_run} onChange={(v) => set('enroll_by_run', v)} />
-          {form.enroll_by_run && (
-            <SwitchField label="Parents pick one option" hint="On: parents choose exactly one run (e.g. Math / Science / Both). Off: they can combine runs and the prices add up (e.g. several Mock Test dates)." checked={form.pick_one} onChange={(v) => set('pick_one', v)} />
-          )}
+          <SwitchField label="Parents pick one run" hint="On: parents choose exactly one run/option (e.g. Math / Science / Both). Off: they can combine runs and the prices add up (e.g. several Mock Test dates)." checked={form.pick_one} onChange={(v) => set('pick_one', v)} />
         </div>
       </EditorSection>
 
@@ -416,12 +373,6 @@ function ProgramEditor({ item, trigger, onSaved }: { item?: Program; trigger: Re
           <EditorField label="Level" htmlFor="level" hint="Difficulty level.">
             <Input id="level" value={form.level} onChange={(e) => set('level', e.target.value)} />
           </EditorField>
-          <EditorField label="Price label" htmlFor="price_label" hint="Display price text, e.g. Free or ৳1,500.">
-            <Input id="price_label" value={form.price_label} onChange={(e) => set('price_label', e.target.value)} />
-          </EditorField>
-          <EditorField label="Fee amount" htmlFor="fee_amount" hint="Fee in BDT (whole number). Leave empty for free.">
-            <Input id="fee_amount" type="number" value={form.fee_amount} onChange={(e) => set('fee_amount', e.target.value)} />
-          </EditorField>
           <EditorField label="Home order" htmlFor="home_order" hint="Sort order on the home page (lower shows first).">
             <Input id="home_order" type="number" value={form.home_order} onChange={(e) => set('home_order', e.target.value)} />
           </EditorField>
@@ -436,52 +387,6 @@ function ProgramEditor({ item, trigger, onSaved }: { item?: Program; trigger: Re
           <EditorField label="Register label" htmlFor="register_label" hint="Text for the register button.">
             <Input id="register_label" value={form.register_label} onChange={(e) => set('register_label', e.target.value)} />
           </EditorField>
-        </div>
-      </EditorSection>
-
-      <EditorSection title="Pricing options" description="Optional priced choices, e.g. selectable sessions or subjects. Leave empty to use the flat fee above.">
-        {choices.length > 0 && (
-          <EditorField label="Selection" hint="single: registrant picks one choice. multiple: they can pick several (prices add up).">
-            <Select value={selection} onValueChange={(v) => setSelection(v as 'single' | 'multiple')}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="single">Single - pick one</SelectItem>
-                <SelectItem value="multiple">Multiple - pick several</SelectItem>
-              </SelectContent>
-            </Select>
-          </EditorField>
-        )}
-        <div className="grid gap-2">
-          {choices.map((c, i) => {
-            const upd = (patch: Partial<Choice>) => setChoices((arr) => arr.map((x, j) => (j === i ? { ...x, ...patch } : x)));
-            return (
-              <div key={i} className="grid grid-cols-[1fr_8rem_2.25rem] items-end gap-2 rounded-lg border bg-muted/30 p-2.5">
-                <div className="grid gap-1.5">
-                  <Label className="text-xs text-muted-foreground" htmlFor={`ch-label-${i}`}>Label</Label>
-                  <Input
-                    id={`ch-label-${i}`}
-                    value={c.label}
-                    placeholder="Math session"
-                    onChange={(e) => upd({ label: e.target.value, id: c.id || slugify(e.target.value) })}
-                  />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label className="text-xs text-muted-foreground" htmlFor={`ch-price-${i}`}>Price (৳)</Label>
-                  <Input id={`ch-price-${i}`} type="number" value={c.price} placeholder="0" onChange={(e) => upd({ price: e.target.value })} />
-                </div>
-                <Button type="button" variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={() => setChoices((arr) => arr.filter((_, j) => j !== i))} aria-label="Remove choice">
-                  <Trash2 className="size-4" />
-                </Button>
-                <div className="col-span-3 grid gap-1.5">
-                  <Label className="text-xs text-muted-foreground" htmlFor={`ch-note-${i}`}>Note (optional)</Label>
-                  <Input id={`ch-note-${i}`} value={c.note} placeholder="Short detail shown beside the choice" onChange={(e) => upd({ note: e.target.value })} />
-                </div>
-              </div>
-            );
-          })}
-          <Button type="button" variant="outline" size="sm" className="justify-self-start" onClick={() => setChoices((arr) => [...arr, { id: '', label: '', note: '', price: '' }])}>
-            <Plus className="size-4" /> Add choice
-          </Button>
         </div>
       </EditorSection>
 
