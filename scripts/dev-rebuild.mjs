@@ -9,7 +9,7 @@
 
 import { createHash } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, readdirSync, watch } from 'node:fs';
+import { existsSync, readdirSync, renameSync, rmSync, watch } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -78,6 +78,36 @@ let timer = null;
 let building = false;
 let pending = false;
 
+// Astro's build empties dist/, taking the admin + guardian bundles (built
+// separately by build:apps) with it - so a content rebuild used to break
+// /admin and /dashboard until a manual app rebuild. Park those directories
+// next to dist during the static build and move them back after.
+const SPA_DIRS = ['admin', 'dashboard'];
+
+function parkSpas() {
+  const parked = [];
+  for (const name of SPA_DIRS) {
+    const src = join(repoRoot, 'dist', name);
+    if (!existsSync(src)) continue;
+    const tmp = join(repoRoot, `.dist-${name}-keep`);
+    rmSync(tmp, { recursive: true, force: true }); // stale park from a killed run
+    renameSync(src, tmp);
+    parked.push([tmp, src]);
+  }
+  return parked;
+}
+
+function restoreSpas(parked) {
+  for (const [tmp, src] of parked) {
+    try {
+      rmSync(src, { recursive: true, force: true });
+      renameSync(tmp, src);
+    } catch (err) {
+      console.error(`[rebuild] failed to restore ${src}: ${err && err.message ? err.message : err}`);
+    }
+  }
+}
+
 async function rebuild() {
   if (building) {
     // A build is already running; remember to re-check once it finishes.
@@ -93,10 +123,16 @@ async function rebuild() {
   console.log('[rebuild] programs/posts changed, rebuilding...');
   try {
     await materialize();
-    const res = spawnSync('pnpm', ['run', 'build:static'], {
-      cwd: repoRoot,
-      stdio: 'inherit',
-    });
+    const parked = parkSpas();
+    let res;
+    try {
+      res = spawnSync('pnpm', ['run', 'build:static'], {
+        cwd: repoRoot,
+        stdio: 'inherit',
+      });
+    } finally {
+      restoreSpas(parked);
+    }
     if (res.status !== 0) {
       console.error(`[rebuild] build:static exited with code ${res.status}`);
     } else {
