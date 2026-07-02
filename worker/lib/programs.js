@@ -189,6 +189,9 @@ export async function loadCatalog(env) {
           label: r.label,
           sub: runDateRange(r),
           price: r.price,
+          // Options sharing a group are mutually exclusive in the picker (one
+          // per run, e.g. Math/Science/Both); different groups combine.
+          group: r.choiceGroup || r.cohortKey,
         })),
       };
     },

@@ -108,7 +108,7 @@ function renderProgramOptions() {
     const taken = takenOptionIds.has(it.id);
     return `
     <label class="opt-item${taken ? ' opt-taken' : ''}" data-id="${it.id}">
-      <input type="${inputType}" name="program-option" value="${it.id}"${taken ? ' disabled' : ''}>
+      <input type="${inputType}" name="program-option" value="${it.id}" data-group="${it.group || ''}"${taken ? ' disabled' : ''}>
       <div class="opt-text">
         <div class="opt-label-row">
           <span class="opt-label">${it.label}${taken ? ' · Already enrolled' : ''}</span>
@@ -132,6 +132,17 @@ function renderProgramOptions() {
   `;
   panel.hidden = false;
   panel.querySelectorAll('input[name="program-option"]').forEach((el) => {
+    // One option per run: checking an option unchecks its same-group siblings
+    // (e.g. picking "2 subjects" clears "1 subject" for that run). Different
+    // runs stay independent. Mirrors the server's one-per-group rule.
+    el.addEventListener("change", () => {
+      const group = el.dataset.group;
+      if (el.checked && group) {
+        panel.querySelectorAll(`input[name="program-option"][data-group="${group}"]`).forEach((sib) => {
+          if (sib !== el && sib.checked) sib.checked = false;
+        });
+      }
+    });
     el.addEventListener("change", updateOptionsTotal);
     // Picking an option may have just satisfied the step 1 gate;
     // refresh the Continue button immediately. The conditional fields

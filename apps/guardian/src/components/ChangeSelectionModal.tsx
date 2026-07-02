@@ -31,6 +31,7 @@ export type OptionItem = {
   label: string;
   sub?: string;
   price: number;
+  group?: string; // options sharing a group are mutually exclusive (one per run)
 };
 
 export type OptionsConfig = {
@@ -127,7 +128,14 @@ export default function ChangeSelectionModal({
       setSelected([id]);
       return;
     }
-    setSelected((cur) => cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]);
+    // One option per run: adding an option drops any already-selected option
+    // from the same group (e.g. picking "2 subjects" clears "1 subject").
+    const group = config.items.find((it) => it.id === id)?.group;
+    setSelected((cur) => {
+      if (cur.includes(id)) return cur.filter((x) => x !== id);
+      const kept = group ? cur.filter((x) => config.items.find((it) => it.id === x)?.group !== group) : cur;
+      return [...kept, id];
+    });
   }
 
   async function submit() {
