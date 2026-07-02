@@ -591,11 +591,40 @@ const cards = programs
     const count = document.getElementById('all-count');
     const total = cardEls.length;
 
+    let liveMap = new Map();
     fetch('/api/catalog')
       .then((r) => r.json())
       .then((d) => new Map((Array.isArray(d) ? d : d.programs || []).map((p) => [p.slug, p])))
       .catch(() => new Map())
-      .then(enhance);
+      .then((m) => { liveMap = m; enhance(m); });
+
+    // The modal injects the detail page's HTML, so its baked side card never
+    // runs that page's own hydration script - re-apply the live facts here.
+    function hydrateFragment(root, p) {
+      if (!p) return;
+      const price = root.querySelector('#pd-price');
+      if (price && p.price) price.textContent = p.price;
+      const sched = root.querySelector('#pd-schedule');
+      if (sched) {
+        if (p.schedule) { sched.textContent = p.schedule; sched.hidden = false; }
+        else sched.hidden = true;
+      }
+      const link = root.querySelector('#pd-cta');
+      const closedBox = root.querySelector('#pd-cta-closed');
+      if (p.registration === true && closedBox) {
+        const a = document.createElement('a');
+        a.className = 'btn btn-primary btn-lg pd-cta';
+        a.href = closedBox.dataset.registerUrl || '/registration?program=' + p.slug;
+        a.textContent = (closedBox.dataset.registerLabel || 'Register') + ' →';
+        closedBox.replaceWith(a);
+      } else if (p.registration === false && link) {
+        const b = document.createElement('div');
+        b.className = 'pd-cta';
+        b.style.cssText = 'text-align:center;padding:14px;border-radius:12px;background:var(--bg-alt,#f1f3f7);color:var(--ink-3);font-weight:700;font-size:14px;';
+        b.textContent = 'Registration closed';
+        link.replaceWith(b);
+      }
+    }
 
     // ── 2. Modal: open on card click, fetch /programs/<slug> on demand,
     //    inject only the body content so the modal stays small. The static
@@ -688,6 +717,7 @@ const cards = programs
       }
       modalLoad.hidden    = true;
       modalBody.innerHTML = html;
+      hydrateFragment(modalBody, liveMap.get(slug));
       modalBody.hidden    = false;
       // Scroll the modal body to top in case it was reopened mid-scroll.
       modalBody.parentElement.scrollTop = 0;
