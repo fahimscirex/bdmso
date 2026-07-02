@@ -1542,7 +1542,7 @@ const showBanner = bannerDesktop !== "";
             const open = state === "open";
             const upcoming = state === "upcoming";
             return (
-              <a class={`prog-card${open ? " open" : ""}`} href={`/programs/${p.id}`}>
+              <a class={`prog-card${open ? " open" : ""}`} href={`/programs/${p.id}`} data-slug={p.id}>
                 <div class="prog-top">
                   {open && <span class="open-badge"><span class="open-dot"></span>Open</span>}
                   {upcoming && <span class="upcoming-badge">Upcoming</span>}
@@ -1746,6 +1746,55 @@ const showBanner = bannerDesktop !== "";
         modal.querySelectorAll('[data-ue-close]').forEach(el => el.addEventListener('click', close));
         document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.hidden) close(); });
       }
+
+      // ── Live reconciliation with /api/catalog (the run-based gate). The
+      // SSR badges + banner text are baked from frontmatter at build time and
+      // can go stale between publishes; correct them from the live catalog.
+      // The banner is only ever corrected/hidden here, never conjured - a
+      // missing banner just waits for the next publish.
+      fetch('/api/catalog').then((r) => r.json()).then((d) => {
+        const list = (Array.isArray(d) ? d : d.programs || []).filter((p) => p.home_order && !p.hidden);
+        const bySlug = new Map(list.map((p) => [p.slug, p]));
+        const t = new Date().toISOString().slice(0, 10);
+        const stateOf = (p) => p.registration === true ? 'open'
+          : (p.registrationStarts && t < p.registrationStarts ? 'upcoming' : 'closed');
+
+        document.querySelectorAll('#prog-grid .prog-card[data-slug]').forEach((card) => {
+          const p = bySlug.get(card.dataset.slug);
+          if (!p) return;
+          const state = stateOf(p);
+          card.classList.toggle('open', state === 'open');
+          card.querySelector('.open-badge')?.remove();
+          card.querySelector('.upcoming-badge')?.remove();
+          const top = card.querySelector('.prog-top');
+          if (top && state === 'open') top.insertAdjacentHTML('beforeend', '<span class="open-badge"><span class="open-dot"></span>Open</span>');
+          else if (top && state === 'upcoming') top.insertAdjacentHTML('beforeend', '<span class="upcoming-badge">Upcoming</span>');
+        });
+
+        const bn = document.getElementById('top-banner');
+        if (!bn || bn.hidden) return; // absent or user-dismissed: leave it be
+        const strip = (s) => s.replace(/^BdMSO\s+/i, '');
+        const join = (n) => n.length === 1 ? n[0]
+          : n.length === 2 ? `${n[0]} and ${n[1]}`
+          : n.length === 3 ? `${n[0]}, ${n[1]} and ${n[2]}`
+          : `${n[0]}, ${n[1]} and ${n.length - 2} more`;
+        const openNow = list.filter((p) => stateOf(p) === 'open');
+        const soon = list.filter((p) => stateOf(p) === 'upcoming' && p.registrationStarts)
+          .sort((a, b) => String(a.registrationStarts).localeCompare(String(b.registrationStarts)));
+        const dt = bn.querySelector('.top-banner-text-desktop');
+        const mb = bn.querySelector('.top-banner-text-mobile');
+        if (openNow.length) {
+          if (dt) dt.textContent = `BdMSO 2026 - Registration is open for ${join(openNow.map((p) => strip(p.title)))}.`;
+          if (mb) mb.textContent = 'Registration open for BdMSO 2026.';
+        } else if (soon.length) {
+          const when = new Date(soon[0].registrationStarts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+          if (dt) dt.textContent = `BdMSO 2026 - Registration for ${strip(soon[0].title)} opens ${when}.`;
+          if (mb) mb.textContent = 'Registration opening soon.';
+        } else {
+          bn.hidden = true;
+          document.body.classList.remove('has-top-banner');
+        }
+      }).catch(() => {});
 
       // Top announcement banner - dismissible, remembered for the session.
       const banner = document.getElementById('top-banner');
