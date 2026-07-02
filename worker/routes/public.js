@@ -3,7 +3,7 @@
 // worker. They take (request, env [, url]) and return a Response.
 
 import { jsonResponse, badRequest, redirectTo, createId, couponAppliesToType, couponDiscount, amountCoversBilled, parseJson, getBaseUrl } from "../lib/util.js";
-import { normalizeString, requireField, isEmail, isPhoneLike } from "../lib/validation.js";
+import { normalizeString, requireField, isEmail, isBdMobile, normalizeBdPhone } from "../lib/validation.js";
 import { hashPassword, PBKDF2_ITERATIONS_CURRENT, DUMMY_HASH_SALT, timingSafeEqual } from "../lib/crypto.js";
 import { createSession, extractToken, requireAuth, sessionCookie, clearSessionCookie } from "../lib/sessions.js";
 import { checkLoginRateLimit, recordLoginAttempt, checkActionRateLimit, recordActionAttempt, clientIpFor } from "../lib/rate-limit.js";
@@ -436,7 +436,7 @@ export async function handleRegistration(request, env) {
   const studentDistrict    = requireField(student.district,   "District");
   const guardianFullName   = requireField(guardian.fullName,  "Guardian name");
   const guardianRelationship = requireField(guardian.relationship, "Relationship");
-  const guardianPhone      = requireField(guardian.phone,     "Phone");
+  const guardianPhone      = normalizeBdPhone(requireField(guardian.phone, "Phone"));
   const guardianEmail      = requireField(guardian.email,     "Guardian email").toLowerCase();
   const guardianAddress    = requireField(guardian.address,   "Address");
   const password           = requireField(acct.password,      "Password");
@@ -503,7 +503,7 @@ export async function handleRegistration(request, env) {
 
   if (!termsAccepted) return badRequest("Rules and regulations must be accepted.");
   if (!isEmail(guardianEmail)) return badRequest("Guardian email is not valid.");
-  if (!isPhoneLike(guardianPhone)) return badRequest("Guardian phone number is not valid.");
+  if (!isBdMobile(guardianPhone)) return badRequest("Enter a valid Bangladesh mobile number, e.g. 01712345678.");
   if (password.length < 8) return badRequest("Password must be at least 8 characters long.");
 
   // Age check: NQR students must be under 13 as of September 30 (IMSO cutoff).

@@ -979,19 +979,24 @@ function init() {
   // submission payload.
   const phoneEl = document.getElementById("g-phone");
   if (phoneEl) {
-    const sanitise = (v) => v.replace(/\D+/g, "").slice(0, 10);
+    // The field holds the 10-digit subscriber number after the "+880" chip.
+    // CRUCIAL: strip a country code (880) AND any leading 0 the user typed
+    // BEFORE capping at 10 - otherwise "01712345678" would truncate to
+    // "0171234567" (an extra 0 and a lost last digit). Result is "1712345678".
+    const sanitise = (v) => {
+      let d = v.replace(/\D+/g, "");
+      if (d.startsWith("880")) d = d.slice(3);
+      d = d.replace(/^0+/, "");
+      return d.slice(0, 10);
+    };
     phoneEl.addEventListener("input", () => {
       const clean = sanitise(phoneEl.value);
       if (clean !== phoneEl.value) phoneEl.value = clean;
     });
     phoneEl.addEventListener("paste", (e) => {
       const text = (e.clipboardData || window.clipboardData)?.getData("text") || "";
-      const digits = text.replace(/\D+/g, "");
-      // If the pasted value carries the country code, drop it so the
-      // 10-digit subscriber number is what lands in the field.
-      const trimmed = digits.startsWith("880") ? digits.slice(3) : digits;
       e.preventDefault();
-      phoneEl.value = trimmed.slice(0, 10);
+      phoneEl.value = sanitise(text);
       phoneEl.dispatchEvent(new Event("input"));
     });
   }
