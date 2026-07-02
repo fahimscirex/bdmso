@@ -12,7 +12,6 @@ import {
   priceOf,
   labelsOf,
   computeDiff,
-  isWithinEditWindow,
   deriveRegState,
   deriveCohortStage,
 } from "./program-options.js";
@@ -278,9 +277,9 @@ export async function loadCatalog(env) {
       return items.find((it) => it.key === pk)?.cohortKey ?? pk;
     },
     withinEditWindow(slug, todayISO = null) {
-      const r = bySlug[slug];
-      if (!r) return false;
-      return isWithinEditWindow(r.registration_closes, todayISO);
+      // Run-based: a guardian can change their selection while the program is
+      // still enrollable (a run is enrolling), not by the program's own window.
+      return this.registrationOpenFor(slug, todayISO);
     },
     registrationClosesFor(slug) {
       return bySlug[slug]?.registration_closes || null;
