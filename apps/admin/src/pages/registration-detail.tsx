@@ -236,7 +236,8 @@ function ChangeEnrollmentDialog({ reg, onSaved }: { reg: RegistrationDetail; onS
     const body: { registrationType?: string; preferred_subject?: string; preferred_venue?: string; programOptions?: string[] } = {};
     if (isCompetition) {
       if (program !== reg.program) body.registrationType = program;
-      body.preferred_subject = subject;
+      // Subject only applies to the Olympiad; switching to the Quiz clears it.
+      body.preferred_subject = program === 'national-olympiad' ? subject : '';
       body.preferred_venue = venue;
     } else if (picked.length) {
       body.programOptions = picked;
@@ -260,9 +261,11 @@ function ChangeEnrollmentDialog({ reg, onSaved }: { reg: RegistrationDetail; onS
             <OptionSelect value={program} onChange={setProgram} options={COMPETITION_OPTIONS} />
           </EditorField>
           <div className="grid grid-cols-2 gap-3">
-            <EditorField label="Subject">
-              <OptionSelect value={subject} onChange={setSubject} options={SUBJECT_OPTIONS} />
-            </EditorField>
+            {program === 'national-olympiad' && (
+              <EditorField label="Subject">
+                <OptionSelect value={subject} onChange={setSubject} options={SUBJECT_OPTIONS} />
+              </EditorField>
+            )}
             <EditorField label="Exam region" htmlFor="venue">
               <Input id="venue" value={venue} onChange={(e) => setVenue(e.target.value)} />
             </EditorField>
