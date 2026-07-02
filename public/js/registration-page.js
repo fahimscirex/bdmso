@@ -28,11 +28,10 @@ async function loadCatalogMaps() {
 // or 'closed' (hidden, registration: false, or the window has ended).
 function registrationState(slug) {
   const p = CATALOG_BY_SLUG[slug];
-  if (!p || p.hidden || p.registration === false) return 'closed';
-  const today = new Date().toISOString().slice(0, 10);
-  if (p.registrationStarts && today < p.registrationStarts) return 'upcoming';
-  if (p.registrationEnds && today > p.registrationEnds) return 'closed';
-  return 'open';
+  if (!p || p.hidden) return 'closed';
+  // p.registration is the run-based gate from the worker (open iff a run is
+  // enrolling). Trust it; the program-level date window no longer governs.
+  return p.registration ? 'open' : 'closed';
 }
 
 // Keep the program-choice cards (#full-reg-section) in sync with live program

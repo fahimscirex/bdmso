@@ -12,7 +12,7 @@ import { recordAudit } from "../lib/audit-log.js";
 import { loadCatalog } from "../lib/programs.js";
 import { receiptInsertStatements, receiptSyncStatements } from "../lib/receipt.js";
 import { getBoolSetting } from "../lib/settings.js";
-import { deriveRegState, deriveCohortStage } from "../lib/program-options.js";
+import { deriveCohortStage } from "../lib/program-options.js";
 
 // Public runtime config the registration page reads (no auth). Currently just
 // the offline/cash payment toggle so the pay step can hide that option.
@@ -379,8 +379,9 @@ export async function handleCatalog(request, env) {
       registrationStatus: r.registration_status,
       registrationStarts: r.registration_opens || null,
       registrationEnds: r.registration_closes || null,
-      // Derived from the always_open flag + date window (not the legacy enum).
-      registration: deriveRegState(r.always_open === 1, r.registration_opens, r.registration_closes, null) === "open",
+      // Run-based: open iff the program has an enrolling run (matches the
+      // server gate in registrationOpenFor), not the legacy program date window.
+      registration: catalog.registrationOpenFor(r.slug),
       yearRound: r.always_open === 1,
       metaDescription: r.meta_description || null,
       home_order: r.home_order || null,
