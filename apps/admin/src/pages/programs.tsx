@@ -545,7 +545,7 @@ function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void 
             </span>
           ) : (
             <button type="button" className="rounded px-1.5 py-0.5 text-sm hover:bg-accent" title="Set this run's price" onClick={() => { setPriceDraft(c.priceOverride == null ? '' : String(c.priceOverride)); setEditingPrice(true); }}>
-              {c.priceOverride == null ? <span className="text-muted-foreground">Program fee</span> : <span className="font-medium">৳{c.priceOverride}</span>}
+              {c.priceOverride == null ? <span className="text-amber-600 dark:text-amber-500">Set price</span> : <span className="font-medium">৳{c.priceOverride}</span>}
             </button>
           )}
         </RunField>

@@ -115,8 +115,9 @@ export async function loadCatalog(env) {
        FROM cohorts`
   ).all();
   for (const c of (cohortRows || [])) {
-    const fee = prices[c.program_slug] ?? null;
-    const flatPrice = c.price_override != null ? c.price_override : fee;
+    // Price lives on the run only - no program-fee fallback. An unset
+    // price_override means the run isn't priced yet (0); admins set it per run.
+    const flatPrice = c.price_override != null ? c.price_override : 0;
     const stage = deriveCohortStage(
       c.status, c.enroll_opens, c.enroll_closes, c.starts_on, c.ends_on,
     );
