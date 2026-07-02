@@ -66,7 +66,11 @@ async function syncRegCards() {
     const metaEl = card.querySelector('.meta');
     if (metaEl) {
       const feePrefix = card.dataset.feePrefix || '';
-      const feeStr = p.feeAmount != null ? `${feePrefix}${fmtFee(p.feeAmount)} BDT` : '';
+      // Prefer the run-derived price label (runs own pricing); the program fee
+      // column is the fallback. Only when the label actually carries a number.
+      const livePrice = p.price && /\d/.test(p.price) ? p.price.replace(/^৳\s*/, '') : null;
+      const feeStr = livePrice ? `${feePrefix}${livePrice} BDT`
+        : (p.feeAmount != null ? `${feePrefix}${fmtFee(p.feeAmount)} BDT` : '');
       let when = '';
       if (state === 'upcoming' && p.registrationStarts) when = `Opens ${fmtDate(p.registrationStarts)}`;
       else if (state === 'closed') when = 'Registration closed';
@@ -345,6 +349,50 @@ async function initQuickEnroll() {
   const basePrice = PROGRAM_PRICES[effectiveProgram];
   priceEl.textContent = basePrice ? `৳ ${basePrice.toLocaleString()}` : 'On enquiry';
 
+  // Program-focused form presentation. The ?program= param already carries
+  // the intent, so the hero, 3-step instructions and the program-choice cards
+  // are noise - hide them all and put the form at the top with a back link +
+  // program pill. Every path that lands on the FULL form with a program set
+  // uses this (logged out, or logged in with nothing reusable on file).
+  function presentFormOnly() {
+    fullReg.hidden = true;
+    formShell.hidden = false;
+    formShell.style.marginTop = '0';
+    document.querySelector('.page-head')?.setAttribute('hidden', '');
+    document.querySelector('.instructions')?.setAttribute('hidden', '');
+    document.querySelector('.reg-wrap')?.style.setProperty('margin-top', '24px');
+
+    // Update form header to show the actual program being enrolled in
+    const formContextLabel = formShell.querySelector('.form-head div > div:first-child');
+    if (formContextLabel) formContextLabel.textContent = programName;
+
+    // Slim back link + program pill above the form. Built with DOM methods
+    // (not innerHTML) since `programName` is catalog text - defense in depth.
+    const backBar = document.createElement('div');
+    backBar.style.cssText = 'margin:18px 0 18px;';
+    const backLink = document.createElement('a');
+    backLink.href = '/programs';
+    backLink.style.cssText = 'display:inline-block;font-size:14px;line-height:1.2;color:var(--navy-700);font-weight:600;text-decoration:none;';
+    backLink.textContent = '← Back to programs';
+    const tag = document.createElement('div');
+    tag.style.cssText = 'width:fit-content;max-width:100%;margin:12px auto 0;font-size:12px;line-height:1.2;color:var(--navy-800,#1e3a8a);font-weight:700;letter-spacing:0.04em;text-transform:uppercase;background:var(--navy-50,#f0f4ff);border:1px solid var(--navy-200,#c7d5f5);padding:7px 16px;border-radius:999px;text-align:center;';
+    tag.textContent = programName;
+    backBar.append(backLink, tag);
+    formShell.parentElement.insertBefore(backBar, formShell);
+
+    // Returning-user prompt only makes sense when there is no session yet.
+    if (!session) {
+      const loginBanner = document.createElement('div');
+      loginBanner.style.cssText = 'margin-bottom:20px;padding:12px 16px;background:var(--navy-50,#f0f4ff);border:1px solid var(--navy-200,#c7d5f5);border-radius:8px;font-size:14px;color:var(--ink-2);';
+      const loginBannerLink = document.createElement('a');
+      loginBannerLink.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+      loginBannerLink.style.cssText = 'color:var(--navy-700);font-weight:600;text-decoration:underline;';
+      loginBannerLink.textContent = 'Log in';
+      loginBanner.append('Already have a BdMSO account? ', loginBannerLink, ' to use your saved student details - no need to fill this form again.');
+      formShell.parentElement.insertBefore(loginBanner, formShell);
+    }
+  }
+
   if (session) {
     // Logged-in: show quick enroll, hide full form
     panel.hidden = false;
@@ -367,10 +415,9 @@ async function initQuickEnroll() {
           window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
           return;
         }
-        // Other server error - fall back to full form
+        // Other server error - fall back to the program-focused full form
         panel.hidden = true;
-        fullReg.hidden = false;
-        formShell.hidden = false;
+        presentFormOnly();
         return;
       }
       const data = await res.json();
@@ -391,17 +438,14 @@ async function initQuickEnroll() {
           if (p)       p.innerHTML         = `Your BdMSO ID and student details are already on file - just confirm the program below and head to payment.`;
         }
       } else {
-        // No existing registration - fall back to full form
+        // No existing registration - fall back to the program-focused full form
         panel.hidden = true;
-        fullReg.hidden = false;
-        formShell.hidden = false;
-        document.querySelector('.instructions')?.style.removeProperty('display');
+        presentFormOnly();
         return;
       }
     } catch {
       panel.hidden = true;
-      fullReg.hidden = true; // program is set, never show the chooser grid
-      formShell.hidden = false;
+      presentFormOnly(); // program is set, never show the chooser grid
       return;
     }
 
@@ -581,51 +625,9 @@ async function initQuickEnroll() {
     });
 
   } else if (program) {
-    // Not logged in + program param → skip the hero/instructions/cards
-    // entirely and put the form at the top of the viewport. The user
-    // got here from a per-program "Register" button, so the program
-    // intent is already confirmed and the 3-step instructions just add
-    // scroll-cost without information value.
-    fullReg.hidden = true;
-    formShell.hidden = false;
-    formShell.style.marginTop = '0';
-    document.querySelector('.page-head')?.setAttribute('hidden', '');
-    document.querySelector('.instructions')?.setAttribute('hidden', '');
-    document.querySelector('.reg-wrap')?.style.setProperty('margin-top', '24px');
-
-    // Update form header to show the actual program being enrolled in
-    const formContextLabel = formShell.querySelector('.form-head div > div:first-child');
-    if (formContextLabel) formContextLabel.textContent = programName;
-
-    // Add a slim back link + program label above the form. Built with
-    // DOM methods (not innerHTML) since `programName` is catalog text
-    // but defense-in-depth: never trust strings into innerHTML.
-    // Stacked: back link on top (left), program name centered on its own line
-    // below with breathing room above and between. Top margin separates it from
-    // the site nav.
-    const backBar = document.createElement('div');
-    backBar.style.cssText = 'margin:18px 0 18px;';
-    const backLink = document.createElement('a');
-    backLink.href = '/programs';
-    backLink.style.cssText = 'display:inline-block;font-size:14px;line-height:1.2;color:var(--navy-700);font-weight:600;text-decoration:none;';
-    backLink.textContent = '← Back to programs';
-    // Program being enrolled in: a centered navy pill below the back link.
-    const tag = document.createElement('div');
-    tag.style.cssText = 'width:fit-content;max-width:100%;margin:12px auto 0;font-size:12px;line-height:1.2;color:var(--navy-800,#1e3a8a);font-weight:700;letter-spacing:0.04em;text-transform:uppercase;background:var(--navy-50,#f0f4ff);border:1px solid var(--navy-200,#c7d5f5);padding:7px 16px;border-radius:999px;text-align:center;';
-    tag.textContent = programName;
-    backBar.append(backLink, tag);
-    formShell.parentElement.insertBefore(backBar, formShell);
-
-    // Returning user prompt: if someone already has a BdMSO account,
-    // logging in skips this form entirely and uses their saved details.
-    const loginBanner = document.createElement('div');
-    loginBanner.style.cssText = 'margin-bottom:20px;padding:12px 16px;background:var(--navy-50,#f0f4ff);border:1px solid var(--navy-200,#c7d5f5);border-radius:8px;font-size:14px;color:var(--ink-2);';
-    const loginBannerLink = document.createElement('a');
-    loginBannerLink.href = '/login?redirect=' + encodeURIComponent(window.location.href);
-    loginBannerLink.style.cssText = 'color:var(--navy-700);font-weight:600;text-decoration:underline;';
-    loginBannerLink.textContent = 'Log in';
-    loginBanner.append('Already have a BdMSO account? ', loginBannerLink, ' to use your saved student details - no need to fill this form again.');
-    formShell.parentElement.insertBefore(loginBanner, formShell);
+    // Not logged in + program param: same program-focused presentation (with
+    // the log-in prompt, since there's no session).
+    presentFormOnly();
   }
 }
 
