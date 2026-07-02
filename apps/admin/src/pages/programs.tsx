@@ -427,14 +427,22 @@ function ProgramEditor({ item, trigger, onSaved }: { item?: Program; trigger: Re
 
 function ProgramRuns({ program, runs, onChange }: { program: Program; runs: Cohort[]; onChange: () => void }) {
   const [opening, setOpening] = useState(false);
+  // Most programs have exactly one run. Present that as a plain "Pricing & dates"
+  // form (no run-list chrome) - the full runs machinery only surfaces once a
+  // program actually has multiple cohorts.
+  const single = runs.length === 1;
   return (
     <div className="space-y-3 px-4 py-4 sm:px-12">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <span className="text-sm font-medium">Runs</span>
-          <p className="text-xs text-muted-foreground">Stage updates automatically from each run's dates. Draft and archived are manual.</p>
+          <span className="text-sm font-medium">{single ? 'Pricing & dates' : 'Runs'}</span>
+          <p className="text-xs text-muted-foreground">
+            {single
+              ? 'Edits apply immediately - price, enrolment window and session dates for this program.'
+              : "Stage updates automatically from each run's dates. Draft and archived are manual."}
+          </p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => setOpening(true)}><Plus className="size-4" /> Open new run</Button>
+        <Button size="sm" variant="outline" onClick={() => setOpening(true)}><Plus className="size-4" /> {single ? 'Add another run' : 'Open new run'}</Button>
       </div>
       {runs.length === 0 ? (
         <p className="text-sm text-muted-foreground">
@@ -442,7 +450,7 @@ function ProgramRuns({ program, runs, onChange }: { program: Program; runs: Coho
         </p>
       ) : (
         <div className="divide-y overflow-hidden rounded-lg border bg-card">
-          {runs.map((c) => <RunRow key={c.cohortKey} cohort={c} onChange={onChange} />)}
+          {runs.map((c) => <RunRow key={c.cohortKey} cohort={c} onChange={onChange} compact={single} />)}
         </div>
       )}
       {opening && <OpenRunDialog program={program} onClose={() => setOpening(false)} onDone={() => { setOpening(false); onChange(); }} />}
@@ -461,7 +469,7 @@ function RunField({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void }) {
+function RunRow({ cohort: c, onChange, compact = false }: { cohort: Cohort; onChange: () => void; compact?: boolean }) {
   // c.status is the DERIVED stage. Manual overrides are only draft/archived;
   // upcoming/enrolling/running/ended are computed from the run's dates.
   const setStatus = (status: CohortStatus, msg: string) =>
@@ -491,14 +499,18 @@ function RunRow({ cohort: c, onChange }: { cohort: Cohort; onChange: () => void 
 
   return (
     <div className="space-y-3 p-4">
-      {/* Identity + status + actions */}
+      {/* Identity + status + actions. Compact (single-run program): the run's
+          name/key is chrome - the program name sits right above it - so show
+          only the stage badges and the actions menu. */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="truncate text-sm font-semibold">{c.label}</span>
-            <span className="font-mono text-[11px] text-muted-foreground">{c.cohortKey}</span>
-          </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          {!compact && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="truncate text-sm font-semibold">{c.label}</span>
+              <span className="font-mono text-[11px] text-muted-foreground">{c.cohortKey}</span>
+            </div>
+          )}
+          <div className={cn('flex flex-wrap items-center gap-1.5', !compact && 'mt-1.5')}>
             <Badge className={cn('border-transparent text-[10px] font-medium', RUN_TONE[c.status])}>{cap(c.status)}</Badge>
             {c.resultsPublished && <Badge className="border-transparent bg-emerald-500/15 text-[10px] text-emerald-700 dark:text-emerald-400">Results live to guardians</Badge>}
             {c.publicFeatured && <Badge className="border-transparent bg-violet-500/15 text-[10px] text-violet-700 dark:text-violet-400">On public /results</Badge>}

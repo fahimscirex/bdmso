@@ -110,9 +110,9 @@ const relatedPosts = relatedTo(
         </article>
 
         <aside class="pd-side">
-          <div class="pd-card">
-            <div class="pd-price">{p.price || (typeof p.feeAmount === "number" ? `৳ ${p.feeAmount.toLocaleString("en-BD")}` : "")}</div>
-            {p.schedule && <p class="pd-schedule">{p.schedule}</p>}
+          <div class="pd-card" id="pd-side-card" data-slug={slug}>
+            <div class="pd-price" id="pd-price">{p.price || (typeof p.feeAmount === "number" ? `৳ ${p.feeAmount.toLocaleString("en-BD")}` : "")}</div>
+            <p class="pd-schedule" id="pd-schedule" hidden={!p.schedule}>{p.schedule}</p>
             {regOpen ? (
               <a
                 class="btn btn-primary btn-lg pd-cta"
@@ -124,7 +124,13 @@ const relatedPosts = relatedTo(
                 data-year-round={p.yearRound ? "true" : undefined}
               >{p.register_label || "Register"} →</a>
             ) : (
-              <div class="pd-cta" style={closedBoxStyle}>Registration closed</div>
+              <div
+                class="pd-cta"
+                id="pd-cta-closed"
+                style={closedBoxStyle}
+                data-register-url={p.register_url || `/registration?program=${slug}`}
+                data-register-label={p.register_label || "Register"}
+              >Registration closed</div>
             )}
             <div class="pd-facts">
               {p.audience && <div class="pd-fact"><div class="k">Who it's for</div><div class="v">{p.audience}</div></div>}
@@ -150,35 +156,68 @@ const relatedPosts = relatedTo(
     />
 
   <script is:inline>
-    // Downgrade the CTA to "opens on…/closed" based on the registration window.
-    // Kept client-side so static pages never go stale. Canonical rule (copy of
-    // deriveRegState): year-round programs are always open; otherwise derive
-    // from the date window.
+    // Hydrate the volatile facts (price, schedule, registration open/closed)
+    // from /api/catalog, which reads the program's RUNS live from D1. The baked
+    // frontmatter values render first as the fallback, so the page works
+    // without JS and never blanks - but a run edit in the admin is reflected
+    // here on the next load without a republish.
     (function () {
-      var c = document.getElementById("pd-cta");
-      if (!c) return;
-      var t = new Date().toISOString().slice(0, 10);
-      var s = c.dataset.regStarts, e = c.dataset.regEnds, m = "";
-      function deriveRegState(yearRound, starts, ends, today) {
-        if (yearRound) return "open";
-        if (starts && today < starts) return "upcoming";
-        if (ends && today > ends) return "closed";
-        if (starts || ends) return "open";
-        return "closed";
-      }
-      var state = deriveRegState(c.dataset.yearRound === "true", s, e, t);
-      if (state === "upcoming") {
-        m = "Registration opens " + new Date(s).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-      } else if (state === "closed") {
-        m = "Registration closed";
-      }
-      if (m) {
+      var CLOSED_STYLE = "text-align:center;padding:14px;border-radius:12px;background:var(--bg-alt,#f1f3f7);color:var(--ink-3);font-weight:700;font-size:14px;";
+      var card = document.getElementById("pd-side-card");
+      var slug = card && card.dataset.slug;
+
+      function closedBox(text) {
         var b = document.createElement("div");
         b.className = "pd-cta";
-        b.style.cssText = "text-align:center;padding:14px;border-radius:12px;background:var(--bg-alt,#f1f3f7);color:var(--ink-3);font-weight:700;font-size:14px;";
-        b.textContent = m;
-        c.replaceWith(b);
+        b.id = "pd-cta-closed";
+        b.style.cssText = CLOSED_STYLE;
+        b.textContent = text;
+        return b;
       }
+
+      // Offline fallback: the old baked-dates derivation, used only when the
+      // catalog can't be reached. Downgrades a stale-open CTA; never upgrades.
+      function bakedFallback() {
+        var c = document.getElementById("pd-cta");
+        if (!c) return;
+        var t = new Date().toISOString().slice(0, 10);
+        var s = c.dataset.regStarts, e = c.dataset.regEnds, m = "";
+        if (c.dataset.yearRound !== "true") {
+          if (s && t < s) m = "Registration opens " + new Date(s).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+          else if (e && t > e) m = "Registration closed";
+        }
+        if (m) c.replaceWith(closedBox(m));
+      }
+
+      if (!slug) return bakedFallback();
+      fetch("/api/catalog").then(function (r) { return r.json(); }).then(function (data) {
+        var list = Array.isArray(data) ? data : data.programs || [];
+        var p = null;
+        for (var i = 0; i < list.length; i++) if (list[i].slug === slug) { p = list[i]; break; }
+        if (!p) return bakedFallback();
+
+        var priceEl = document.getElementById("pd-price");
+        if (priceEl && p.price) priceEl.textContent = p.price;
+        var schedEl = document.getElementById("pd-schedule");
+        if (schedEl) {
+          if (p.schedule) { schedEl.textContent = p.schedule; schedEl.hidden = false; }
+          else schedEl.hidden = true;
+        }
+
+        var link = document.getElementById("pd-cta");
+        var closed = document.getElementById("pd-cta-closed");
+        if (p.registration && closed) {
+          // Live says open but the page was baked closed - restore the CTA.
+          var a = document.createElement("a");
+          a.className = "btn btn-primary btn-lg pd-cta";
+          a.id = "pd-cta";
+          a.href = closed.dataset.registerUrl || "/registration?program=" + slug;
+          a.textContent = (closed.dataset.registerLabel || "Register") + " →";
+          closed.replaceWith(a);
+        } else if (!p.registration && link) {
+          link.replaceWith(closedBox("Registration closed"));
+        }
+      }).catch(bakedFallback);
     })();
   </script>
 </BaseLayout>
